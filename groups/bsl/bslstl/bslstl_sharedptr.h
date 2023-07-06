@@ -1085,14 +1085,14 @@ BSLS_IDENT("$Id$ $CSID$")
 //  class my_MutexUnlockAndBroadcastDeleter {
 //
 //      // DATA
-//      bcemt_Mutex     *d_mutex_p;  // mutex to lock (held, not owned)
-//      bcemt_Condition *d_cond_p;   // condition variable used to broadcast
-//                                   // (held, not owned)
+//      bslmt::Mutex     *d_mutex_p;  // mutex to lock (held, not owned)
+//      bslmt::Condition *d_cond_p;   // condition variable used to broadcast
+//                                    // (held, not owned)
 //
 //    public:
 //      // CREATORS
-//      my_MutexUnlockAndBroadcastDeleter(bcemt_Mutex     *mutex,
-//                                        bcemt_Condition *cond)
+//      my_MutexUnlockAndBroadcastDeleter(bslmt::Mutex     *mutex,
+//                                        bslmt::Condition *cond)
 //          // Create this 'my_MutexUnlockAndBroadcastDeleter' object.  Use
 //          // the specified 'cond' to broadcast a signal and the specified
 //          // 'mutex' to serialize access to 'cond'.  The behavior is
@@ -1138,8 +1138,8 @@ BSLS_IDENT("$Id$ $CSID$")
 //  class my_SafeQueue {
 //
 //      // DATA
-//      bcemt_Mutex      d_mutex;
-//      bcemt_Condition  d_cond;
+//      bslmt::Mutex             d_mutex;
+//      bslmt::Condition         d_cond;
 //      bsl::deque<ELEMENT_TYPE> d_queue;
 //
 //      // . . .
@@ -1156,7 +1156,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //  template <class ELEMENT_TYPE>
 //  void my_SafeQueue<ELEMENT_TYPE>::push(const ELEMENT_TYPE& obj)
 //  {
-//      bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+//      bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //      d_queue.push_back(obj);
 //      d_cond.signal();
 //  }
@@ -1164,7 +1164,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //  template <class ELEMENT_TYPE>
 //  ELEMENT_TYPE my_SafeQueue<ELEMENT_TYPE>::pop()
 //  {
-//      bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+//      bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //      while (!d_queue.size()) {
 //         d_cond.wait(&d_mutex);
 //      }
@@ -1215,7 +1215,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //      typedef bsl::map<int, shared_ptr<my_Session> > HandleMap;
 //
 //      // DATA
-//      bcemt_Mutex       d_mutex;
+//      bslmt::Mutex      d_mutex;
 //      HandleMap         d_handles;
 //      int               d_nextSessionId;
 //      bslma::Allocator *d_allocator_p;
@@ -1302,7 +1302,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //  my_SessionManager::my_Handle
 //  my_SessionManager::openSession(const bsl::string& sessionName)
 //  {
-//      bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+//      bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //      my_Handle session(new (*d_allocator_p) my_Session(sessionName,
 //                                                        d_nextSessionId++,
 //                                                        d_allocator_p));
@@ -1313,7 +1313,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //  inline
 //  void my_SessionManager::closeSession(my_Handle handle)
 //  {
-//      bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+//      bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //      HandleMap::iterator it = d_handles.find(handle->handleId());
 //      if (it != d_handles.end()) {
 //          d_handles.erase(it);
@@ -1346,7 +1346,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //      typedef bsl::map<int, shared_ptr<void> > HandleMap;
 //
 //      // DATA
-//      bcemt_Mutex       d_mutex;
+//      bslmt::Mutex      d_mutex;
 //      HandleMap         d_handles;
 //      int               d_nextSessionId;
 //      bslma::Allocator *d_allocator_p;
@@ -1383,7 +1383,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //  my_SessionManager::my_Handle
 //  my_SessionManager::openSession(const bsl::string& sessionName)
 //  {
-//      bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+//      bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //..
 // Notice that 'my_Handle', which is a shared pointer to 'void', can be
 // transparently assigned to a shared pointer to a 'my_Session' object.  This
@@ -1402,7 +1402,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //  inline
 //  void my_SessionManager::closeSession(my_Handle handle)
 //  {
-//      bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+//      bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //..
 // Perform a static cast from 'shared_ptr<void>' to 'shared_ptr<my_Session>'.
 //..
@@ -1436,11 +1436,15 @@ BSLS_IDENT("$Id$ $CSID$")
 
 #include <bslscm_version.h>
 
+#include <bslstl_compare.h>
 #include <bslstl_hash.h>
 #include <bslstl_pair.h>
 #include <bslstl_referencewrapper.h>
 #include <bslstl_sharedptrallocateinplacerep.h>
 #include <bslstl_sharedptrallocateoutofplacerep.h>
+
+#include <bslalg_arraydestructionprimitives.h>
+#include <bslalg_arrayprimitives.h>
 
 #include <bslma_allocator.h>
 #include <bslma_allocatortraits.h>
@@ -1464,6 +1468,7 @@ BSLS_IDENT("$Id$ $CSID$")
 #include <bslmf_ispointer.h>
 #include <bslmf_movableref.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bslmf_removeextent.h>
 #include <bslmf_util.h>
 
 #include <bsls_assert.h>
@@ -1483,6 +1488,10 @@ BSLS_IDENT("$Id$ $CSID$")
 #include <ostream>              // 'std::basic_ostream'
 
 #include <stddef.h>             // 'size_t', 'ptrdiff_t'
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+#include <type_traits>          // std::extent
+#endif
 
 #ifndef BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
 #include <bsls_nativestd.h>
@@ -1538,21 +1547,6 @@ BSLS_IDENT("$Id$ $CSID$")
 // "expression-SFINAE", to the extent that it works for this component, unlike
 // earlier versions of that compiler.  We therefore make a special version-test
 // on Microsoft in addition to the feature testing.
-#endif
-
-# if defined(BSLS_PLATFORM_CMP_GNU)
-# define BSLSTL_SHAREDPTR_NO_PARTIAL_ORDER_ON_ALLOCATOR_POINTER 1
-// If the macro 'BSLSTL_SHAREDPTR_NO_PARTIAL_ORDER_ON_ALLOCATOR_POINTER' is
-// defined, we recognize that some compilers need an extra hint to disambiguate
-// overload resolution when passed a 'bslma::Allocator *' pointer, that might
-// also deduce (incorrectly) as a C++11-style allocator.  Gcc is known to have
-// this problem, and was tested as recently as gcc 9. This compiler has a
-// problem partially ordering function templates that differ only by the first
-// argument deducing as any object type ('T'), or deducing as the a pointer to
-// something ('T*').  The rules for partial ordering should make the second
-// overload a stronger match when passed a pointer; however, this compiler
-// complains about ambiguities when additional parameters are involved.  This
-// appears to be fixed in gcc 10.
 #endif
 
 #if defined(BSLSTL_SHAREDPTR_SUPPORTS_SFINAE_CHECKS)
@@ -1876,7 +1870,7 @@ class shared_ptr {
         //  shared_ptr(CONVERTIBLE_TYPE *ptr, DELETER * deleter);
         //..
 
-    shared_ptr(ELEMENT_TYPE *ptr, BloombergLP::bslma::SharedPtrRep *rep);
+    shared_ptr(element_type *ptr, BloombergLP::bslma::SharedPtrRep *rep);
         // Create a shared pointer that takes ownership of the specified 'rep'
         // and refers to the modifiable object at the specified 'ptr' address.
         // The number of references to 'rep' is *NOT* incremented.  Note that
@@ -2999,6 +2993,18 @@ bool operator==(const shared_ptr<LHS_TYPE>& lhs,
     // pointers that compare equal do not necessarily manage the same object
     // due to aliasing.
 
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
+template<class LHS_TYPE, class RHS_TYPE>
+strong_ordering operator<=>(const shared_ptr<LHS_TYPE>& lhs,
+                            const shared_ptr<RHS_TYPE>& rhs)
+                                                         BSLS_KEYWORD_NOEXCEPT;
+    // Perform a three-way comparison of the specified 'lhs' and the specified
+    // 'rhs' pointers by using the comparison operators of 'LHS_TYPE *' and
+    // 'RHS_TYPE *'; return the result of that comparison.
+
+#else
+
 template <class LHS_TYPE, class RHS_TYPE>
 bool operator!=(const shared_ptr<LHS_TYPE>& lhs,
                 const shared_ptr<RHS_TYPE>& rhs) BSLS_KEYWORD_NOEXCEPT;
@@ -3048,11 +3054,24 @@ bool operator>=(const shared_ptr<LHS_TYPE>& lhs,
     // by 'std::less<T *>', where 'T *' is the composite pointer type of
     // 'LHS_TYPE *' and 'RHS_TYPE *', and 'false' otherwise.
 
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
 template <class LHS_TYPE>
 bool operator==(const shared_ptr<LHS_TYPE>& lhs,
                 nullptr_t) BSLS_KEYWORD_NOEXCEPT;
     // Return 'true' if the specified 'lhs' shared pointer does not refer to an
     // object, and 'false' otherwise.
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
+template<class TYPE>
+strong_ordering operator<=>(const shared_ptr<TYPE>& ptr,
+                            nullptr_t) BSLS_KEYWORD_NOEXCEPT;
+    // Perform a three-way comparison of the specified 'ptr' and null pointer
+    // by using the comparison operators of 'TYPE *'; return the result of that
+    // comparison.
+
+#else
 
 template <class RHS_TYPE>
 bool operator==(nullptr_t,
@@ -3136,6 +3155,8 @@ bool operator>=(nullptr_t,
     // before the null-pointer value under the total ordering supplied by
     // 'std::less<RHS_TYPE *>', and 'false' otherwise.
 
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
 template<class CHAR_TYPE, class CHAR_TRAITS, class ELEMENT_TYPE>
 std::basic_ostream<CHAR_TYPE, CHAR_TRAITS>&
 operator<<(std::basic_ostream<CHAR_TYPE, CHAR_TRAITS>& stream,
@@ -3209,17 +3230,14 @@ shared_ptr<TO_TYPE> reinterpret_pointer_cast(
 
 
 // STANDARD FACTORY FUNCTIONS
+                     // ===========================
+                     // allocate_shared(ALLOC, ...)
+                     // ===========================
+
 #if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
 template<class ELEMENT_TYPE, class ALLOC, class... ARGS>
-# if defined(BSLSTL_SHAREDPTR_NO_PARTIAL_ORDER_ON_ALLOCATOR_POINTER)
-    // work-around for gcc variadic template bug - confirm not fixed by gcc 9
-typename enable_if<!is_pointer<ALLOC>::value && !is_array<ELEMENT_TYPE>::value,
+typename enable_if<!is_array<ELEMENT_TYPE>::value && !is_pointer<ALLOC>::value,
                    shared_ptr<ELEMENT_TYPE> >::type
-# else
-typename enable_if<!is_array<ELEMENT_TYPE>::value,
-                   shared_ptr<ELEMENT_TYPE> >::type
-// shared_ptr<ELEMENT_TYPE>
-# endif
 allocate_shared(ALLOC basicAllocator, ARGS&&... args);
     // Return a 'shared_ptr' object referring to and managing a new
     // 'ELEMENT_TYPE' object.  The specified 'basicAllocator' will be used to
@@ -3230,9 +3248,107 @@ allocate_shared(ALLOC basicAllocator, ARGS&&... args);
     // new shared object, and the specified arguments
     // 'std::forward<ARGS>(args)...'.
 
+#endif
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value &&
+                                                     !is_pointer<ALLOC>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(ALLOC basicAllocator);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' object, and each element in the
+    // array is default constructed.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value &&
+                                                     !is_pointer<ALLOC>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(ALLOC                                           basicAllocator,
+                const typename remove_extent<ARRAY_TYPE>::type& value);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' object, and each element in the
+    // array is constructed from the specified 'value'.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value &&
+                                                     !is_pointer<ALLOC>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(ALLOC basicAllocator, size_t numElements);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and each element in the array is
+    // default constructed.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value &&
+                                                     !is_pointer<ALLOC>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(ALLOC                                           basicAllocator,
+                size_t                                          numElements,
+                const typename remove_extent<ARRAY_TYPE>::type& value);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and each element in the array is
+    // constructed from the specified 'value'.
+
+              // =========================================
+              // allocate_shared_for_overwrite(ALLOC, ...)
+              // =========================================
+
+template<class ELEMENT_TYPE, class ALLOC>
+typename enable_if<!is_array<ELEMENT_TYPE>::value && !is_pointer<ALLOC>::value,
+                   shared_ptr<ELEMENT_TYPE> >::type
+allocate_shared_for_overwrite(ALLOC basicAllocator);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ELEMENT_TYPE' object.  The specified 'basicAllocator' will be used to
+    // supply a single contiguous region of memory holding the returned shared
+    // pointer's internal representation and the new 'ELEMENT_TYPE' object,
+    // which is default-constructed.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value &&
+                                                     !is_pointer<ALLOC>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+allocate_shared_for_overwrite(ALLOC basicAllocator);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' object, and the array is
+    // default-constructed.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value &&
+                                                     !is_pointer<ALLOC>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+allocate_shared_for_overwrite(ALLOC basicAllocator, size_t numElements);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and the array is default-constructed.
+
+                    // =============================
+                    // allocate_shared(ALLOC *, ...)
+                    // =============================
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
 template<class ELEMENT_TYPE, class ALLOC, class... ARGS>
 typename enable_if<!is_array<ELEMENT_TYPE>::value,
-                   shared_ptr<ELEMENT_TYPE> >::type
+                    shared_ptr<ELEMENT_TYPE> >::type
 allocate_shared(ALLOC *basicAllocator, ARGS&&... args);
     // Return a 'shared_ptr' object referring to and managing a new
     // 'ELEMENT_TYPE' object.  The specified 'basicAllocator' will be used to
@@ -3244,10 +3360,111 @@ allocate_shared(ALLOC *basicAllocator, ARGS&&... args);
     // argument in the final position.  If 'basicAllocator' is 0, then the
     // default allocator will be used instead, and passed as the allocator,
     // when appropriate, to the 'ELEMENT_TYPE' constructor.
+#endif
 
-template<class ELEMENT_TYPE, class... ARGS>
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value,
+                    shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(ALLOC *basicAllocator);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' object, and each element in the
+    // array is default constructed.  If 'basicAllocator' is 0, then the
+    // default allocator will be used instead.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value,
+                    shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(
+               ALLOC                                           *basicAllocator,
+               const typename remove_extent<ARRAY_TYPE>::type&  value);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and  the new 'ARRAY_TYPE' object, and each element in the
+    // array is constructed from the specified 'value'.  If 'basicAllocator'
+    // is 0, then the default allocator will be used instead.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
+                    shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(ALLOC *basicAllocator, size_t numElements);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and each element in the array is
+    // default constructed.  If 'basicAllocator' is 0, then the default
+    // allocator will be used instead.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
+                    shared_ptr<ARRAY_TYPE> >::type
+allocate_shared(
+               ALLOC                                           *basicAllocator,
+               size_t                                           numElements,
+               const typename remove_extent<ARRAY_TYPE>::type&  value);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and each element in the array is
+    // constructed from the specified 'value'.  If 'basicAllocator' is 0, then
+    // the default allocator will be used instead.
+
+             // ===========================================
+             // allocate_shared_for_overwrite(ALLOC *, ...)
+             // ===========================================
+
+template<class ELEMENT_TYPE, class ALLOC>
 typename enable_if<!is_array<ELEMENT_TYPE>::value,
-                   shared_ptr<ELEMENT_TYPE> >::type
+                    shared_ptr<ELEMENT_TYPE> >::type
+allocate_shared_for_overwrite(ALLOC *basicAllocator);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ELEMENT_TYPE' object.  The specified 'basicAllocator' will be used to
+    // supply a single contiguous region of memory holding the returned shared
+    // pointer's internal representation and the new 'ELEMENT_TYPE' object,
+    // which is default-constructed.  If 'basicAllocator' is 0, then the
+    // default allocator will be used instead.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value,
+                    shared_ptr<ARRAY_TYPE> >::type
+allocate_shared_for_overwrite(ALLOC *basicAllocator);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' object, and the array is
+    // default-constructed.  If 'basicAllocator' is 0, then the default
+    // allocator will be used instead.
+
+template<class ARRAY_TYPE, class ALLOC>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
+                    shared_ptr<ARRAY_TYPE> >::type
+allocate_shared_for_overwrite(ALLOC *basicAllocator, size_t numElements);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and the array is default-constructed.
+    //  If 'basicAllocator' is 0, then the default allocator will be used
+    // instead.
+
+                         // ================
+                         // make_shared(...)
+                         // ================
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
+template<class ELEMENT_TYPE, class... ARGS>
+typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value,
+                         bsl::shared_ptr<ELEMENT_TYPE> >::type
 make_shared(ARGS&&... args);
     // Return a 'shared_ptr' object referring to and managing a new
     // 'ELEMENT_TYPE' object.  The default allocator will be used to supply a
@@ -3258,6 +3475,89 @@ make_shared(ARGS&&... args);
     // uses 'bslma' allocators, then the default allocator is passed as an
     // extra argument in the final position.
 #endif
+
+template<class ARRAY_TYPE>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+make_shared();
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The default
+    // allocator will be used to supply a single contiguous region of memory
+    // holding the returned shared pointer's internal representation and the
+    // new 'ARRAY_TYPE' object, and each element in the array is default
+    // constructed.
+
+template<class ARRAY_TYPE>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+make_shared(const typename remove_extent<ARRAY_TYPE>::type& value);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The default
+    // allocator will be used to supply a single contiguous region of memory
+    // holding the returned shared pointer's internal representation and the
+    // new 'ARRAY_TYPE' object, and each element in the array is constructed
+    // from the specified 'value'.
+
+// unbounded array overloads
+template<class ARRAY_TYPE>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+make_shared(size_t numElements);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and each element in the array is
+    // default constructed.
+
+template<class ARRAY_TYPE>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+make_shared(size_t                                          numElements,
+            const typename remove_extent<ARRAY_TYPE>::type& value);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and each element in the array is
+    // constructed from the specified 'value'.
+
+                   // ==============================
+                   // make_shared_for_overwrite(...)
+                   // ==============================
+
+template<class ELEMENT_TYPE>
+typename enable_if<!is_array<ELEMENT_TYPE>::value,
+                    shared_ptr<ELEMENT_TYPE> >::type
+make_shared_for_overwrite();
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ELEMENT_TYPE' object.  The default allocator will be used to supply a
+    // single contiguous region of memory holding the returned shared pointer's
+    // internal representation and the new 'ELEMENT_TYPE' object, which is
+    // default-constructed.
+
+template<class ARRAY_TYPE>
+typename enable_if<is_bounded_array<ARRAY_TYPE>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+make_shared_for_overwrite();
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a bounded array.  The default
+    // allocator will be used to supply a single contiguous region of memory
+    // holding the returned shared pointer's internal representation and the
+    // new 'ARRAY_TYPE' object, and the array is default-constructed.
+
+template<class ARRAY_TYPE>
+typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
+                   shared_ptr<ARRAY_TYPE> >::type
+make_shared_for_overwrite(size_t numElements);
+    // Return a 'shared_ptr' object referring to and managing a new
+    // 'ARRAY_TYPE' object, where 'ARRAY_TYPE' is a unbounded array.  The
+    // specified 'basicAllocator' will be used to supply a single contiguous
+    // region of memory holding the returned shared pointer's internal
+    // representation and the new 'ARRAY_TYPE' containing the specified
+    // 'numElements' number of elements, and the array is default-constructed.
 
                         // ==============
                         // class weak_ptr
@@ -3756,6 +4056,30 @@ struct SharedPtr_ImpUtil {
     // specialization of 'enable_shared_from_this' as an unambiguous, publicly
     // accessible, base class.
 
+    // PUBLIC TYPES
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+    template <class TYPE, unsigned DIM = 0>
+    struct Extent : std::extent<TYPE, DIM> {};
+#else
+    template <class TYPE, unsigned DIM = 0>
+    struct Extent : public bsl::integral_constant<size_t, 0> {};
+
+    template <class TYPE>
+    struct Extent<TYPE[], 0> : public bsl::integral_constant<size_t, 0> {};
+
+    template <class TYPE, unsigned DIM>
+    struct Extent<TYPE[], DIM>
+        : public bsl::integral_constant<size_t, Extent<TYPE, DIM-1>::value> {};
+
+    template <class TYPE, size_t SIZE>
+    struct Extent<TYPE[SIZE], 0>
+                              : public bsl::integral_constant<size_t, SIZE> {};
+
+    template <class TYPE, size_t SIZE, unsigned DIM>
+    struct Extent<TYPE[SIZE], DIM>
+        : public bsl::integral_constant<size_t, Extent<TYPE, DIM-1>::value> {};
+#endif
+
     // CLASS METHODS
     template<class SHARED_TYPE, class ENABLE_TYPE>
     static void loadEnableSharedFromThis(
@@ -3847,6 +4171,19 @@ class SharedPtr_RepProctor {
 namespace BloombergLP {
 namespace bslstl {
 
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE) &&                        \
+    defined(BSLS_PLATFORM_CMP_MSVC) &&                                        \
+    BSLS_PLATFORM_CMP_VERSION >= 1936 && BSLS_PLATFORM_CMP_VERSION <= 1937
+// Microsoft needs a workaround to correctly handle calling 'sizeof' on an
+// unevaluated expression.  This compiler bug was introduced in Visual Studio
+// 2022 version 17.6 (cl 19.36, released May 2022).  The report to Microsoft is
+// https://developercommunity.visualstudio.com/t/C-templates:-new-compiler-error-in-MSV/10381900
+
+# define BSLSTL_SHAREDPTR_MSVC_DECLTYPE_WORKAROUND(...) decltype(__VA_ARGS__)
+#else
+# define BSLSTL_SHAREDPTR_MSVC_DECLTYPE_WORKAROUND(...) (__VA_ARGS__)
+#endif
+
 template <class FUNCTOR>
 struct SharedPtr_TestIsCallable {
   private:
@@ -3871,21 +4208,25 @@ struct SharedPtr_TestIsCallable {
     static FalseType test(...);
     template <class ARG>
     static TrueType
-    test(typename bsl::enable_if<static_cast<bool>(
-                    sizeof(BSLSTL_SHAREDPTR_SFINAE_DISCARD(
+    test(typename bsl::enable_if<
+             static_cast<bool>(
+                 sizeof(BSLSTL_SHAREDPTR_MSVC_DECLTYPE_WORKAROUND(
+                     BSLSTL_SHAREDPTR_SFINAE_DISCARD(
                                Util::declval<FUNCTOR>()(Util::declval<ARG>())),
-                           0))>::type *);
+                     0)))>::type *);
         // This function is never defined.  It provides a property-checker that
         // an entity of (template parameter) type 'FACTORY' can be called like
         // a function with a single argument, which is a pointer to an object
-        // of (template parameter) type 'ARG'.  The 'sizeof' expression
+        // of (template parameter) type 'ARG'.  The 'sizeof()' expression
         // provides an unevaluated context to check the validity of the
         // enclosed expression, and the ', 0' ensures that the 'sizeof' check
         // remains valid, even if the expression returns 'void'.  Similarly,
         // the cast to 'void' ensures that there are no surprises with types
         // that overload the comma operator.  Note that the cast to 'void' is
-        // elided for Clang compilers using versions of LLVM prior to 12, which
-        // fail to evaluate the trait properly.
+        // elided for Clang compilers using versions of LLVM prior to
+        // 12, which fail to evaluate the trait properly.  Note that
+        // 'sizeof(decltype())' is required for MSVC due to a compiler bug in
+        // MSVC 17.6 and later (at least including 17.7.0 Preview 2.0).
 };
 
 #if defined(BSLS_PLATFORM_CMP_MSVC) && BSLS_PLATFORM_CMP_VERSION < 1920
@@ -4285,8 +4626,9 @@ shared_ptr<ELEMENT_TYPE>::shared_ptr(
 
 template <class ELEMENT_TYPE>
 inline
-shared_ptr<ELEMENT_TYPE>::shared_ptr(ELEMENT_TYPE                     *ptr,
-                                     BloombergLP::bslma::SharedPtrRep *rep)
+shared_ptr<ELEMENT_TYPE>::shared_ptr(
+                          typename shared_ptr<ELEMENT_TYPE>::element_type *ptr,
+                          BloombergLP::bslma::SharedPtrRep                *rep)
 : d_ptr_p(ptr)
 , d_rep_p(rep)
 {
@@ -4931,7 +5273,7 @@ shared_ptr<ELEMENT_TYPE>::createInplace()
 }
 
 #if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
-template <class ELEMENT_TYPE>
+template <class    ELEMENT_TYPE>
 template <class... ARGS>
 void
 shared_ptr<ELEMENT_TYPE>::createInplace(
@@ -5014,12 +5356,12 @@ shared_ptr<ELEMENT_TYPE>::load(COMPATIBLE_TYPE               *ptr,
 // ACCESSORS
 template <class ELEMENT_TYPE>
 inline
-# if defined(BSLS_PLATFORM_CMP_IBM)     // Last tested with xlC 12.1
+#if defined(BSLS_PLATFORM_CMP_IBM)     // Last tested with xlC 12.1
 shared_ptr<ELEMENT_TYPE>::operator typename shared_ptr::BoolType() const
                                                           BSLS_KEYWORD_NOEXCEPT
-# else
+#else
 shared_ptr<ELEMENT_TYPE>::operator BoolType() const BSLS_KEYWORD_NOEXCEPT
-# endif
+#endif
 {
     return BloombergLP::bsls::UnspecifiedBool<shared_ptr>::makeValue(d_ptr_p);
 }
@@ -5645,6 +5987,21 @@ bool bsl::operator==(const shared_ptr<LHS_TYPE>& lhs,
     return lhs.get() == rhs.get();
 }
 
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
+template<class LHS_TYPE, class RHS_TYPE>
+inline
+bsl::strong_ordering bsl::operator<=>(const shared_ptr<LHS_TYPE>& lhs,
+                                      const shared_ptr<RHS_TYPE>& rhs)
+                                                          BSLS_KEYWORD_NOEXCEPT
+{
+    const void *p1 = lhs.get(),
+               *p2 = rhs.get();
+    return p1 <=> p2;
+}
+
+#else
+
 template <class LHS_TYPE, class RHS_TYPE>
 inline
 bool bsl::operator!=(const shared_ptr<LHS_TYPE>& lhs,
@@ -5685,6 +6042,8 @@ bool bsl::operator>=(const shared_ptr<LHS_TYPE>& lhs,
     return !(lhs < rhs);
 }
 
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
 template <class LHS_TYPE>
 inline
 bool bsl::operator==(const shared_ptr<LHS_TYPE>& lhs, bsl::nullptr_t)
@@ -5692,6 +6051,19 @@ bool bsl::operator==(const shared_ptr<LHS_TYPE>& lhs, bsl::nullptr_t)
 {
     return !lhs;
 }
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
+template<class TYPE>
+inline
+bsl::strong_ordering bsl::operator<=>(const shared_ptr<TYPE>& ptr,
+                                      nullptr_t) BSLS_KEYWORD_NOEXCEPT
+{
+    const typename shared_ptr<TYPE>::element_type *null = nullptr;
+    return ptr.get() <=> null;
+}
+
+#else
 
 template <class RHS_TYPE>
 inline
@@ -5781,6 +6153,8 @@ bool bsl::operator>=(bsl::nullptr_t, const shared_ptr<RHS_TYPE>& rhs)
     return !std::less<RHS_TYPE *>()(0, rhs.get());
 }
 
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
 template <class CHAR_TYPE, class CHAR_TRAITS, class ELEMENT_TYPE>
 inline
 std::basic_ostream<CHAR_TYPE, CHAR_TRAITS>&
@@ -5867,19 +6241,18 @@ bsl::reinterpret_pointer_cast(const shared_ptr<FROM_TYPE>& source)
 }
 
 // STANDARD FACTORY FUNCTIONS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
 
+                     // ===========================
+                     // allocate_shared(ALLOC, ...)
+                     // ===========================
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
 // C++11, PERFECT FORWARDING THROUGH A VARIADIC TEMPLATE
 
 template<class ELEMENT_TYPE, class ALLOC, class... ARGS>
-# if defined(BSLSTL_SHAREDPTR_NO_PARTIAL_ORDER_ON_ALLOCATOR_POINTER)
-typename bsl::enable_if<!bsl::is_pointer<ALLOC>::value &&
-                                           !bsl::is_array<ELEMENT_TYPE>::value,
-                         bsl::shared_ptr<ELEMENT_TYPE> >::type
-# else
-typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value,
+typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
                         bsl::shared_ptr<ELEMENT_TYPE> >::type
-# endif
 bsl::allocate_shared(ALLOC basicAllocator, ARGS&&... args)
 {
     typedef BloombergLP::bslstl::SharedPtr_ImpUtil ImpUtil;
@@ -5896,12 +6269,202 @@ bsl::allocate_shared(ALLOC basicAllocator, ARGS&&... args)
     proctor.release();
     return shared_ptr<ELEMENT_TYPE>(rep_p->ptr(), rep_p);
 }
+#endif
 
+template<class ARRAY_TYPE, class ALLOC>                   // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
+                       bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(ALLOC basicAllocator)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef typename bsl::allocator_traits<ALLOC>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::
+                       SharedPtrArrayAllocateInplaceRep<ARRAY_TYPE, ALLOC> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::defaultConstruct(
+                                    static_cast<Element_type *> (rep_p->ptr()),
+                                    numElements,
+                                    ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                   // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(
+           ALLOC                                                basicAllocator,
+           const typename bsl::remove_extent<ARRAY_TYPE>::type& value)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef typename bsl::allocator_traits<ALLOC>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::
+                       SharedPtrArrayAllocateInplaceRep<ARRAY_TYPE, ALLOC> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::uninitializedFillN(
+                                    static_cast<Element_type *> (rep_p->ptr()),
+                                    numElements,
+                                    value,
+                                    ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                    // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(ALLOC basicAllocator, size_t numElements)
+{
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef typename bsl::allocator_traits<ALLOC>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::
+                       SharedPtrArrayAllocateInplaceRep<ARRAY_TYPE, ALLOC> Rep;
+
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::defaultConstruct(
+                                    static_cast<Element_type *> (rep_p->ptr()),
+                                    numElements,
+                                    ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                    // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(
+           ALLOC                                                basicAllocator,
+           size_t                                               numElements,
+           const typename bsl::remove_extent<ARRAY_TYPE>::type& value)
+{
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef typename bsl::allocator_traits<ALLOC>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::
+                       SharedPtrArrayAllocateInplaceRep<ARRAY_TYPE, ALLOC> Rep;
+
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::uninitializedFillN(
+                                    static_cast<Element_type *> (rep_p->ptr()),
+                                    numElements,
+                                    value,
+                                    ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+              // =========================================
+              // allocate_shared_for_overwrite(ALLOC, ...)
+              // =========================================
+
+template<class ELEMENT_TYPE, class ALLOC>
+inline
+typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
+                        bsl::shared_ptr<ELEMENT_TYPE> >::type
+bsl::allocate_shared_for_overwrite(ALLOC basicAllocator)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil ImpUtil;
+
+    typedef BloombergLP::bslstl::SharedPtrAllocateInplaceRep<ELEMENT_TYPE,
+                                                             ALLOC> Rep;
+    Rep *rep_p = Rep::makeRep(basicAllocator);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) ELEMENT_TYPE;
+    proctor.release();
+
+    return shared_ptr<ELEMENT_TYPE>(rep_p->ptr(), rep_p);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                   // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared_for_overwrite(ALLOC basicAllocator)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef BloombergLP::bslstl::
+                       SharedPtrArrayAllocateInplaceRep<ARRAY_TYPE, ALLOC> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) ARRAY_TYPE;
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                    // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value &&
+                                                !bsl::is_pointer<ALLOC>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared_for_overwrite(ALLOC basicAllocator, size_t numElements)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef BloombergLP::bslstl::
+                       SharedPtrArrayAllocateInplaceRep<ARRAY_TYPE, ALLOC> Rep;
+
+    Rep *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) Element_type[numElements];
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+                    // =============================
+                    // allocate_shared(ALLOC *, ...)
+                    // =============================
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
 template<class ELEMENT_TYPE, class ALLOC, class... ARGS>
 inline
 typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value,
-                        bsl::shared_ptr<ELEMENT_TYPE> >::type
-bsl::allocate_shared(ALLOC *basicAllocator, ARGS&&...  args)
+                         bsl::shared_ptr<ELEMENT_TYPE> >::type
+bsl::allocate_shared(ALLOC     *basicAllocator,
+                     ARGS&&...  args)
 {
     typedef BloombergLP::bslstl::SharedPtr_ImpUtil ImpUtil;
     typedef bsl::allocator<char>                   AllocatorType;
@@ -5920,13 +6483,202 @@ bsl::allocate_shared(ALLOC *basicAllocator, ARGS&&...  args)
     proctor.release();
     return shared_ptr<ELEMENT_TYPE>(rep_p->ptr(), rep_p);
 }
+#endif
 
+template<class ARRAY_TYPE, class ALLOC>                   // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value,
+                         bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(ALLOC *basicAllocator)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    AllocatorType  alloc(basicAllocator);
+    Rep           *rep_p = Rep::makeRep(alloc, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::defaultConstruct(rep_p->ptr(),
+                                                           numElements,
+                                                           basicAllocator);
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                   // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value,
+                         bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(
+          ALLOC                                                *basicAllocator,
+          const typename bsl::remove_extent<ARRAY_TYPE>::type&  value)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    AllocatorType  alloc(basicAllocator);
+    Rep           *rep_p = Rep::makeRep(alloc, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::uninitializedFillN(
+                                    static_cast<Element_type *> (rep_p->ptr()),
+                                    numElements,
+                                    value,
+                                    basicAllocator);
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                    // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value,
+                         bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(ALLOC *basicAllocator, size_t numElements)
+{
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+    AllocatorType  alloc(basicAllocator);
+    Rep           *rep_p = Rep::makeRep(alloc, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::defaultConstruct(rep_p->ptr(),
+                                                           numElements,
+                                                           basicAllocator);
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                    // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value,
+                         bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared(
+          ALLOC                                                *basicAllocator,
+          size_t                                                numElements,
+          const typename bsl::remove_extent<ARRAY_TYPE>::type&  value)
+{
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+    AllocatorType  alloc(basicAllocator);
+    Rep           *rep_p = Rep::makeRep(alloc, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::uninitializedFillN(
+                                    static_cast<Element_type *> (rep_p->ptr()),
+                                    numElements,
+                                    value,
+                                    basicAllocator);
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+             // ===========================================
+             // allocate_shared_for_overwrite(ALLOC *, ...)
+             // ===========================================
+
+template<class ELEMENT_TYPE, class ALLOC>
+inline
+typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value,
+                         bsl::shared_ptr<ELEMENT_TYPE> >::type
+bsl::allocate_shared_for_overwrite(ALLOC *basicAllocator)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil ImpUtil;
+    typedef bsl::allocator<char>                   AllocatorType;
+
+    typedef BloombergLP::bslstl::SharedPtrAllocateInplaceRep<
+                                                            ELEMENT_TYPE,
+                                                            AllocatorType> Rep;
+    AllocatorType  alloc(basicAllocator);
+    Rep           *rep_p = Rep::makeRep(alloc);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) ELEMENT_TYPE;
+    proctor.release();
+
+    return shared_ptr<ELEMENT_TYPE>(rep_p->ptr(), rep_p);
+}
+
+
+template<class ARRAY_TYPE, class ALLOC>                   // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared_for_overwrite(ALLOC *basicAllocator)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    AllocatorType  alloc(basicAllocator);
+    Rep           *rep_p = Rep::makeRep(alloc, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) ARRAY_TYPE;
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE, class ALLOC>                    // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::allocate_shared_for_overwrite(ALLOC *basicAllocator, size_t numElements)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+    AllocatorType  alloc(basicAllocator);
+    Rep           *rep_p = Rep::makeRep(alloc, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) Element_type[numElements];
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+                         // ================
+                         // make_shared(...)
+                         // ================
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
 // 'make_shared' using the default allocator
 
 template<class ELEMENT_TYPE, class... ARGS>
 inline
 typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value,
-                        bsl::shared_ptr<ELEMENT_TYPE> >::type
+                         bsl::shared_ptr<ELEMENT_TYPE> >::type
 bsl::make_shared(ARGS&&... args)
 {
     typedef BloombergLP::bslstl::SharedPtr_ImpUtil ImpUtil;
@@ -5947,6 +6699,203 @@ bsl::make_shared(ARGS&&... args)
     return shared_ptr<ELEMENT_TYPE>(rep_p->ptr(), rep_p);
 }
 #endif
+
+template<class ARRAY_TYPE>                                // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::make_shared()
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef typename bsl::allocator_traits<AllocatorType>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    AllocatorType  basicAllocator;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::defaultConstruct(
+                                         rep_p->ptr(),
+                                         numElements,
+                                         ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE>                                // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::make_shared(const typename bsl::remove_extent<ARRAY_TYPE>::type& value)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef typename bsl::allocator_traits<AllocatorType>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    AllocatorType  basicAllocator;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::uninitializedFillN(
+                                         rep_p->ptr(),
+                                         numElements,
+                                         value,
+                                         ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE>                                 // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::make_shared(size_t numElements)
+{
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef typename bsl::allocator_traits<AllocatorType>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    AllocatorType  basicAllocator;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::defaultConstruct(
+                                         rep_p->ptr(),
+                                         numElements,
+                                         ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE>                                 // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::make_shared(
+              size_t                                               numElements,
+              const typename bsl::remove_extent<ARRAY_TYPE>::type& value)
+{
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef typename bsl::allocator_traits<AllocatorType>::template
+              rebind_traits<Element_type>::allocator_type ElementAllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    AllocatorType  basicAllocator;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    BloombergLP::bslalg::ArrayPrimitives::uninitializedFillN(
+                                         rep_p->ptr(),
+                                         numElements,
+                                         value,
+                                         ElementAllocatorType(basicAllocator));
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+                   // ==============================
+                   // make_shared_for_overwrite(...)
+                   // ==============================
+
+template<class ELEMENT_TYPE>
+inline
+typename bsl::enable_if<!bsl::is_array<ELEMENT_TYPE>::value,
+                         bsl::shared_ptr<ELEMENT_TYPE> >::type
+bsl::make_shared_for_overwrite()
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil ImpUtil;
+    typedef bsl::allocator<char>                   AllocatorType;
+
+    typedef BloombergLP::bslstl::SharedPtrAllocateInplaceRep<
+                                                            ELEMENT_TYPE,
+                                                            AllocatorType> Rep;
+
+    AllocatorType  basicAllocator;
+    Rep           *rep_p = Rep::makeRep(basicAllocator);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) ELEMENT_TYPE;
+    proctor.release();
+
+    return shared_ptr<ELEMENT_TYPE>(rep_p->ptr(), rep_p);
+}
+
+template<class ARRAY_TYPE>                                // ARRAY_TYPE is T[N]
+inline
+typename bsl::enable_if<bsl::is_bounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::make_shared_for_overwrite()
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    const size_t   numElements = ImpUtil::Extent<ARRAY_TYPE>::value;
+    AllocatorType  basicAllocator;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) ARRAY_TYPE;
+
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
+
+template<class ARRAY_TYPE>                                 // ARRAY_TYPE is T[]
+inline
+typename bsl::enable_if<bsl::is_unbounded_array<ARRAY_TYPE>::value,
+                        bsl::shared_ptr<ARRAY_TYPE> >::type
+bsl::make_shared_for_overwrite(size_t numElements)
+{
+    typedef BloombergLP::bslstl::SharedPtr_ImpUtil        ImpUtil;
+    typedef typename bsl::remove_extent<ARRAY_TYPE>::type Element_type;
+    typedef bsl::allocator<char>                          AllocatorType;
+    typedef BloombergLP::bslstl::SharedPtrArrayAllocateInplaceRep<
+                                                            ARRAY_TYPE,
+                                                            AllocatorType> Rep;
+
+    AllocatorType  basicAllocator;
+    Rep           *rep_p = Rep::makeRep(basicAllocator, numElements);
+
+    BloombergLP::bslstl::SharedPtr_RepProctor proctor(rep_p);
+    ::new (ImpUtil::voidify(rep_p->ptr())) Element_type[numElements];
+
+    proctor.release();
+
+    BloombergLP::bslma::SharedPtrRep *upcastRep = rep_p;
+    return shared_ptr<ARRAY_TYPE>(rep_p->ptr(), upcastRep);
+}
 
 // ============================================================================
 //                              TYPE TRAITS
@@ -6011,6 +6960,8 @@ struct IsBitwiseMoveable< ::bsl::weak_ptr<ELEMENT_TYPE> >
 
 #undef BSLSTL_SHAREDPTR_DECLARE_IF_NULLPTR_DELETER
 #undef BSLSTL_SHAREDPTR_DEFINE_IF_NULLPTR_DELETER
+
+#undef BSLSTL_SHAREDPTR_MSVC_DECLTYPE_WORKAROUND
 
 #undef BSLSTL_SHAREDPTR_SFINAE_DISCARD
 

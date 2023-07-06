@@ -2,8 +2,6 @@
 #define BSLSTL_LIST_0T_AS_INCLUDE
 #include <bslstl_list.0.t.cpp>
 
-#include <bslstl_vector.h>
-
 // ============================================================================
 //                             TEST PLAN
 // ----------------------------------------------------------------------------
@@ -214,6 +212,9 @@ struct TestDriver2 : TestSupport<TYPE, ALLOC> {
 
     static void testCase36_erase();
         // Test free functions 'erase' and 'erase_if'
+
+    static void test38_isRange();
+        // Test whether 'list' is a C++20 range.
 };
 
                   // ==================================
@@ -248,6 +249,20 @@ struct EqPred
                                  // ----------
                                  // TEST CASES
                                  // ----------
+
+template <class TYPE, class ALLOC>
+void TestDriver2<TYPE, ALLOC>::test38_isRange()
+{
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
+    BSLMF_ASSERT((std::ranges::common_range<Obj>));
+    BSLMF_ASSERT((std::ranges::bidirectional_range<Obj>));
+    BSLMF_ASSERT((std::ranges::sized_range<Obj>));
+    BSLMF_ASSERT((std::ranges::viewable_range<Obj>));
+
+    BSLMF_ASSERT((!std::ranges::view<Obj>));
+    BSLMF_ASSERT((!std::ranges::borrowed_range<Obj>));
+#endif
+}
 
 template <class TYPE, class ALLOC>
 void TestDriver2<TYPE, ALLOC>::testCase36_erase()
@@ -8008,15 +8023,13 @@ struct TestDeductionGuides {
                      // ==================================
 
 class IncompleteTypeSupportChecker {
-    // This class is intended to test the support of incomplete types by public
-    // methods of 'bsl::list'.  The interface completely copies the existing
+    // This class tests that 'bsl::list' can be instantiated using an
+    // incomplete type and that methods within that incomplete type can
+    // reference such a 'list'.  The interface completely copies the existing
     // 'bsl::list' interface and the only purpose of the functions is to call
     // the corresponding methods of the list parameterized by the incomplete
-    // type.  Therefore function-level documentation differs from that
-    // described in the standard.  To preserve type incompleteness we have to
-    // implement all public methods inline.  Each method increases its own
-    // invocation counter so we can make sure that each method is compiled and
-    // called.
+    // type.  Each method increases its own invocation counter so we can make
+    // sure that each method is compiled and called.
 
     // PRIVATE TYPES
     typedef BloombergLP::bslmf::MovableRefUtil                      MoveUtil;
@@ -8038,12 +8051,9 @@ class IncompleteTypeSupportChecker {
 
   private:
     // CLASS DATA
-    static const int        s_numFunctions;          // number of public
-                                                     // methods
-
-    static bsl::vector<int> s_functionCallCounters;  // counters storing the
-                                                     // number of each function
-                                                     // calls
+    static int const s_numFunctions;            // number of public methods
+    static int       s_functionCallCounters[];  // number of times each
+                                                // public method is called
 
     // DATA
     ListType d_list;  // underlying list parameterized with incomplete type
@@ -8092,20 +8102,25 @@ class IncompleteTypeSupportChecker {
         s_functionCallCounters[3]++;
     }
 
-    IncompleteTypeSupportChecker(size_type         numElements,
-                                 const value_type& value)
-        // Call 'bsl::list' constructor passing the specified 'numElements' and
-        // 'value' as parameters.
-    : d_list(numElements, value)
+    IncompleteTypeSupportChecker(size_type             numElements,
+                                 const value_type&     value,
+                                 const allocator_type& basicAllocator
+                                                            = allocator_type())
+        // Call 'bsl::list' constructor passing the specified 'numElements',
+        // 'value', and 'basicAllocator' as parameters.
+    : d_list(numElements, value, basicAllocator)
     {
         s_functionCallCounters[4]++;
     }
 
     template <class INPUT_ITERATOR>
-    IncompleteTypeSupportChecker(INPUT_ITERATOR first, INPUT_ITERATOR last)
-        // Call 'bsl::list' constructor passing the specified 'first' and
-        // 'last' as parameters.
-    : d_list(first, last)
+    IncompleteTypeSupportChecker(INPUT_ITERATOR        first,
+                                 INPUT_ITERATOR        last,
+                                 const allocator_type& basicAllocator
+                                                            = allocator_type())
+        // Call 'bsl::list' constructor passing the specified 'first',
+        // 'last', and 'basicAllocator' as parameters.
+    : d_list(first, last, basicAllocator)
     {
         s_functionCallCounters[5]++;
     }
@@ -8148,11 +8163,12 @@ class IncompleteTypeSupportChecker {
     }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS)
-    explicit IncompleteTypeSupportChecker(
-                                      std::initializer_list<value_type> values)
-        // Call 'bsl::list' constructor passing the specified 'values' as a
-        // parameter.
-    : d_list(values)
+    IncompleteTypeSupportChecker(
+           std::initializer_list<value_type> values,
+           const allocator_type&             basicAllocator = allocator_type())
+        // Call 'bsl::list' constructor passing the specified 'values' and
+        // 'basicAllocator as parameters.
+    : d_list(values, basicAllocator)
     {
         s_functionCallCounters[10]++;
     }
@@ -8811,15 +8827,15 @@ class IncompleteTypeEqualityPredicate {
                   // class IncompleteTypeSupportChecker
                   // ----------------------------------
 // CLASS DATA
-const int        IncompleteTypeSupportChecker::s_numFunctions = 75;
-bsl::vector<int> IncompleteTypeSupportChecker::s_functionCallCounters(
-                                                                s_numFunctions,
-                                                                0);
+const int IncompleteTypeSupportChecker::s_numFunctions = 75;
+int       IncompleteTypeSupportChecker::s_functionCallCounters[s_numFunctions]
+                                                                         = { };
+
 
 // CLASS METHODS
 void IncompleteTypeSupportChecker::checkInvokedFunctions()
 {
-    for (std::size_t i = 0; i < s_functionCallCounters.size(); ++i) {
+    for (std::size_t i = 0; i < s_numFunctions; ++i) {
         const size_t INDEX = i;
         ASSERTV(INDEX, 0 < s_functionCallCounters[INDEX]);
     }
@@ -8833,7 +8849,9 @@ void IncompleteTypeSupportChecker::increaseFunctionCallCounter(
 
 void IncompleteTypeSupportChecker::resetFunctionCallCounters()
 {
-    s_functionCallCounters.assign(s_numFunctions, 0);
+    for (std::size_t i = 0; i < s_numFunctions; ++i) {
+        s_functionCallCounters[i] = 0;
+    }
 }
 
 // ACCESSORS
@@ -8908,6 +8926,37 @@ int main(int argc, char *argv[])
     printf("TEST " __FILE__ " CASE %d\n", test);
 
     switch (test) { case 0:  // Zero is always the leading case.
+      case 38: {
+        // --------------------------------------------------------------------
+        // CONCERN: 'list' IS A C++20 RANGE
+        //
+        // Concerns:
+        //: 1 'list' models 'ranges::common_range' concept.
+        //:
+        //: 2 'list' models 'ranges::bidirectional_range' concept.
+        //:
+        //: 3 'list' models 'ranges::sized_range' concept.
+        //:
+        //: 4 'list' models 'ranges::viewable_range' concept.
+        //:
+        //: 5 'list' doesn't model 'ranges::view' concept.
+        //:
+        //: 6 'list' doesn't model 'ranges::borrowed_range' concept.
+        //
+        // Plan:
+        //: 1 'static_assert' every above-mentioned concept for different 'T'.
+        //
+        // Testing:
+        //   CONCERN: 'list' IS A C++20 RANGE
+        // --------------------------------------------------------------------
+
+        if (verbose) printf("\nCONCERN: 'list' IS A C++20 RANGE"
+                            "\n================================\n");
+
+        RUN_EACH_TYPE(TestDriver2,
+                      test38_isRange,
+                      BSLTF_TEMPLATETESTFACILITY_TEST_TYPES_ALL);
+      } break;
       case 37: {
         // --------------------------------------------------------------------
         // TESTING INCOMPLETE TYPE SUPPORT
@@ -8980,10 +9029,10 @@ int main(int argc, char *argv[])
         }
 
         {
-            bsl::vector<IncompleteTypeSupportChecker> source(initialSize);
-            IncompleteTypeSupportChecker              mIT(source.begin(),
-                                                          source.end());
-            const IncompleteTypeSupportChecker&       IT = mIT;            // 5
+            IncompleteTypeSupportChecker        source[initialSize];
+            IncompleteTypeSupportChecker        mIT(source,
+                                                    source + initialSize);
+            const IncompleteTypeSupportChecker& IT = mIT;                  // 5
 
             ASSERT(initialSize == IT.size());
         }
@@ -9043,7 +9092,7 @@ int main(int argc, char *argv[])
             const IncompleteTypeSupportChecker         source0;
             const IncompleteTypeSupportChecker         source1(initialSize);
             IncompleteTypeSupportChecker               source2;
-            bsl::vector<IncompleteTypeSupportChecker>  source3(initialSize);
+            IncompleteTypeSupportChecker               source3[initialSize];
             IncompleteTypeSupportChecker               source4;
             IncompleteTypeSupportChecker               source5;
             IncompleteTypeSupportChecker               source6;
@@ -9083,7 +9132,7 @@ int main(int argc, char *argv[])
             IncompleteTypeSupportChecker::increaseFunctionCallCounter(14);
 #endif
 
-            mIT.assign(source3.begin(), source3.end());                   // 15
+            mIT.assign(source3, source3 + initialSize);                   // 15
 
             ASSERT(initialSize == IT.size());
 
@@ -9099,7 +9148,7 @@ int main(int argc, char *argv[])
             IncompleteTypeSupportChecker::increaseFunctionCallCounter(17);
 #endif
 
-            mIT.assign(source3.begin(), source3.begin());
+            mIT.assign(source3, source3);  // Empty range
 
             ASSERT(mIT.end()    == mIT.begin() );                         // 18
             ASSERT(mIT.begin()  == mIT.end()   );                         // 19
@@ -9200,7 +9249,7 @@ int main(int argc, char *argv[])
             ASSERT(2 * initialSize + 10 == IT.size());
             ASSERT(IT.begin()           == mIter    );
 
-            mIter = mIT.insert(mIT.cbegin(), source3.begin(), source3.end());
+            mIter = mIT.insert(mIT.cbegin(), source3, source3 + initialSize);
                                                                           // 41
             ASSERT(2 * initialSize + 15 == IT.size());
             ASSERT(IT.begin()           == mIter    );

@@ -13,64 +13,12 @@ BSLS_IDENT("$Id: $")
 // implementation of the C++ standard type (if one exists).  Finally, place the
 // included symbols from the 'std' namespace (if any) into the 'bsl' namespace.
 
-#include <bsls_platform.h>
-
-#include <ostream>
+// Include Bloomberg's implementation.
+#include <bslstl_ostream.h>
 
 #ifndef BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
 #include <bsls_nativestd.h>
 #endif // BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-
-namespace bsl {
-    // Import selected symbols into bsl namespace
-
-    using std::basic_ostream;
-    using std::endl;
-    using std::ends;
-    using std::flush;
-    using std::ostream;
-    using std::wostream;
-
-    // This file transitively includes standard <exception> header, so the
-    // following symbol needs to be added into bsl namespace.
-    using std::exception;
-
-#ifndef BDE_OMIT_INTERNAL_DEPRECATED
-    // Export additional names, leaked to support transitive dependencies in
-    // higher level (non BDE) Bloomberg code.
-# if !defined(BSLS_PLATFORM_CMP_MSVC) && __cplusplus < 201703L
-    // As some of these names are removed from C++17, take a sledgehammer to
-    // crack this nut, and remove all non-standard exports.
-    using std::bad_exception;
-    using std::basic_ios;
-    using std::basic_streambuf;
-    using std::bidirectional_iterator_tag;
-    using std::ctype;
-    using std::ctype_base;
-    using std::ctype_byname;
-    using std::forward_iterator_tag;
-    using std::input_iterator_tag;
-    using std::ios_base;
-    using std::istreambuf_iterator;
-    using std::iterator;
-    using std::locale;
-    using std::numpunct;
-    using std::numpunct_byname;
-    using std::ostreambuf_iterator;
-    using std::output_iterator_tag;
-    using std::random_access_iterator_tag;
-    using std::set_terminate;
-    using std::set_unexpected;
-    using std::swap;
-    using std::terminate;
-    using std::terminate_handler;
-    using std::uncaught_exception;
-    using std::unexpected;
-    using std::unexpected_handler;
-    using std::use_facet;
-# endif // MSVC, or C++2017
-#endif  // BDE_OMIT_INTERNAL_DEPRECATED
-}  // close package namespace
 
 #endif
 

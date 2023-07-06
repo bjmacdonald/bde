@@ -53,6 +53,10 @@
 #include <initializer_list>
 #endif
 
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
+#include <ranges>
+#endif
+
 #include <limits.h>
 #include <stdlib.h>      // atoi
 #include <stdio.h>       // stdout
@@ -177,7 +181,7 @@
 //
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [37] USAGE EXAMPLE
+// [39] USAGE EXAMPLE
 //
 // TEST APPARATUS: GENERATOR FUNCTIONS
 // [ 3] int ggg(multimap *object, const char *spec, int verbose = 1);
@@ -196,6 +200,7 @@
 // [36] CONCERN: 'upper_bound' properly handles transparent comparators.
 // [36] CONCERN: 'equal_range' properly handles transparent comparators.
 // [37] CLASS TEMPLATE DEDUCTION GUIDES
+// [38] CONCERN: 'multimap' IS A C++20 RANGE
 
 // ============================================================================
 //                      STANDARD BDE ASSERT TEST MACROS
@@ -1647,6 +1652,9 @@ class TestDriver {
 
   public:
     // TEST CASES
+    static void testCase38_isRange();
+        // Test whether 'multimap' is a C++20 range.
+
     static void testCase35();
         // Test absence of 'erase' method ambiguity.
 
@@ -2770,6 +2778,20 @@ TestDriver<KEY, VALUE, COMP, ALLOC>::testCase31a_RunTest(Obj   *target,
     return result;
 }
 #endif
+
+template <class KEY, class VALUE, class COMP, class ALLOC>
+void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase38_isRange()
+{
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
+    BSLMF_ASSERT((std::ranges::common_range<Obj>));
+    BSLMF_ASSERT((std::ranges::bidirectional_range<Obj>));
+    BSLMF_ASSERT((std::ranges::sized_range<Obj>));
+    BSLMF_ASSERT((std::ranges::viewable_range<Obj>));
+
+    BSLMF_ASSERT((!std::ranges::view<Obj>));
+    BSLMF_ASSERT((!std::ranges::borrowed_range<Obj>));
+#endif
+}
 
 template <class KEY, class VALUE, class COMP, class ALLOC>
 void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase35()
@@ -5891,14 +5913,36 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase25()
     bool (*operatorEq)(const Obj&, const Obj&) = operator==;
     (void) operatorEq;
 
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+    (void) [](const Obj& lhs, const Obj& rhs) -> bool {
+        return lhs != rhs;
+    };
+#else
     // template <class Key, class T, class Compare, class Allocator>
     // bool operator!=(const multimap<Key,T,Compare,Allocator>& x,
     // const multimap<Key,T,Compare,Allocator>& y);
 
     bool (*operatorNe)(const Obj&, const Obj&) = operator!=;
     (void) operatorNe;
+#endif
 
-
+#ifdef BSLALG_SYNTHTHREEWAYUTIL_AVAILABLE
+    (void) [](const Obj& lhs, const Obj& rhs) -> bool {
+        return lhs < rhs;
+    };
+    (void) [](const Obj& lhs, const Obj& rhs) -> bool {
+        return lhs > rhs;
+    };
+    (void) [](const Obj& lhs, const Obj& rhs) -> bool {
+        return lhs <= rhs;
+    };
+    (void) [](const Obj& lhs, const Obj& rhs) -> bool {
+        return lhs >= rhs;
+    };
+    (void) [](const Obj& lhs, const Obj& rhs) {
+        return lhs <=> rhs;
+    };
+#else
     // template <class Key, class T, class Compare, class Allocator>
     // bool operator< (const multimap<Key,T,Compare,Allocator>& x,
     // const multimap<Key,T,Compare,Allocator>& y);
@@ -5927,6 +5971,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase25()
 
     bool (*operatorLe)(const Obj&, const Obj&) = operator<=;
     (void) operatorLe;
+#endif  // BSLALG_SYNTHTHREEWAYUTIL_AVAILABLE
 
     // specialized algorithms:
     // template <class Key, class T, class Compare, class Allocator>
@@ -6484,6 +6529,8 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase19()
     //:   2 '(a <= b) == !(b < a)'
     //:
     //:   3 '(a >= b) == !(a < b)'
+    //:
+    //: 4 'operator<=>' is consistent with '<', '>', '<=', '>='.
     //
     // Plan:
     //: 1 For a variety of objects of different sizes and different values,
@@ -6494,6 +6541,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase19()
     //   bool operator> (const multimap& lhs, const multimap& rhs);
     //   bool operator>=(const multimap& lhs, const multimap& rhs);
     //   bool operator<=(const multimap& lhs, const multimap& rhs);
+    //   auto operator<=>(const multimap& lhs, const multimap& rhs);
     // ------------------------------------------------------------------------
 
     const int NUM_DATA                     = DEFAULT_NUM_DATA;
@@ -6558,6 +6606,13 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase19()
                 ASSERTV(LINE1, LINE2, !isLessEq == (X > Y));
                 ASSERTV(LINE1, LINE2,  isLessEq == (X <= Y));
                 ASSERTV(LINE1, LINE2, !isLess   == (X >= Y));
+
+#ifdef BSLALG_SYNTHTHREEWAYUTIL_AVAILABLE
+                ASSERTV(LINE1, LINE2,  isLess   == (X <=> Y < 0));
+                ASSERTV(LINE1, LINE2, !isLessEq == (X <=> Y > 0));
+                ASSERTV(LINE1, LINE2,  isLessEq == (X <=> Y <= 0));
+                ASSERTV(LINE1, LINE2, !isLess   == (X <=> Y >= 0));
+#endif
 
                 TestComparator<KEY>::enableFunctor();
 
@@ -8541,6 +8596,38 @@ int main(int argc, char *argv[])
     }
 
     switch (test) { case 0:
+      case 38: {
+        // --------------------------------------------------------------------
+        // CONCERN: 'multimap' IS A C++20 RANGE
+        //
+        // Concerns:
+        //: 1 'multimap' models 'ranges::common_range' concept.
+        //:
+        //: 2 'multimap' models 'ranges::bidirectional_range' concept.
+        //:
+        //: 3 'multimap' models 'ranges::sized_range' concept.
+        //:
+        //: 4 'multimap' models 'ranges::viewable_range' concept.
+        //:
+        //: 5 'multimap' doesn't model 'ranges::view' concept.
+        //:
+        //: 6 'multimap' doesn't model 'ranges::borrowed_range' concept.
+        //
+        // Plan:
+        //: 1 'static_assert' every above-mentioned concept for different 'KEY'
+        //:   and 'VALUE'.
+        //
+        // Testing:
+        //   CONCERN: 'multimap' IS A C++20 RANGE
+        // --------------------------------------------------------------------
+
+        if (verbose) printf("\nCONCERN: 'multimap' IS A C++20 RANGE"
+                            "\n====================================\n");
+
+        RUN_EACH_TYPE(TestDriver,
+                      testCase38_isRange,
+                      BSLTF_TEMPLATETESTFACILITY_TEST_TYPES_ALL);
+      } break;
       case 37: {
         //---------------------------------------------------------------------
         // TESTING CLASS TEMPLATE DEDUCTION GUIDES (AT COMPILE TIME)

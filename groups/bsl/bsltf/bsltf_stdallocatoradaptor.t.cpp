@@ -193,6 +193,14 @@ class ConstructTestType {
     ALLOC               d_allocator;  // allocator
 
   public:
+#ifndef BSLMA_USESBSLMAALLOCATOR_AUTODETECT_ALLOCATOR_TYPE
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION_IF(
+                    ConstructTestType,
+                    bslma::UsesBslmaAllocator,
+                    (bsl::is_convertible<bslma::Allocator *, ALLOC>::value));
+#endif
+
     // PUBLIC TYPES
     typedef ALLOC allocator_type;
 
@@ -1738,7 +1746,7 @@ int main(int argc, char *argv[])
             const ObjType ANOTHER(&ata);
 
             Obj           *objPtr = 0;
-            const ObjType *expected;
+            const ObjType *expected = &DEFAULT;
 
             switch (CONFIG) {
               case 'a': {
@@ -1758,7 +1766,7 @@ int main(int argc, char *argv[])
                 expected = &ANOTHER;
               } break;
               default: {
-                  BSLS_ASSERT_INVOKE_NORETURN("Bad constructor config.");
+                BSLS_ASSERT_INVOKE_NORETURN("Bad constructor config.");
               } break;
             }
 

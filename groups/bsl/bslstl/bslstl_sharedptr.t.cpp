@@ -64,6 +64,9 @@
 #include <bslstl_string.h>
 #include <bslstl_vector.h>
 
+#include <cstdlib>       // 'rand'
+#include <cstring>       // 'memset'
+#include <ctime>         // 'time'
 #include <new>           // 'operator delete'
 #include <stdio.h>
 #include <stdlib.h>      // 'atoi'
@@ -273,6 +276,8 @@ using namespace BloombergLP;
 // [ 6] bool operator> (const shared_ptr<LHS>&, const shared_ptr<RHS>&)
 // [ 6] bool operator> (const shared_ptr<LHS>&, bsl::nullptr_t)
 // [ 6] bool operator> (bsl::nullptr_t,         const shared_ptr<RHS>&)
+// [ 6] auto operator<=>(const shared_ptr<LHS>&, const shared_ptr<RHS>&)
+// [ 6] auto operator<=>(const shared_ptr<LHS>&, bsl::nullptr_t)
 // [ 5] ostream& operator<<(ostream&, const shared_ptr<TYPE>&)
 // [ 8] void swap(shared_ptr<ELEM_TYPE>& a, shared_ptr<ELEM_TYPE>& b)
 // [15] DELETER *get_deleter(const shared_ptr<ELEMENT_TYPE>&)
@@ -330,6 +335,19 @@ using namespace BloombergLP;
 // [32] shared_ptr<T> make_shared<T>(const A1& a1, ...& a12)
 // [32] shared_ptr<T> make_shared<T>(const A1& a1, ...& a13)
 // [32] shared_ptr<T> make_shared<T>(const A1& a1, ...& a14)
+// [47] shared_ptr<T[N]> make_shared<T[N]>();
+// [47] shared_ptr<T[]>  make_shared<T[]>();
+// [47] shared_ptr<T[N]> allocate_shared<T[N]>();
+// [47] shared_ptr<T[]>  allocate_shared<T[]>();
+// [48] shared_ptr<T>    make_shared_for_overwrite<T>();
+// [48] shared_ptr<T[N]> make_shared_for_overwrite<T[N]>();
+// [48] shared_ptr<T[]>  make_shared_for_overwrite<T[]>(size);
+// [48] shared_ptr<T>    allocate_shared_for_overwrite<T>(ALLOC);
+// [48] shared_ptr<T[N]> allocate_shared_for_overwrite<T[N]>(ALLOC);
+// [48] shared_ptr<T[]>  allocate_shared_for_overwrite<T[]>(ALLOC, size);
+// [48] shared_ptr<T>    allocate_shared_for_overwrite<T>(ALLOC*);
+// [48] shared_ptr<T[N]> allocate_shared_for_overwrite<T[N]>(ALLOC*);
+// [48] shared_ptr<T[]>  allocate_shared_for_overwrite<T[]>(ALLOC*, size);
 //-----------------------------------------------------------------------------
 // [ 1] BREATHING TEST (shared_ptr)
 // [ 3] shared_ptr(TYPE *ptr) // synthesized
@@ -883,14 +901,14 @@ namespace NAMESPACE_USAGE_EXAMPLE_3 {
     class my_MutexUnlockAndBroadcastDeleter {
 
         // DATA
-        bcemt_Mutex     *d_mutex_p;  // mutex to lock (held, not owned)
-        bcemt_Condition *d_cond_p;   // condition variable used to broadcast
-                                     // (held, not owned)
+        bslmt::Mutex     *d_mutex_p;  // mutex to lock (held, not owned)
+        bslmt::Condition *d_cond_p;   // condition variable used to broadcast
+                                      // (held, not owned)
 
       public:
         // CREATORS
-        my_MutexUnlockAndBroadcastDeleter(bcemt_Mutex     *mutex,
-                                          bcemt_Condition *cond)
+        my_MutexUnlockAndBroadcastDeleter(bslmt::Mutex     *mutex,
+                                          bslmt::Condition *cond)
             // Create this 'my_MutexUnlockAndBroadcastDeleter' object.  Use the
             // specified 'cond' to broadcast a signal and the specified 'mutex'
             // to serialize access to 'cond'.  The behavior is undefined unless
@@ -936,8 +954,8 @@ namespace NAMESPACE_USAGE_EXAMPLE_3 {
     class my_SafeQueue {
 
         // DATA
-        bcemt_Mutex      d_mutex;
-        bcemt_Condition  d_cond;
+        bslmt::Mutex             d_mutex;
+        bslmt::Condition         d_cond;
         bsl::deque<ELEMENT_TYPE> d_queue;
 
         // . . .
@@ -954,7 +972,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_3 {
     template <class ELEMENT_TYPE>
     void my_SafeQueue<ELEMENT_TYPE>::push(const ELEMENT_TYPE& obj)
     {
-        bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
         d_queue.push_back(obj);
         d_cond.signal();
     }
@@ -962,7 +980,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_3 {
     template <class ELEMENT_TYPE>
     ELEMENT_TYPE my_SafeQueue<ELEMENT_TYPE>::pop()
     {
-        bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
         while (!d_queue.size()) {
            d_cond.wait(&d_mutex);
         }
@@ -1017,7 +1035,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_4 {
         typedef bsl::map<int, bsl::shared_ptr<my_Session> > HandleMap;
 
         // DATA
-        bcemt_Mutex       d_mutex;
+        bslmt::Mutex      d_mutex;
         HandleMap         d_handles;
         int               d_nextSessionId;
         bslma::Allocator *d_allocator_p;
@@ -1105,7 +1123,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_4 {
     my_SessionManager::my_Handle
     my_SessionManager::openSession(const bsl::string& sessionName)
     {
-        bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
         my_Handle session(new(*d_allocator_p) my_Session(sessionName,
                                                          d_nextSessionId++,
                                                          d_allocator_p));
@@ -1116,7 +1134,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_4 {
     inline
     void my_SessionManager::closeSession(my_Handle handle)
     {
-        bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
         HandleMap::iterator it = d_handles.find(handle->handleId());
         if (it != d_handles.end()) {
             d_handles.erase(it);
@@ -1153,7 +1171,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_5 {
         typedef bsl::map<int, bsl::shared_ptr<void> > HandleMap;
 
         // DATA
-        bcemt_Mutex       d_mutex;
+        bslmt::Mutex      d_mutex;
         HandleMap         d_handles;
         int               d_nextSessionId;
         bslma::Allocator *d_allocator_p;
@@ -1190,7 +1208,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_5 {
     my_SessionManager::my_Handle
     my_SessionManager::openSession(const bsl::string& sessionName)
     {
-        bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //..
 // Notice that 'my_Handle', which is a shared pointer to 'void', can be
 // transparently assigned to a shared pointer to a 'my_Session' object.  This
@@ -1209,7 +1227,7 @@ namespace NAMESPACE_USAGE_EXAMPLE_5 {
     inline
     void my_SessionManager::closeSession(my_Handle handle)
     {
-        bcemt_LockGuard<bcemt_Mutex> lock(&d_mutex);
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 //..
 // Perform a static cast from 'bsl::shared_ptr<void>' to
 // 'bsl::shared_ptr<my_Session>'.
@@ -2140,7 +2158,7 @@ class MyTestDeleter {
         // objects passed to 'operator()'.
 };
 
-BSLMF_ASSERT(!bslma::UsesBslmaAllocator<MyTestDeleter>::VALUE);
+BSLMF_ASSERT(!bslma::UsesBslmaAllocator<MyTestDeleter>::value);
 
                           // ========================
                           // class MyAllocTestDeleter
@@ -2596,6 +2614,163 @@ struct NonNothrowAndNonBitwiseMovableTestType {
     {
     }
 };
+
+                   // =====================================
+                   // class CountConstructorsAndDestructors
+                   // =====================================
+
+size_t gConstructorToThrowOn;
+size_t gNumConstructors;
+size_t gNumDestructors;
+
+                     // ----------------------------------
+                     // class SometimesThrowOnConstruction
+                     // ----------------------------------
+
+
+struct CountConstructorsAndDestructors {
+    // A struct that records the number of calls to the constructor and
+    // destructor
+  private:
+    // DATA
+
+    // 'bslmf::IsBitwiseMoveable' has special logic for empty types, so we need
+    // to include data to ensure that our tests work as intended.
+    BSLA_MAYBE_UNUSED int d_dummy;
+
+  public:
+    // CREATORS
+    CountConstructorsAndDestructors()
+        // Construct the object. Record the fact in 's_numConstructors'.
+    {
+        ++gNumConstructors;
+    }
+
+    ~CountConstructorsAndDestructors()
+        // Destruct the object. Record the fact in 's_numDestructors'.
+    {
+        ++gNumDestructors;
+    }
+};
+
+                     // ==================================
+                     // class SometimesThrowOnConstruction
+                     // ==================================
+
+struct SometimesThrowOnConstruction {
+    // A struct that occasionally throws from the constructor, and records the
+    // number of successful calls to the constructor and destructor
+    static size_t s_numConstructors;
+    static size_t s_numDestructors;
+  private:
+    // DATA
+
+    // 'bslmf::IsBitwiseMoveable' has special logic for empty types, so we need
+    // to include data to ensure that our tests work as intended.
+    BSLA_MAYBE_UNUSED int d_dummy;
+
+  public:
+    // CREATORS
+    SometimesThrowOnConstruction()
+        // Construct an object.  About 1/gNumConstructors of the time, throw an
+        // error.  If the object was successfully constructed, record the fact
+        // in 's_numConstructors'
+    {
+        if (gNumConstructors == gConstructorToThrowOn) throw 4;
+        ++gNumConstructors;
+    }
+
+    ~SometimesThrowOnConstruction()
+        // Destruct the object. Record the fact in 's_numDestructors'.
+    {
+        ++gNumDestructors;
+    }
+};
+
+                     // =========================
+                     // class ScribblingAllocator
+                     // =========================
+
+struct ScribblingAllocator : public bslma::Allocator {
+  private:
+    // DATA
+    bslma::Allocator *d_allocator_p;
+    int               d_scribbleValue;
+
+  public:
+    // CREATORS
+    ScribblingAllocator(bslma::Allocator *basicAllocator, int scribble)
+    : d_allocator_p(basicAllocator)
+    , d_scribbleValue(scribble)
+        // Construct an object.  Use the specified 'basicAllocator' for all
+        // allocations and deallocations, and fill each allocation with the
+        // specified 'scribble'.
+    {
+    }
+
+     // MANIPULATORS
+     virtual void *allocate(size_type size)
+         // Return a newly allocated block of memory of (at least) the
+         // specified positive 'size' (in bytes).  If 'size' is 0, a null
+         // pointer is returned with no other effect.  If this allocator
+         // cannot return the requested number of bytes, then it will throw a
+         // 'std::bad_alloc' exception in an exception-enabled build, or else
+         // will abort the program in a non-exception build.  The behavior is
+         // undefined unless '0 <= size'.  After allocation, fill the allocated
+         // memory with the value of 'd_scribbleValue'
+    {
+        void *address = d_allocator_p->allocate (size);
+        if (0 != address) {
+            std::memset(address, d_scribbleValue, size);
+        }
+        return address;
+    }
+
+     virtual void deallocate(void *address)
+         // Return the memory block at the specified 'address' back to this
+         // allocator.  If 'address' is 0, this function has no effect.  The
+         // behavior is undefined unless 'address' was allocated using this
+         // allocator object and has not already been deallocated.
+    {
+        d_allocator_p->deallocate(address);
+    }
+
+
+    ~ScribblingAllocator()
+        // Destruct the object.
+    {
+    }
+
+};
+
+                     // =================
+                     // class ArrayStruct
+                     // =================
+
+template <class TYPE, size_t SIZE>
+struct ArrayStruct {
+    // A POD struct that contains an array; used for testing
+    // make_shared_for_overwrite.
+    TYPE d_array[SIZE];
+};
+
+                // ================================
+                // class PartiallyInitializedStruct
+                // ================================
+
+template <class TYPE>
+struct PartiallyInitializedStruct {
+    // A POD that only initializes one of it's two fields. Used for testing
+    // make_shared_for_overwrite.
+    // DATA
+    TYPE d_initialized;
+    TYPE d_not_initialized;
+
+    PartiallyInitializedStruct()
+        // Construct a PartiallyInitializedStruct.
+    : d_initialized() {}
+};
+
 
 // Traits for test types:
 namespace BloombergLP {
@@ -7974,6 +8149,395 @@ int main(int argc, char *argv[])
                                              defaultAllocator.numAllocations();
 
     switch (test) { case 0:  // Zero is always the leading case.
+      case 48: {
+        // ------------------------------------------------------------------
+        // TESTING MAKE_SHARED_FOR_OVERWRITE
+        //
+        // Concern:
+        //: 1 That make_shared<T[N]>() constructs N objects.
+        //
+        // Plan:
+        //: 1 Create shared_pointers of arrays, counting the constructor and
+        //:   destructor calls.
+        //
+        // Testing:
+        //   shared_ptr<T>    make_shared_for_overwrite<T>();
+        //   shared_ptr<T[N]> make_shared_for_overwrite<T[N]>();
+        //   shared_ptr<T[]>  make_shared_for_overwrite<T[]>(size);
+        //   shared_ptr<T>    allocate_shared_for_overwrite<T>(ALLOC);
+        //   shared_ptr<T[N]> allocate_shared_for_overwrite<T[N]>(ALLOC);
+        //   shared_ptr<T[]>  allocate_shared_for_overwrite<T[]>(ALLOC, size);
+        //   shared_ptr<T>    allocate_shared_for_overwrite<T>(ALLOC*);
+        //   shared_ptr<T[N]> allocate_shared_for_overwrite<T[N]>(ALLOC*);
+        //   shared_ptr<T[]>  allocate_shared_for_overwrite<T[]>(ALLOC*, size);
+        // ------------------------------------------------------------------
+
+        if (verbose)
+            printf("\nTESTING MAKE_SHARED_FOR_OVERWRITE"
+                   "\n=================================\n");
+
+        using BloombergLP::bsltf::StdStatefulAllocator;
+        typedef StdStatefulAllocator<int, true,  true,  true,  true > AllocA;
+
+        const size_t SIZE = 10;
+        const int    SCRIBBLEVAL = 0xA5;
+
+        typedef long                                 TestType;
+        typedef ArrayStruct<TestType, SIZE>          TestStruct;
+        typedef PartiallyInitializedStruct<TestType> Partial;
+
+        ScribblingAllocator sa(&ta, SCRIBBLEVAL);
+        TestType           scribbleValue;
+
+        // This is the bit pattern set by the allocator
+        std::memset(&scribbleValue, SCRIBBLEVAL, sizeof(scribbleValue));
+
+        if (veryVerbose)
+            printf("\tTesting make_shared_for_overwrite\n");
+        // The non-array case
+        {
+            bsl::shared_ptr<TestStruct> p =
+                                  bsl::make_shared_for_overwrite<TestStruct>();
+            // No known bit pattern from make_shared, so we just try to write
+            // to each element in the struct's array.
+            for (size_t i = 0; i < SIZE; ++i) {
+                p->d_array[i] = scribbleValue + i;
+            }
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p->d_array[i], scribbleValue + i,
+                                 p->d_array[i] == TestType(scribbleValue + i));
+            }
+
+            bsl::shared_ptr<Partial> p1 =
+                                     bsl::make_shared_for_overwrite<Partial>();
+            ASSERT(0 == p1->d_initialized);
+            // No known bit pattern from make_shared, so we can't test
+            // 'd_not_initialized' here           .
+        }
+
+        // statically-sized array
+        {
+            bsl::shared_ptr<TestType[SIZE]> p =
+                              bsl::make_shared_for_overwrite<TestType[SIZE]>();
+            // No known bit pattern from make_shared, so we just try to write
+            // to each element in the array.
+            for (size_t i = 0; i < SIZE; ++i) {
+                p[i] = scribbleValue + i;
+            }
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p[i], scribbleValue + i, p[i] ==
+                                                  TestType(scribbleValue + i));
+            }
+
+            bsl::shared_ptr<Partial[SIZE]> p1 =
+                               bsl::make_shared_for_overwrite<Partial[SIZE]>();
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERT(0 == p1[i].d_initialized);
+            // No known bit pattern from make_shared, so we can't test
+            // 'd_not_initialized' here           .
+            }
+        }
+
+        // dynamically-sized array
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        {
+            bsl::shared_ptr<TestType[]> p =
+                              bsl::make_shared_for_overwrite<TestType[]>(SIZE);
+            // No known bit pattern from make_shared, so we just try to write
+            // to each element in the array.
+            for (size_t i = 0; i < SIZE; ++i) {
+                p[i] = scribbleValue + i;
+            }
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p[i], scribbleValue + i, p[i] ==
+                                                  TestType(scribbleValue + i));
+            }
+
+            bsl::shared_ptr<Partial[]> p1 =
+                               bsl::make_shared_for_overwrite<Partial[]>(SIZE);
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERT(0 == p1[i].d_initialized);
+            // No known bit pattern from make_shared, so we can't test
+            // 'd_not_initialized' here           .
+            }
+        }
+#endif
+
+        if (veryVerbose)
+            printf("\tTesting allocate_shared_for_overwrite(ALLOC)\n");
+
+        AllocA allocA(&sa);
+        // The non-array case
+        {
+            bsl::shared_ptr<TestStruct> p =
+                        bsl::allocate_shared_for_overwrite<TestStruct>(allocA);
+            // The values of the struct's array are supposed to be left in an
+            // 'indeterminate state'.  Check and make sure the bit pattern
+            // written by the allocator is still there.
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p->d_array[i],
+                        scribbleValue,
+                        p->d_array[i] == scribbleValue);
+            }
+
+            bsl::shared_ptr<Partial> p1 =
+                           bsl::allocate_shared_for_overwrite<Partial>(allocA);
+            ASSERT(0             == p1->d_initialized);
+            ASSERT(scribbleValue == p1->d_not_initialized);
+        }
+
+        // statically-sized array
+        {
+            bsl::shared_ptr<TestType[SIZE]> p =
+                    bsl::allocate_shared_for_overwrite<TestType[SIZE]>(allocA);
+            // The values of the array are supposed to be left in an
+            // 'indeterminate state'.  Check and make sure the bit pattern
+            // written by the allocator is still there.
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p[i], scribbleValue, p[i] == scribbleValue);
+            }
+
+            bsl::shared_ptr<Partial[SIZE]> p1 =
+                     bsl::allocate_shared_for_overwrite<Partial[SIZE]>(allocA);
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERT(0             == p1[i].d_initialized);
+                ASSERT(scribbleValue == p1[i].d_not_initialized);
+            }
+        }
+
+        // dynamically-sized array
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        {
+            bsl::shared_ptr<TestType[]> p =
+                  bsl::allocate_shared_for_overwrite<TestType[]>(allocA, SIZE);
+            // The values of the array are supposed to be left in an
+            // 'indeterminate state'.  Check and make sure the bit pattern
+            // written by the allocator is still there.
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p[i], scribbleValue, p[i] == scribbleValue);
+            }
+
+            bsl::shared_ptr<Partial[]> p1 =
+                   bsl::allocate_shared_for_overwrite<Partial[]>(allocA, SIZE);
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERT(0             == p1[i].d_initialized);
+                ASSERT(scribbleValue == p1[i].d_not_initialized);
+            }
+        }
+#endif
+
+        if (veryVerbose)
+            printf("\tTesting allocate_shared_for_overwrite(ALLOC*)\n");
+
+        // The non-array case
+        {
+            bsl::shared_ptr<TestStruct> p =
+                           bsl::allocate_shared_for_overwrite<TestStruct>(&sa);
+            // The values of the struct's array are supposed to be left in an
+            // 'indeterminate state'.  Check and make sure the bit pattern
+            // written by the allocator is still there.
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p->d_array[i],
+                        scribbleValue,
+                        p->d_array[i] == scribbleValue);
+            }
+
+            bsl::shared_ptr<Partial> p1 =
+                              bsl::allocate_shared_for_overwrite<Partial>(&sa);
+            ASSERT(0              == p1->d_initialized);
+            ASSERT(scribbleValue  == p1->d_not_initialized);
+        }
+
+        // statically-sized array
+        {
+            bsl::shared_ptr<TestType[SIZE]> p =
+                       bsl::allocate_shared_for_overwrite<TestType[SIZE]>(&sa);
+            // The values of the array are supposed to be left in an
+            // 'indeterminate state'.  Check and make sure the bit pattern
+            // written by the allocator is still there.
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p[i], scribbleValue, p[i] == scribbleValue);
+            }
+
+            bsl::shared_ptr<Partial[SIZE]> p1 =
+                        bsl::allocate_shared_for_overwrite<Partial[SIZE]>(&sa);
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERT(0             == p1[i].d_initialized);
+                ASSERT(scribbleValue == p1[i].d_not_initialized);
+            }
+        }
+
+        // dynamically-sized array
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        {
+            bsl::shared_ptr<TestType[]> p =
+                     bsl::allocate_shared_for_overwrite<TestType[]>(&sa, SIZE);
+            // The values of the array are supposed to be left in an
+            // 'indeterminate state'.  Check and make sure the bit pattern
+            // written by the allocator is still there.
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERTV(p[i], scribbleValue, p[i] == scribbleValue);
+            }
+
+            bsl::shared_ptr<Partial[]> p1 =
+                      bsl::allocate_shared_for_overwrite<Partial[]>(&sa, SIZE);
+            for (size_t i = 0; i < SIZE; ++i) {
+                ASSERT(0             == p1[i].d_initialized);
+                ASSERT(scribbleValue == p1[i].d_not_initialized);
+            }
+        }
+#endif
+
+      } break;
+
+      case 47: {
+        // ------------------------------------------------------------------
+        // TESTING ARRAY CONSTRUCTION WITH EXCEPTIONS
+        //
+        // Concern:
+        //: 1 That make_shared<T[N]>() constructs N objects.
+        //: 2 When constructing N elements of an array, if one of the
+        //:   constructors throws, then all of the previously constructed
+        //:   elements are destroyed.
+        //
+        // Plan:
+        //: 1 Create shared_pointers of arrays, counting the constructor and
+        //:   destructor calls.
+        //
+        // Testing:
+        //   shared_ptr<T[N]> make_shared<T[N]>();
+        //   shared_ptr<T[]>  make_shared<T[]>();
+        //   shared_ptr<T[N]> allocate_shared<T[N]>();
+        //   shared_ptr<T[]>  allocate_shared<T[]>();
+        // ------------------------------------------------------------------
+
+        if (verbose)
+            printf("\nTESTING ARRAY CONSTRUCTION WITH EXCEPTIONS"
+                   "\n==========================================\n");
+        const size_t SIZE = 10;
+
+        typedef CountConstructorsAndDestructors CCDSZ[SIZE];
+        typedef SometimesThrowOnConstruction    STOCSZ[SIZE];
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        typedef CountConstructorsAndDestructors CCDUSZ[];
+        typedef SometimesThrowOnConstruction    STOCUSZ[];
+#endif
+
+        if (veryVerbose)
+            printf("\tTesting make_shared\n");
+
+        // statically-sized array
+        gNumConstructors = 0;
+        gNumDestructors = 0;
+        {
+            bsl::shared_ptr<CCDSZ> p = bsl::make_shared<CCDSZ>();
+            ASSERT(SIZE == gNumConstructors);
+        }
+        ASSERT(SIZE == gNumConstructors);
+        ASSERT(SIZE == gNumDestructors);
+
+        // dynamically-sized array
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        gNumConstructors = 0;
+        gNumDestructors = 0;
+        {
+            bsl::shared_ptr<CCDUSZ> p = bsl::make_shared<CCDUSZ>(SIZE);
+            ASSERT(SIZE == gNumConstructors);
+        }
+        ASSERT(SIZE == gNumConstructors);
+        ASSERT(SIZE == gNumDestructors);
+#endif
+
+        // statically-sized array, which may throw
+        for (size_t i = 0; i <= SIZE; ++i) {
+            gNumConstructors = 0;
+            gNumDestructors = 0;
+            gConstructorToThrowOn = i;
+            try {
+                bsl::shared_ptr<STOCSZ> p = bsl::make_shared<STOCSZ>();
+                ASSERT(i >= SIZE); // we didn't throw
+            }
+            catch (const int &) {}
+            ASSERT(gNumConstructors == gConstructorToThrowOn);
+            ASSERT(gNumDestructors == gConstructorToThrowOn);
+        }
+
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        // dynamically-sized array, which may throw
+        for (size_t i = 0; i <= SIZE; ++i) {
+            gNumConstructors = 0;
+            gNumDestructors = 0;
+            gConstructorToThrowOn = i;
+            try {
+                bsl::shared_ptr<STOCUSZ> p = bsl::make_shared<STOCUSZ>(SIZE);
+                ASSERT(i >= SIZE); // we didn't throw
+            }
+            catch (const int &) {}
+            ASSERT(gNumConstructors == gConstructorToThrowOn);
+            ASSERT(gNumDestructors == gConstructorToThrowOn);
+        }
+#endif
+
+        if (veryVerbose)
+            printf("\tTesting allocate_shared\n");
+        bslma::TestAllocator ta(veryVerbose);
+
+        // statically-sized array
+        gNumConstructors = 0;
+        gNumDestructors = 0;
+        {
+            bsl::shared_ptr<CCDSZ> p = bsl::allocate_shared<CCDSZ>(&ta);
+            ASSERT(SIZE == gNumConstructors);
+        }
+        ASSERT(SIZE == gNumConstructors);
+        ASSERT(SIZE == gNumDestructors);
+
+        // dynamically-sized array
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        gNumConstructors = 0;
+        gNumDestructors = 0;
+        {
+            bsl::shared_ptr<CCDUSZ> p =
+                                       bsl::allocate_shared<CCDUSZ>(&ta, SIZE);
+            ASSERT(SIZE == gNumConstructors);
+        }
+        ASSERT(SIZE == gNumConstructors);
+        ASSERT(SIZE == gNumDestructors);
+#endif
+
+        // statically-sized array, which may throw
+        for (size_t i = 0; i <= SIZE; ++i) {
+            gNumConstructors = 0;
+            gNumDestructors = 0;
+            gConstructorToThrowOn = i;
+            try {
+                bsl::shared_ptr<STOCSZ> p = bsl::allocate_shared<STOCSZ>(&ta);
+                ASSERT(i >= SIZE); // we didn't throw
+            }
+            catch (const int &) {}
+            ASSERT(gNumConstructors == gConstructorToThrowOn);
+            ASSERT(gNumDestructors == gConstructorToThrowOn);
+        }
+
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        // dynamically-sized array, which may throw
+        for (size_t i = 0; i <= SIZE; ++i) {
+            gNumConstructors = 0;
+            gNumDestructors = 0;
+            gConstructorToThrowOn = i;
+            try {
+                bsl::shared_ptr<STOCUSZ> p =
+                                      bsl::allocate_shared<STOCUSZ>(&ta, SIZE);
+                ASSERT(i >= SIZE); // we didn't throw
+            }
+            catch (const int &) {}
+            ASSERT(gNumConstructors == gConstructorToThrowOn);
+            ASSERT(gNumDestructors == gConstructorToThrowOn);
+        }
+#endif
+
+        ASSERT(ta.numAllocations() == ta.numDeallocations());
+      } break;
       case 46: {
         // ------------------------------------------------------------------
         // TESTING IF 'U_ENABLE_DEPRECATIONS' IS DISABLED
@@ -14081,6 +14645,71 @@ int main(int argc, char *argv[])
         Harness::testCase34_AllocatorAware<14,0,0,0,0,0,0,0,0,0,0,0,0,0,0>();
 #endif // BSL_DO_NOT_TEST_MOVE_FORWARDING
 
+        if (verbose)
+            printf(
+               "\nTesting 'allocate_shared(alloc *)' with sized array type"
+               "\n--------------------------------------------------------\n");
+
+        numAllocations = ta.numAllocations();
+        {
+            const size_t ARRAY_SIZE = 5;
+            typedef size_t ArrayType[ARRAY_SIZE];
+            typedef bsl::shared_ptr<ArrayType> SP;
+
+            SP        x1 = bsl::allocate_shared<ArrayType>(&ta);
+            SP        x2 = bsl::allocate_shared<ArrayType>(&ta, 7);
+            const SP& X1 = x1;
+            const SP& X2 = x2;
+
+            ASSERT(2 == ta.numAllocations() - numAllocations);
+            ASSERT(X1);
+            ASSERT(X2);
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                x1[i] = i;
+            }
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                ASSERTV(i, X1[i] == i);
+                ASSERTV(i, X2[i] == 7);
+            }
+
+        }
+        ASSERT(ta.numDeallocations() == ta.numAllocations());
+
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        if (verbose)
+            printf(
+             "\nTesting 'allocate_shared(alloc *)' with unsized array type"
+             "\n----------------------------------------------------------\n");
+
+        numAllocations = ta.numAllocations();
+        {
+            const size_t ARRAY_SIZE = 5;
+            typedef size_t ArrayType[];
+            typedef bsl::shared_ptr<ArrayType> SP;
+
+            SP        x1 = bsl::allocate_shared<ArrayType>(&ta, ARRAY_SIZE);
+            SP        x2 = bsl::allocate_shared<ArrayType>(&ta, ARRAY_SIZE, 7);
+            const SP& X1 = x1;
+            const SP& X2 = x2;
+
+            ASSERT(2 == ta.numAllocations() - numAllocations);
+            ASSERT(X1);
+            ASSERT(X2);
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                x1[i] = i;
+            }
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                ASSERTV(X1[i] == i);
+                ASSERTV(X2[i] == 7);
+            }
+
+        }
+        ASSERT(ta.numDeallocations() == ta.numAllocations());
+#endif
         // TBD: EXCEPTION-SAFETY TESTS (0-14 arguments)
         //      (no negative testing as contract is wide)
 
@@ -14170,6 +14799,74 @@ int main(int argc, char *argv[])
         ALLOC_B allocB(&ta);
         Harness::testCase33(allocB);
 
+        if (verbose)
+            printf(
+                 "\nTesting 'allocate_shared(alloc)' with sized array type"
+                 "\n------------------------------------------------------\n");
+
+        numAllocations   = ta.numAllocations();
+        {
+            const size_t ARRAY_SIZE = 5;
+            typedef size_t ArrayType[ARRAY_SIZE];
+            typedef bsl::shared_ptr<ArrayType> SP;
+
+            SP        x1 = bsl::allocate_shared<ArrayType>(allocA);
+            SP        x2 = bsl::allocate_shared<ArrayType>(allocA, 7);
+            const SP& X1 = x1;
+            const SP& X2 = x2;
+
+            ASSERT(2 == ta.numAllocations() - numAllocations);
+            ASSERT(X1);
+            ASSERT(X2);
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                x1[i] = i;
+            }
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                ASSERTV(i, X1[i] == i);
+                ASSERTV(i, X2[i] == 7);
+            }
+
+        }
+        ASSERT(ta.numDeallocations() == ta.numAllocations());
+
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        if (verbose)
+            printf(
+               "\nTesting 'allocate_shared(alloc)' with unsized array type"
+               "\n--------------------------------------------------------\n");
+
+        numAllocations = ta.numAllocations();
+        {
+            const size_t ARRAY_SIZE = 5;
+            typedef size_t ArrayType[];
+            typedef bsl::shared_ptr<ArrayType> SP;
+
+            SP        x1 = bsl::allocate_shared<ArrayType>(allocA, ARRAY_SIZE);
+            SP        x2 = bsl::allocate_shared<ArrayType>(allocA,
+                                                           ARRAY_SIZE,
+                                                           7);
+            const SP& X1 = x1;
+            const SP& X2 = x2;
+
+            ASSERT(2 == ta.numAllocations() - numAllocations);
+            ASSERT(X1);
+            ASSERT(X2);
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                x1[i] = i;
+            }
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                ASSERTV(X1[i] == i);
+                ASSERTV(X2[i] == 7);
+            }
+
+        }
+        ASSERT(ta.numDeallocations() == ta.numAllocations());
+#endif
+
 #if defined(BDE_BUILD_TARGET_EXC)
         // Test for no leaks when allocated object's constructor throws..
         int constructCount = 0;
@@ -14189,6 +14886,7 @@ int main(int argc, char *argv[])
 
         ASSERTV(constructCount, destroyCount, constructCount == destroyCount);
 #endif
+
       } break;
       case 32: {
         // --------------------------------------------------------------------
@@ -14866,6 +15564,69 @@ int main(int argc, char *argv[])
             ASSERT(0 == X.get()->numAllocations());
         }
         ASSERT(++numDeallocations == ta.numDeallocations());
+
+        if (verbose) printf("\nTesting 'make_shared' with sized array type"
+                            "\n-------------------------------------------\n");
+
+        numAllocations = ta.numAllocations();
+        {
+            const size_t ARRAY_SIZE = 5;
+            typedef size_t ArrayType[ARRAY_SIZE];
+            typedef bsl::shared_ptr<ArrayType> SP;
+
+            SP        x1 = bsl::make_shared<ArrayType>();
+            SP        x2 = bsl::make_shared<ArrayType>(7);
+            const SP& X1 = x1;
+            const SP& X2 = x2;
+
+            ASSERT(2 == ta.numAllocations() - numAllocations);
+            ASSERT(X1);
+            ASSERT(X2);
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                x1[i] = i;
+            }
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                ASSERTV(i, X1[i] == i);
+                ASSERTV(i, X2[i] == 7);
+            }
+
+        }
+        ASSERT(ta.numDeallocations() == ta.numAllocations());
+
+#ifndef BSLSTL_SHAREDPTR_DONT_TEST_UNBOUNDED_ARRAYS
+        if (verbose)
+            printf("\nTesting 'make_shared' with unsized array type"
+                   "\n---------------------------------------------\n");
+
+        numAllocations = ta.numAllocations();
+        {
+            const size_t ARRAY_SIZE = 5;
+            typedef size_t ArrayType[];
+            typedef bsl::shared_ptr<ArrayType> SP;
+
+            SP    x1 = bsl::make_shared<ArrayType>(ARRAY_SIZE);
+            SP    x2 = bsl::make_shared<ArrayType>(ARRAY_SIZE, 7);
+            const SP& X1 = x1;
+            const SP& X2 = x2;
+
+            ASSERT(2 == ta.numAllocations() - numAllocations);
+            ASSERT(X1);
+            ASSERT(X2);
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                x1[i] = i;
+            }
+
+            for (size_t i = 0; i < ARRAY_SIZE; ++i) {
+                ASSERTV(X1[i] == i);
+                ASSERTV(X2[i] == 7);
+            }
+
+        }
+        ASSERT(ta.numDeallocations() == ta.numAllocations());
+#endif
 
 #if defined(BDE_BUILD_TARGET_EXC)
         // Test for no leaks when allocated object's constructor throws..
@@ -17359,7 +18120,7 @@ int main(int argc, char *argv[])
 
         if (verbose) printf("Not convertible to ints.\n");
 
-        ASSERT((0 == bslmf::IsConvertible<bsl::shared_ptr<int>, int>::VALUE));
+        ASSERT((0 == bslmf::IsConvertible<bsl::shared_ptr<int>, int>::value));
 
         if (verbose) printf("Simple boolean expressions.\n");
 
@@ -20563,6 +21324,8 @@ int main(int argc, char *argv[])
         //   bool operator> (const shared_ptr<LHS>&, const shared_ptr<RHS>&)
         //   bool operator> (const shared_ptr<LHS>&, bsl::nullptr_t)
         //   bool operator> (bsl::nullptr_t,         const shared_ptr<RHS>&)
+        //   auto operator<=>(const shared_ptr<LHS>&, const shared_ptr<RHS>&)
+        //   auto operator<=>(const shared_ptr<LHS>&, bsl::nullptr_t)
         // --------------------------------------------------------------------
 
         if (verbose) printf("\nTESTING RELATIONAL OPERATORS"
@@ -20611,6 +21374,36 @@ int main(int argc, char *argv[])
         ASSERT(  Y >= Y  );
         ASSERT(!(Y >  Y) );
 
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+        ASSERT(  X <=> X == 0 );
+        ASSERT(!(X <=> X != 0));
+        ASSERT(!(X <=> X <  0));
+        ASSERT(  X <=> X <= 0 );
+        ASSERT(  X <=> X >= 0 );
+        ASSERT(!(X <=> X >  0));
+
+        ASSERT(!(X <=> Y == 0));
+        ASSERT(  X <=> Y != 0 );
+        ASSERT(  X <=> Y <  0 );
+        ASSERT(  X <=> Y <= 0 );
+        ASSERT(!(X <=> Y >= 0));
+        ASSERT(!(X <=> Y >  0));
+
+        ASSERT(!(Y <=> X == 0));
+        ASSERT(  Y <=> X != 0 );
+        ASSERT(!(Y <=> X <  0));
+        ASSERT(!(Y <=> X <= 0));
+        ASSERT(  Y <=> X >= 0);
+        ASSERT(  Y <=> X >  0);
+
+        ASSERT(  Y <=> Y == 0 );
+        ASSERT(!(Y <=> Y != 0));
+        ASSERT(!(Y <=> Y <  0));
+        ASSERT(  Y <=> Y <= 0 );
+        ASSERT(  Y <=> Y >= 0 );
+        ASSERT(!(Y <=> Y >  0));
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
         const IntPtr Z;
         ASSERT(  Z == 0  );
         ASSERT(!(Z != 0) );
@@ -20653,6 +21446,50 @@ int main(int argc, char *argv[])
         ASSERT(  Z <= X  );
         ASSERT(!(Z >= X) );
         ASSERT(!(Z >  X) );
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+        ASSERT(  Z <=> nullptr == 0 );
+        ASSERT(!(Z <=> nullptr != 0));
+        ASSERT(!(Z <=> nullptr <  0));
+        ASSERT(  Z <=> nullptr <= 0 );
+        ASSERT(  Z <=> nullptr >= 0 );
+        ASSERT(!(Z <=> nullptr >  0));
+
+        ASSERT(  nullptr <=> Z == 0 );
+        ASSERT(!(nullptr <=> Z != 0));
+        ASSERT(!(nullptr <=> Z <  0));
+        ASSERT(  nullptr <=> Z <= 0 );
+        ASSERT(  nullptr <=> Z >= 0 );
+        ASSERT(!(nullptr <=> Z >  0));
+
+        ASSERT(!(X <=> nullptr == 0));
+        ASSERT(  X <=> nullptr != 0 );
+        ASSERT(!(X <=> nullptr <  0));
+        ASSERT(!(X <=> nullptr <= 0));
+        ASSERT(  X <=> nullptr >= 0 );
+        ASSERT(  X <=> nullptr >  0 );
+
+        ASSERT(!(nullptr <=> X == 0));
+        ASSERT(  nullptr <=> X != 0 );
+        ASSERT(  nullptr <=> X <  0 );
+        ASSERT(  nullptr <=> X <= 0 );
+        ASSERT(!(nullptr <=> X >= 0));
+        ASSERT(!(nullptr <=> X > 0) );
+
+        ASSERT(!(X <=> Z == 0));
+        ASSERT(  X <=> Z != 0 );
+        ASSERT(!(X <=> Z <  0));
+        ASSERT(!(X <=> Z <= 0));
+        ASSERT(  X <=> Z >= 0 );
+        ASSERT(  X <=> Z >  0 );
+
+        ASSERT(!(Z <=> X == 0));
+        ASSERT(  Z <=> X != 0 );
+        ASSERT(  Z <=> X <  0 );
+        ASSERT(  Z <=> X <= 0 );
+        ASSERT(!(Z <=> X >= 0));
+        ASSERT(!(Z <=> X >  0));
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
       } break;
       case 5: {
         // --------------------------------------------------------------------

@@ -18,6 +18,10 @@
 
 #include <bsla_maybeunused.h>
 
+#include <bslalg_hastrait.h>
+#include <bslalg_typetraitusesbslmaallocator.h>
+
+
 //=============================================================================
 //                                TEST PLAN
 //-----------------------------------------------------------------------------
@@ -93,11 +97,6 @@
 // [ 9] DRQS 123288293 REGRESSION
 // [10] DRQS 165560983
 //-----------------------------------------------------------------------------
-
-#ifdef BSLS_PLATFORM_CMP_MSVC
-// disable warning about decorated name length being exceeded
-#pragma warning( disable : 4503 )
-#endif
 
 // ============================================================================
 //                MACROS EXPORTING INITIALIZATION OUT OF MAIN

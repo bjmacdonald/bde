@@ -1,5 +1,130 @@
-bsl-internal (3.116.0.0) unstable; urgency=low
+bsl-internal (3.120.0.1) unstable; urgency=low
 
+  * 0e3c5792b Merge pull request #4316 from afeher/drqs-172326074-fix-solaris-detection-parseDouble
+  * 67cb5f6dd fix compile warnings (#4304)
+
+ -- Attila Feher <afeher@bloomberg.net>  Fri, 23 Jun 2023 16:04:10 -0400
+
+bsl-internal (3.120.0.0) git; urgency=low
+
+  * 11654af31 Changelog for version 3.120.0.0
+  * 28407a5fb Bumped version to 3.120.0.0
+  * e94874ece Merge pull request #4068 from bchapman/bdlf_bind-make-movable-drqs-170369702
+  * 05ede4e9c VALUE in platform-specific code (#4312)
+  * 520a80f28 Revert "bdlb::Variant << operator (DRQS 159303038) (#4271)" (#4310)
+  * 17d75a37c Merge pull request #4294 from afeher/drqs-172235880-libraryfeatures-minor-fixes
+  * fcb541e96 Merge pull request #4286 from afeher/drqs-172190619-fix-comilerfeatures-formatting-again
+  * 381786509 <bsl_syncstream.h> (DRQS 171318626 + DRQS 171318635) (#4269)
+  * dcc119a00 Use thread_local keyword in bslmt_threadlocalvariable (DRQS 172151400) (#4284)
+  * d10046f89 correct comments (#4303)
+  * c1e5af8c8 drqs-172269944: Initial: Concomitant 'bsl::begin' and 'bsl::end'. (#4302)
+  * 45a90b0ad Add begin/end to bsl::filesystem (#4301)
+  * dc35fe96f bdlb::Variant << operator (DRQS 159303038) (#4271)
+  * 290f4844d The 'CANONICAL HEADER' field has been added to several 'bslstl' components (#4292)
+  * c04601b06 Deprecate the type alias Value on 'true_type' and 'false_type' (DRQS 172174176) (#4282)
+  * 9a496caa9 drqs-171318748: CPP20: Implement 'bsl' traits via 'std' as appropriate. (#4167)
+  * cb6bed4b7 C++20 work: Verify that bsl containers model the appropriate C++20 concepts for ranges - Part 2 (DRQS 171318823) (#4287)
+  * efd6960ac C++20 work: Verify that bsl containers model the appropriate C++20 concepts for ranges - Part 1 (DRQS 171318823) (#4279)
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Fri, 23 Jun 2023 12:55:47 -0400
+
+bsl-internal (3.119.0.0) git; urgency=low
+
+  * 01f072f15 Changelog for version 3.119.0.0
+  * 3ca46d66b Bumped version to 3.119.0.0
+  * 3cb90957c C++20 work: Add the ‘operator<=>’ to the 'bslstl::shared_ptr' (DRQS 171421925) (#4214)
+  * 1bfe0ad4d Check the feature-test macro before using the native 'ssize()' (#4255)
+  * 92a0f871a C++20 work: create CPP20 COMPILERFEATUES macros (DRQS 172013971) (#4267)
+  * ccdcca2b8 Handle negative result from write (#4280)
+  * c2380444b Implement c++20's make_shared and allocate_shared (#4126)
+  * fce4c0f90 Add bsl::array ranges breathing tests (#4277)
+  * bf8f7ce0c reduce warnings on gcc-10 in bdl; {DRQS 171723333}  (#4273)
+  * 48fc1722d Add <bsl_coroutine.h>. (#4240)
+  * 1c32df6ab Windows fix (#4266)
+  * 63a8758dc Merge pull request #4274 from afeher/restore-style
+  * 9403e0b22 Add construction from bsl::vector for C++03 {DRQS 171346605} (#4254)
+  * 87b1324ba fixes an uninitialized variable found while trying to convert from the bdex library to the bslx library (#4270)
+  * 25f270e44 Fix test for 3way comparisons, and add sanity checking to the tests (#4251)
+  * 50929f18e GCC 13 support (#4262)
+  * 0b693187f Fix Windows test failures in bslh_filesystem (#4263)
+  * 971c36a27 Use correct compiler feature for guaranteed copy elision (#4261)
+  * 72d836628 Merge pull request #4265 from afeher/drqs-172027671-safe2-build-fix
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Fri, 2 Jun 2023 13:44:49 -0400
+
+bsl-internal (3.118.0.1) git; urgency=low
+
+  * 77a0f39d5 Changelog for version 3.118.0.1
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Thu, 11 May 2023 10:38:38 -0400
+
+bsl-internal (3.118.0.0) git; urgency=low
+
+  * a30c810d3 Changelog for version 3.118.0.0
+  * 8d0c75397 Bumped version to 3.118.0.0
+  * b582f5462 Merge pull request #4264 from afeher/drqs-172022346-gcc-solaris-has-hexfloat-strtod
+  * 88b09e6a2 Use 32 ufid flag in dpkg build (#4257)
+  * a72bdc89f bsls package doc about forwarding (#4234)
+  * 0e9c19502 Ensure that BDE compiles with BDE_OMIT_INTERNAL_DEPRECATED (#4253)
+  * 0054135f3 Reduce warnings in bdl on gcc10 {DRQS 171723333} (#4256)
+  * 1a6515537 Fix bug in bdls::PipeUtil::isOpenForReading with byte mode named pipes on Windows (DRQS 171868432) (#4243)
+  * 21e3897c3 No 16 byte alignment on 32bit (inteldfp). (#4249)
+  * 2ce911d7c Add missing stop() calls, reorder objects (#4250)
+  * 5cb5985af Use 'from_chars' where supported. (#4056)
+  * 30f6ff2a5 C++20 work: Add the ‘operator<=>’ to the 'bslstl::basic_string' (DRQS 171318810) (#4229)
+  * 3e3f839d6 Remove stray .t.cpp from deleted component (#4248)
+  * c71e58c0f correct asan issue (#4246)
+  * 785209122 blind fix for asan issue (#4245)
+  * 4ff019106 Add erase erase if to string (#4204)
+  * a549c07d5 <=> added (#4221)
+  * 5468dcbf0 operator!= test fix (#4244)
+  * 862740f91 <=> added (#4224)
+  * b9462df45 C++20 work: alias c++20 concepts (DRQS 171544623) (#4239)
+  * 11174080e bdlf_noop Functions returning void cannot be constexpr in C++11 (#4242)
+  * d1699b73b C++20 work: Add the ‘operator<=>’ to the 'bslstl::set' (DRQS 171318939) (#4223)
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Thu, 11 May 2023 10:11:49 -0400
+
+bsl-internal (3.117.0.0) git; urgency=low
+
+  * 2ffb75b63 Changelog for version 3.117.0.0
+  * 454e43ddb Bumped version to 3.117.0.0
+  * b41722b11 Remove convertible allocator - drqs170078536 (#3856)
+  * edfde46f2 Revert `bslma::UsesBslmaAllocator` - DRQS 169232400 (#3701)
+  * 4969e163d `bslma_aatypeutil` component - drqs168344451 (#3633)
+  * 6b52716c2 Component bslma_convertibleallocator, drqs168273432 (#3548)
+  * 624c404d0 Implicitly set UsesBslmaAllocator for bsl-AA types - drqs168606408 (#3580)
+  * 836052174 Disable equality comparisons for non-`const` `bslma::Allocator*` drqs168516470 (#3574)
+  * 3bcf47636 bslma_aamodel component (#3539)
+  * 083895c0f bdlf_noop fix the c++11 incompatible constexpr function test drqs 171873355 (#4241)
+  * 1556e3cbc <=> added (#4219)
+  * 4615d75f7 != removed (#4213)
+  * 6f6e798e4 C++20 work: Add the ‘operator<=>’ to the 'bslstl::optional' (DRQS 171421915) (#4225)
+  * e5dca7443 bdlf_noop initial component design (#4222)
+  * 63aa0aadf Fix typo in comment (#4238)
+  * 081d0794e Remove references to the deprecated entities (#4237)
+  * b3ecc9be2 Make JsonArray and Object Containers. (#4231)
+  * a5abd77d5 Drqs 171794604/bdl clang nb 20230413 (#4235)
+  * 1ffdd3c56 fix compile warnings (#4232)
+  * d7e5c70f1 bdljsn_json fix JsonObject::insert SFINAE (#4217)
+  * 198eef350 Merge fallback enumerators (DRQS 171751879) (#4193)
+  * 26ceac635 Accessing an array out of bounds in 'bslim_gtestutil.t.cpp' has been fixed (#4200)
+  * 61bd740f4 C++20 work: Add the ‘operator<=>’ to the 'bslstl::queue' (DRQS 171421922) (#4211)
+  * 338211b17 C++20 work: Add the ‘operator<=>’ to the 'bslstl::stack' (DRQS 171421928) (#4212)
+  * 09a58d839 Use _LIBCPP_VERSION to check for LLVM libc++ (#4215)
+  * 2c2cd8d42 Constexpr keyword update drqs 171461718 (#4201)
+  * 877a7bd64 fix bdlmt_eventscheduler.t threadName (#4220)
+  * ab96a6fe4 C++20 integer comparison function aliases have been added. DRQS 171318762 (#4152)
+  * 44deb4158 C++20 work: Add the ‘operator<=>’ to the 'bslstl::pair' (DRQS 171421917) (#4210)
+  * ff935aae3 Merge pull request #4218 from afeher/drqs-171797058-bsls-cleanup-consistency-typos
+  * d1536d898 Mark failing baljsn_datumutil tests on Sun (#4216)
+  * 7f6496fca Fix use-after-free bug in rbtreeutil.t. Found by ASAN (#4205)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Fri, 21 Apr 2023 11:40:03 -0400
+
+bsl-internal (3.116.0.0) git; urgency=low
+
+  * 7356e4972 Changelog for version 3.116.0.0
   * 3b872f6a8 Bumped version to 3.116.0.0
   * 134064a30 <=> added (#4208)
   * 555130835 C++20 work: Add the ‘operator<=>’ to the 'bslstl::vector' (DRQS 171318811) (#4207)
@@ -41,7 +166,7 @@ bsl-internal (3.116.0.0) unstable; urgency=low
   * 33d52eeed Merge pull request #4159 from bchapman/bdlb_nullableallocatedvalue-comparisons-drqs-171542817
   * 14d137199 Merge pull request #4166 from bchapman/bslmt_threadattributes-doc-sun-thread-name-drqs-171501611
 
- -- Oleg Subbotin <osubbotin@bloomberg.net>  Thu, 6 Apr 2023 15:56:47 -0400
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Thu, 6 Apr 2023 16:14:01 -0400
 
 bsl-internal (3.115.1.0) git; urgency=low
 

@@ -22,9 +22,11 @@ BSLS_IDENT("$Id: $")
 //  BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_MAYBE_UNUSED: '[[maybe_unused]]'
 //  BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_NODISCARD: '[[nodiscard]]'
 //  BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_NORETURN: '[[noreturn]]' attribute
+//  BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS: C++20 core language concepts
 //  BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR: 'constexpr' specifier
 //  BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP14: C++14 'constexpr' spec.
 //  BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17: C++17 'constexpr' spec.
+//  BSLS_COMPILERFEATURES_SUPPORT_COROUTINE: core & lib C++20 coroutine support
 //  BSLS_COMPILERFEATURES_SUPPORT_CTAD: flag for template argument deduction
 //  BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE: flag for 'decltype'
 //  BSLS_COMPILERFEATURES_SUPPORT_DEFAULT_TEMPLATE_ARGS: for function templates
@@ -70,26 +72,30 @@ BSLS_IDENT("$Id: $")
 // support for a given feature may need to  be explicitly enabled by using an
 // appropriate compiler command-line option.
 //
-///Special Formatting Allowances
-///-----------------------------
-// In this file there are complex conditionals, and defining and undefining of
-// of many macros.  For this reason this file uses a few special formatting
-// rules:
+///Special Formatting Rules and Allowances
+///---------------------------------------
+// This header is a large and complex mesh of fairly unrelated and deep
+// preprocessor conditionals with defining and undefining of many features
+// macros.  It is hard for a human to scan this file and understand how and
+// where particular feature macros are set.  To make matter more difficult in
+// certain circumstances we also unset/undefine macros.  For this reason this
+// header file uses a few special formatting rules to allow faster scanning:
 //
 //: 1 Only comments and the '1' (replacement text) of {Binary Macros} may be 79
 //:   characters long (plus newline).  Line continuation characters in long
-//:   preprocessor conditionals etc. must be placed onto column 78.  This is
-//:   to allow a human to easily scan the file for places where the feature
-//:   macros are defined.
+//:   preprocessor conditionals etc. must be placed onto column 78.  This is to
+//:   allow a human to easily scan the file for places where feature macros are
+//:   being defined.
 //:
 //: 2 Feature macro definitions that are commented out (to indicate that for a
 //:   given compiler + standard library combination the support does not exist)
 //:   must not have the replacement text (the number 1) be present so as not to
-//:   confuse a human reader.
+//:   confuse a human reader not using syntax highlighting.
 //:
-//: 3 Depending on the length of macro names and depth of necessary conditional
-//:   branches 2 spaces indentation may be used to ensure that most
-//:   preprocessor directives don't wrap and become hard to read.
+//: 3 Due to the depth of necessary conditional branches ('#if*') and the
+//:   unusually long feature macro names defined in this header we use 2 spaces
+//:   indentation to ensure that most preprocessor directives don't wrap (and
+//:   become hard to read).
 //
 ///Binary Macros
 ///-------------
@@ -212,6 +218,11 @@ BSLS_IDENT("$Id: $")
 //:     This macro is defined if the '[[noreturn]]' attribute is supported by
 //:     the current compiler settings for this platform.
 //:
+//: 'BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS':
+//:     This macro is defined if the concepts core language feature is
+//:     supported by the current compiler settings for this platform, as
+//:     defined by ISO C++20.
+//:
 //: 'BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR':
 //:     This macro is defined if 'constexpr' is supported by the current
 //:     compiler settings for this platform.
@@ -227,6 +238,12 @@ BSLS_IDENT("$Id: $")
 //:     This macro is defined if 'constexpr' with C++17 semantics is supported
 //:     by the current compiler settings for this platform.  In particular,
 //:     this allows lambda functions to be defined in a 'constexpr' function.
+//:
+//: 'BSLS_COMPILERFEATURES_SUPPORT_COROUTINE':
+//:     This macro is defined if coroutines with C++20 (or later) semantics are
+//:     supported by the current compiler settings, including the existence of
+//:     the <coroutine> standard header that provides the basic library
+//:     facilities necessary to make use of coroutines.
 //:
 //: 'BSLS_COMPILERFEATURES_SUPPORT_CTAD':
 //:     This macro is defined if template argument deduction introduced in the
@@ -567,6 +584,23 @@ BSLS_IDENT("$Id: $")
 //:   o Clang 3.3
 //:   o Visual Studio 2017 version 15.3 (_MSC_VER 1911)
 //
+///'BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS'
+///- - - - - - - - - - - - - - - - - - - -
+// This macro is defined if the concepts core language feature is fully
+// supported, as defined by ISO C++20.
+//
+// This macro is defined if the standard '__cpp_concepts' feature-test macro
+// has at least '202002L' value.
+//
+//: o Compiler support:
+//:   o GCC 12.1
+//:   o Visual Studio 2022 version 17.2.2 (_MSC_VER 1932)
+//:
+//: Note that clang 16.0 still has a bug that prevents it declaring C++20
+//: concepts support. (At the time of writing (2023.Jun.01) clang 'trunk' does
+//: not yet declare C++20 concepts to be available, '_cpp_concepts' is
+//: 201907LL).
+//
 ///'BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR'
 ///- - - - - - - - - - - - - - - - - - - - -
 // This macro is defined in the compiler supports the 'constexpr' reserved
@@ -579,7 +613,7 @@ BSLS_IDENT("$Id: $")
 //:   o Oracle CC 12.4
 //
 ///'BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP14'
-///- - - - - - - - - - - - - - - - - - - - - - - - -
+///- - - - - - - - - - - - - - - - - - - - - - - -
 // This macro is defined in the compiler supports the 'constexpr' reserved
 // keyword with C++14 semantics.
 //
@@ -589,14 +623,25 @@ BSLS_IDENT("$Id: $")
 //:   o Visual Studio 2017 version 15.0 (_MSC_VER 1910)
 //
 ///'BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17'
-///- - - - - - - - - - - - - - - - - - - - - - - - -
-// This macro is defined in the compiler supports the 'constexpr' reserved
+///- - - - - - - - - - - - - - - - - - - - - - - -
+// This macro is defined if the compiler supports the 'constexpr' reserved
 // keyword with C++17 semantics.
 //
 //: o Compiler support:
 //:   o gcc 7.3
 //:   o clang 5
 //:   o Visual Studio 2017 version 15.0 (_MSC_VER 1910)
+//
+///'BSLS_COMPILERFEATURES_SUPPORT_COROUTINE'
+///- - - - - - - - - - - - - - - - - - - - -
+// This macro is defined if the compiler supports at least the C++20 coroutine
+// core language features and also provides the '<coroutine>' standard header
+// providing the basic library facilities necessary to make use of coroutines.
+//
+//: o Compiler support (in C++20 mode):
+//:   o gcc 11
+//:   o clang 14
+//:   o Visual Studio 2019 version 16.8 (_MSC_VER 1928)
 //
 ///'BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE'
 /// - - - - - - - - - - - - - - - - - - - -
@@ -929,22 +974,48 @@ BSLS_IDENT("$Id: $")
 // | 2019 Update  9    | 16.9.2   | 14.28   | 1928     |  192829913    |
 // | 2019 Update 11    | 16.11.2  | 14.28   | 1929     |  192930133    |
 // +-------------------+----------+---------+----------+---------------+
-// | 2020              | 17.0.1   | 14.30   | 1930     |  193030705    |
-// | 2020(*)           | 17.0.2   | 14.30   | 1930     |  193030706    |
-// | 2020(*)           | 17.2.2   | 14.30   | 1932     |  193231329    |
-// | 2020(*)           | 17.3.4   | 14.30   | 1933     |  193331630    |
+// | 2022              | 17.0.1   | 14.30   | 1930     |  193030705    |
+// | 2022(*)           | 17.0.2   | 14.30   | 1930     |  193030706    |
+// | 2022(*)           | 17.2.2   | 14.30   | 1932     |  193231329    |
+// | 2022(*)           | 17.3.4   | 14.30   | 1933     |  193331630    |
 // +-------------------+----------+---------+----------+---------------+
 //..
 // (*) Visual Studio may receive interim updates that do not contribute into
 //     the Visual Studio "human friendly" version, but are visible in other
 //     version numbers.
+//
+//..
+//     ####################################################################
+//   ########################################################################
+//  ##                                                                      ##
+// ##             THIS HEADER FILE HAS SPECIAL FORMATTING RULES!             ##
+// ##            ************************************************            ##
+// ##                                                                        ##
+// ##  Please follow the rules when updating it.  For specific reasons and   ##
+// ##  details please see {Special Formatting Rules and Allowances} above.   ##
+//  ##                                                                      ##
+//   ########################################################################
+//     ####################################################################
+//..
 
 #include <bsls_platform.h>
 #include <bsls_macrorepeat.h>
 
+#ifdef __has_include
+  #if __has_include(<version>)
+    #include <version>
+  #endif
+#endif
+
 // ============================================================================
 //                      UNIVERSAL MACRO DEFINITIONS
 // ============================================================================
+
+#if defined(__cplusplus)
+  #define BSLS_COMPILERFEATURES_CPLUSPLUS __cplusplus
+#else
+  #define BSLS_COMPILERFEATURES_CPLUSPLUS 199711L
+#endif
 
 // First, define feature macros for any C++98 features that should be available
 // on all compilers, until removed by a later standard.  These macros will be
@@ -973,6 +1044,35 @@ BSLS_IDENT("$Id: $")
   #define BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS                     1
 #endif
 
+#if defined(__cpp_impl_coroutine) && __cpp_impl_coroutine >= 201902L
+    // && defined(__cpp_lib_coroutine)  && __cpp_lib_coroutine >= 201902L
+    //
+    // There are no known compilers that define the core language feature macro
+    // but do not provide the corresponding library header.  As *this* header
+    // is included into almost every translation unit we won't
+    // '#include <coroutine>' or the '<version>' standard headers (that would
+    // '#define __cpp_lib_coroutine'), but we verify the presence and value of
+    // '__cpp_lib_coroutine' both in the implementation file and the test
+    // driver.
+    #define BSLS_COMPILERFEATURES_SUPPORT_COROUTINE                           1
+#endif
+
+#if defined(__cpp_deduction_guides) && __cpp_deduction_guides >= 201611
+  #define BSLS_COMPILERFEATURES_SUPPORT_CTAD                                  1
+#endif
+
+#if defined(__cpp_concepts) && __cpp_concepts >= 202002L
+  #define BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS                              1
+#endif
+
+#if defined(__cpp_impl_three_way_comparison) &&                              \
+                                    __cpp_impl_three_way_comparison >= 201907L
+  #if defined(__cpp_lib_three_way_comparison) &&                             \
+                                      __cpp_lib_three_way_comparison >= 201907L
+    #define BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON                1
+  #endif
+#endif
+
 // ============================================================================
 //                           ATTRIBUTE DETECTION
 // ============================================================================
@@ -995,21 +1095,6 @@ BSLS_IDENT("$Id: $")
     #define BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_MAYBE_UNUSED              1
   #endif
 
-#endif
-
-#if defined(__cpp_deduction_guides) && __cpp_deduction_guides >= 201611
-  #define BSLS_COMPILERFEATURES_SUPPORT_CTAD                                  1
-#endif
-
-#if defined(__cpp_impl_three_way_comparison) &&                              \
-                                    __cpp_impl_three_way_comparison >= 201907L
-  #define BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON                  1
-#endif
-
-#if defined(__cplusplus)
-  #define BSLS_COMPILERFEATURES_CPLUSPLUS __cplusplus
-#else
-  #define BSLS_COMPILERFEATURES_CPLUSPLUS 199711L
 #endif
 
 // ============================================================================
@@ -1681,10 +1766,6 @@ BSLS_IDENT("$Id: $")
 // ============================================================================
 //                     STANDARD FEATURE-DETECTION MACROS
 // ============================================================================
-
-#if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-    #include <version>
-#endif
 
 #if defined(__cpp_lib_is_constant_evaluated)
     #define BSLS_COMPILERFEATURES_SUPPORT_IS_CONSTANT_EVALUATED               1

@@ -1,25 +1,11 @@
-// bsls_atomicoperations_ia64_hp_acc.t.cpp                            -*-C++-*-
+// bslstl_ostream.cpp                                                 -*-C++-*-
+#include <bslstl_ostream.h>
 
-#include <bsls_atomicoperations_ia64_hp_acc.h>
-
-#include <cstdlib>
-
-using namespace BloombergLP;
-using namespace std;
-
-int main(int argc, char *argv[])
-{
-    int test = argc > 1 ? atoi(argv[1]) : 0;
-
-    switch (test) { case 0:
-        return 0;
-      default:
-        return -1;
-    }
-}
+#include <bsls_ident.h>
+BSLS_IDENT("$Id$ $CSID$")
 
 // ----------------------------------------------------------------------------
-// Copyright 2013 Bloomberg Finance L.P.
+// Copyright 2023 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

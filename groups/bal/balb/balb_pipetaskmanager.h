@@ -10,7 +10,7 @@ BSLS_IDENT("$Id: $")
 //@CLASSES:
 //  balb::PipeTaskManager: message-to-handler dispatcher
 //
-//@SEE_ALSO: balb_controlmanage,r balb_pipecontrolchannel
+//@SEE_ALSO: balb_controlmanager, balb_pipecontrolchannel
 //
 //@DESCRIPTION: This component provides a mechanism, 'balb::PipeTaskManager',
 // that listens on a named pipe for messages that are typically used to
@@ -158,7 +158,7 @@ BSLS_IDENT("$Id: $")
 //      EXIT no arguments
 //          Terminate the application.
 //      HELP
-//          Dipslay this message
+//          Display this message
 //      LOG <GET|SET <level> >
 //          Get/set verbosity level.
 //      RESTART no arguments
@@ -177,12 +177,11 @@ BSLS_IDENT("$Id: $")
 //..
 // Then, we define helper functions 'myLoggingManagerGet' and
 // 'myLoggingManagerSet' so that the handler for "LOG" messages can delegate
-// processing the the "GET" and "SET" subcommands.  The other defined messages
-// have minimal syntax so use of a delegation pattern is overkill in those
-// cases.
+// processing the "GET" and "SET" subcommands.  The other defined messages have
+// minimal syntax so use of a delegation pattern is overkill in those cases.
 //..
 //  void myLoggingManagerGet()
-//      // Print the the current log level to the console.
+//      // Print the current log level to the console.
 //  {
 //      bsl::cout << "LOG LEVEL IS NOW"    << ": "
 //                << myLoggingManagerLevel << bsl::endl;

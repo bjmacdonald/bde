@@ -6,6 +6,8 @@
 #include <bslma_testallocator.h>
 #include <bslma_testallocatormonitor.h>
 
+#include <bslmf_issame.h>
+
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
 #include <bsls_bsltestutil.h>
@@ -270,6 +272,14 @@ class HashCrossReference {
 };
 
 // ============================================================================
+//                              GLOBAL TYPEDEFS
+// ----------------------------------------------------------------------------
+
+typedef std::filesystem::path TYPE;
+typedef TYPE::value_type      VALUE_TYPE;
+typedef TYPE::string_type     STRING_TYPE;
+
+// ============================================================================
 //                            MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
@@ -469,8 +479,8 @@ int main(int argc, char *argv[])
 
         typedef std::filesystem::path TYPE;
 
-        ASSERT((bslmf::IsSame<size_t, bslh::Hash<TYPE>::result_type>::VALUE));
-        ASSERT((bslmf::IsSame<TYPE, bslh::Hash<TYPE>::argument_type>::VALUE));
+        ASSERT((bslmf::IsSame<size_t, bslh::Hash<TYPE>::result_type>::value));
+        ASSERT((bslmf::IsSame<TYPE, bslh::Hash<TYPE>::argument_type>::value));
       } break;
       case 3: {
         // --------------------------------------------------------------------
@@ -519,10 +529,6 @@ int main(int argc, char *argv[])
 
         if (veryVerbose) printf(
                  "\nCreate a test allocator and install it as the default.\n");
-
-        typedef std::filesystem::path TYPE;
-        typedef TYPE::value_type      VALUE_TYPE;
-        typedef TYPE::string_type     STRING_TYPE;
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard dag(&da);
@@ -580,7 +586,17 @@ int main(int argc, char *argv[])
 
             for (int j = 0; j < depth; ++j) {
                 pathString += separator;
-                pathStringDoubleSep += doubleSeparator;
+
+                // Skip doubling the leading separator.
+                //
+                // Using a "//" as the first separator on Windows indicates
+                // this is a UNC name, and so won't compare or hash equal.
+                if (0 == j) {
+                    pathStringDoubleSep += separator;
+                }
+                else {
+                    pathStringDoubleSep += doubleSeparator;
+                }
 
                 pathString +=
                     PORTABLE_POSIX_CHARACTERS[i %
@@ -600,7 +616,7 @@ int main(int argc, char *argv[])
             currentHash = hashFunctor(pathRef);
 
             // Check consecutive values are not hashing to the same hash
-            ASSERT(currentHash != prevHash);
+            ASSERTV(currentHash, prevHash, currentHash != prevHash);
 
             // C-3
             ASSERT(currentHash == hashFunctor(pathDoubleSepRef));
@@ -752,6 +768,8 @@ int main(int argc, char *argv[])
 // BDE_VERIFY pragma: -TP11
 int main()
 {
+    // Avoid unused warning for 'aSsErT'.
+    ASSERT(true);
     return -1;
 }
 #endif // BSLS_LIBRARYFEATURES_HAS_CPP17_FILESYSTEM

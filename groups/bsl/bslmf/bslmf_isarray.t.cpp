@@ -24,11 +24,15 @@ using namespace BloombergLP;
 //
 //-----------------------------------------------------------------------------
 // PUBLIC CLASS DATA
-// [ 2] BloombergLP::bslmf::IsArray::VALUE
+// [ 4] bsl::is_unbounded_array
+// [ 4] bsl::is_unbounded_array_v
+// [ 3] bsl::is_bounded_array
+// [ 3] bsl::is_bounded_array_v
+// [ 2] BloombergLP::bslmf::IsArray::value
 // [ 1] bsl::is_array::value
 // [ 1] bsl::is_array_v
 // ----------------------------------------------------------------------------
-// [ 3] USAGE EXAMPLE
+// [ 5] USAGE EXAMPLE
 
 // ============================================================================
 //                     STANDARD BSL ASSERT TEST FUNCTION
@@ -117,7 +121,7 @@ int main(int argc, char *argv[])
     printf("TEST " __FILE__ " CASE %d\n", test);
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 3: {
+      case 5: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //
@@ -145,31 +149,427 @@ int main(int argc, char *argv[])
 ///- - - - - - - - - - - - - - -
 // Suppose that we want to assert whether a particular type is an array type.
 //
-// First, we create two 'typedef's -- an array type and a non-array type:
+// First, we create three 'typedef's -- a non-array type, an array type with a
+// known bound, and an array type and an array type with an unknown bound:
 //..
-    typedef int MyType;
-    typedef int MyArrayType[];
+    typedef int MyNonArrayType;
+    typedef int MySizedArrayType[12];
+    typedef int MyUnsizedArrayType[];
 //..
-// Now, we instantiate the 'bsl::is_array' template for each of the 'typedef's
-// and assert the 'value' static data member of each instantiation:
+// Now, we instantiate each of the the meta-functions for each of the
+// 'typedef's and assert the 'value' static data member of each instantiation:
 //..
-    ASSERT(false == bsl::is_array<MyType>::value);
-    ASSERT(true  == bsl::is_array<MyArrayType>::value);
+    ASSERT(false == bsl::is_array<MyNonArrayType>::value);
+    ASSERT(true  == bsl::is_array<MySizedArrayType>::value);
+    ASSERT(true  == bsl::is_array<MyUnsizedArrayType>::value);
+
+    ASSERT(false == bsl::is_bounded_array<MyNonArrayType>::value);
+    ASSERT(true  == bsl::is_bounded_array<MySizedArrayType>::value);
+    ASSERT(false == bsl::is_bounded_array<MyUnsizedArrayType>::value);
+
+    ASSERT(false == bsl::is_unbounded_array<MyNonArrayType>::value);
+    ASSERT(false == bsl::is_unbounded_array<MySizedArrayType>::value);
+    ASSERT(true  == bsl::is_unbounded_array<MyUnsizedArrayType>::value);
 //..
 // Note that if the current compiler supports the variable templates C++14
 // feature then we can re-write the snippet of code above using the
 // 'bsl::is_array_v' variable as follows:
 //..
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_VARIABLE_TEMPLATES
-    ASSERT(false == bsl::is_array_v<MyType>);
-    ASSERT(true  == bsl::is_array_v<MyArrayType>);
+    ASSERT(false == bsl::is_array_v<MyNonArrayType>);
+    ASSERT(true  == bsl::is_array_v<MySizedArrayType>);
+    ASSERT(true  == bsl::is_array_v<MyUnsizedArrayType>);
+
+    ASSERT(false == bsl::is_bounded_array_v<MyNonArrayType>);
+    ASSERT(true  == bsl::is_bounded_array_v<MySizedArrayType>);
+    ASSERT(false == bsl::is_bounded_array_v<MyUnsizedArrayType>);
+
+    ASSERT(false == bsl::is_unbounded_array_v<MyNonArrayType>);
+    ASSERT(false == bsl::is_unbounded_array_v<MySizedArrayType>);
+    ASSERT(true  == bsl::is_unbounded_array_v<MyUnsizedArrayType>);
 #endif
 //..
 
       } break;
+      case 4: {
+        // --------------------------------------------------------------------
+        // TESTING 'bsl::is_unbounded_array'
+        //   Ensure that 'bslmf::is_unbounded_array' returns the correct values
+        //   for a variety of template parameter types.
+        //
+        // Concerns:
+        //: 1 'is_unbounded_array' returns 'false' for a bounded array type.
+        //:
+        //: 2 'is_unbounded_array' returns 'true' for an unbounded array type.
+        //:
+        //: 3 'is_unbounded_array' returns 'false' for a reference to an array
+        //:   type.
+        //:
+        //: 4 'is_unbounded_array' returns 'false' for non-array types.
+        //:
+        //: 5 That 'is_unbounded_array_v' equals to 'is_unbounded_array::value'
+        //:   for a variety of template parameter types.
+        //
+        // Plan:
+        //: 1 Verify that 'is_bounded_array' returns the correct value for each
+        //:   concern. (C-1..4)
+        //
+        // Testing:
+        //   bsl::is_unbounded_array
+        //   bsl::is_unbounded_array_v
+        // --------------------------------------------------------------------
+
+        if (verbose) printf("\nTESTING 'bsl::is_unbounded_array'"
+                            "\n=================================\n");
+
+        ASSERT(0 == bsl::is_unbounded_array<char          [1]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<char const    [1]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<char       (&)[1]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<char             >::value);
+        ASSERT(0 == bsl::is_unbounded_array<char const       >::value);
+        ASSERT(0 == bsl::is_unbounded_array<char        *    >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<void       *   [2]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<void const *   [2]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<void       *(&)[2]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<void       *      >::value);
+        ASSERT(0 == bsl::is_unbounded_array<void              >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int                [3]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const          [3]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile       [3]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile [3]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int                   >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const             >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile          >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile    >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int                (&)[4]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const          (&)[4]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile       (&)[4]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile (&)[4]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int                 &    >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const           &    >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile        &    >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile  &    >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int                 * [5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const           * [5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile        * [5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile  * [5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int                (*)[5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const          (*)[5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile       (*)[5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile (*)[5]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int                 *    >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const           *    >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile        *    >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile  *    >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int         [6][6]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const   [6][6]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int      (&)[6][6]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int       * [6][6]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int      (*)[6][6]>::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int *const    [6][6]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int *const (&)[6][6]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int *const (*)[6][6]>::value);
+
+        ASSERT(1 == bsl::is_unbounded_array<void *[]>::value);
+
+        ASSERT(1 == bsl::is_unbounded_array<int                []>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int const          []>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int volatile       []>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int const volatile []>::value);
+
+        ASSERT(1 == bsl::is_unbounded_array<int                 * []>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int const           * []>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int volatile        * []>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int const volatile  * []>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int                (*)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const          (*)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile       (*)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile (*)[]>::value);
+
+        ASSERT(1 == bsl::is_unbounded_array<int          [][7]>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int const    [][7]>::value);
+        ASSERT(1 == bsl::is_unbounded_array<int        * [][7]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int       (*)[][7]>::value);
+
+        ASSERT(1 == bsl::is_unbounded_array<int *const    [][7]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int *const (*)[][7]>::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int                (&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const          (&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile       (&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile (&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int                (&)[][7]>
+                                                                      ::value);
+        ASSERT(0 == bsl::is_unbounded_array<int *const         (&)[][7]>
+                                                                      ::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int                (*&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const          (*&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int volatile       (*&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int const volatile (*&)[]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<int                (*&)[][7]>
+                                                                      ::value);
+        ASSERT(0 == bsl::is_unbounded_array<int *const         (*&)[][7]>
+                                                                      ::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<Enum          [8]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<Enum       (&)[8]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<Enum const (&)[8]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<Enum             >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<Struct    [8]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<Struct (&)[8]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<Struct       >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<Union    [8]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<Union (&)[8]>::value);
+        ASSERT(0 == bsl::is_unbounded_array<Union       >::value);
+
+        ASSERT(0 == bsl::is_unbounded_array<int  Struct::*    >::value);
+        ASSERT(0 == bsl::is_unbounded_array<int (Struct::*)[9]>::value);
+
+        // C-5
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int*);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int&);
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int    []);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(&) []);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*) []);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int *  []);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*&)[]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int    [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(&) [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*) [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int *  [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*&)[][5]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int    [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(&) [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*) [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int *  [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*&)[5]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int    [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(&) [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*) [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int *  [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int(*&)[5][5]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Enum          [8]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Enum       (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Enum const (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Enum             );
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Struct    [8]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Struct (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Struct       );
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Union    [8]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Union (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, Union       );
+
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int  Struct::*    );
+        TYPE_ASSERT_V_SAME(bsl::is_unbounded_array, int (Struct::*)[9]);
+
+      } break;
+      case 3: {
+        // --------------------------------------------------------------------
+        // TESTING 'bslmf::is_bounded_array'
+        //   Ensure that 'bslmf::is_bounded_array' returns the correct values
+        //   for a variety of template parameter types.
+        //
+        // Concerns:
+        //: 1 'is_bounded_array' returns 'true' for a bounded array type.
+        //:
+        //: 2 'is_bounded_array' returns 'false' for an unbounded array type.
+        //:
+        //: 3 'is_bounded_array' returns 'false' for a reference to an array
+        //:   type.
+        //:
+        //: 4 'is_bounded_array' returns 'false' for non-array types.
+        //:
+        //: 5 That 'is_bounded_array_v' equals to 'is_bounded_array::value' for
+        //:   a variety of template parameter types.
+        //
+        // Plan:
+        //: 1 Verify that 'is_bounded_array' returns the correct value for each
+        //:   concern. (C-1..4)
+        //
+        // Testing:
+        //   bsl::is_bounded_array
+        //   bsl::is_bounded_array_v
+        // --------------------------------------------------------------------
+
+        if (verbose) printf("\nTESTING 'bslmf::is_bounded_array'"
+                            "\n=================================\n");
+
+        ASSERT(1 == bsl::is_bounded_array<char          [1]>::value);
+        ASSERT(1 == bsl::is_bounded_array<char const    [1]>::value);
+        ASSERT(0 == bsl::is_bounded_array<char       (&)[1]>::value);
+        ASSERT(0 == bsl::is_bounded_array<char             >::value);
+        ASSERT(0 == bsl::is_bounded_array<char const       >::value);
+        ASSERT(0 == bsl::is_bounded_array<char        *    >::value);
+
+        ASSERT(1 == bsl::is_bounded_array<void       *   [2]>::value);
+        ASSERT(1 == bsl::is_bounded_array<void const *   [2]>::value);
+        ASSERT(0 == bsl::is_bounded_array<void       *(&)[2]>::value);
+        ASSERT(0 == bsl::is_bounded_array<void       *      >::value);
+        ASSERT(0 == bsl::is_bounded_array<void              >::value);
+
+        ASSERT(1 == bsl::is_bounded_array<int                [3]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int const          [3]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int volatile       [3]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int const volatile [3]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int                   >::value);
+        ASSERT(0 == bsl::is_bounded_array<int const             >::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile          >::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile    >::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int                (&)[4]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const          (&)[4]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile       (&)[4]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile (&)[4]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int                 &    >::value);
+        ASSERT(0 == bsl::is_bounded_array<int const           &    >::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile        &    >::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile  &    >::value);
+
+        ASSERT(1 == bsl::is_bounded_array<int                 * [5]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int const           * [5]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int volatile        * [5]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int const volatile  * [5]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int                (*)[5]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const          (*)[5]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile       (*)[5]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile (*)[5]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int                 *    >::value);
+        ASSERT(0 == bsl::is_bounded_array<int const           *    >::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile        *    >::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile  *    >::value);
+
+        ASSERT(1 == bsl::is_bounded_array<int         [6][6]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int const   [6][6]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int      (&)[6][6]>::value);
+        ASSERT(1 == bsl::is_bounded_array<int       * [6][6]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int      (*)[6][6]>::value);
+
+        ASSERT(1 == bsl::is_bounded_array<int *const    [6][6]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int *const (&)[6][6]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int *const (*)[6][6]>::value);
+
+        ASSERT(0 == bsl::is_bounded_array<void *[]>::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int                []>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const          []>::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile       []>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile []>::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int                 * []>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const           * []>::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile        * []>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile  * []>::value);
+        ASSERT(0 == bsl::is_bounded_array<int                (*)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const          (*)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile       (*)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile (*)[]>::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int          [][7]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const    [][7]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int        * [][7]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int       (*)[][7]>::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int *const    [][7]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int *const (*)[][7]>::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int                (&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const          (&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile       (&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile (&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int                (&)[][7]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int *const         (&)[][7]>::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int                (*&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const          (*&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int volatile       (*&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int const volatile (*&)[]>::value);
+        ASSERT(0 == bsl::is_bounded_array<int                (*&)[][7]>
+                                                                      ::value);
+        ASSERT(0 == bsl::is_bounded_array<int *const         (*&)[][7]>
+                                                                      ::value);
+
+        ASSERT(1 == bsl::is_bounded_array<Enum          [8]>::value);
+        ASSERT(0 == bsl::is_bounded_array<Enum       (&)[8]>::value);
+        ASSERT(0 == bsl::is_bounded_array<Enum const (&)[8]>::value);
+        ASSERT(0 == bsl::is_bounded_array<Enum             >::value);
+
+        ASSERT(1 == bsl::is_bounded_array<Struct    [8]>::value);
+        ASSERT(0 == bsl::is_bounded_array<Struct (&)[8]>::value);
+        ASSERT(0 == bsl::is_bounded_array<Struct       >::value);
+
+        ASSERT(1 == bsl::is_bounded_array<Union    [8]>::value);
+        ASSERT(0 == bsl::is_bounded_array<Union (&)[8]>::value);
+        ASSERT(0 == bsl::is_bounded_array<Union       >::value);
+
+        ASSERT(0 == bsl::is_bounded_array<int  Struct::*    >::value);
+        ASSERT(0 == bsl::is_bounded_array<int (Struct::*)[9]>::value);
+
+        // C-5
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int*);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int&);
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int    []);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(&) []);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*) []);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int *  []);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*&)[]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int    [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(&) [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*) [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int *  [][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*&)[][5]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int    [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(&) [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*) [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int *  [5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*&)[5]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int    [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(&) [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*) [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int *  [5][5]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int(*&)[5][5]);
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Enum          [8]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Enum       (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Enum const (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Enum             );
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Struct    [8]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Struct (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Struct       );
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Union    [8]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Union (&)[8]);
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, Union       );
+
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int  Struct::*    );
+        TYPE_ASSERT_V_SAME(bsl::is_bounded_array, int (Struct::*)[9]);
+
+      } break;
       case 2: {
         // --------------------------------------------------------------------
-        // TESTING 'bslmf::IsArray::VALUE'
+        // TESTING 'bslmf::IsArray::value'
         //   Ensure that 'bslmf::IsArray' returns the correct values for a
         //   variety of template parameter types.
         //
@@ -187,89 +587,89 @@ int main(int argc, char *argv[])
         //:   concern.
         //
         // Testing:
-        //   BloombergLP::bslmf::IsArray::VALUE
+        //   BloombergLP::bslmf::IsArray::value
         // --------------------------------------------------------------------
 
-        if (verbose) printf("\nTESTING 'bslmf::IsArray::VALUE'"
+        if (verbose) printf("\nTESTING 'bslmf::IsArray::value'"
                             "\n===============================\n");
 
-        ASSERT(1 == bslmf::IsArray<char          [1]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<char const    [1]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<char       (&)[1]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<char             >::VALUE);
-        ASSERT(0 == bslmf::IsArray<char const       >::VALUE);
-        ASSERT(0 == bslmf::IsArray<char        *    >::VALUE);
+        ASSERT(1 == bslmf::IsArray<char          [1]>::value);
+        ASSERT(1 == bslmf::IsArray<char const    [1]>::value);
+        ASSERT(0 == bslmf::IsArray<char       (&)[1]>::value);
+        ASSERT(0 == bslmf::IsArray<char             >::value);
+        ASSERT(0 == bslmf::IsArray<char const       >::value);
+        ASSERT(0 == bslmf::IsArray<char        *    >::value);
 
-        ASSERT(1 == bslmf::IsArray<void       *   [2]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<void const *   [2]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<void       *(&)[2]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<void       *      >::VALUE);
-        ASSERT(0 == bslmf::IsArray<void              >::VALUE);
+        ASSERT(1 == bslmf::IsArray<void       *   [2]>::value);
+        ASSERT(1 == bslmf::IsArray<void const *   [2]>::value);
+        ASSERT(0 == bslmf::IsArray<void       *(&)[2]>::value);
+        ASSERT(0 == bslmf::IsArray<void       *      >::value);
+        ASSERT(0 == bslmf::IsArray<void              >::value);
 
-        ASSERT(1 == bslmf::IsArray<int                [3]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const          [3]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int volatile       [3]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const volatile [3]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int                   >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const             >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int volatile          >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const volatile    >::VALUE);
+        ASSERT(1 == bslmf::IsArray<int                [3]>::value);
+        ASSERT(1 == bslmf::IsArray<int const          [3]>::value);
+        ASSERT(1 == bslmf::IsArray<int volatile       [3]>::value);
+        ASSERT(1 == bslmf::IsArray<int const volatile [3]>::value);
+        ASSERT(0 == bslmf::IsArray<int                   >::value);
+        ASSERT(0 == bslmf::IsArray<int const             >::value);
+        ASSERT(0 == bslmf::IsArray<int volatile          >::value);
+        ASSERT(0 == bslmf::IsArray<int const volatile    >::value);
 
-        ASSERT(0 == bslmf::IsArray<int                (&)[4]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const          (&)[4]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int volatile       (&)[4]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const volatile (&)[4]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int                 &    >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const           &    >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int volatile        &    >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const volatile  &    >::VALUE);
+        ASSERT(0 == bslmf::IsArray<int                (&)[4]>::value);
+        ASSERT(0 == bslmf::IsArray<int const          (&)[4]>::value);
+        ASSERT(0 == bslmf::IsArray<int volatile       (&)[4]>::value);
+        ASSERT(0 == bslmf::IsArray<int const volatile (&)[4]>::value);
+        ASSERT(0 == bslmf::IsArray<int                 &    >::value);
+        ASSERT(0 == bslmf::IsArray<int const           &    >::value);
+        ASSERT(0 == bslmf::IsArray<int volatile        &    >::value);
+        ASSERT(0 == bslmf::IsArray<int const volatile  &    >::value);
 
-        ASSERT(1 == bslmf::IsArray<int                 * [5]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const           * [5]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int volatile        * [5]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const volatile  * [5]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int                (*)[5]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const          (*)[5]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int volatile       (*)[5]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const volatile (*)[5]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int                 *    >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const           *    >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int volatile        *    >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const volatile  *    >::VALUE);
+        ASSERT(1 == bslmf::IsArray<int                 * [5]>::value);
+        ASSERT(1 == bslmf::IsArray<int const           * [5]>::value);
+        ASSERT(1 == bslmf::IsArray<int volatile        * [5]>::value);
+        ASSERT(1 == bslmf::IsArray<int const volatile  * [5]>::value);
+        ASSERT(0 == bslmf::IsArray<int                (*)[5]>::value);
+        ASSERT(0 == bslmf::IsArray<int const          (*)[5]>::value);
+        ASSERT(0 == bslmf::IsArray<int volatile       (*)[5]>::value);
+        ASSERT(0 == bslmf::IsArray<int const volatile (*)[5]>::value);
+        ASSERT(0 == bslmf::IsArray<int                 *    >::value);
+        ASSERT(0 == bslmf::IsArray<int const           *    >::value);
+        ASSERT(0 == bslmf::IsArray<int volatile        *    >::value);
+        ASSERT(0 == bslmf::IsArray<int const volatile  *    >::value);
 
-        ASSERT(1 == bslmf::IsArray<int         [6][6]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const   [6][6]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int      (&)[6][6]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int       * [6][6]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int      (*)[6][6]>::VALUE);
+        ASSERT(1 == bslmf::IsArray<int         [6][6]>::value);
+        ASSERT(1 == bslmf::IsArray<int const   [6][6]>::value);
+        ASSERT(0 == bslmf::IsArray<int      (&)[6][6]>::value);
+        ASSERT(1 == bslmf::IsArray<int       * [6][6]>::value);
+        ASSERT(0 == bslmf::IsArray<int      (*)[6][6]>::value);
 
-        ASSERT(1 == bslmf::IsArray<int *const    [6][6]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int *const (&)[6][6]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int *const (*)[6][6]>::VALUE);
+        ASSERT(1 == bslmf::IsArray<int *const    [6][6]>::value);
+        ASSERT(0 == bslmf::IsArray<int *const (&)[6][6]>::value);
+        ASSERT(0 == bslmf::IsArray<int *const (*)[6][6]>::value);
 
-        ASSERT(1 == bslmf::IsArray<void *[]>::VALUE);
+        ASSERT(1 == bslmf::IsArray<void *[]>::value);
 
-        ASSERT(1 == bslmf::IsArray<int                []>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const          []>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int volatile       []>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const volatile []>::VALUE);
+        ASSERT(1 == bslmf::IsArray<int                []>::value);
+        ASSERT(1 == bslmf::IsArray<int const          []>::value);
+        ASSERT(1 == bslmf::IsArray<int volatile       []>::value);
+        ASSERT(1 == bslmf::IsArray<int const volatile []>::value);
 
-        ASSERT(1 == bslmf::IsArray<int                 * []>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const           * []>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int volatile        * []>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const volatile  * []>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int                (*)[]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const          (*)[]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int volatile       (*)[]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int const volatile (*)[]>::VALUE);
+        ASSERT(1 == bslmf::IsArray<int                 * []>::value);
+        ASSERT(1 == bslmf::IsArray<int const           * []>::value);
+        ASSERT(1 == bslmf::IsArray<int volatile        * []>::value);
+        ASSERT(1 == bslmf::IsArray<int const volatile  * []>::value);
+        ASSERT(0 == bslmf::IsArray<int                (*)[]>::value);
+        ASSERT(0 == bslmf::IsArray<int const          (*)[]>::value);
+        ASSERT(0 == bslmf::IsArray<int volatile       (*)[]>::value);
+        ASSERT(0 == bslmf::IsArray<int const volatile (*)[]>::value);
 
-        ASSERT(1 == bslmf::IsArray<int          [][7]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int const    [][7]>::VALUE);
-        ASSERT(1 == bslmf::IsArray<int        * [][7]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int       (*)[][7]>::VALUE);
+        ASSERT(1 == bslmf::IsArray<int          [][7]>::value);
+        ASSERT(1 == bslmf::IsArray<int const    [][7]>::value);
+        ASSERT(1 == bslmf::IsArray<int        * [][7]>::value);
+        ASSERT(0 == bslmf::IsArray<int       (*)[][7]>::value);
 
-        ASSERT(1 == bslmf::IsArray<int *const    [][7]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<int *const (*)[][7]>::VALUE);
+        ASSERT(1 == bslmf::IsArray<int *const    [][7]>::value);
+        ASSERT(0 == bslmf::IsArray<int *const (*)[][7]>::value);
 
         ASSERT(0 == bslmf::IsArray<int                (&)[]>::value);
         ASSERT(0 == bslmf::IsArray<int const          (&)[]>::value);
@@ -285,21 +685,21 @@ int main(int argc, char *argv[])
         ASSERT(0 == bslmf::IsArray<int                (*&)[][7]>::value);
         ASSERT(0 == bslmf::IsArray<int *const         (*&)[][7]>::value);
 
-        ASSERT(1 == bslmf::IsArray<Enum          [8]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<Enum       (&)[8]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<Enum const (&)[8]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<Enum             >::VALUE);
+        ASSERT(1 == bslmf::IsArray<Enum          [8]>::value);
+        ASSERT(0 == bslmf::IsArray<Enum       (&)[8]>::value);
+        ASSERT(0 == bslmf::IsArray<Enum const (&)[8]>::value);
+        ASSERT(0 == bslmf::IsArray<Enum             >::value);
 
-        ASSERT(1 == bslmf::IsArray<Struct    [8]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<Struct (&)[8]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<Struct       >::VALUE);
+        ASSERT(1 == bslmf::IsArray<Struct    [8]>::value);
+        ASSERT(0 == bslmf::IsArray<Struct (&)[8]>::value);
+        ASSERT(0 == bslmf::IsArray<Struct       >::value);
 
-        ASSERT(1 == bslmf::IsArray<Union    [8]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<Union (&)[8]>::VALUE);
-        ASSERT(0 == bslmf::IsArray<Union       >::VALUE);
+        ASSERT(1 == bslmf::IsArray<Union    [8]>::value);
+        ASSERT(0 == bslmf::IsArray<Union (&)[8]>::value);
+        ASSERT(0 == bslmf::IsArray<Union       >::value);
 
-        ASSERT(0 == bslmf::IsArray<int  Struct::*    >::VALUE);
-        ASSERT(0 == bslmf::IsArray<int (Struct::*)[9]>::VALUE);
+        ASSERT(0 == bslmf::IsArray<int  Struct::*    >::value);
+        ASSERT(0 == bslmf::IsArray<int (Struct::*)[9]>::value);
       } break;
       case 1: {
         // --------------------------------------------------------------------
@@ -325,6 +725,7 @@ int main(int argc, char *argv[])
         //
         // Testing:
         //   bsl::is_array::value
+        //   bsl::is_array_v
         // --------------------------------------------------------------------
 
         if (verbose) printf("\nTESTING 'bsl::is_array::value'"

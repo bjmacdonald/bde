@@ -194,7 +194,7 @@ using bsls::NameOf;
 // [ 1] BREATHING TEST
 // [ 2] default construction (only)
 // [39] CLASS TEMPLATE DEDUCTION GUIDES
-// [40] USAGE EXAMPLE
+// [41] USAGE EXAMPLE
 //
 // TEST APPARATUS: GENERATOR FUNCTIONS
 // [ 3] int ggg(unordered_multimap *object, const char *s, int verbose);
@@ -207,6 +207,7 @@ using bsls::NameOf;
 // [35] CONCERN: 'unordered_multimap' supports incomplete types
 // [36] CONCERN: Methods qualifed 'noexcept' in standard are so implemented.
 // [37] CONCERN: 'erase' overload is deduced correctly.
+// [40] CONCERN: 'unordered_multimap' IS A C++20 RANGE
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
 // ----------------------------------------------------------------------------
@@ -3010,8 +3011,13 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase6()
         typedef bool (*OP)(const Obj&, const Obj&);
 
         OP op = bsl::operator==;
-        (void) op;
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+        (void) [](const Obj& lhs, const Obj& rhs) -> bool {
+            return lhs != rhs;
+        };
+#else
         op    = bsl::operator!=;
+#endif
         (void) op;
     }
 
@@ -5720,7 +5726,7 @@ int main(int argc, char *argv[])
     bslma::Default::setGlobalAllocator(&globalAllocator);
 
     switch (test) { case 0:
-      case 40: {
+      case 41: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //
@@ -5743,6 +5749,7 @@ int main(int argc, char *argv[])
             usage();
         }
       } break;
+      case 40: // falls through
       case 39: // falls through
       case 38: // falls through
       case 37: // falls through

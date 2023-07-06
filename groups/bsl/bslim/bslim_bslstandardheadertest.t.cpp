@@ -84,9 +84,9 @@
 #include <bsl_c_stdlib.h>
 #include <bsl_c_string.h>
 
-#if !defined(BSLS_PLATFORM_CMP_MSVC)
-// The POSIX header <sys/time.h> is not available from Visual Studio.
-#include <bsl_c_sys_time.h>
+#ifndef BSLS_PLATFORM_CMP_MSVC
+    // The POSIX header <sys/time.h> is not available from Visual Studio.
+    #include <bsl_c_sys_time.h>
 #endif
 
 #include <bsl_c_time.h>
@@ -101,6 +101,7 @@
 #include <bsl_clocale.h>
 #include <bsl_cmath.h>
 #include <bsl_complex.h>
+#include <bsl_concepts.h>         // C++20 header
 #include <bsl_csetjmp.h>
 #include <bsl_csignal.h>
 #include <bsl_cstdarg.h>
@@ -112,10 +113,11 @@
 #include <bsl_ctime.h>
 
 #if defined(BSLS_PLATFORM_CMP_MSVC) && (BSLS_PLATFORM_CMP_VERSION >= 1900)
-// The standard header <cuchar> is not available on most platforms.
-#include <bsl_cuchar.h>
+    // The standard header <cuchar> is not available on most platforms.
+    #include <bsl_cuchar.h>
 #endif
 
+#include <bsl_coroutine.h>        // C++20 header
 #include <bsl_cwchar.h>
 #include <bsl_cwctype.h>
 #include <bsl_deque.h>
@@ -209,24 +211,16 @@
 
 #include <utility>     // 'std::pair'
 
-#include <stdio.h>     // 'sprintf', 'snprintf' [NOT '<cstdio>', which does not
-                       // include 'snprintf']
+#include <stdio.h>     // 'printf'
 #include <stdlib.h>    // 'atoi'
 
 // Finished including potentially deprecated headers, rest of deprecations
 // should be reported.
-#ifdef BSLS_PLATFORM_CMP_MSVC
-    #define snprintf _snprintf
-    #undef _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
-    #undef _SILENCE_CXX17_STRSTREAM_DEPRECATION_WARNING
-#endif
 #ifdef BSLIM_BSLSTANDARDHEADERTEST_GNU_DEPRECATED_WAS_SET
     #define __DEPRECATED
 #endif
 
 using namespace BloombergLP;
-using namespace bsl;
-using namespace bslim;
 
 //=============================================================================
 //                                 TEST PLAN
@@ -237,6 +231,16 @@ using namespace bslim;
 // defined in 'bslstl'.
 //
 //-----------------------------------------------------------------------------
+// [36] C++20 'bsl_type_traits.h' HEADER ADDITIONS
+// [35] CONCERN: Entities from 'std::ranges' compatible with 'bsl::array'.
+// [34] bsl::coroutine_traits<>
+// [34] bsl::coroutine_handle<>
+// [34] bsl::noop_coroutine()
+// [34] bsl::noop_coroutine_promise
+// [34] bsl::noop_coroutine_handle
+// [34] bsl::suspend_never
+// [34] bsl::suspend_always
+// [33] C++20 'bsl_concepts.h' HEADER
 // [32] bsl::cmp_equal();
 // [32] bsl::cmp_not_equal();
 // [32] bsl::cmp_less();
@@ -244,7 +248,7 @@ using namespace bslim;
 // [32] bsl::cmp_less_equal();
 // [32] bsl::cmp_greater_equal();
 // [32] bsl::in_range();
-// [32] MISC C++20 ADDITIONS TO HEADERS
+// [31] MISC C++20 ADDITIONS TO HEADERS
 // [30] C++20 'bsl_atomic.h' HEADER ADDITIONS
 // [29] C++20 'bsl_memory.h' HEADER ADDITIONS
 // [28] CONCERN: Entities from 'std::ranges' are available and usable.
@@ -421,6 +425,7 @@ void aSsErT(bool condition, const char *message, int line)
 // ============================================================================
 //                     GLOBAL TYPEDEFS FOR TESTING
 // ----------------------------------------------------------------------------
+
 static bool verbose;
 static bool veryVerbose;
 static bool veryVeryVerbose;
@@ -505,7 +510,7 @@ void MapTestDriver<CONTAINER>::testCase1()
     //   CONCERN: Support references as 'mapped_type' in map-like containers.
     // ------------------------------------------------------------------------
     if (verbose) {
-        cout << "\tTesting with: " << bsls::NameOf<ValueType>().name() << endl;
+        printf("\tTesting with: %s\n", bsls::NameOf<ValueType>().name());
     }
 
     BSLMF_ASSERT(false == bsl::is_reference<KeyType>::value);
@@ -584,12 +589,10 @@ void MapTestDriver<CONTAINER>::testCase1()
     ASSERT(ret == mX.end());
 
     ASSERT(tempMapped.object() == tempMapped2.object());
-
-    cout<< "here3\n";
 }
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
-namespace TestCxx17TypeAliases {
+namespace TestCpp17TypeAliases {
     // This namespace is for testing the C++17 type aliases that have been to
     // bsl.  The goal here is not to ensure that the platform standard library
     // has implemented this functionality correctly, but instead to ensure that
@@ -598,14 +601,15 @@ namespace TestCxx17TypeAliases {
 
 namespace SW {
     struct SwapA {
-        // a class that can't be copied or assigned, so the default
+        // A type that can't be copied or assigned, so the default
         // implementation of 'swap' will not work.
+
         SwapA           (SwapA const&) = delete;
         SwapA& operator=(SwapA const&) = delete;
     };
 
     struct SwapB {
-        // a class that can't be copied or assigned, so the default
+        // A type that can't be copied or assigned, so the default
         // implementation of 'swap' will not work.
         SwapB           (SwapB const&) = delete;
         SwapB& operator=(SwapB const&) = delete;
@@ -641,12 +645,12 @@ void Conjunction ()
     typedef bsl::false_type F;
     typedef bsl::true_type  T;
 
-    static_assert(bsl::conjunction  <F>::value == bsl::conjunction_v<F>);
-    static_assert(bsl::conjunction  <T>::value == bsl::conjunction_v<T>);
-    static_assert(bsl::conjunction  <F, F>::value == bsl::conjunction_v<F, F>);
-    static_assert(bsl::conjunction  <F, T>::value == bsl::conjunction_v<F, T>);
-    static_assert(bsl::conjunction  <T, F>::value == bsl::conjunction_v<T, F>);
-    static_assert(bsl::conjunction  <T, T>::value == bsl::conjunction_v<T, T>);
+    static_assert(bsl::conjunction<F   >::value == bsl::conjunction_v<F   >);
+    static_assert(bsl::conjunction<T   >::value == bsl::conjunction_v<T   >);
+    static_assert(bsl::conjunction<F, F>::value == bsl::conjunction_v<F, F>);
+    static_assert(bsl::conjunction<F, T>::value == bsl::conjunction_v<F, T>);
+    static_assert(bsl::conjunction<T, F>::value == bsl::conjunction_v<T, F>);
+    static_assert(bsl::conjunction<T, T>::value == bsl::conjunction_v<T, T>);
 }
 
 void Disjunction ()
@@ -819,7 +823,7 @@ class CompletionFunction {
                             // class RangesDummyView
                             // =====================
 
-class RangesDummyView : public ranges::view_interface<RangesDummyView> {
+class RangesDummyView : public bsl::ranges::view_interface<RangesDummyView> {
     // This class is inherited from 'bsl::ranges::view_interface' and its only
     // purpose is to prove that 'bsl::ranges::view_interface' exists and is
     // usable.
@@ -863,6 +867,18 @@ class RangesDummyRandomGenerator{
 };
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
 
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+
+// case 34: 'basic_common_reference'
+
+template <class X> struct TQual { };
+template <class X> struct UQual { };
+
+struct U { };
+struct T { };
+
+#endif
+
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -879,9 +895,1056 @@ int main(int argc, char *argv[])
     (void) veryVeryVerbose;
     (void) veryVeryVeryVerbose;
 
-    bsl::cout << "TEST " << __FILE__ << " CASE " << test << "\n";
+    setbuf(stdout, NULL);    // Use unbuffered output
+
+    printf("TEST " __FILE__ " CASE %d\n", test);
 
     switch (test) { case 0:  // Zero is always the leading case.
+      case 36: {
+        // --------------------------------------------------------------------
+        // TESTING C++20 'bsl_type_traits.h' HEADER ADDITIONS
+        //
+        // Concerns:
+        //: 1 The following names are available in 'bsl' to users who include
+        //:   'bsl_type_traits.h':
+        //:   o 'bsl::is_bounded_array'
+        //:   o 'bsl::is_unbounded_array'
+        //:   o 'bsl::is_nothrow_convertible'
+        //:   o 'bsl::is_layout_compatible'
+        //:   o 'bsl::is_pointer_interconvertible_base_of'
+        //:   o 'bsl::common_reference'
+        //:   o 'bsl::basic_common_reference
+        //:   o 'bsl::is_pointer_interconvertible_with_class'
+        //:   o 'bsl::is_corresponding_member'
+        //:
+        //: 2 When the trait has a '*_v' form, that trait has the same value
+        //:  as the  non-'*_v' form.
+        //:
+        //: 3 The feature test macros defined in '<version>' for the imported
+        //:   features are available and have appropriate values.
+        //
+        // Plan:
+        //: 1 Verify that:
+        //:    o '__cpp_lib_is_layout_compatible        >= 201907L'
+        //:    o '__cpp_lib_is_pointer_interconvertible >= 201907L'
+        //:
+        //: 2 Verify that '__cpp_lib_is_layout_compatible' also also determines
+        //:   the availability of
+        //:   'BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER', per the
+        //:   final sentence of 'p0466r5.pdf'.
+        //:
+        //: 2 Form some syntactically valid expressions for each added trait.
+        //
+        // Testing
+        //   C++20 'bsl_type_traits.h' HEADER ADDITIONS
+        // --------------------------------------------------------------------
+
+        if (verbose) printf(
+                     "\nTESTING C++20 'bsl_type_traits.h' HEADER ADDITIONS"
+                     "\n==================================================\n");
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+        if (veryVerbose) {
+            Q('bsl::is_bounded_array');
+            Q('bsl::is_unbounded_array');
+        }
+        {
+            bool resultBA   = bsl::is_bounded_array  <int[10]>::value;
+            bool resultBA_v = bsl::is_bounded_array_v<int[10]>;
+
+            ASSERT(true == resultBA  );
+            ASSERT(true == resultBA_v);
+
+            bool resultUA   = bsl::is_unbounded_array  <int[  ]>::value;
+            bool resultUA_v = bsl::is_unbounded_array_v<int[  ]>;
+
+            ASSERT(true == resultUA  );
+            ASSERT(true == resultUA_v);
+        }
+
+        if (veryVerbose) {
+            Q('bsl::is_nothrow_convertible');
+        }
+        {
+            const bool result   = bsl::is_nothrow_convertible  <short, int>
+                                                                       ::value;
+            const bool result_v = bsl::is_nothrow_convertible_v<short, int>;
+
+            ASSERT(true == result);
+            ASSERT(true == result_v)
+
+            BSLMF_ASSERT(__cpp_lib_is_nothrow_convertible >=201806L);
+        }
+
+        if (veryVerbose) {
+            Q('bsl::common_reference');
+            Q('bsl::basic_common_reference');
+        }
+        {
+            using CR   = bsl::common_reference  <short, int>::type;
+
+            const bool isCrInt = bsl::is_same<CR, int>::value;
+
+            ASSERT(true == isCrInt);
+
+            using TU = bsl::basic_common_reference<T, U, TQual, UQual>;
+            using UT = bsl::basic_common_reference<U, T, UQual, TQual>;
+
+            bool result = bsl::is_same<TU, UT>:: value;
+            ASSERT(false == result);
+        }
+#else
+        if (veryVerbose) {
+            printf("SKIPPED: "
+                   "'BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY' "
+                   "undefined.\n");
+        }
+#endif
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE
+        if (veryVerbose) {
+            Q('bsl::is_layout_compatible');
+        }
+        {
+            ASSERTV("__cpp_lib_is_layout_compatible >= 201907L check",
+                     __cpp_lib_is_layout_compatible,
+                     __cpp_lib_is_layout_compatible >= 201907L);
+
+            struct Foo{
+                int x;
+                char y;
+            };
+
+            class Bar
+            {
+                const int u = 42;
+                volatile char v = '*';
+            };
+
+            const bool result   = bsl::is_layout_compatible  <Foo, Bar>::value;
+            const bool result_v = bsl::is_layout_compatible_v<Foo, Bar>;
+
+            ASSERTV(result,   true == result);
+            ASSERTV(result_v, true == result_v);
+        }
+#else
+        if (veryVerbose) {
+            printf(
+         "SKIPPED: "
+         "'BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE' undefined.\n");
+        }
+#endif
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER
+        if (veryVerbose) {
+            Q('bsl::is_corresponding_member');
+        }
+        {
+            // Note that the '_cpp_lib_is_layout' flag *also* controls
+            // 'bsl::is_corresponding_member'.
+
+            ASSERTV("__cpp_lib_is_layout_compatible >= 201907L check",
+                     __cpp_lib_is_layout_compatible,
+                     __cpp_lib_is_layout_compatible >= 201907L);
+         
+            struct Foo { int x; };
+            struct Bar { int y; double z; };
+
+            const bool result = bsl::is_corresponding_member(&Foo::x, &Bar::y);
+            ASSERT(true == result);
+        }
+#else
+        if (veryVerbose) {
+            printf("SKIPPED: "
+                   "'BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER' "
+                   "undefined.\n");
+        }
+#endif
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE
+        if (veryVerbose) {
+            Q('bsl::is_pointer_interconvertible_base_of');
+            Q('bsl::is_pointer_interconvertible_with_class');
+        }
+        {
+            ASSERTV("__cpp_lib_is_pointer_interconvertible >= 201907L check",
+                     __cpp_lib_is_pointer_interconvertible,
+                     __cpp_lib_is_pointer_interconvertible >= 201907L);
+            {
+                struct Foo {};
+                struct Bar {};
+                class Baz : Foo, public Bar {
+                    int x;
+                };
+
+                const bool res   = bsl::is_pointer_interconvertible_base_of
+                                                            < Bar, Baz>::value;
+                const bool res_v = bsl::is_pointer_interconvertible_base_of_v
+                                                            < Bar, Baz>;
+
+#if defined(BSLS_PLATFORM_CMP_MSVC) && BSLS_PLATFORM_CMP_VERSION <= 1937
+                // Known Windows bug.   Hopefully fixed in future release.
+
+                const bool expected = false;
+#else
+                const bool expected = true;
+#endif
+                ASSERT(expected == res);
+                ASSERT(expected == res_v);
+            }
+            {
+                struct Foo { int x; };
+                struct Bar { int y; };
+                struct Baz : Foo, Bar {}; // not standard-layout
+
+                const bool res = bsl::is_pointer_interconvertible_with_class(
+                                                                      &Baz::x);
+                ASSERT(true == res);
+            }
+        }
+#else
+        if (veryVerbose) {
+            printf(
+                "SKIPPED: "
+                "'BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE' "
+                "undefined.\n");
+        }
+#endif
+      } break;
+      case 35: {
+        // --------------------------------------------------------------------
+        // TESTING C++20 'std::ranges' bsl::array container
+        //
+        // Concerns:
+        //: 1 The definitions from '<ranges>' defined by the C++20 Standard are
+        //:   available in C++20 mode in the 'bsl' namespace to users who
+        //:   include 'bsl_ranges.h'.
+        //:
+        //: 2 Constrained versions of algorithms defined by the C++20 Standard
+        //:   are available in C++20 mode in the 'bsl' namespace to users who
+        //:   include 'bsl_algorithm.h' for bsl::array container
+        //
+        // Plan:
+        //: 1 For every type from the 'std::ranges' namespace aliased in the
+        //:   <bsl_ranges.h>, verify that the type exists and is usable.  (C-1)
+        //:
+        //: 2 For every algorithm from the 'std::ranges' namespace aliased in
+        //:   the 'bslstl_algorithm.h', verify that the function exists and is
+        //:   usable by bsl::array.  (C-2)
+        //
+        // Testing:
+        //   CONCERN: Entities from 'std::ranges' compatible with 'bsl::array'.
+        // --------------------------------------------------------------------
+        if (verbose) printf("\nTESTING C++20 'std::ranges' bsl::array container"
+                            "\n====================================\n");
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
+        namespace ranges = bsl::ranges;
+
+        // Testing types aliased in the 'bsl_ranges.h'
+
+        using Array = bsl::array<int, 5>;
+
+        Array arr{1, 2, 3, 4, 5};
+
+        auto aBegin   = ranges::begin(arr);
+        auto aEnd     = ranges::end(arr);
+        auto aCBegin  = ranges::cbegin(arr);
+        auto aCEnd    = ranges::cend(arr);
+        auto aRBegin  = ranges::rbegin(arr);
+        auto aREnd    = ranges::rend(arr);
+        auto aCRBegin = ranges::crbegin(arr);
+        auto aCREnd   = ranges::crend(arr);
+        auto aSize    = ranges::size(arr);
+        auto aSSize   = ranges::ssize(arr);
+        bool aEmpty   = ranges::empty(arr);
+        auto aData    = ranges::data(arr);
+        auto aCData   = ranges::cdata(arr);
+
+        ASSERTV(*aBegin,   1        == *aBegin  );
+        ASSERTV(           aBegin   !=  aEnd    );
+        ASSERTV(*aCBegin,  1        == *aCBegin );
+        ASSERTV(           aCBegin  !=  aCEnd   );
+        ASSERTV(*aRBegin,  5        == *aRBegin );
+        ASSERTV(           aRBegin  !=  aREnd   );
+        ASSERTV(*aCRBegin, 5        == *aCRBegin);
+        ASSERTV(           aCRBegin !=  aCREnd  );
+
+        ASSERTV( aSize,    5        ==  aSize   );
+        ASSERTV( aSSize,   5        ==  aSSize  );
+        ASSERTV(           false    ==  aEmpty  );
+        ASSERTV(*aData,    1        == *aData   );
+        ASSERTV(*aCData,   1        == *aCData  );
+
+        // Range primitives
+
+        ranges::iterator_t<Array>         aBeginT = arr.begin();
+        ranges::sentinel_t<Array>         aEndT   = arr.end();
+        ranges::range_size_t<Array>       aSizeT  = arr.size();
+        ranges::range_difference_t<Array> aDiffT =
+                                 bsl::ranges::distance(arr.begin(), arr.end());
+                                              // defined in <bslstl_iterator.h>
+        ranges::range_value_t<Array>            aValueT     = arr[0];
+        ranges::range_reference_t<Array>        aRefT       = arr[0];
+        ranges::range_rvalue_reference_t<Array> aRvalueRefT = 10 * arr[0];
+
+        ASSERTV(*aBeginT,     1    == *aBeginT    );
+        ASSERTV(              aEnd ==  aEndT      );
+        ASSERTV( aSizeT,      5    ==  aSizeT     );
+        ASSERTV( aDiffT,      5    ==  aDiffT     );
+        ASSERTV( aValueT,     1    ==  aValueT    );
+        ASSERTV( aRefT,       1    ==  aRefT      );
+        ASSERTV( aRvalueRefT, 10   ==  aRvalueRefT);
+
+        // Range concepts
+
+        ASSERT(true  == ranges::range<Array>                              );
+        ASSERT(false == ranges::borrowed_range<Array>                     );
+        ASSERT(false == ranges::enable_borrowed_range<Array>              );
+        ASSERT(true  == ranges::sized_range<Array>                        );
+        ASSERT(false == ranges::disable_sized_range<Array>                );
+        ASSERT(false == ranges::view<Array>                               );
+        ASSERT(false == ranges::enable_view<Array>                        );
+
+        ranges::view_base arrbase;
+        static_cast<void>(arrbase);            // suppress compiler warning
+
+        ASSERT( true  == ranges::input_range<Array>                       );
+        ASSERT((false == ranges::output_range<Array,
+                                              ranges::iterator_t<Array> >));
+        ASSERT( true  == ranges::forward_range<Array>                     );
+        ASSERT( true  == ranges::bidirectional_range<Array>               );
+        ASSERT( true  == ranges::random_access_range<Array>               );
+        ASSERT( true  == ranges::contiguous_range<Array>                  );
+        ASSERT( true  == ranges::common_range<Array>                      );
+        ASSERT( true  == ranges::viewable_range<Array>                    );
+
+
+        // Views
+
+        // 'RangesDummyView' is inherited from 'bsl::ranges::view_interface'.
+
+        RangesDummyView dummy;
+        ASSERTV(true == dummy.empty())
+
+        ranges::subrange arrsubrange(arr.begin(), arr.end());
+        ASSERTV(5 == arrsubrange.size())
+
+        // Dangling iterator handling
+
+        const auto arrMaxElement = ranges::max_element(arr);
+                                             // defined in <bslstl_algorithm.h>
+
+        ASSERTV((!bsl::is_same_v<decltype(arrMaxElement), ranges::dangling>));
+
+        ASSERTV((bsl::is_same_v<ranges::borrowed_iterator_t<Array>,
+                                ranges::dangling>));
+        ASSERTV((bsl::is_same_v<ranges::borrowed_subrange_t<Array>,
+                                ranges::dangling>));
+
+        // Factories
+
+        ranges::empty_view<int> emptyView;
+        ASSERTV(!emptyView);
+        ASSERTV(emptyView.empty());
+
+        ranges::single_view<int> singleView(1);
+        ASSERTV(singleView.size(), 1 == singleView.size());
+
+        ranges::iota_view<int, int> iotaView(1, 2);
+        ASSERTV(iotaView.size(), 1 == iotaView.size());
+
+        bsl::istringstream                    iStringStream("1 2 3");
+        ranges::basic_istream_view<int, char> basicIStreamView(iStringStream);
+        auto beginResult = *basicIStreamView.begin();
+        ASSERTV(beginResult, 1 == beginResult);
+
+        ranges::istream_view<int> iStreamView(iStringStream);
+        beginResult = *iStreamView.begin();
+        ASSERTV(beginResult, 2 == beginResult);
+
+        bsl::wstring wString;
+        wString.push_back('1');
+        bsl::wistringstream        wIStringStream(wString);
+        ranges::wistream_view<int> wIStreamView(wIStringStream);
+        beginResult = *wIStreamView.begin();
+        ASSERTV(beginResult, 1 == beginResult);
+
+        auto viewsEmpty = bsl::views::empty<int>;
+        ASSERTV(!viewsEmpty);
+        ASSERTV(viewsEmpty.empty());
+
+        auto viewsSingle = bsl::views::single(1);
+        ASSERTV(viewsSingle.size(), 1 == viewsSingle.size());
+
+        auto viewsIota = bsl::views::iota(1, 2);
+        ASSERTV(viewsIota.size(), 1 == viewsIota.size());
+
+        auto viewsIStream = bsl::views::istream<int>(iStringStream);
+        beginResult       = *viewsIStream.begin();
+        ASSERTV(beginResult, 3 == beginResult);
+
+        // Adaptors
+
+        ranges::ref_view arrRefView = bsl::views::all(arr);
+        ASSERTV(&arr[0] == &arrRefView[0]);
+
+        bsl::views::all_t<decltype((arr))>& arrRefViewRef = arrRefView;
+        static_cast<void>(arrRefViewRef);  // suppress compiler warning
+
+        Array               arrToMove{1, 2, 3, 4, 5};
+        ranges::owning_view arrOwningView =
+                                         bsl::views::all(bsl::move(arrToMove));
+        //ASSERTV(arrToMove.size(),  0 == arrToMove.size());
+        // Works as std::array
+        ASSERTV(arrOwningView.size(), 5 == arrOwningView.size());
+
+        ranges::filter_view arrFilterView =
+                                        bsl::views::filter(arr, [](int value) {
+                                            return value > 3;
+            });
+        ASSERTV(arr.front(), 1 == arr.front());  // 1, 2, 3, 4, 5
+        ASSERTV(arrFilterView.front(), 4 == arrFilterView.front());  // 4, 5
+
+        ranges::transform_view arrTransformView =
+                                     bsl::views::transform(arr, [](int value) {
+                                         return value * 3;
+            });
+        ASSERTV(arr[0], 1 == arr[0]);  // 1, 2, 3, 4, 5
+        ASSERTV(arrTransformView[0],
+                3 == arrTransformView[0]);  // 3, 6, 9, 12, 15
+
+        ranges::take_view arrTakeView = bsl::views::take(arr, 3);
+        ASSERTV(arrTakeView.size(), 3 == arrTakeView.size());  // 1, 2, 3
+
+        ranges::take_while_view arrTakeWhileView =
+                                    bsl::views::take_while(arr, [](int value) {
+                                        return value < 3;
+            });
+        ASSERTV(arrTakeWhileView.front(),
+                1 == arrTakeWhileView.front());  // 1, 2
+
+        ranges::drop_view arrDropView = bsl::views::drop(arr, 3);
+        ASSERTV(arrDropView.size(), 2 == arrDropView.size());  // 4, 5
+
+        ranges::drop_while_view arrDropWhileView =
+                                    bsl::views::drop_while(arr, [](int value) {
+                                        return value < 3;
+            });
+        ASSERTV(arrDropWhileView.size(),
+                3 == arrDropWhileView.size());  // 3, 4, 5
+
+        bsl::array<int, 2>                arr2{4, 5};
+        bsl::array<bsl::array<int, 2>, 3> bigArray = {arr2, arr2, arr2};
+        ranges::join_view                 arrJoinView =
+                               bsl::views::join(bigArray);  // 4, 5, 4, 5, 4, 5
+        ASSERTV(arrJoinView.front(), 4 == arrJoinView.front());
+        ASSERTV(arrJoinView.back(), 5 == arrJoinView.back());
+
+        const auto joinViewCount = bsl::count_if(arrJoinView.begin(),
+                                                 arrJoinView.end(),
+                                                 [](auto const&) {
+                                                     return true;
+                                                 });
+        ASSERT(joinViewCount == 6);
+
+        ranges::lazy_split_view arrLazySplitView = bsl::views::lazy_split(arr,
+                                                                          3);
+        ASSERTV(false == arrLazySplitView.empty());
+
+        ranges::split_view arrSplitView = bsl::views::split(arr, 3);
+        ASSERTV(false == arrSplitView.empty());
+
+        ranges::common_view arrCommonView =
+                                   arr | bsl::views::take_while([](int value) {
+                                       return value < 3;
+            }) |
+            bsl::views::common;
+        ASSERTV(arrCommonView.front(), 1 == arrCommonView.front());  // 1, 2
+
+        ranges::reverse_view arrReverseView = bsl::views::reverse(arr);
+        ASSERTV(arrReverseView.front(), 5 == arrReverseView.front());
+        // 5, 4, 3, 2, 1
+
+        // Enumerations
+
+        ranges::subrange_kind subrangeKind;
+        static_cast<void>(subrangeKind);
+
+        // Testing algorithms aliased in '<bsl_algorithm.h>'
+
+        auto greaterThanTwo = [](int i) {
+            return i > 2;
+        };
+
+        auto multiplyByTwo = [](int& i) {
+            i *= 2;
+            return i;
+        };
+
+        auto generateOne = []() {
+            return 1u;
+        };
+
+        ASSERT(!ranges::all_of(arr, greaterThanTwo));
+        ASSERT(ranges::any_of(arr, greaterThanTwo));
+        ASSERT(!ranges::none_of(arr, greaterThanTwo));
+
+        Array arrToTransform{1, 2, 3, 4, 5};
+
+        ranges::for_each_result arrForEachResult =
+                               ranges::for_each(arrToTransform, multiplyByTwo);
+        ASSERTV(0 == ranges::distance(arrToTransform.end(),
+                                      arrForEachResult.in));
+        ASSERTV(arrToTransform[0], 2 == arrToTransform[0]);  // 2, 4, 6, 8, 10
+
+        ranges::for_each_n_result arrForEachNResult =
+                  ranges::for_each_n(arrToTransform.begin(), 1, multiplyByTwo);
+        // 4, 4, 6, 8, 10
+        ASSERTV(1 == ranges::distance(arrToTransform.begin(),
+                                      arrForEachNResult.in));
+        ASSERTV(arrToTransform[0], 4 == arrToTransform[0]);
+
+        ASSERT(1 == ranges::count(arr, 2));
+        ASSERT(3 == ranges::count_if(arr, greaterThanTwo));
+
+        ranges::mismatch_result arrMismatchResult =
+                                         ranges::mismatch(arr, arrToTransform);
+        ASSERT(0 == ranges::distance(arr.begin(), arrMismatchResult.in1));
+        ASSERT(0 == ranges::distance(arrToTransform.begin(),
+                                     arrMismatchResult.in2));
+
+        ASSERT(true == ranges::equal(arr, arr));
+        ASSERT(false == ranges::lexicographical_compare(arr, arr));
+
+        auto arrFindResult = ranges::find(arr, 1);
+        ASSERT(0 == ranges::distance(arr.begin(), arrFindResult));
+
+        auto arrFindIfResult = ranges::find_if(arr, greaterThanTwo);
+        ASSERT(2 == ranges::distance(arr.begin(), arrFindIfResult));
+
+        auto arrFindIfNotResult = ranges::find_if_not(arr, greaterThanTwo);
+        ASSERT(0 == ranges::distance(arr.begin(), arrFindIfNotResult));
+
+        auto arrFindEndResult = ranges::find_end(arr, arrToTransform);
+        ASSERT(0 == ranges::distance(arr.end(), arrFindEndResult.begin()));
+
+        auto arrFindFirstOfResult = ranges::find_first_of(arr, arr);
+        ASSERT(0 == ranges::distance(arr.begin(), arrFindFirstOfResult));
+
+        auto arrAdjacentFindResult = ranges::adjacent_find(arrToTransform);
+        // 4, 4, 6, 8, 10
+        ASSERT(0 == ranges::distance(arrToTransform.begin(),
+                                     arrAdjacentFindResult));
+
+        auto arrSearchResult = ranges::search(arr, arr);
+        ASSERT(0 == ranges::distance(arr.begin(), arrSearchResult.begin()));
+
+        auto arrSearchNResult = ranges::search_n(arrToTransform, 2, 4);
+        ASSERT(0 == ranges::distance(arrToTransform.begin(),
+                                     arrSearchNResult.begin()));
+
+        Array arrToCopyTo{};
+
+        ranges::copy_result arrCopyResult = ranges::copy(arr,
+                                                         arrToCopyTo.begin());
+        ASSERT(0 == ranges::distance(arr.end(), arrCopyResult.in));
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 4, 5
+
+        ranges::copy_if_result arrCopyIfResult = ranges::copy_if(
+                                                           arrToTransform,
+                                                           arrToCopyTo.begin(),
+                                                           greaterThanTwo);
+        ASSERT(0 == ranges::distance(arrToTransform.end(),
+                                     arrCopyIfResult.in));
+        ASSERTV(arrToCopyTo[0], 4 == arrToCopyTo[0]);  // 4, 4, 6, 8, 10
+
+        arrToCopyTo = {1, 2, 3, 4, 5};
+        ranges::copy_n_result arrCopyNResult =
+                ranges::copy_n(arrToTransform.begin(), 5, arrToCopyTo.begin());
+        ASSERT(0 == ranges::distance(arrToTransform.begin() + 5,
+                                     arrCopyNResult.in));
+        ASSERTV(arrToCopyTo[0], 4 == arrToCopyTo[0]);  // 4, 4, 6, 8, 10
+
+        ranges::copy_backward_result arrCopyBackResult =
+                                 ranges::copy_backward(arr, arrToCopyTo.end());
+        ASSERT(0 == ranges::distance(arr.end(), arrCopyBackResult.in));
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 4, 5
+        ASSERTV(arrToCopyTo[4], 5 == arrToCopyTo[4]);  // 1, 2, 3, 4, 5
+
+        Array arrToMoveFrom1 = {5, 4, 3, 2, 1};
+
+        auto arrMoveResult = ranges::move(arrToMoveFrom1, arrToCopyTo.begin());
+        ASSERT(0 == ranges::distance(arrToMoveFrom1.end(), arrMoveResult.in));
+        ASSERTV(arrToCopyTo[0], 5 == arrToCopyTo[0]);  // 5, 4, 3, 2, 1
+
+        Array arrToMoveFrom2 = {5, 4, 3, 2, 1};
+
+        ranges::move_backward_result arrMoveBackResult =
+                    ranges::move_backward(arrToMoveFrom2, arrToCopyTo.begin());
+        ASSERT(0 == ranges::distance(arrToMoveFrom2.end(),
+                                     arrMoveBackResult.in));
+        ASSERTV(arrToCopyTo[0], 5 == arrToCopyTo[0]);  // 5, 4, 3, 2, 1
+
+        ranges::fill(arrToTransform, -1);
+        ASSERTV(arrToTransform[0],
+                -1 == arrToTransform[0]);  // -1, -1, -1, -1, -1
+
+        ranges::fill_n(arrToTransform.begin(), 1, 1);  // 1, -1, -1, -1, -1
+        ASSERTV(arrToTransform[0], 1 == arrToTransform[0]);
+        ASSERTV(arrToTransform[1], -1 == arrToTransform[1]);
+
+        ranges::unary_transform_result uArrTransformResult = ranges::transform(
+                                                        arrToTransform,
+                                                        arrToTransform.begin(),
+                                                        multiplyByTwo);
+        // 2, -2, -2, -2, -2
+        ASSERT(0 == ranges::distance(arrToTransform.end(),
+                                     uArrTransformResult.in));
+        ASSERTV(arrToTransform[0], 2 == arrToTransform[0]);
+        ASSERTV(arrToTransform[1], -2 == arrToTransform[1]);
+
+        ranges::binary_transform_result bArrTransformResult =
+                                     ranges::transform(arr,
+                                                       arrToTransform,
+                                                       arrToTransform.begin(),
+                                                       bsl::multiplies<int>());
+        ASSERT(0 == ranges::distance(arr.end(), bArrTransformResult.in1));
+        ASSERTV(arrToTransform[1], -4 == arrToTransform[1]);
+
+        ranges::generate(arrToTransform, generateOne);  // 1, 1, 1, 1, 1
+        ASSERTV(arrToTransform[0], 1 == arrToTransform[0]);
+
+        arrToTransform[0] = 2;
+
+        ranges::generate_n(arrToTransform.begin(), 1, generateOne);
+        ASSERTV(arrToTransform[0], 1 == arrToTransform[0]);  // 1, 1, 1, 1, 1
+
+        arrToTransform[1] = 2;
+
+        ranges::remove(arrToTransform, 2);
+        ASSERTV(arrToTransform[1], 1 == arrToTransform[1]);  // 1, 1, 1, 1, 1
+
+        arrToTransform[1] = 3;
+
+        ranges::remove_if(arrToTransform, greaterThanTwo);
+        ASSERTV(arrToTransform[1], 1 == arrToTransform[1]);  // 1, 1, 1, 1, 1
+
+        ranges::remove_copy_result arrRemoveCopyResult =
+                              ranges::remove_copy(arr, arrToCopyTo.begin(), 1);
+        ASSERTV(0 == ranges::distance(arr.end(), arrRemoveCopyResult.in));
+        ASSERTV(arrToCopyTo[0], 2 == arrToCopyTo[0]);  // 2, 3, 4, 5, 1
+
+        ranges::remove_copy_if_result arrRemoveCopyIfResult =
+              ranges::remove_copy_if(arr, arrToCopyTo.begin(), greaterThanTwo);
+        ASSERTV(0 == ranges::distance(arr.end(), arrRemoveCopyIfResult.in));
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 4, 5, 1
+
+        ranges::replace(arrToTransform, 1, 3);
+        ASSERTV(arrToTransform[1], 3 == arrToTransform[1]);  // 3, 3, 3, 3, 3
+
+        arrToTransform[0] = 0;
+        ranges::replace_if(arrToTransform, greaterThanTwo, 1);
+        ASSERTV(arrToTransform[0], 0 == arrToTransform[0]);  // 0, 1, 1, 1, 1
+        ASSERTV(arrToTransform[1], 1 == arrToTransform[1]);  // 0, 1, 1, 1, 1
+        arrToTransform[0] = 1;
+
+        ranges::replace_copy_result arrReplaceCopyResult =
+                          ranges::replace_copy(arr, arrToCopyTo.begin(), 1, 3);
+        ASSERTV(0 == ranges::distance(arr.end(), arrReplaceCopyResult.in));
+        ASSERTV(arrToCopyTo[0], 3 == arrToCopyTo[0]);  // 3, 2, 4, 5, 3
+
+        ranges::replace_copy_if_result arrReplaceCopyIfResult =
+                                   ranges::replace_copy_if(arr,
+                                                           arrToCopyTo.begin(),
+                                                           greaterThanTwo,
+                                                           1);
+        ASSERTV(0 == ranges::distance(arr.end(), arrReplaceCopyIfResult.in));
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 1, 1, 1
+
+        Array arrToTransform1{1, 2, 3, 4, 5};
+
+        ranges::swap_ranges_result arrSwapRangesResult =
+                          ranges::swap_ranges(arrToTransform, arrToTransform1);
+        ASSERTV(0 == ranges::distance(arrToTransform.end(),
+                                      arrSwapRangesResult.in1));
+        ASSERTV(arrToTransform[1], 2 == arrToTransform[1]);  // 1, 2, 3, 4, 5
+
+        ranges::reverse(arrToTransform);
+        ASSERTV(arrToTransform[1], 4 == arrToTransform[1]);  // 5, 4, 3, 2, 1
+
+        ranges::reverse_copy_result arrReverseCopyResult =
+                                ranges::reverse_copy(arr, arrToCopyTo.begin());
+        ASSERTV(0 == ranges::distance(arr.end(), arrReverseCopyResult.in));
+        ASSERTV(arr[1], 2 == arr[1]);                  // 1, 2, 3, 4, 5
+        ASSERTV(arrToCopyTo[1], 4 == arrToCopyTo[1]);  // 5, 4, 3, 2, 1
+
+        ranges::rotate(arrToTransform,
+                       arrToTransform.begin() + 1);          // 5, 4, 3, 2, 1
+        ASSERTV(arrToTransform[1], 3 == arrToTransform[1]);  // 4, 3, 2, 1, 5
+
+        ranges::rotate_copy_result arrRotateCopyResult =
+                ranges::rotate_copy(arr, arr.begin() + 2, arrToCopyTo.begin());
+        ASSERTV(0 == ranges::distance(arr.end(), arrRotateCopyResult.in));
+        ASSERTV(arr[1], 2 == arr[1]);                  // 1, 2, 3, 4, 5
+        ASSERTV(arrToCopyTo[1], 4 == arrToCopyTo[1]);  // 3, 4, 5, 1, 2, ...
+
+        ranges::shuffle(arrToTransform, RangesDummyRandomGenerator());
+        ASSERTV(arrToTransform[1],
+                1 <= arrToTransform[1] && 5 >= arrToTransform[1]);
+
+        ranges::sample(arr,
+                       arrToTransform.begin(),
+                       1,
+                       RangesDummyRandomGenerator());
+        ASSERTV(arrToTransform[0],
+                1 <= arrToTransform[0] && 5 >= arrToTransform[0]);
+
+        arrToTransform = Array{1, 1, 1, 2, 2};
+
+        ranges::unique(arrToTransform);
+        ASSERTV(arrToTransform[1], 2 == arrToTransform[1]);  // 1, 2, ?, ?, ?
+
+        arrToTransform = Array{1, 1, 1, 2, 2};
+
+        ranges::unique_copy_result arrUniqueCopyResult =
+                      ranges::unique_copy(arrToTransform, arrToCopyTo.begin());
+        ASSERTV(0 == ranges::distance(arrToTransform.end(),
+                                      arrUniqueCopyResult.in));
+        ASSERTV(arrToTransform[1], 1 == arrToTransform[1]);  // 1, 1, 1, 2, 2
+        ASSERTV(arrToCopyTo[1], 2 == arrToCopyTo[1]);        // 1, 2, 5, 1, 2,
+
+        ASSERTV(false == ranges::is_partitioned(arr, greaterThanTwo));
+
+        arrToTransform = Array{2, 2, 2, 3, 3};
+
+        ranges::partition(arrToTransform, greaterThanTwo);
+        ASSERTV(arrToTransform[1], 3 == arrToTransform[1]);  // 3, 3, 2, 2, 2
+
+        arrToTransform = Array{2, 2, 2, 3, 3};
+
+        ranges::partition_copy_result arrPartitionCopyResult =
+                                ranges::partition_copy(arrToTransform,
+                                                       arrToCopyTo.begin(),
+                                                       arrToCopyTo.begin() + 5,
+                                                       greaterThanTwo);
+        ASSERTV(0 == ranges::distance(arrToTransform.end(),
+                                      arrPartitionCopyResult.in));
+        ASSERTV(arrToTransform[1], 2 == arrToTransform[1]);  // 2, 2, 2, 3, 3
+        ASSERTV(arrToCopyTo[1], 3 == arrToCopyTo[1]);  // 3, 3, 5, 1, 2, 2,
+
+        arrToTransform = Array{2, 2, 2, 3, 4};
+
+        ranges::stable_partition(arrToTransform, greaterThanTwo);
+        ASSERTV(arrToTransform[1], 4 == arrToTransform[1]);  // 3, 4, 2, 2, 2
+
+        auto arrPartitionPoint = ranges::partition_point(arrToTransform,
+                                                         greaterThanTwo);
+        ASSERTV(0 == ranges::distance(arrToTransform.begin() + 2,
+                                      arrPartitionPoint));
+
+        ASSERTV(true == ranges::is_sorted(arr));
+
+        auto isArrSortedUntilResult = ranges::is_sorted_until(arrToTransform);
+        ASSERTV(0 == ranges::distance(arrToTransform.begin() + 2,
+                                      isArrSortedUntilResult));
+
+        ranges::sort(arrToTransform);
+        ASSERTV(arrToTransform[1], 2 == arrToTransform[1]);  // 2, 2, 2, 3, 4
+
+        arrToTransform = Array{5, 4, 3, 2, 1};
+
+        ranges::partial_sort(arrToTransform, arrToTransform.begin() + 1);
+        ASSERTV(arrToTransform[0], 1 == arrToTransform[0]);  // 1, ?, ?, ?, ?
+
+        arrToTransform = Array{5, 4, 3, 2, 1};
+
+        ranges::partial_sort_copy(arrToTransform, arrToCopyTo);
+        ASSERTV(arrToTransform[0], 5 == arrToTransform[0]);  // 5, 4, 3, 2, 1
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);        // 1, 2, 3, 4, 5,
+
+        ranges::stable_sort(arrToTransform);
+        ASSERTV(arrToTransform[0], 1 == arrToTransform[0]);  // 1, 2, 3, 4, 5
+
+        arrToTransform = Array{5, 4, 3, 2, 1};
+
+        ranges::nth_element(arrToTransform, arrToTransform.begin() + 1);
+        ASSERTV(arrToTransform[1], 2 == arrToTransform[1]);  // 1, 2, ?, ?, ?
+
+        const auto arrLowerBoundResult = ranges::lower_bound(arr, 3);
+        ASSERTV(0 == ranges::distance(arr.begin() + 2, arrLowerBoundResult));
+
+        const auto arrUpperBoundResult = ranges::upper_bound(arr, 3);
+        ASSERTV(0 == ranges::distance(arr.begin() + 3, arrUpperBoundResult));
+
+        ASSERTV(true == ranges::binary_search(arr, 3));
+
+        const auto arrEqualRangeResult = ranges::equal_range(arr, 3);
+        ASSERTV(3 == arrEqualRangeResult[0]);
+
+        bsl::array<int, 10>        arrToMergeTo{};
+        const ranges::merge_result arrMergeResult =
+                                 ranges::merge(arr, arr, arrToMergeTo.begin());
+        ASSERTV(0 == ranges::distance(arr.end(), arrMergeResult.in1));
+        ASSERTV(arrToMergeTo[0],
+                1 == arrToMergeTo[0]);  // 1, 1, 2, 2, 3, 3, ...
+        ASSERTV(true == ranges::is_sorted(arrToMergeTo.begin(),
+                                          arrToMergeTo.begin() + 10));
+
+        arrToTransform = Array{4, 5, 1, 2, 3};
+
+        ranges::inplace_merge(arrToTransform, arrToTransform.begin() + 2);
+        ASSERTV(arrToTransform[0], 1 == arrToTransform[0]);  // 1, 2, 3, 4, 5
+
+        ASSERTV(true == ranges::includes(arr, arr));
+
+        const ranges::set_difference_result arrSetDifferenceResult =
+                                   ranges::set_difference(arr.begin(),
+                                                          arr.end(),
+                                                          arr.begin(),
+                                                          arr.begin() + 3,
+                                                          arrToCopyTo.begin());
+        ASSERTV(0 == ranges::distance(arr.end(), arrSetDifferenceResult.in));
+        ASSERTV(arrToCopyTo[0], 4 == arrToCopyTo[0]);  // 4, 5, 3, 4, 5
+
+        const ranges::set_intersection_result arrSetIntersectionResult =
+                       ranges::set_intersection(arr, arr, arrToCopyTo.begin());
+        ASSERTV(0 == ranges::distance(arr.end(),
+                                      arrSetIntersectionResult.in1));
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 4, 5
+
+        arrToTransform = Array{4, 5, 6, 7, 8};
+
+        const ranges::set_symmetric_difference_result
+            arrSetSymmetricDifferenceResult = ranges::set_symmetric_difference(
+                                                          arr,
+                                                          arrToTransform,
+                                                          arrToCopyTo.begin());
+        ASSERTV(0 == ranges::distance(arr.end(),
+                                      arrSetSymmetricDifferenceResult.in1));
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 6, 7
+
+        const ranges::set_union_result arrSetUnionResult =
+                   ranges::set_union(arr, arrToTransform, arrToCopyTo.begin());
+        ASSERTV(0 == ranges::distance(arr.end(), arrSetUnionResult.in1));
+        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 4, 5
+
+        ASSERTV(false == ranges::is_heap(arrToTransform));
+
+        ASSERTV(true == ranges::is_heap(arrToTransform.begin(),
+                                        arrToTransform.begin() + 1));
+
+        ranges::make_heap(arrToTransform);
+        ASSERTV(arrToTransform[0], 8 == arrToTransform[0]);  // 8, 7, 6, 4, 5
+
+        arrToTransform.back() = 9;
+        ranges::push_heap(arrToTransform);
+        ASSERTV(arrToTransform[0], 9 == arrToTransform[0]);  // 9, 8, 6, 4, 7
+
+        ranges::pop_heap(arrToTransform);
+        ASSERTV(arrToTransform[0], 8 == arrToTransform[0]);  // 8, 7, 6, 4, 9
+
+        ranges::push_heap(arrToTransform);  // 9, 8, 6, 4, 7
+
+        ranges::sort_heap(arrToTransform);
+        ASSERTV(arrToTransform[0], 4 == arrToTransform[0]);  // 4, 6, 7, 8, 9
+
+        ASSERTV(5 == ranges::max(arr));
+
+        const auto rArrMaxElement = ranges::max_element(arr);
+        ASSERTV(0 == ranges::distance(arr.begin() + 4, rArrMaxElement));
+
+        ASSERTV(1 == ranges::min(arr));
+
+        const auto arrMinElement = ranges::min_element(arr);
+        ASSERTV(0 == ranges::distance(arr.begin(), arrMinElement));
+
+        const ranges::minmax_result arrMinMaxResult = ranges::minmax(arr);
+        ASSERTV(arrMinMaxResult.min, 1 == arrMinMaxResult.min);
+        ASSERTV(arrMinMaxResult.max, 5 == arrMinMaxResult.max);
+
+        const ranges::minmax_element_result arrMinMaxElementResult =
+                                                   ranges::minmax_element(arr);
+        ASSERTV(0 == ranges::distance(arr.begin(),
+                                      arrMinMaxElementResult.min));
+
+        ASSERT(2 == bsl::clamp(1, 2, 3));
+
+        ASSERT(true == ranges::is_permutation(arr, arr));
+
+        arrToTransform = Array{1, 2, 3, 4, 5};
+
+        const ranges::next_permutation_result arrNextPermutationResult =
+                                      ranges::next_permutation(arrToTransform);
+        ASSERTV(0 == ranges::distance(arrToTransform.end(),
+                                      arrNextPermutationResult.in));
+        ASSERTV(arrToTransform[3], 5 == arrToTransform[3]);  // 1, 2, 3, 5, 4
+
+        const ranges::prev_permutation_result arrPrevPermutationResult =
+                                      ranges::prev_permutation(arrToTransform);
+        ASSERTV(0 == ranges::distance(arrToTransform.end(),
+                                      arrPrevPermutationResult.in));
+        ASSERTV(arrToTransform[3], 4 == arrToTransform[3]);  // 1, 2, 3, 4, 5
+
+#endif
+      } break;
+      case 34: {
+        // --------------------------------------------------------------------
+        // C++20 '<bsl_coroutine.h>'
+        //
+        // Concerns:
+        //: 1 Templates 'bsl::coroutine_traits' and 'bsl::coroutine_handle' are
+        //:   aliases to their corresponding 'std' counterparts.
+        //:
+        //: 2 Function 'bsl::noop_coroutine()', and classes
+        //:   'bsl::noop_coroutine_promise' and 'bsl::noop_coroutine_handle'
+        //:   are aliases to their corresponding 'std' counterparts.
+        //:
+        //: 3 Types 'bsl::suspend_always' and 'bsl::suspend_never' are aliases
+        //:   to their corresponding 'std' counterparts.
+        //
+        // Plan:
+        //: 1 Use 'bsl::is_same_v' in 'ASSERT' to ensure type identity.
+        //: 1 Create specific types from templates and compare those as above.
+        //: 2 Compare function addresses for 'noop_coroutine'.
+        //
+        // Testing:
+        //   bsl::coroutine_traits<>
+        //   bsl::coroutine_handle<>
+        //   bsl::noop_coroutine()
+        //   bsl::noop_coroutine_promise
+        //   bsl::noop_coroutine_handle
+        //   bsl::suspend_never
+        //   bsl::suspend_always
+        // --------------------------------------------------------------------
+        if (verbose) printf("\nC++20 '<bsl_coroutine.h>'"
+                            "\n=========================\n");
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_COROUTINE
+        {
+            struct FakeTask {
+            };
+            ASSERT((bsl::is_same_v<bsl::coroutine_traits<FakeTask>,
+                                   std::coroutine_traits<FakeTask>> ));
+        }
+
+        ASSERT((bsl::is_same_v<bsl::coroutine_handle<>,
+                               std::coroutine_handle<>>));
+
+        ASSERT((bsl::is_same_v<bsl::noop_coroutine_promise,
+                               std::noop_coroutine_promise>));
+
+        ASSERT((bsl::is_same_v<bsl::noop_coroutine_handle,
+                               std::noop_coroutine_handle>));
+
+        ASSERT(&bsl::noop_coroutine == &std::noop_coroutine);
+
+#else
+        if (verbose) puts("SKIP: '<bsl_coroutine.h>' is not supported.");
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_COROUTINE
+      } break;
+      case 33: {
+        // --------------------------------------------------------------------
+        // TESTING C++20 'bsl_concepts.h' HEADER
+        //
+        // Concerns:
+        //: 1 The definitions from '<concepts>' defined by the C++20 Standard
+        //:   are available in C++20 mode in the 'bsl' namespace to users who
+        //:   include 'bsl_concepts.h'.
+        //
+        // Plan:
+        //: 1 Form some valid expressions with every name with 'bsl' prefix.
+        //
+        // Testing
+        //   C++20 'bsl_concepts.h' HEADER
+        // --------------------------------------------------------------------
+        if (verbose) printf("\nTESTING C++20 'bsl_concepts.h' HEADER"
+                            "\n=====================================\n");
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+        BSLMF_ASSERT(( bsl::same_as<int, int >));
+        BSLMF_ASSERT((!bsl::same_as<int, char>));
+
+        {
+            class B {};
+            class D : public B {};
+            BSLMF_ASSERT(( bsl::derived_from<D, B>));
+            BSLMF_ASSERT((!bsl::derived_from<B, D>));
+        }
+        {
+            class C {};
+            BSLMF_ASSERT(( bsl::convertible_to<char, int >));
+            BSLMF_ASSERT(( bsl::convertible_to<int,  char>));
+            BSLMF_ASSERT(( bsl::convertible_to<int,  int >));
+            BSLMF_ASSERT((!bsl::convertible_to<C,    int >));
+        }
+        {
+            class C {};
+            BSLMF_ASSERT(( bsl::common_reference_with<int,   char      >));
+            BSLMF_ASSERT(( bsl::common_reference_with<int,   const int >));
+            BSLMF_ASSERT((!bsl::common_reference_with<C,     int       >));
+            BSLMF_ASSERT((!bsl::common_reference_with<int *, unsigned *>));
+        }
+
+        BSLMF_ASSERT(( bsl::common_with<int,   char  >));
+        BSLMF_ASSERT(( bsl::common_with<int *, void *>));
+        BSLMF_ASSERT((!bsl::common_with<int *, char *>));
+
+        BSLMF_ASSERT(( bsl::integral<int   >));
+        BSLMF_ASSERT(( bsl::integral<char  >));
+        BSLMF_ASSERT((!bsl::integral<double>));
+
+        BSLMF_ASSERT(( bsl::signed_integral<int     >));
+        BSLMF_ASSERT((!bsl::signed_integral<unsigned>));
+
+        BSLMF_ASSERT(( bsl::unsigned_integral<unsigned>));
+        BSLMF_ASSERT((!bsl::unsigned_integral<int     >));
+
+        BSLMF_ASSERT(( bsl::floating_point<double>));
+        BSLMF_ASSERT((!bsl::floating_point<int   >));
+
+        BSLMF_ASSERT(( bsl::assignable_from<int&, int>));
+        BSLMF_ASSERT((!bsl::assignable_from<int,  int>));
+
+        {
+            struct C {
+                C(const C&)            = delete;
+                C &operator=(const C&) = delete;
+            };
+            BSLMF_ASSERT(( bsl::swappable<int>));
+            BSLMF_ASSERT((!bsl::swappable<C  >));
+        }
+
+        BSLMF_ASSERT(( bsl::swappable_with<int&, int&>));
+        BSLMF_ASSERT((!bsl::swappable_with<int,  int >));
+
+        {
+            class C { ~C() = delete; };
+            BSLMF_ASSERT(( bsl::destructible<int>));
+            BSLMF_ASSERT((!bsl::destructible<C  >));
+        }
+
+        BSLMF_ASSERT(( bsl::constructible_from<int, int >));
+        BSLMF_ASSERT((!bsl::constructible_from<int, int*>));
+
+        BSLMF_ASSERT(( bsl::default_initializable<int >));
+        BSLMF_ASSERT((!bsl::default_initializable<int&>));
+
+        {
+            struct C { C(C&&) = delete; };
+            BSLMF_ASSERT(( bsl::move_constructible<int>));
+            BSLMF_ASSERT((!bsl::move_constructible<C  >));
+        }
+
+        {
+            struct C { C(const C&) = delete; };
+            BSLMF_ASSERT(( bsl::copy_constructible<int>));
+            BSLMF_ASSERT((!bsl::copy_constructible<C  >));
+        }
+#else
+        if (verbose) puts("SKIP: '<bsl_concepts.h>' is not supported.");
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+      } break;
       case 32: {
         // --------------------------------------------------------------------
         // TESTING C++20 <BSL_UTILITY.H> ADDITIONS
@@ -1424,7 +2487,7 @@ int main(int argc, char *argv[])
         ranges::subrange_kind subrangeKind;
         (void) subrangeKind;
 
-        // Testing algorithms aliased in the 'bsl_algorithm.h'
+        // Testing algorithms aliased in '<bsl_algorithm.h>'
 
         auto greaterThanTwo = [](int  i)
                                {
@@ -1570,12 +2633,12 @@ int main(int argc, char *argv[])
 
         vecToTransform[1] = 2;
 
-        ranges::remove(vecToTransform, 2);
+        (void)ranges::remove(vecToTransform, 2);
         ASSERTV(vecToTransform[1], 1 == vecToTransform[1]);  // 1, 1, 1, 1, 1
 
         vecToTransform[1] = 3;
 
-        ranges::remove_if(vecToTransform, greaterThanTwo);
+        (void)ranges::remove_if(vecToTransform, greaterThanTwo);
         ASSERTV(vecToTransform[1], 1 == vecToTransform[1]);  // 1, 1, 1, 1, 1
 
         ranges::remove_copy_result removeCopyResult = ranges::remove_copy(
@@ -1660,7 +2723,7 @@ int main(int argc, char *argv[])
 
         vecToTransform = Vector{1, 1, 1, 2, 2};
 
-        ranges::unique(vecToTransform);
+        (void)ranges::unique(vecToTransform);
         ASSERTV(vecToTransform[1], 2 == vecToTransform[1]); // 1, 2, ?, ?, ?
 
         vecToTransform = Vector{1, 1, 1, 2, 2};
@@ -3045,15 +4108,15 @@ int main(int argc, char *argv[])
         // We don't really need to call these routines, because all they do is
         // 'static_assert', but this keeps the compiler from warning about
         // "unused functions".
-        TestCxx17TypeAliases::Conjunction();
-        TestCxx17TypeAliases::Disjunction();
-        TestCxx17TypeAliases::HasUniqueObjectReps();
-        TestCxx17TypeAliases::IsAggregate();
-        TestCxx17TypeAliases::IsInvocable();
-        TestCxx17TypeAliases::IsInvocableR();
-        TestCxx17TypeAliases::IsSwappable();
-        TestCxx17TypeAliases::IsSwappableWith();
-        TestCxx17TypeAliases::Negation();
+        TestCpp17TypeAliases::Conjunction();
+        TestCpp17TypeAliases::Disjunction();
+        TestCpp17TypeAliases::HasUniqueObjectReps();
+        TestCpp17TypeAliases::IsAggregate();
+        TestCpp17TypeAliases::IsInvocable();
+        TestCpp17TypeAliases::IsInvocableR();
+        TestCpp17TypeAliases::IsSwappable();
+        TestCpp17TypeAliases::IsSwappableWith();
+        TestCpp17TypeAliases::Negation();
 #endif
 
       } break;
@@ -3176,7 +4239,7 @@ int main(int argc, char *argv[])
         ASSERT(itemTuple1 == *itrTuple1);
         ASSERT(itemTuple2 == *itrTuple2);
 #else
-        if (verbose) cout << "SKIP: 'std::tuple' not available" << endl;
+        if (verbose) puts("SKIP: 'std::tuple' not available");
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE
 
       } break;
