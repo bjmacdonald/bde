@@ -13,9 +13,6 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "generator": "Ninja",
       "environment": {
-        "BDE_BUILD_TARGET_64" : "ON",
-        "BDE_BUILD_TARGET_CPP20" : "ON",
-        "CMAKE_EXPORT_COMPILE_COMMANDS" : "ON",
         "BBS_BUILD_SYSTEM" : "OFF",
         "BBS_USE_WAFSTYLEOUT" : "OFF",
         "BBS_CPP11_VERIFY_NO_CHANGE" : "OFF"
@@ -26,13 +23,6 @@
       "inherits": "default",
       "description": "Sets install directories, compiler.",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "cl",
-        "CMAKE_CXX_COMPILER": "cl"
-      },
-      "environment": {
-        "CMAKE_PREFIX_PATH": "c:/bjmd/proj/3rd-party/wt/build/${presetName}/Wt;c:/bjmd/proj/3rd-party/capnproto/build/${presetName}/c++/cmake"
-      },
       "installDir": "c:/app/local/bde/${presetName}",
       "toolchainFile": "${sourceDir}/cmake/toolchains/win32/cl-default-lib.cmake",
       "vendor": {
@@ -115,12 +105,18 @@
       "description": "Windows Debug",
       "inherits": [ "w64" ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "UFID": { "type": "STRING", "value": "dbg_exc_mt_64_cpp20" }
       },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
+      },
+      "debug" : {
+        "output": true,
+        "tryCompile": false,
+        "find": false
       }
     },
     {
@@ -128,7 +124,8 @@
       "description": "Windows Release",
       "inherits": [ "w64" ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "UFID": { "type": "STRING", "value": "opt_exc_mt_64_cpp20" }
       },
       "condition": {
         "type": "equals",
@@ -141,7 +138,8 @@
       "description": "Windows RelWithDebInfo",
       "inherits": [ "w64" ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_INSTALL_CONFIG_NAME ": "RelWithDebInfo"
       },
       "condition": {
         "type": "equals",
@@ -160,7 +158,8 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
-      }
+      },
+      "verbose": true
     },
     {
       "name": "w64-build-rel",

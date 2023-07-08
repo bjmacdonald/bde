@@ -1,3 +1,30 @@
+BDE Libraries - Capitis Notes
+=============================
+
+Changes
+-------
+
+Grabbed the cmake folder from the bde-tools project and tweaked the root CMakeLists.txt.  Added CMakePresets.json,
+need to fully rip out the ludicrously over complex build system and generate clean CMakeFiles from the project/ files.
+
+
+Windows Build
+-------------
+
+Load in CLion; activate the "w64-cfg-dbg - w64-build-dbg" and "w64-cfg-rel - w64-build-rel" profiles, then
+"Build->Build Project" to build both. Then run from their respective build folders:
+```
+cmake -DBUILD_TYPE=Debug -P cmake_install.cmake
+cmake -DBUILD_TYPE=Release -P cmake_install.cmake
+```
+
+This is necessary as the BDE config somehow messes up the BUILD_TYPE and the install misses the *Targets-debug.cmake
+and *Targets-release.cmake files.
+
+Tests also have to be run individually.
+
+
+
 BDE Libraries
 =============
 
