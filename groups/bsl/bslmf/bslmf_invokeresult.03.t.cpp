@@ -121,6 +121,49 @@ struct PtrToMemFuncTest {
                 (IsInvokeResult<EXP, VRFp, volatile T1&&, short>::value));
 #endif // BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
 #endif // BSLS_COMPILERFEATURES_SUPPORT_REF_QUALIFIERS
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
+
+        // Testing 'bsl::invoke_result_t'
+
+        ASSERTV(LINE, (IsInvokeResultT<Fp,                 T1, char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fp&,                T1, char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fp const&,          T1, char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fp volatile&,       T1, char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fp const volatile&, T1, char>::value));
+
+        ASSERTV(LINE, (IsInvokeResultT<CFp,  T1,          short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<CFp,  const T1,    short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<VFp,  T1,          short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<VFp,  volatile T1, short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<CVFp, T1,          short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<CVFp, volatile T1, short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<CVFp, const T1,    short>::value));
+        ASSERTV(LINE,
+                (IsInvokeResultT<CVFp, const volatile T1, short>::value));
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
+        ASSERTV(LINE, (IsInvokeResultT<Fp&&, T1, char>::value));
+#endif
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_REF_QUALIFIERS
+        // Test ref-qualified member-function-pointers
+
+        ASSERTV(LINE, (IsInvokeResultT<LFp,  T1&,       int>::value));
+        ASSERTV(LINE, (IsInvokeResultT<CLFp, T1&,       int>::value));
+        ASSERTV(LINE, (IsInvokeResultT<CLFp, const T1&, int>::value));
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
+
+        ASSERTV(LINE, (IsInvokeResultT<RFp,  T1,            short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<RFp,  T1&&,          short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<VRFp, T1,            short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<VRFp, T1&&,          short>::value));
+        ASSERTV(LINE, (IsInvokeResultT<VRFp, volatile T1&&, short>::value));
+#endif // BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
+#endif // BSLS_COMPILERFEATURES_SUPPORT_REF_QUALIFIERS
+
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
     }
 };
 
@@ -257,6 +300,8 @@ int main(int argc, char *argv[])
         //: 5 Concern 1 applies for pointers to member functions taking 0 to 9
         //:   arguments, where some of the arguments are convertible to the
         //:    function parameters, rather than being an exact match.
+        //: 6 The 'bsl::invoke_result_t' represents the expected type for
+        //:   invocables of pointer-to-member-function type.
         //
         // Plan:
         //: 1 For concerns 1 and 2, define a functor template
@@ -276,6 +321,10 @@ int main(int argc, char *argv[])
         //:   Concerns 2 and 3 do not interact, so it is not necessary to
         //:   test every combination of 0 to 9 arguments with every possible
         //:   return type.
+        //: 5 For concern 6, verify, for each of the parameter types specified
+        //:   in concern 2, that the type yielded by the 'bsl::invoke_result_t'
+        //:   matches the type yielded by the 'bsl::invoke_result'
+        //:   meta-function.
         //
         // Testing:
         //     POINTER-TO-MEMBER-FUNCTION INVOCABLES
@@ -306,11 +355,11 @@ int main(int argc, char *argv[])
         // Arrays and functions cannot be returned by value, so we test only
         // references.  Can't apply a pointer or reference to something that is
         // already a reference, so simply call the 'apply' method directly.
-        // MSVC 2019 and earlier fails to propagate the reference qualifier.
+        // MSVC 2022 and earlier fails to propagate the reference qualifier.
         // However, MSVC 2013 uses the C++03 implementation of
         // 'bsl::invoke_result', which calculates the return type manually,
         // without 'decltype' machinery, and is correct.
-#if MSVC_2019 || MSVC_2017 || MSVC_2015
+#if MSVC_2022 || MSVC_2019 || MSVC_2017 || MSVC_2015
         PtrToMemFuncTest<MyClass>::apply<Arry&      , Arry>(L_);
         PtrToMemFuncTest<MyClass>::apply<Arry const&, Arry const>(L_);
 #else
@@ -319,7 +368,7 @@ int main(int argc, char *argv[])
 #endif
         PtrToMemFuncTest<MyClass>::apply<F&>(L_);
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-#if MSVC_2019 || MSVC_2017 || MSVC_2015
+#if MSVC_2022 || MSVC_2019 || MSVC_2017 || MSVC_2015
         PtrToMemFuncTest<MyClass>::apply<Arry&&, Arry>(L_);
 #else
         PtrToMemFuncTest<MyClass>::apply<Arry&&>(L_);
@@ -327,7 +376,7 @@ int main(int argc, char *argv[])
 
         // Rvalue references to functions are special in that they are lvalues,
         // unlike rvalue references to other types, which are conditionally
-        // either lvalues or xvalues.  MSVC 2019 and earlier appears to get
+        // either lvalues or xvalues.  MSVC 2022 and earlier appears to get
         // this wrong.
 #if MSVC
         PtrToMemFuncTest<MyClass>::apply<F&&, F&&>(L_);

@@ -19,16 +19,17 @@
     #undef __DEPRECATED
 #endif
 
+#include <bslh_defaulthashalgorithm.h>
+#include <bslh_hashpair.h>
+
 #include <bslim_testutil.h>
 
 #include <bslma_constructionutil.h>
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_testallocator.h>
 
-#include <bslh_hashpair.h>
-#include <bslh_defaulthashalgorithm.h>
-
 #include <bslmf_assert.h>
+#include <bslmf_integralconstant.h>
 #include <bslmf_movableref.h>
 
 #include <bsls_compilerfeatures.h>
@@ -231,16 +232,17 @@ using namespace BloombergLP;
 // defined in 'bslstl'.
 //
 //-----------------------------------------------------------------------------
-// [36] C++20 'bsl_type_traits.h' HEADER ADDITIONS
-// [35] CONCERN: Entities from 'std::ranges' compatible with 'bsl::array'.
-// [34] bsl::coroutine_traits<>
-// [34] bsl::coroutine_handle<>
-// [34] bsl::noop_coroutine()
-// [34] bsl::noop_coroutine_promise
-// [34] bsl::noop_coroutine_handle
-// [34] bsl::suspend_never
-// [34] bsl::suspend_always
-// [33] C++20 'bsl_concepts.h' HEADER
+// [37] C++20 'bsl_type_traits.h' HEADER ADDITIONS
+// [36] C++20 'std::ranges' interop with 'bsl::array' CONTAINER
+// [35] bsl::coroutine_traits<>
+// [35] bsl::coroutine_handle<>
+// [35] bsl::noop_coroutine()
+// [35] bsl::noop_coroutine_promise
+// [35] bsl::noop_coroutine_handle
+// [35] bsl::suspend_never
+// [35] bsl::suspend_always
+// [34] C++20 'bsl_concepts.h' HEADER ADDITIONS
+// [33] C++20 'bsl_iterator.h' HEADER ADDITIONS
 // [32] bsl::cmp_equal();
 // [32] bsl::cmp_not_equal();
 // [32] bsl::cmp_less();
@@ -493,7 +495,7 @@ void MapTestDriver<CONTAINER>::testCase1()
     //: 2 Verify that the container inserts the reference and does not make a
     //:   copy of the referenced object.  (C-2)
     //:
-    //: 3 Assign diffenent value to the mapped value and verify that the
+    //: 3 Assign different value to the mapped value and verify that the
     //:   referenced object is changed.  (C-3)
     //:
     //: 4 Copy-construct new container and verify that the mapped value in the
@@ -900,7 +902,7 @@ int main(int argc, char *argv[])
     printf("TEST " __FILE__ " CASE %d\n", test);
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 36: {
+      case 37: {
         // --------------------------------------------------------------------
         // TESTING C++20 'bsl_type_traits.h' HEADER ADDITIONS
         //
@@ -1029,9 +1031,9 @@ int main(int argc, char *argv[])
         }
 #else
         if (veryVerbose) {
-            printf(
-         "SKIPPED: "
-         "'BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE' undefined.\n");
+            printf("SKIPPED: "
+                   "'BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE' "
+                   "undefined.\n");
         }
 #endif
 
@@ -1046,7 +1048,7 @@ int main(int argc, char *argv[])
             ASSERTV("__cpp_lib_is_layout_compatible >= 201907L check",
                      __cpp_lib_is_layout_compatible,
                      __cpp_lib_is_layout_compatible >= 201907L);
-         
+
             struct Foo { int x; };
             struct Bar { int y; double z; };
 
@@ -1111,9 +1113,9 @@ int main(int argc, char *argv[])
         }
 #endif
       } break;
-      case 35: {
+      case 36: {
         // --------------------------------------------------------------------
-        // TESTING C++20 'std::ranges' bsl::array container
+        // TESTING C++20 'std::ranges' INTEROP WITH 'bsl::array' CONTAINER
         //
         // Concerns:
         //: 1 The definitions from '<ranges>' defined by the C++20 Standard are
@@ -1133,17 +1135,21 @@ int main(int argc, char *argv[])
         //:   usable by bsl::array.  (C-2)
         //
         // Testing:
-        //   CONCERN: Entities from 'std::ranges' compatible with 'bsl::array'.
+        //   C++20 'std::ranges' interop with 'bsl::array' CONTAINER
         // --------------------------------------------------------------------
-        if (verbose) printf("\nTESTING C++20 'std::ranges' bsl::array container"
-                            "\n====================================\n");
+        if (verbose)
+            printf("\nTESTING C++20 'std::ranges' INTEROP WITH 'bsl::array' "
+                   "CONTAINER"
+                   "\n========================================================"
+                   "=======\n");
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
         namespace ranges = bsl::ranges;
 
         // Testing types aliased in the 'bsl_ranges.h'
 
-        using Array = bsl::array<int, 5>;
+        using Array     = bsl::array<int, 5>;
+        using ArrayLong = bsl::array<int, 8>;
 
         Array arr{1, 2, 3, 4, 5};
 
@@ -1444,12 +1450,15 @@ int main(int argc, char *argv[])
         ASSERT(0 == ranges::distance(arrToTransform.begin(),
                                      arrSearchNResult.begin()));
 
-        Array arrToCopyTo{};
+        Array     arrToCopyTo {};
+        ArrayLong arrToCopyToLong {};
 
         ranges::copy_result arrCopyResult = ranges::copy(arr,
                                                          arrToCopyTo.begin());
         ASSERT(0 == ranges::distance(arr.end(), arrCopyResult.in));
         ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 4, 5
+
+        arrToCopyTo = Array {};
 
         ranges::copy_if_result arrCopyIfResult = ranges::copy_if(
                                                            arrToTransform,
@@ -1459,12 +1468,16 @@ int main(int argc, char *argv[])
                                      arrCopyIfResult.in));
         ASSERTV(arrToCopyTo[0], 4 == arrToCopyTo[0]);  // 4, 4, 6, 8, 10
 
+        arrToCopyTo = Array {};
+
         arrToCopyTo = {1, 2, 3, 4, 5};
         ranges::copy_n_result arrCopyNResult =
                 ranges::copy_n(arrToTransform.begin(), 5, arrToCopyTo.begin());
         ASSERT(0 == ranges::distance(arrToTransform.begin() + 5,
                                      arrCopyNResult.in));
         ASSERTV(arrToCopyTo[0], 4 == arrToCopyTo[0]);  // 4, 4, 6, 8, 10
+
+        arrToCopyTo = Array {};
 
         ranges::copy_backward_result arrCopyBackResult =
                                  ranges::copy_backward(arr, arrToCopyTo.end());
@@ -1474,14 +1487,18 @@ int main(int argc, char *argv[])
 
         Array arrToMoveFrom1 = {5, 4, 3, 2, 1};
 
+        arrToCopyTo = Array {};
+
         auto arrMoveResult = ranges::move(arrToMoveFrom1, arrToCopyTo.begin());
         ASSERT(0 == ranges::distance(arrToMoveFrom1.end(), arrMoveResult.in));
         ASSERTV(arrToCopyTo[0], 5 == arrToCopyTo[0]);  // 5, 4, 3, 2, 1
 
         Array arrToMoveFrom2 = {5, 4, 3, 2, 1};
 
+        arrToCopyTo          = Array {};
+
         ranges::move_backward_result arrMoveBackResult =
-                    ranges::move_backward(arrToMoveFrom2, arrToCopyTo.begin());
+                    ranges::move_backward(arrToMoveFrom2, arrToCopyTo.end());
         ASSERT(0 == ranges::distance(arrToMoveFrom2.end(),
                                      arrMoveBackResult.in));
         ASSERTV(arrToCopyTo[0], 5 == arrToCopyTo[0]);  // 5, 4, 3, 2, 1
@@ -1530,10 +1547,14 @@ int main(int argc, char *argv[])
         ranges::remove_if(arrToTransform, greaterThanTwo);
         ASSERTV(arrToTransform[1], 1 == arrToTransform[1]);  // 1, 1, 1, 1, 1
 
+        arrToCopyTo = Array {};
+
         ranges::remove_copy_result arrRemoveCopyResult =
                               ranges::remove_copy(arr, arrToCopyTo.begin(), 1);
         ASSERTV(0 == ranges::distance(arr.end(), arrRemoveCopyResult.in));
         ASSERTV(arrToCopyTo[0], 2 == arrToCopyTo[0]);  // 2, 3, 4, 5, 1
+
+        arrToCopyTo = Array {};
 
         ranges::remove_copy_if_result arrRemoveCopyIfResult =
               ranges::remove_copy_if(arr, arrToCopyTo.begin(), greaterThanTwo);
@@ -1549,10 +1570,14 @@ int main(int argc, char *argv[])
         ASSERTV(arrToTransform[1], 1 == arrToTransform[1]);  // 0, 1, 1, 1, 1
         arrToTransform[0] = 1;
 
+        arrToCopyTo = Array {};
+
         ranges::replace_copy_result arrReplaceCopyResult =
                           ranges::replace_copy(arr, arrToCopyTo.begin(), 1, 3);
         ASSERTV(0 == ranges::distance(arr.end(), arrReplaceCopyResult.in));
         ASSERTV(arrToCopyTo[0], 3 == arrToCopyTo[0]);  // 3, 2, 4, 5, 3
+
+        arrToCopyTo = Array {};
 
         ranges::replace_copy_if_result arrReplaceCopyIfResult =
                                    ranges::replace_copy_if(arr,
@@ -1573,6 +1598,8 @@ int main(int argc, char *argv[])
         ranges::reverse(arrToTransform);
         ASSERTV(arrToTransform[1], 4 == arrToTransform[1]);  // 5, 4, 3, 2, 1
 
+        arrToCopyTo = Array {};
+
         ranges::reverse_copy_result arrReverseCopyResult =
                                 ranges::reverse_copy(arr, arrToCopyTo.begin());
         ASSERTV(0 == ranges::distance(arr.end(), arrReverseCopyResult.in));
@@ -1582,6 +1609,8 @@ int main(int argc, char *argv[])
         ranges::rotate(arrToTransform,
                        arrToTransform.begin() + 1);          // 5, 4, 3, 2, 1
         ASSERTV(arrToTransform[1], 3 == arrToTransform[1]);  // 4, 3, 2, 1, 5
+
+        arrToCopyTo = Array {};
 
         ranges::rotate_copy_result arrRotateCopyResult =
                 ranges::rotate_copy(arr, arr.begin() + 2, arrToCopyTo.begin());
@@ -1607,6 +1636,8 @@ int main(int argc, char *argv[])
 
         arrToTransform = Array{1, 1, 1, 2, 2};
 
+        arrToCopyTo = Array {};
+
         ranges::unique_copy_result arrUniqueCopyResult =
                       ranges::unique_copy(arrToTransform, arrToCopyTo.begin());
         ASSERTV(0 == ranges::distance(arrToTransform.end(),
@@ -1623,15 +1654,18 @@ int main(int argc, char *argv[])
 
         arrToTransform = Array{2, 2, 2, 3, 3};
 
+        arrToCopyTo = Array {};
+
         ranges::partition_copy_result arrPartitionCopyResult =
                                 ranges::partition_copy(arrToTransform,
                                                        arrToCopyTo.begin(),
-                                                       arrToCopyTo.begin() + 5,
+                                                       arrToCopyTo.begin() + 2,
                                                        greaterThanTwo);
         ASSERTV(0 == ranges::distance(arrToTransform.end(),
                                       arrPartitionCopyResult.in));
         ASSERTV(arrToTransform[1], 2 == arrToTransform[1]);  // 2, 2, 2, 3, 3
-        ASSERTV(arrToCopyTo[1], 3 == arrToCopyTo[1]);  // 3, 3, 5, 1, 2, 2,
+        ASSERTV(arrToCopyTo[1], 3 == arrToCopyTo[1]);  // 3, 3, 2, 2, 2,
+        ASSERTV(arrToCopyTo[2], 2 == arrToCopyTo[2]);  // 3, 3, 2, 2, 2,
 
         arrToTransform = Array{2, 2, 2, 3, 4};
 
@@ -1658,6 +1692,8 @@ int main(int argc, char *argv[])
         ASSERTV(arrToTransform[0], 1 == arrToTransform[0]);  // 1, ?, ?, ?, ?
 
         arrToTransform = Array{5, 4, 3, 2, 1};
+
+        arrToCopyTo = Array {};
 
         ranges::partial_sort_copy(arrToTransform, arrToCopyTo);
         ASSERTV(arrToTransform[0], 5 == arrToTransform[0]);  // 5, 4, 3, 2, 1
@@ -1698,6 +1734,8 @@ int main(int argc, char *argv[])
 
         ASSERTV(true == ranges::includes(arr, arr));
 
+        arrToCopyTo = Array {};
+
         const ranges::set_difference_result arrSetDifferenceResult =
                                    ranges::set_difference(arr.begin(),
                                                           arr.end(),
@@ -1707,27 +1745,38 @@ int main(int argc, char *argv[])
         ASSERTV(0 == ranges::distance(arr.end(), arrSetDifferenceResult.in));
         ASSERTV(arrToCopyTo[0], 4 == arrToCopyTo[0]);  // 4, 5, 3, 4, 5
 
+        arrToCopyTo = Array {};
+
         const ranges::set_intersection_result arrSetIntersectionResult =
                        ranges::set_intersection(arr, arr, arrToCopyTo.begin());
         ASSERTV(0 == ranges::distance(arr.end(),
                                       arrSetIntersectionResult.in1));
         ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 4, 5
 
-        arrToTransform = Array{4, 5, 6, 7, 8};
+        arrToTransform  = Array{4, 5, 6, 7, 8};
+        arrToCopyToLong = ArrayLong{};
 
         const ranges::set_symmetric_difference_result
             arrSetSymmetricDifferenceResult = ranges::set_symmetric_difference(
-                                                          arr,
-                                                          arrToTransform,
-                                                          arrToCopyTo.begin());
+                                                      arr,
+                                                      arrToTransform,
+                                                      arrToCopyToLong.begin());
         ASSERTV(0 == ranges::distance(arr.end(),
                                       arrSetSymmetricDifferenceResult.in1));
-        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 6, 7
+        ASSERTV(arrToCopyToLong[0],
+                1 == arrToCopyToLong[0]);  // 1, 2, 3, 6, 7, 8
+        ASSERTV(arrToCopyToLong[5],
+                8 == arrToCopyToLong[5]);  // 1, 2, 3, 6, 7, 8
+
+        arrToCopyToLong = ArrayLong{};
 
         const ranges::set_union_result arrSetUnionResult =
-                   ranges::set_union(arr, arrToTransform, arrToCopyTo.begin());
+               ranges::set_union(arr, arrToTransform, arrToCopyToLong.begin());
         ASSERTV(0 == ranges::distance(arr.end(), arrSetUnionResult.in1));
-        ASSERTV(arrToCopyTo[0], 1 == arrToCopyTo[0]);  // 1, 2, 3, 4, 5
+        ASSERTV(arrToCopyToLong[0],
+                1 == arrToCopyToLong[0]);  // 1, 2, 3, 4, 5, 6, 7, 8
+        ASSERTV(arrToCopyToLong[5],
+                6 == arrToCopyToLong[5]);  // 1, 2, 3, 4, 5, 6, 7, 8
 
         ASSERTV(false == ranges::is_heap(arrToTransform));
 
@@ -1788,7 +1837,7 @@ int main(int argc, char *argv[])
 
 #endif
       } break;
-      case 34: {
+      case 35: {
         // --------------------------------------------------------------------
         // C++20 '<bsl_coroutine.h>'
         //
@@ -1843,9 +1892,9 @@ int main(int argc, char *argv[])
         if (verbose) puts("SKIP: '<bsl_coroutine.h>' is not supported.");
 #endif  // BSLS_COMPILERFEATURES_SUPPORT_COROUTINE
       } break;
-      case 33: {
+      case 34: {
         // --------------------------------------------------------------------
-        // TESTING C++20 'bsl_concepts.h' HEADER
+        // TESTING C++20 'bsl_concepts.h' HEADER ADDITIONS
         //
         // Concerns:
         //: 1 The definitions from '<concepts>' defined by the C++20 Standard
@@ -1856,10 +1905,11 @@ int main(int argc, char *argv[])
         //: 1 Form some valid expressions with every name with 'bsl' prefix.
         //
         // Testing
-        //   C++20 'bsl_concepts.h' HEADER
+        //   C++20 'bsl_concepts.h' HEADER ADDITIONS
         // --------------------------------------------------------------------
-        if (verbose) printf("\nTESTING C++20 'bsl_concepts.h' HEADER"
-                            "\n=====================================\n");
+        if (verbose)
+            printf("\nTESTING C++20 'bsl_concepts.h' HEADER ADDITIONS"
+                   "\n===============================================\n");
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
         BSLMF_ASSERT(( bsl::same_as<int, int >));
@@ -1944,6 +1994,235 @@ int main(int argc, char *argv[])
 #else
         if (verbose) puts("SKIP: '<bsl_concepts.h>' is not supported.");
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+      } break;
+      case 33: {
+        // --------------------------------------------------------------------
+        // TESTING C++20 'bsl_iterator.h' HEADER ADDITIONS
+        //
+        // Concerns:
+        //: 1 The C++20 special iterator traits, concepts, and tags all exist
+        //:   in namespace 'bsl'.
+        //:
+        //
+        // Plan:
+        //: 2 Create simple examples that use these entities.  Compilation of
+        //:   the example demonstrates that the calls can be found in 'bsl'.
+        //:   (C-1)
+        //
+        // Testing:
+        //   C++20 'bsl_iterator.h' HEADER ADDITIONS
+        // --------------------------------------------------------------------
+        if (verbose)
+            printf("\nTESTING C++20 'bsl_iterator.h' HEADER ADDITIONS"
+                   "\n===============================================\n");
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+        typedef bsl::vector<int>                     Vector;
+
+        // 23.3.2.1, incrementable traits
+        ASSERT(true == bsl::incrementable<Vector::iterator>);
+
+        bsl::incrementable_traits<Vector::iterator> trait1; (void) trait1;
+
+        ASSERTV((bsl::is_same_v<bsl::iter_difference_t<Vector>,
+                                Vector::difference_type>));
+
+        // 23.3.2.2, indirectly readable traits
+        bsl::indirectly_readable_traits<Vector::iterator> trait2; (void)trait2;
+
+        ASSERT(
+              (bsl::is_same_v<bsl::iter_value_t<Vector>, Vector::value_type>));
+
+        // 23.3.2.3, iterator traits
+        ASSERTV((bsl::is_same_v<bsl::iter_reference_t<Vector::iterator>,
+                                Vector::reference>));
+
+        // 23.3.3.2, ranges::iter_swap
+        Vector v;
+        v.push_back(1);
+        v.push_back(2);
+        Vector::iterator i1 = v.begin();
+        Vector::iterator i2 = i1;
+        ++i2;
+        ASSERTV(v[0], 1, 1==v[0]);
+        ASSERTV(v[1], 2, 2==v[1]);
+        bsl::iter_swap(i1, i2);
+        ASSERTV(v[0], 2, 2==v[0]);
+        ASSERTV(v[1], 1, 1==v[1]);
+
+        // 23.3.4.2, concept indirectly_readable
+        ASSERT(true == bsl::indirectly_readable<Vector::iterator>);
+
+        // 23.3.4.3, concept indirectly_writable
+        ASSERT(true == (bsl::indirectly_writable<Vector::iterator, int>));
+
+        // 23.3.4.4, concept weakly_incrementable
+        ASSERT(true == bsl::weakly_incrementable<std::istream_iterator<int> >);
+
+        // 23.3.4.6, concept input_or_output_iterator
+        ASSERT(true ==
+               bsl::input_or_output_iterator<std::istream_iterator<int> >);
+
+        // 23.3.4.7, concept sentinel_for
+        ASSERT(true ==
+               (bsl::sentinel_for<Vector::iterator, Vector::iterator>));
+
+        // 23.3.4.8, concept sized_sentinel_for
+        ASSERT(true ==
+               (bsl::sized_sentinel_for<Vector::iterator, Vector::iterator>));
+
+        // 23.3.4.9, concept input_iterator
+        ASSERT(true == bsl::input_iterator<std::istream_iterator<int> >);
+
+        // 23.3.4.10, concept output_iterator
+        ASSERT(true ==
+               (bsl::output_iterator<std::ostream_iterator<int>, int>));
+
+        // 23.3.4.11, concept forward_iterator
+        ASSERT(true == bsl::forward_iterator<Vector::iterator>);
+
+        // 23.3.4.12, concept bidirectional_iterator
+        ASSERT(true == bsl::bidirectional_iterator<Vector::iterator>);
+
+        // 23.3.4.13, concept random_access_iterator
+        ASSERT(true == bsl::random_access_iterator<Vector::iterator>);
+
+        // 23.3.4.14, concept contiguous_iterator
+        ASSERT(true == bsl::contiguous_iterator<Vector::iterator>);
+
+        // 23.3.6.2, indirect callables
+        // std::indirect_binary_predicate
+        struct IndirectBinaryPredicate {
+            bool operator()(int, int);
+        };
+        ASSERT(true == (bsl::indirect_binary_predicate<IndirectBinaryPredicate,
+                                                       Vector::iterator,
+                                                       Vector::iterator>));
+
+        // std::indirect_equivalence_relation
+        struct DirectEquivalenceRelation {
+            bool operator()(int, int);
+        };
+        ASSERT(true ==
+               (bsl::indirect_equivalence_relation<DirectEquivalenceRelation,
+                                                   Vector::iterator,
+                                                   Vector::iterator>));
+
+        // std::indirect_result_t
+        ASSERT(
+             (bsl::is_same<bool,
+                           bsl::indirect_result_t<DirectEquivalenceRelation,
+                                                  Vector::iterator,
+                                                  Vector::iterator> >::value));
+
+        // std::indirect_strict_weak_order
+        ASSERT(true ==
+               (bsl::indirect_strict_weak_order<DirectEquivalenceRelation,
+                                                Vector::iterator,
+                                                Vector::iterator>));
+
+        // std::indirect_unary_predicate
+        struct DirectUnaryPredicate {
+            bool operator()(int);
+        };
+        ASSERT(true == (bsl::indirect_unary_predicate<DirectUnaryPredicate,
+                                                      Vector::iterator>));
+
+        // std::indirectly_regular_unary_invocable
+        ASSERT(true ==
+               (bsl::indirectly_regular_unary_invocable<DirectUnaryPredicate,
+                                                        Vector::iterator>));
+
+        // std::indirectly_unary_invocable
+        ASSERT(true == (bsl::indirectly_unary_invocable<DirectUnaryPredicate,
+                                                        Vector::iterator>));
+
+        // 23.3.6.3, projected
+        // std::projected
+        ASSERT((bsl::is_same<
+                bool,
+                bsl::projected<Vector::iterator,
+                               DirectUnaryPredicate>::value_type>::value));
+
+        // 23.3.7.2, concept indirectly_movable
+        // std::indirectly_movable
+        ASSERT(true ==
+               (bsl::indirectly_movable<Vector::iterator, Vector::iterator>));
+
+        // std::indirectly_movable_storable
+        ASSERT(true == (bsl::indirectly_movable_storable<Vector::iterator,
+                                                         Vector::iterator>));
+
+        // 23.3.7.3, concept indirectly_copyable
+        // std::indirectly_copyable
+        ASSERT(true ==
+               (bsl::indirectly_copyable<Vector::iterator, Vector::iterator>));
+
+        // std::indirectly_copyable_storable
+        ASSERT(true == (bsl::indirectly_copyable_storable<Vector::iterator,
+                                                          Vector::iterator>));
+
+        // 23.3.7.4, concept indirectly_swappable
+        ASSERT(
+              true ==
+              (bsl::indirectly_swappable<Vector::iterator, Vector::iterator>));
+
+        // 23.3.7.5, concept indirectly_comparable
+        ASSERT(false ==
+               (bsl::indirectly_comparable<int, int, bsl::less<int>()>));
+
+        // 23.3.7.6, concept permutable
+        ASSERT(true == bsl::permutable<Vector::iterator>);
+
+        // 23.3.7.7, concept mergeable
+        ASSERT(true == (bsl::mergeable<Vector::iterator,
+                                       Vector::iterator,
+                                       Vector::iterator>));
+
+        // 23.3.7.8, concept sortable
+        ASSERT(true == bsl::sortable<Vector::iterator>);
+
+        // 23.4.2, iterator tags
+        {
+            bsl::contiguous_iterator_tag cit;
+            (void) cit;
+        }
+
+        // 23.5.3, move iterators and sentinels
+        {
+            bsl::move_sentinel<int*> ms;
+            (void) ms;
+        }
+
+        // 23.5.4, common iterators
+#ifdef BSLS_LIBRARY_FEATURES_HASS_CPP20_RANGES
+        {
+            bsl::common_iterator<bsl::ranges::iterator_t<Vector::iterator>,
+                                 bsl::ranges::sentinel_t<Vector::iterator> >
+                ci;
+            (void)ci;
+        }
+#endif
+
+        // 23.5.5, default sentinel
+        {
+            bsl::default_sentinel_t dst;
+            (void) dst;
+        }
+
+        // 23.5.6, counted iterators
+        {
+            bsl::counted_iterator<Vector::iterator> ci;
+            (void) ci;
+        }
+
+        // 23.5.7, unreachable sentinel
+        // using std::unreachable_sentinel_t;
+        {
+            bsl::unreachable_sentinel_t ust;
+            (void) ust;
+        }
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 32: {
         // --------------------------------------------------------------------
@@ -2092,9 +2371,12 @@ int main(int argc, char *argv[])
                           "\n=============================================\n");
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_REF
         BSLMF_ASSERT(__cpp_lib_atomic_ref >= 201806L);
         int value = 0;
         (void) bsl::atomic_ref<int>{value};
+#endif
 
         BSLMF_ASSERT(__cpp_lib_char8_t >= 201907L);
         (void) bsl::atomic_char8_t{};
@@ -3003,7 +3285,7 @@ int main(int argc, char *argv[])
                            "\nTESTING C++20 'bsl_source_location.h' HEADER"
                            "\n============================================\n");
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_SOURCE_LOCATION
         BSLMF_ASSERT(__cpp_lib_source_location >= 201907L);
 
         const bsl::source_location sl = bsl::source_location::current();
@@ -3027,7 +3309,7 @@ int main(int argc, char *argv[])
         //: 1 Verify that
         //:    o '__cpp_lib_endian >= 201907L',
         //:    o '__cpp_lib_bit_cast >= 201806L',
-        //:    o '__cpp_lib_bitops >= 201907L',
+        //:    o '__cpp_lib_bitops >= 201907L' (except on libc++),
         //:    o '__cpp_lib_int_pow2 >= 202002L'.
         //:
         //: 2 Form some valid expressions with every name with 'bsl' prefix and
@@ -3047,7 +3329,10 @@ int main(int argc, char *argv[])
         BSLMF_ASSERT(__cpp_lib_bit_cast >= 201806L);
         ASSERT(bsl::bit_cast<unsigned>(1) == 1U);
 
+#if !defined(BSLS_LIBRARYFEATURES_STDCPP_LLVM)
+        // LLVM libc++ doesn't define this (but defines the functions)
         BSLMF_ASSERT(__cpp_lib_bitops >= 201907L);
+#endif
 
         ASSERT(bsl::rotl(1U, 1) == 2U);
         ASSERT(bsl::rotl(~(~0U >> 1), 1) == 1U);
@@ -3235,13 +3520,16 @@ int main(int argc, char *argv[])
                               bsl::barrier<CompletionFunction> >));
 
        bsl::latch latch(0);
+       (void) latch;
        ASSERT((bsl::is_same_v<std::latch, bsl::latch>));
 
        bsl::counting_semaphore countingSemaphore(0);
+       (void) countingSemaphore;
        ASSERT((bsl::is_same_v<std::counting_semaphore<1>,
                               bsl::counting_semaphore<1> >));
 
        bsl::binary_semaphore binarySemaphore(0);
+       (void) binarySemaphore;
        ASSERT((bsl::is_same_v<std::binary_semaphore, bsl::binary_semaphore>));
 #endif
 
@@ -4325,8 +4613,8 @@ int main(int argc, char *argv[])
         //   CONCERN: 'forward_list' is available in C++11 builds
         // --------------------------------------------------------------------
 
-        if (verbose) printf("\nTESTING 'forward_lst'"
-                            "\n=====================\n");
+        if (verbose) printf("\nTESTING 'forward_list'"
+                            "\n======================\n");
 #if !defined(BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY)
 
         if (verbose) printf("\n'bsl::forward_list' is not supported"
@@ -4543,12 +4831,14 @@ int main(int argc, char *argv[])
                       << "=========================================\n";
         }
         {
-              if (verbose) { bsl::cout << "Testing C99 as aliases.\n"; }
+            if (verbose) {
+                bsl::cout << "Testing C99 as aliases.\n";
+            }
 #if defined(BSLS_LIBRARYFEATURES_HAS_C99_LIBRARY)
-              typedef int (*FuncPtrType)(double);
+            typedef int (*FuncPtrType)(double);
 
-              FuncPtrType funcPtr = &bsl::fpclassify;
-              (void)funcPtr;
+            FuncPtrType funcPtr = &bsl::fpclassify;
+            (void)funcPtr;
 #endif
         }
       } break;

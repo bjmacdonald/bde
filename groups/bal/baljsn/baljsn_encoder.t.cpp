@@ -566,8 +566,9 @@ class AssertEncodingOverflowIsDetectedFunction {
         const bsl::streampos streamBufPosition =
             streamBuf->pubseekoff(0, bsl::ios_base::cur);
 
-        const bsl::string_view jsonString(streamBuf->data(),
-                                          streamBufPosition);
+        const bsl::string_view jsonString(
+                                  streamBuf->data(),
+                                  static_cast<bsl::size_t>(streamBufPosition));
 
         LOOP1_ASSERT_EQ(LINE, EXPECTED_JSON_STRING, jsonString);
 
@@ -968,8 +969,7 @@ struct bdlat_IsBasicEnumeration<u::Enumeration0> : bsl::true_type {
 namespace bdlat_EnumFunctions {
 
 template <>
-struct IsEnumeration<u::Enumeration0> {
-    enum { VALUE = 1 };
+struct IsEnumeration<u::Enumeration0> : public bsl::true_type {
 };
 
 }  // close bdlat_EnumFunctions namespace

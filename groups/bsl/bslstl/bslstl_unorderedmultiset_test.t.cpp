@@ -19,6 +19,7 @@
 
 #include <bslmf_issame.h>
 #include <bslmf_haspointersemantics.h>
+#include <bslmf_isbitwisecopyable.h>
 #include <bslmf_istriviallycopyable.h>
 #include <bslmf_istriviallydefaultconstructible.h>
 
@@ -1274,7 +1275,7 @@ class TestNonConstHashFunctor {
         return bsltf::TemplateTestFacility::getIdentifier(obj);
     }
 
-    bool operator==(const TestNonConstHashFunctor&)
+    bool operator==(const TestNonConstHashFunctor&) const
     {
         return true;
     }
@@ -5104,7 +5105,7 @@ void TestDriver<KEY, HASH, EQUAL, ALLOC>::testCase29()
 
                     bool empty = 0 == ZZ.size();
 
-                    typename Obj::const_pointer pointers[2];
+                    typename Obj::const_pointer pointers[2] = { 0, 0 };
                     storeFirstNElemAddr(pointers,
                                         Z,
                                         sizeof pointers / sizeof *pointers);
@@ -5517,7 +5518,7 @@ void TestDriver<KEY, HASH, EQUAL, ALLOC>::testCase28()
                 Obj&        mZ = *srcPtr;
                 const Obj&  Z = gg(&mZ, SPEC);
 
-                typename Obj::const_pointer pointers[2];
+                typename Obj::const_pointer pointers[2] = { 0, 0 };
                 storeFirstNElemAddr(pointers,
                                     Z,
                                     sizeof pointers / sizeof *pointers);
@@ -6279,6 +6280,9 @@ void TestDriver<KEY, HASH, EQUAL, ALLOC>::testCase23()
     BSLMF_ASSERT((0 == bslma::UsesBslmaAllocator<ObjStlAlloc>::value));
 
     // Verify unordered_multiset does not define other common traits.
+
+    BSLMF_ASSERT((0 ==
+              bslmf::IsBitwiseCopyable<bsl::unordered_multiset<KEY> >::value));
 
     BSLMF_ASSERT((0 ==
             bsl::is_trivially_copyable<bsl::unordered_multiset<KEY> >::value));

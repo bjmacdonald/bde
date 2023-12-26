@@ -12,28 +12,36 @@
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bdlmt_timereventscheduler_cpp,"$Id$ $CSID$")
 
+#include <bdlf_bind.h>
+
+#include <bdlm_defaultmetricsregistrar.h>
+#include <bdlm_metric.h>
+#include <bdlm_metricdescriptor.h>
+
 #include <bslmt_lockguard.h>
 
 #include <bslma_default.h>
+
 #include <bsls_assert.h>
 #include <bsls_systemtime.h>
 
 #include <bdlt_timeunitratio.h>
 #include <bdlb_bitutil.h>
-#include <bdlf_bind.h>
 
 #include <bsl_algorithm.h>
 #include <bsl_climits.h>   // for 'CHAR_BIT'
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
+#include <bsl_limits.h>
+#include <bsl_sstream.h>
+#include <bsl_string.h>
 #include <bsl_vector.h>
 
 namespace BloombergLP {
-
 namespace {
 
 const int NUM_INDEX_BITS_DEFAULT = 17;
-    // Default number of bits used to represent each 'bdlcc::TimeQueue'
-    // handle.
+    // Default number of bits used to represent each 'bdlcc::TimeQueue' handle.
 
 const int NUM_INDEX_BITS_MIN = 8;
     // Minimum number of bits required to represent a 'bdlcc::TimeQueue'
@@ -63,6 +71,20 @@ bsl::function<bsls::TimeInterval()> createDefaultCurrentTimeFunctor(
               clockType);
 }
 
+void startLagMetric(BloombergLP::bdlm::Metric               *value,
+                    BloombergLP::bdlmt::TimerEventScheduler *object)
+{
+    BloombergLP::bsls::TimeInterval now  = object->now();
+    BloombergLP::bsls::TimeInterval next = object->nextPendingEventTime();
+    if (now <= next) {
+        *value = BloombergLP::bdlm::Metric::Gauge(0.0);
+    }
+    else {
+        *value = BloombergLP::bdlm::Metric::Gauge(
+                                          (now - next).totalSecondsAsDouble());
+    }
+}
+
 }  // close unnamed namespace
 
 namespace bdlmt {
@@ -72,9 +94,8 @@ namespace bdlmt {
                    // ====================================
 
 struct TimerEventSchedulerDispatcher {
-    // This class just contains the method called to run the dispatcher
-    // thread.  Once started, it infinite loops, either waiting for or
-    // executing events.
+    // This class just contains the method called to run the dispatcher thread.
+    // Once started, it infinite loops, either waiting for or executing events.
 
     // CLASS METHODS
     static void dispatchEvents(TimerEventScheduler *scheduler);
@@ -171,23 +192,44 @@ void TimerEventSchedulerDispatcher::dispatchEvents(
         PendingClockItem *clockData = 0;
         if (!pendingClockItems.empty()) {
             clockData = &pendingClockItems.front();
+            scheduler->d_cachedClockMicroseconds =
+                                         clockData->time().totalMicroseconds();
         }
+        else {
+            scheduler->d_cachedClockMicroseconds =
+                                bsl::numeric_limits<bsls::Types::Int64>::max();
+        }
+
         TimerEventScheduler::EventItem *eventData = 0;
         if (!scheduler->d_pendingEventItems.empty()) {
             eventData = &scheduler->d_pendingEventItems.front();
+            scheduler->d_cachedEventMicroseconds =
+                                         eventData->time().totalMicroseconds();
+        }
+        else {
+            scheduler->d_cachedEventMicroseconds =
+                                bsl::numeric_limits<bsls::Types::Int64>::max();
         }
 
         // Note it is possible for an event in the dispatcher thread (and only
         // for such an event) to delete a future event that is in
         // pendingEventItems.
 
-        while (clockIdx < clockLen
-            && *eventIdxPtr < (int) scheduler->d_pendingEventItems.size()) {
+        while (   clockIdx < clockLen
+               && *eventIdxPtr < (int)scheduler->d_pendingEventItems.size()) {
             // Both queues had pending events.  Do the events in time order
             // until at least one of the queues is empty.
 
             const bsls::TimeInterval& clockTime = clockData[clockIdx].time();
             if (clockTime < eventData[*eventIdxPtr].time()) {
+                if (clockIdx + 1 < clockLen) {
+                    scheduler->d_cachedClockMicroseconds =
+                            clockData[clockIdx + 1].time().totalMicroseconds();
+                }
+                else {
+                    scheduler->d_cachedClockMicroseconds =
+                                bsl::numeric_limits<bsls::Types::Int64>::max();
+                }
                 ClockDataPtr cd(clockData[clockIdx].data());
                 if (!cd->d_isCancelled) {
                     scheduler->d_dispatcherFunctor(cd->d_callback);
@@ -196,10 +238,18 @@ void TimerEventSchedulerDispatcher::dispatchEvents(
                                        clockTime + cd->d_periodicInterval, cd);
                     }
                 }
-
                 ++clockIdx;
             }
             else {
+                if (*eventIdxPtr + 1 <
+                                  (int)scheduler->d_pendingEventItems.size()) {
+                    scheduler->d_cachedEventMicroseconds =
+                        eventData[*eventIdxPtr + 1].time().totalMicroseconds();
+                }
+                else {
+                    scheduler->d_cachedEventMicroseconds =
+                                bsl::numeric_limits<bsls::Types::Int64>::max();
+                }
                 --scheduler->d_numEvents;
                 scheduler->d_dispatcherFunctor(eventData[*eventIdxPtr].data());
                 ++ *eventIdxPtr;
@@ -209,6 +259,14 @@ void TimerEventSchedulerDispatcher::dispatchEvents(
         // the two queues in arbitrary order now.
 
         for (; clockIdx < clockLen; ++clockIdx) {
+            if (clockIdx + 1 < clockLen) {
+                scheduler->d_cachedClockMicroseconds =
+                            clockData[clockIdx + 1].time().totalMicroseconds();
+            }
+            else {
+                scheduler->d_cachedClockMicroseconds =
+                                bsl::numeric_limits<bsls::Types::Int64>::max();
+            }
             const bsls::TimeInterval& clockTime = clockData[clockIdx].time();
             ClockDataPtr cd(clockData[clockIdx].data());
             if (!cd->d_isCancelled) {
@@ -223,6 +281,15 @@ void TimerEventSchedulerDispatcher::dispatchEvents(
 
         for (; *eventIdxPtr < (int) scheduler->d_pendingEventItems.size();
                                                             ++ *eventIdxPtr) {
+            if (*eventIdxPtr + 1 <
+                                  (int)scheduler->d_pendingEventItems.size()) {
+                scheduler->d_cachedEventMicroseconds =
+                        eventData[*eventIdxPtr + 1].time().totalMicroseconds();
+            }
+            else {
+                scheduler->d_cachedEventMicroseconds =
+                                bsl::numeric_limits<bsls::Types::Int64>::max();
+            }
             --scheduler->d_numEvents;
             scheduler->d_dispatcherFunctor(eventData[*eventIdxPtr].data());
         }
@@ -309,14 +376,37 @@ void defaultDispatcherFunction(const bsl::function<void()>& callback)
 }
 
 namespace bdlmt {
-                         // -------------------------
-                         // class TimerEventScheduler
-                         // -------------------------
+
+                        // -------------------------
+                        // class TimerEventScheduler
+                        // -------------------------
 
 // PRIVATE CLASS DATA
 const char TimerEventScheduler::s_defaultThreadName[16] = { "bdl.TimerEvent" };
 
 // PRIVATE MANIPULATORS
+void TimerEventScheduler::initialize(const bsl::string_view& metricsIdentifier)
+{
+    bdlm::MetricDescriptor md(d_metricsRegistrar_p->defaultMetricNamespace(),
+                              "startlag",
+                              "bdlmt.timereventscheduler",
+                              metricsIdentifier);
+
+    if (metricsIdentifier.empty()) {
+        bsl::stringstream identifier;
+        identifier << d_metricsRegistrar_p->defaultObjectIdentifierPrefix()
+                   << ".tes."
+                   << d_metricsRegistrar_p->incrementInstanceCount(md);
+        md.setObjectIdentifier(identifier.str());
+    }
+
+    d_metricsCallbackHandle = d_metricsRegistrar_p->registerCollectionCallback(
+                            md,
+                            bdlf::BindUtil::bind(&startLagMetric,
+                                                 bdlf::PlaceHolders::_1,
+                                                 this));
+}
+
 void TimerEventScheduler::yieldToDispatcher()
 {
     if (d_running.loadRelaxed()) {
@@ -355,7 +445,38 @@ TimerEventScheduler::TimerEventScheduler(bslma::Allocator* basicAllocator)
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                                    const bsl::string_view&  metricsIdentifier,
+                                    bdlm::MetricsRegistrar  *metricsRegistrar,
+                                    bslma::Allocator        *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(
+                                            bsls::SystemClockType::e_REALTIME))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData), basicAllocator)
+, d_eventTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clockTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clocks(basicAllocator)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      &defaultDispatcherFunction)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -381,7 +502,40 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                                bsls::SystemClockType::Enum  clockType,
+                                const bsl::string_view&      metricsIdentifier,
+                                bdlm::MetricsRegistrar      *metricsRegistrar,
+                                bslma::Allocator            *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(clockType))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData),
+                       basicAllocator)
+, d_eventTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clockTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clocks(basicAllocator)
+, d_condition(clockType)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      &defaultDispatcherFunction)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -406,7 +560,39 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                     const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
+                     const bsl::string_view&                 metricsIdentifier,
+                     bdlm::MetricsRegistrar                 *metricsRegistrar,
+                     bslma::Allocator                       *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(
+                                            bsls::SystemClockType::e_REALTIME))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData), basicAllocator)
+, d_eventTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clockTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clocks(basicAllocator)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      dispatcherFunctor)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -432,7 +618,40 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                     const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
+                     bsls::SystemClockType::Enum             clockType,
+                     const bsl::string_view&                 metricsIdentifier,
+                     bdlm::MetricsRegistrar                 *metricsRegistrar,
+                     bslma::Allocator                       *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(clockType))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData), basicAllocator)
+, d_eventTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clockTimeQueue(NUM_INDEX_BITS_DEFAULT, basicAllocator)
+, d_clocks(basicAllocator)
+, d_condition(clockType)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      dispatcherFunctor)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::TimerEventScheduler(int               numEvents,
@@ -459,9 +678,48 @@ TimerEventScheduler::TimerEventScheduler(int               numEvents,
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                                    int                      numEvents,
+                                    int                      numClocks,
+                                    const bsl::string_view&  metricsIdentifier,
+                                    bdlm::MetricsRegistrar  *metricsRegistrar,
+                                    bslma::Allocator        *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(
+                                            bsls::SystemClockType::e_REALTIME))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData), basicAllocator)
+, d_eventTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numEvents)),
+                   basicAllocator)
+, d_clockTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numClocks)),
+                   basicAllocator)
+, d_clocks(basicAllocator)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      &defaultDispatcherFunction)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    BSLS_ASSERT(numEvents < (1 << 24) - 1);
+    BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -491,9 +749,50 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                                int                          numEvents,
+                                int                          numClocks,
+                                bsls::SystemClockType::Enum  clockType,
+                                const bsl::string_view&      metricsIdentifier,
+                                bdlm::MetricsRegistrar      *metricsRegistrar,
+                                bslma::Allocator            *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(clockType))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData),
+                       basicAllocator)
+, d_eventTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numEvents)),
+                   basicAllocator)
+, d_clockTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numClocks)),
+                   basicAllocator)
+, d_clocks(basicAllocator)
+, d_condition(clockType)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      &defaultDispatcherFunction)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    BSLS_ASSERT(numEvents < (1 << 24) - 1);
+    BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -523,9 +822,50 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                     int                                     numEvents,
+                     int                                     numClocks,
+                     const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
+                     const bsl::string_view&                 metricsIdentifier,
+                     bdlm::MetricsRegistrar                 *metricsRegistrar,
+                     bslma::Allocator                       *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(
+                                            bsls::SystemClockType::e_REALTIME))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData),
+                       basicAllocator)
+, d_eventTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numEvents)),
+                   basicAllocator)
+, d_clockTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numClocks)),
+                   basicAllocator)
+, d_clocks(basicAllocator)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      dispatcherFunctor)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    BSLS_ASSERT(numEvents < (1 << 24) - 1);
+    BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -555,14 +895,57 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize("");
+}
+
+TimerEventScheduler::TimerEventScheduler(
+                     int                                     numEvents,
+                     int                                     numClocks,
+                     const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
+                     bsls::SystemClockType::Enum             clockType,
+                     const bsl::string_view&                 metricsIdentifier,
+                     bdlm::MetricsRegistrar                 *metricsRegistrar,
+                     bslma::Allocator                       *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+, d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
+                       createDefaultCurrentTimeFunctor(clockType))
+, d_clockDataAllocator(sizeof(TimerEventScheduler::ClockData), basicAllocator)
+, d_eventTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numEvents)),
+                   basicAllocator)
+, d_clockTimeQueue(bsl::max(NUM_INDEX_BITS_MIN, numBitsRequired(numClocks)),
+                   basicAllocator)
+, d_clocks(basicAllocator)
+, d_condition(clockType)
+, d_dispatcherFunctor(bsl::allocator_arg_t(), basicAllocator,
+                      dispatcherFunctor)
+, d_dispatcherId(0)
+, d_dispatcherThread(bslmt::ThreadUtil::invalidHandle())
+, d_running(0)
+, d_iterations(0)
+, d_pendingEventItems(basicAllocator)
+, d_currentEventIndex(-1)
+, d_numEvents(0)
+, d_numClocks(0)
+, d_clockType(clockType)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    BSLS_ASSERT(numEvents < (1 << 24) - 1);
+    BSLS_ASSERT(numClocks < (1 << 24) - 1);
+
+    initialize(metricsIdentifier);
 }
 
 TimerEventScheduler::~TimerEventScheduler()
 {
     stop();
+
+    d_metricsRegistrar_p->removeCollectionCallback(d_metricsCallbackHandle);
 }
 
 // MANIPULATORS
@@ -837,9 +1220,49 @@ void TimerEventScheduler::cancelAllClocks(bool wait)
     }
 }
 
-                  // ---------------------------------------
-                  // class TimerEventSchedulerTestTimeSource
-                  // ---------------------------------------
+// ACCESSORS
+bsls::TimeInterval TimerEventScheduler::nextPendingEventTime() const
+{
+    bsls::Types::Int64 minTime =
+                                bsl::numeric_limits<bsls::Types::Int64>::max();
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+
+        {
+            minTime = d_cachedClockMicroseconds;
+        }
+        {
+            bsls::Types::Int64 ms = d_cachedEventMicroseconds;
+            if (ms < minTime) {
+                minTime = ms;
+            }
+        }
+
+        bsls::TimeInterval time;
+        bsls::Types::Int64 timeMicroseconds;
+
+        if (0 == d_clockTimeQueue.minTime(&time)) {
+            timeMicroseconds = time.totalMicroseconds();
+            if (timeMicroseconds < minTime) {
+                minTime = timeMicroseconds;
+            }
+        }
+        if (0 == d_eventTimeQueue.minTime(&time)) {
+            timeMicroseconds = time.totalMicroseconds();
+            if (timeMicroseconds < minTime) {
+                minTime = timeMicroseconds;
+            }
+        }
+    }
+
+    bsls::TimeInterval rv;
+    rv.addMicroseconds(minTime);
+    return rv;
+}
+
+                 // ---------------------------------------
+                 // class TimerEventSchedulerTestTimeSource
+                 // ---------------------------------------
 
 // CREATORS
 TimerEventSchedulerTestTimeSource::TimerEventSchedulerTestTimeSource(
@@ -913,7 +1336,7 @@ bsls::TimeInterval TimerEventSchedulerTestTimeSource::now() const
 }  // close enterprise namespace
 
 // ----------------------------------------------------------------------------
-// Copyright 2015 Bloomberg Finance L.P.
+// Copyright 2023 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

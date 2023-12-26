@@ -36,7 +36,7 @@ BSLS_IDENT("$Id: $")
 //:   ('accessAttributes').
 //
 // Also, the meta-function 'IsSequence' contains a compile-time constant
-// 'VALUE' that is non-zero if the parameterized 'TYPE' exposes "sequence"
+// 'value' that is non-zero if the parameterized 'TYPE' exposes "sequence"
 // behavior through the 'bdlat_SequenceFunctions' 'namespace'.
 //
 // This component specializes all of these functions for types that have the
@@ -484,8 +484,7 @@ BSLS_IDENT("$Id: $")
 //  namespace bdlat_SequenceFunctions {
 //
 //  template <>
-//  struct IsSequence<mine::MySequence> {
-//      enum { VALUE = 1 };
+//  struct IsSequence<mine::MySequence> : bsl::true_type {
 //  };
 //
 //  }  // close namespace bdlat_SequenceFunctions
@@ -587,8 +586,8 @@ BSLS_IDENT("$Id: $")
 #include <bslalg_hastrait.h>
 
 #include <bslmf_assert.h>
+#include <bslmf_integralconstant.h>
 #include <bslmf_matchanytype.h>
-#include <bslmf_metaint.h>
 
 #include <bsls_assert.h>
 #include <bsls_platform.h>
@@ -606,14 +605,13 @@ namespace bdlat_SequenceFunctions {
 
     // META-FUNCTIONS
     template <class TYPE>
-    struct IsSequence {
+    struct IsSequence
+    : public bsl::integral_constant<
+        bool,
+        bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value> {
         // This 'struct' should be specialized for third-party types that need
         // to expose "sequence" behavior.  See the component-level
         // documentation for further information.
-
-        enum {
-            VALUE = bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE
-        };
     };
 
     // MANIPULATORS
@@ -854,7 +852,7 @@ int bdlat_SequenceFunctions::bdlat_sequenceManipulateAttribute(
                                              int           attributeNameLength)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return object->manipulateAttribute(manipulator,
                                        attributeName,
@@ -869,7 +867,7 @@ int bdlat_SequenceFunctions::bdlat_sequenceManipulateAttribute(
                                                      int           attributeId)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return object->manipulateAttribute(manipulator, attributeId);
 }
@@ -881,7 +879,7 @@ int bdlat_SequenceFunctions::bdlat_sequenceManipulateAttributes(
                                                      MANIPULATOR&  manipulator)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return object->manipulateAttributes(manipulator);
 }
@@ -896,7 +894,7 @@ int bdlat_SequenceFunctions::bdlat_sequenceAccessAttribute(
                                               int          attributeNameLength)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return object.accessAttribute(accessor,
                                   attributeName,
@@ -911,7 +909,7 @@ int bdlat_SequenceFunctions::bdlat_sequenceAccessAttribute(
                                                        int         attributeId)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return object.accessAttribute(accessor, attributeId);
 }
@@ -923,7 +921,7 @@ int bdlat_SequenceFunctions::bdlat_sequenceAccessAttributes(
                                                           ACCESSOR&   accessor)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return object.accessAttributes(accessor);
 }
@@ -936,7 +934,7 @@ bool bdlat_SequenceFunctions::bdlat_sequenceHasAttribute(
                                               int          attributeNameLength)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return 0 != object.lookupAttributeInfo(attributeName, attributeNameLength);
 }
@@ -948,7 +946,7 @@ bool bdlat_SequenceFunctions::bdlat_sequenceHasAttribute(
                                                        int         attributeId)
 {
     BSLMF_ASSERT(
-                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE));
+                (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value));
 
     return 0 != object.lookupAttributeInfo(attributeId);
 }

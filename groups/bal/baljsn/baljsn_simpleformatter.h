@@ -106,8 +106,8 @@ BSLS_IDENT("$Id: $")
 //
 //..
 //
-// JSON Format
-// -----------
+///JSON Format
+///-----------
 // The JSON encoding format (see http://json.org or ECMA-404 standard for more
 // information) specifies a self-describing and simple syntax that is built on
 // two structures:
@@ -146,22 +146,23 @@ BSLS_IDENT("$Id: $")
 // First, we specify the result that we are expecting to get:
 //..
 //{
-//  const bsl::string EXPECTED = R"JSON({
-//    "Stocks" : [
-//      {
-//        "Name" : "International Business Machines Corp",
-//        "Ticker" : "IBM US Equity",
-//        "Last Price" : 149.3,
-//        "Dividend Yield" : 3.95
-//      },
-//      {
-//        "Name" : "Apple Inc",
-//        "Ticker" : "AAPL US Equity",
-//        "Last Price" : 205.8,
-//        "Dividend Yield" : 1.4
-//      }
-//    ]
-//  })JSON";
+//  const bsl::string EXPECTED =
+//      "{\n"
+//      "  \"Stocks\" : [\n"
+//      "    {\n"
+//      "      \"Name\" : \"International Business Machines Corp\",\n"
+//      "      \"Ticker\" : \"IBM US Equity\",\n"
+//      "      \"Last Price\" : 149.3,\n"
+//      "      \"Dividend Yield\" : 3.95\n"
+//      "    },\n"
+//      "    {\n"
+//      "      \"Name\" : \"Apple Inc\",\n"
+//      "      \"Ticker\" : \"AAPL US Equity\",\n"
+//      "      \"Last Price\" : 205.8,\n"
+//      "      \"Dividend Yield\" : 1.4\n"
+//      "    }\n"
+//      "  ]\n"
+//      "}";
 //..
 // Then, to encode this JSON document we create a 'baljsn::SimpleFormatter'
 // object.  Since we want the document to be written in a pretty, easy to

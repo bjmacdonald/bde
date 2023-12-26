@@ -80,8 +80,9 @@ BSLS_IDENT("$Id: $")
 // Next, we compute 'sqrt(candidate)', which is as far as we need to look:
 //..
 //      // We need to cast the 'sqrt' argument to avoid an overload ambiguity.
-//      const int sqrtOfCandidate = std::sqrt(static_cast<double>(candidate))
-//                                + 0.01;  // fudge factor
+//      const int sqrtOfCandidate = static_cast<int>(
+//                                    std::sqrt(static_cast<double>(candidate))
+//                                              + 0.01);  // fudge factor
 //..
 // Now, we loop from 2 to 'sqrtOfCandidate', and use the sieve algorithm to
 // eliminate non-primes:
@@ -140,7 +141,7 @@ BSLS_IDENT("$Id: $")
 #include <bslstl_stdexceptutil.h>
 #include <bslstl_string.h>
 
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 
 #include <bsls_assert.h>
 #include <bsls_compilerfeatures.h>

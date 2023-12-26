@@ -4,7 +4,7 @@
 #include <bslma_allocator.h>
 #include <bslma_allocatortraits.h>
 #include <bslma_default.h>
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 #include <bslma_testallocator.h>
 
 #include <bsls_alignmentfromtype.h>
@@ -281,8 +281,8 @@ class MyTestObject {
     // have been copied.
 
     // DATA
-    volatile bsls::Types::Int64 *d_deleteCounter_p;
-    volatile bsls::Types::Int64 *d_copyCounter_p;
+    bsls::Types::Int64 *d_deleteCounter_p;
+    bsls::Types::Int64 *d_copyCounter_p;
 
   public:
     // CREATORS
@@ -296,11 +296,11 @@ class MyTestObject {
         // Destroy this object.
 
     // ACCESSORS
-    volatile bsls::Types::Int64 *copyCounter() const;
+    bsls::Types::Int64 *copyCounter() const;
         // Return a pointer to the counter (if any) used to track the number of
         // times an object of type 'MyTestObject' has been copied.
 
-    volatile bsls::Types::Int64 *deleteCounter() const;
+    bsls::Types::Int64 *deleteCounter() const;
         // Return a pointer to the counter used to track the number of times an
         // object of type 'MyTestObject' has been copied.
 
@@ -331,12 +331,12 @@ MyTestObject::~MyTestObject()
 }
 
 // ACCESSORS
-volatile bsls::Types::Int64* MyTestObject::copyCounter() const
+bsls::Types::Int64* MyTestObject::copyCounter() const
 {
     return d_copyCounter_p;
 }
 
-volatile bsls::Types::Int64* MyTestObject::deleteCounter() const
+bsls::Types::Int64* MyTestObject::deleteCounter() const
 {
     return d_deleteCounter_p;
 }
@@ -1503,8 +1503,8 @@ int main(int argc, char *argv[])
     ASSERT(&defaultAllocator == bslma::Default::defaultAllocator());
 
     bslma::TestAllocator ta(veryVeryVeryVerbose);
-    bsls::Types::Int64   numDeallocations;
-    bsls::Types::Int64   numAllocations;
+    bsls::Types::Int64   numDeallocations = 0;
+    bsls::Types::Int64   numAllocations   = 0;
 
     (void) numDeallocations;
     (void) numAllocations;

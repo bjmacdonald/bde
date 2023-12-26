@@ -1,8 +1,8 @@
 // bslstl_ostream.t.cpp                                               -*-C++-*-
 #include <bslstl_ostream.h>
 
+#include <bslstl_syncbuf.h>
 #include <bslstl_stringbuf.h>
-#include <bslstl_osyncstream.h>
 
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
@@ -157,7 +157,8 @@ int main(int argc, char *argv[])
                             "\n==================================\n");
 
         stringbuf wrapped;
-        osyncstream out(&wrapped); // emit-on-sync == false
+        syncbuf   sbuf(&wrapped); // emit-on-sync == false
+        ostream   out(&sbuf);
 
         out << 'a';
         out.flush(); // no flush

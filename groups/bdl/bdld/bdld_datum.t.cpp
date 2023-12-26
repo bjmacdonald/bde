@@ -1,6 +1,7 @@
 // bdld_datum.t.cpp                                                   -*-C++-*-
 #include <bdld_datum.h>
 
+#include <bdldfp_decimal.h>
 #include <bdldfp_decimalconvertutil.h>
 #include <bdldfp_decimalutil.h>
 
@@ -11,6 +12,8 @@
 #include <bdlt_datetime.h>
 #include <bdlt_datetimeinterval.h>
 #include <bdlt_currenttime.h>
+
+#include <bsla_maybeunused.h>
 
 #include <bslim_testutil.h>
 
@@ -253,7 +256,7 @@ using bdldfp::Decimal64;
 // [ 4] bsl::ostream& operator<<(ostream&, const Datum&); // non-aggregate
 // [19] bsl::ostream& operator<<(ostream&, const Datum&); // aggregate
 // [29] bsl::ostream& operator<<(ostream&, const Datum::DataType);
-// [34] void hashAppend(hashAlgorithm, datum);
+// [33] void hashAppend(hashAlgorithm, datum);
 //
 //                            // -------------------
 //                            // class DatumMapEntry
@@ -370,13 +373,12 @@ using bdldfp::Decimal64;
 // [14] bsl::ostream& operator<<(bsl::ostream&, const DatumMapRef&);
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [36] USAGE EXAMPLE
-// [35] VECTOR OF NULLS TEST
+// [35] USAGE EXAMPLE
+// [34] VECTOR OF NULLS TEST
 // [24] Datum_ArrayProctor
-// [33] DATETIME ALLOCATION TESTS
-// [32] MISALIGNED MEMORY ACCESS TEST (only on SUN machines)
-// [31] COMPRESSIBILITY OF DECIMAL64
-// [30] TYPE TRAITS
+// [32] DATETIME ALLOCATION TESTS
+// [31] MISALIGNED MEMORY ACCESS TEST (only on SUN machines)
+// [30] COMPRESSIBILITY OF DECIMAL64
 // [-2] EFFICIENCY TEST
 // ----------------------------------------------------------------------------
 
@@ -485,8 +487,39 @@ const Decimal64 k_DECIMAL64_NEG_INFINITY = -k_DECIMAL64_INFINITY;
 const char *UNKNOWN_FORMAT = "(* UNKNOWN *)";
 
 //=============================================================================
+//                           TESTING TYPE TRAITS
+//-----------------------------------------------------------------------------
+
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY)
+# define U_ASSERT_EXPECTED_PROPERTIES_BASIC(TYPE)                             \
+    BSLMF_ASSERT(bslmf::IsTriviallyCopyableCheck<TYPE>::value);               \
+    BSLMF_ASSERT(bslmf::IsBitwiseMoveable<TYPE>::value);                      \
+    BSLMF_ASSERT(!(bslma::UsesBslmaAllocator<TYPE>::value));                  \
+    BSLMF_ASSERT(!(bslmf::IsBitwiseEqualityComparable<TYPE>::value))
+
+# define U_ASSERT_EXPECTED_PROPERTIES(TYPE)                                   \
+    U_ASSERT_EXPECTED_PROPERTIES_BASIC(TYPE);                                 \
+    BSLMF_ASSERT(bdlb::HasPrintMethod<TYPE>::value)
+
+# define U_ASSERT_EXPECTED_PROPERTIES_PLUS_DEFAULT(TYPE)                      \
+    U_ASSERT_EXPECTED_PROPERTIES(TYPE);                                       \
+    BSLMF_ASSERT(bsl::is_trivially_default_constructible<TYPE>::value)
+
+    U_ASSERT_EXPECTED_PROPERTIES_PLUS_DEFAULT(bdld::Datum);
+    U_ASSERT_EXPECTED_PROPERTIES_BASIC(bdld::DatumMutableArrayRef);
+    U_ASSERT_EXPECTED_PROPERTIES_BASIC(bdld::DatumMutableMapRef);
+    U_ASSERT_EXPECTED_PROPERTIES_BASIC(bdld::DatumMutableIntMapRef);
+    U_ASSERT_EXPECTED_PROPERTIES_BASIC(bdld::DatumMutableMapOwningKeysRef);
+    U_ASSERT_EXPECTED_PROPERTIES(bdld::DatumArrayRef);
+    U_ASSERT_EXPECTED_PROPERTIES(bdld::DatumIntMapEntry);
+    U_ASSERT_EXPECTED_PROPERTIES(bdld::DatumMapEntry);
+    U_ASSERT_EXPECTED_PROPERTIES(bdld::DatumMapRef);
+#endif
+
+//=============================================================================
 //                   GLOBAL HELPER FUNCTIONS FOR TESTING
 //-----------------------------------------------------------------------------
+
 void populateWithNonAggregateValues(vector<Datum>    *elements,
                                     bslma::Allocator *allocator,
                                     bool              withNaNs = true)
@@ -1335,11 +1368,12 @@ void BenchmarkSuite::run(int   iterations,
     BENCHMARK(createDouble(1.23), isDouble(), theDouble(), double);
 
     {
-        unsigned char buffer[8]; // big enough fox max encoding size
+        unsigned char buffer[16]; // big enough fox max encoding size
+        (void)buffer;
 
 #if defined(BSLS_PLATFORM_CPU_32_BIT)
         Decimal64      aSmallDecimal64(BDLDFP_DECIMAL_DD(1.));
-        unsigned char *result =
+        BSLA_MAYBE_UNUSED unsigned char *result =
             bdldfp::DecimalConvertUtil::decimal64ToVariableWidthEncoding(
                                                               buffer,
                                                               aSmallDecimal64);
@@ -1529,40 +1563,41 @@ void BenchmarkSuite::runVisit()
 
         for (int j = 0; j < d_iterations; ++j) {
             for (int i = 0; i < k_DATUMS; ++i) {
-                double sum = 0;
+                volatile double sum = 0;
                 for (ConstDatumIter iter = combo.begin(), last = combo.end();
                      iter != last;
                      ++iter) {
                     switch (iter->type()) {
                       case Datum::e_INTEGER:
-                        sum += iter->theInteger();
+                        sum = sum + iter->theInteger();
                         break;
                       case Datum::e_DOUBLE:
-                        sum += iter->theDouble();
+                        sum = sum + iter->theDouble();
                         break;
                       case Datum::e_STRING:
-                        sum += static_cast<double>(iter->theString().length());
+                        sum = sum + static_cast<double>(
+                                                   iter->theString().length());
                         break;
                       case Datum::e_BOOLEAN:
-                        sum += iter->theBoolean();
+                        sum = sum + iter->theBoolean();
                         break;
                       case Datum::e_ERROR:
-                        sum += iter->theError().code();
+                        sum = sum + iter->theError().code();
                         break;
                       case Datum::e_DATE:
-                        sum += iter->theDate().day();
+                        sum = sum + iter->theDate().day();
                         break;
                       case Datum::e_TIME:
-                        sum += iter->theTime().second();
+                        sum = sum + iter->theTime().second();
                         break;
                       case Datum::e_DATETIME:
-                        sum += iter->theDatetime().day();
+                        sum = sum + iter->theDatetime().day();
                         break;
                       case Datum::e_DATETIME_INTERVAL:
-                        sum += iter->theDatetimeInterval().seconds();
+                        sum = sum + iter->theDatetimeInterval().seconds();
                         break;
                       case Datum::e_INTEGER64:
-                        sum += static_cast<double>(iter->theInteger64());
+                        sum = sum + static_cast<double>(iter->theInteger64());
                         break;
                       default:
                         break;
@@ -2068,6 +2103,120 @@ HashHexPrinter hexPrint(const MockAccumulatingHashingAlgorithm& hasher,
 }
 
 //=============================================================================
+//                  CLANG TEST FOR SECOND PHASE LOOKUP ISSUE
+//-----------------------------------------------------------------------------
+
+#define u_NEXT_CLANG_MAJOR_VERSION (16 * 10000)
+#if !defined(BSLS_PLATFORM_CMP_CLANG) ||                                      \
+                        BSLS_PLATFORM_CMP_VERSION >= u_NEXT_CLANG_MAJOR_VERSION
+
+// This section of code is testing if a clang-specific issue template
+// compilation still exist, and so we still need the workaround in the header
+// 'bdld_datum.h'.
+//
+///The Background
+///--------------
+// We have been requested to replace the inclusion of '<bdldfp_decimal.h>' (for
+// 'bdldfp::Decimal64') with just forward declarations, because it made the
+// compilation of '<bdld_datum.h>' very expensive in a certain key library.
+//
+// We have created '<bdldfp_decimal.fwd.h>' to forward declare the decimal
+// floating point types.  Including only the forward declaration header makes
+// 'bdldfp::Decimal64' an incomplete type while '<bdld_datum.h>' is being
+// compiled.  Those who need to use 'bdld::Datum' with 'bdldfp::Decimal64' need
+// just to include '<bdldfp_decimal.h>' in their .cpp file, or so we thought.
+//
+///What is the Issue?
+///------------------
+// For historical reasons '<bdld_datum.h>' defines two function templates, the
+// member template 'apply' for the Visitor Pattern, and the 'bdld::hashAppend'
+// free function for the BDE-style chained hash-calculation implementation.
+// Both of these functions implement the Visitor Pattern so they suffer from
+// the same consequences: generally, using a Visitor makes code dependent on
+// *all* possible visitable types, and in this specific case 'bdld::Datum'
+// offers by-value accessors only.
+//
+// The 'bdldfp::Decimal64 theDecimal() const' accessor uses 'bdldfp::Decimal64'
+// by value in its signature.  But in the header 'bdldfp::Decimal64' is an
+// incomplete type, so calling that function is not possible until we include
+// '<bdldfp_decimal.h>'.  But the function templates we define (in the
+// '<bdld_datum.h>') header actually directly call 'theDecimal64()'.
+//
+// Two-phase name lookup rules in C++ declares that all names that are not
+// dependent on a template argument must be resolved during the first phase of
+// template compilation, and only during that first phase.  Whatever is found
+// while compiling our header is what must be used as the meaning of
+// non-dependent names during the second phase, the instantiation of the
+// function template.  'bdldfp::Decimal64' is not a dependent name so clang++,
+// that takes the lookup rules to the letter "remembers" the incomplete type,
+// and we end up with the error message:
+//..
+// error: calling 'theDecimal64' with incomplete return type
+//        'bdldfp::Decimal64' (aka 'BloombergLP::bdldfp::Decimal_Type64')
+//    visitor(theDecimal64());
+//    ^ ~~~~~~~~~~~~~
+// note: 'theDecimal64' declared here
+//    bdldfp::Decimal64 theDecimal64() const;
+// note : forward declaration of 'BloombergLP::bdldfp::Decimal_Type64'
+//    class Decimal_Type64;
+//          ^
+//..
+//
+///Why Testing Here?
+///-----------------
+// Due to large amounts of code depending on transitive includes we are unable
+// to remove the inclusion of '<bdldfp_decimal.h>' from '<bdld_datum.h>'.  The
+// design decision was taken to keep the header '<bdld_datum.h>' itself to have
+// minimal conditional compilation, and that we recreate the error-situation
+// for clang within the test driver to detect starts behaving like the other
+// compilers do.
+//
+///The Workaround
+///--------------
+// The workaround use is that we make the function being called "dependent" of
+// a (function) template argument (using a little utility class template, or
+// metafunction) so the 'theDecimal64()' will be bound in the second phase
+// (instantiation phase) name lookup.
+
+namespace {
+
+// -------------------------------------------
+// "Header" with declarations and the template
+
+struct ForwardDeclared;
+
+ForwardDeclared returnByValue();
+
+template <class t_VISITOR>
+void callerTemplate(const t_VISITOR& v) {
+    v.call(returnByValue());
+// error: calling 'returnByValue' with incomplete return type 'ForwardDeclared'
+// If you see the above error during compilation with clang please increase the
+// major version number in the '#if' around this code.  If you see a similar
+// error from a compiler that is not clang it means that the function-pointer
+// workaround code will have to remain in '<bdld_datum.h>'.  See the large
+// comment section right after the '#if' above for an explanation of what is
+// tested here, and why.
+}
+
+// -----------------------------------------------------------------
+// An "implementation" with definitions & the template instantiation
+
+struct ForwardDeclared {};
+
+ForwardDeclared returnByValue() {
+    return ForwardDeclared();
+}
+
+struct Visitor {
+    void call(ForwardDeclared) {}
+};
+
+}  // close unnamed namespace
+
+#endif  // Verify name binding issue
+
+//=============================================================================
 //                               MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
@@ -2084,10 +2233,16 @@ int main(int argc, char *argv[])
     // CONCERN: Unexpected 'BSLS_REVIEW' failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
+#if defined(BSLS_PLATFORM_CMP_CLANG) &&                                       \
+                        BSLS_PLATFORM_CMP_VERSION >= u_NEXT_CLANG_MAJOR_VERSION
+    ASSERT(!"This clang major release fixed the 2 phase name lookup issue.");
+    // Time to plan phasing out the function-pointer workaround
+#endif  // The test driver should not have compiled
+
     srand(static_cast<unsigned int>(time(static_cast<time_t *>(0))));
 
     switch (test) { case 0:
-      case 36: {
+      case 35: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   Extracted from component header file.
@@ -2378,7 +2533,7 @@ int main(int argc, char *argv[])
 //..
 // Note, that the bytes have been copied.
       } break;
-      case 35: {
+      case 34: {
         // --------------------------------------------------------------------
         // VECTOR OF NULLS TEST
         //  This test became necessary as of December 2022, when someone
@@ -2429,7 +2584,7 @@ int main(int argc, char *argv[])
         ASSERT(v3[2].isNull());
 
       } break;
-      case 34: {
+      case 33: {
         // --------------------------------------------------------------------
         // BSLH HASHING TESTS
         //
@@ -2469,8 +2624,8 @@ int main(int argc, char *argv[])
                 const size_t       DATA_LEN = sizeof DATA / sizeof *DATA;
 
                 for (size_t i = 0; i < DATA_LEN; ++i) {
-                    const bool VALUE = DATA[i];
-                    const bool TEXT = VALUE ? "true" : "false";
+                    const bool  VALUE = DATA[i];
+                    const char *TEXT  = VALUE ? "true" : "false";
 
                     if (veryVerbose) { T_ P(VALUE) }
 
@@ -3709,7 +3864,7 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
       } break;
-      case 33: {
+      case 32: {
         // --------------------------------------------------------------------
         // DATETIME ALLOCATION TESTS
         //
@@ -3800,7 +3955,7 @@ int main(int argc, char *argv[])
                           << endl;
 #endif
       } break;
-      case 32: {
+      case 31: {
         // --------------------------------------------------------------------
         // MISALIGNED MEMORY ACCESS TEST
         //
@@ -3841,7 +3996,7 @@ int main(int argc, char *argv[])
                           << endl;
 #endif
       } break;
-      case 31: {
+      case 30: {
         // --------------------------------------------------------------------
         // TESTING COMPRESSIBILITY OF DECIMAL64
         //    Check that 'Decimal64' fit in 6 bytes or not (as expected).
@@ -3883,42 +4038,6 @@ int main(int argc, char *argv[])
                                                 BDLDFP_DECIMAL_DD(12.3456789));
             ASSERT(variable2 > buffer + 6);
         }
-      } break;
-      case 30: {
-        // --------------------------------------------------------------------
-        // TESTING TYPE TRAITS
-        //   The object is trivially copyable, default constructible and
-        //   bitwise copyable and should have appropriate bsl type traits to
-        //   reflect this.
-        //
-        // Concerns:
-        //: 1 The class has the bsl::is_trivially_copyable trait.
-        //:
-        //: 2 The class has the bsl::is_trivially_default_constructible trait.
-        //:
-        //: 3 The class has the bslmf::IsBitwiseMoveable trait.
-        //:
-        //: 4 The class doesn't have the bslma::UsesBslmaAllocator trait.
-        //:
-        //: 5 The class doesn't have the bslmf::IsBitwiseEqualityComparable
-        //:   trait.
-        //
-        // Plan:
-        //: 1 ASSERT the presence of each trait required by the type.  (C-1..5)
-        //
-        // Testing:
-        //   TYPE TRAITS
-        // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING TYPE TRAITS" << endl
-                          << "===================" << endl;
-
-        ASSERT((bsl::is_trivially_copyable<Datum>::value));
-        ASSERT((bsl::is_trivially_default_constructible<Datum>::value));
-        ASSERT((bslmf::IsBitwiseMoveable<Datum>::value));
-        ASSERT(!(bslma::UsesBslmaAllocator<Datum>::value));
-        ASSERT(!(bslmf::IsBitwiseEqualityComparable<Datum>::value));
-
       } break;
       case 29: {
         // --------------------------------------------------------------------
@@ -12469,8 +12588,8 @@ int main(int argc, char *argv[])
             {
                 // Testing assumption that 'Time' fits into 48 bits
                 bdlt::Time         time(24);
-                short              s;
-                int                i;
+                short              s = 0;
+                int                i = 0;
                 bsls::Types::Int64 ll;
 
                 // 24:00:00.000000

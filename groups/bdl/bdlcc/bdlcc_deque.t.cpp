@@ -30,6 +30,7 @@
 #include <bsls_asserttest.h>
 #include <bsls_atomic.h>
 #include <bsls_nameof.h>
+#include <bsls_platform.h>
 #include <bsls_review.h>
 #include <bsls_stopwatch.h>
 #include <bsls_types.h>
@@ -45,6 +46,10 @@
 #include <bsl_limits.h>
 
 #include <bsl_c_ctype.h>
+
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+#pragma warning(disable:4312)
+#endif
 
 using namespace BloombergLP;
 using bsls::NameOf;
@@ -3023,7 +3028,7 @@ void testForcePushRemoveAllAux(const bool       match,
     bsl::vector<ELEMENT> vBsl(&va);
     std::vector<ELEMENT> vStd;
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-    std::pmr::vector<ELEMENT> vPmr;
+    std::pmr::vector<ELEMENT> vPmr(&va);
 #endif
 
     switch (vecType) {
@@ -3102,7 +3107,7 @@ void testForcePushRemoveAllAux(const bool       match,
         }
     }
 
-    ASSERT(u::e_BSL != vecType || 0 == da.numAllocations());
+    ASSERTV(vecType, u::e_BSL != vecType || 0 == da.numAllocations());
 }
 
 template <class ELEMENT>
@@ -4242,11 +4247,11 @@ class EmptyDequeFunctor {
                 break;
             }
 
-            if (TERMINATE == e) {
+            if (static_cast<double>(TERMINATE) == e) {
                 *d_status_p = 0;
                 break;
             }
-            ASSERT(VALID_VAL == e);
+            ASSERT(static_cast<double>(VALID_VAL) == e);
 
             sts = d_barrier_p->timedWait(d_timeout);
             ASSERT(!sts);
@@ -7088,7 +7093,7 @@ int main(int argc, char *argv[])
         if (verbose) cout << "std::pmr::vector\n";
         {
             AObj                       mX(&ta);
-            std::pmr::vector<AElement> buffer;
+            std::pmr::vector<AElement> buffer(&ta);
 
             mX.pushBack(VA);
             mX.pushBack(VB);
@@ -7103,7 +7108,7 @@ int main(int argc, char *argv[])
         }
         {
             AObj                       mX(&ta);
-            std::pmr::vector<AElement> buffer;
+            std::pmr::vector<AElement> buffer(&ta);
 
             buffer.push_back(VA);
             buffer.push_back(VB);

@@ -1,9 +1,238 @@
-bsl-internal (3.120.0.1) unstable; urgency=low
+bsl-internal (4.0.0.0) unstable; urgency=low
 
+  * 8a041942c Bumped version to 4.0.0.0
+  * 37ff4e3dc Allocator infrastructure changes (SOW19 d4-d7) - drqs-168933860 (#4554)
+  * 0d3d3e974 Bslstl variant integration (#4488)
+  * 1c692cd92 correct clang build warning (#4553)
+  * e42ba0c7d uint warnings (#4550)
+  * 0c844a7a6 Drqs 173827876/nb 20231219 (#4548)
+  * fb97ce466 Revert "balxml_decoder success on incorrect input {DRQS 171405619} (#4475)" (#4549)
+  * cbc5bc45b Revert "Elide atomic constructor calls for compile-time constants for C++14+ - {DRQS 173277048} (#4466)" (#4546)
+  * 886442f1e Typo in documentation heading (#4544)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Fri, 22 Dec 2023 12:24:23 -0500
+
+bsl-internal (3.128.0.0) git; urgency=low
+
+  * fcd2dc8f2 Changelog for version 3.128.0.0
+  * 6ed282659 Bumped version to 3.128.0.0
+  * f983aec12 Remove outdated comments (#4540)
+  * ba3abcc8b Revert "baljsn/balber decode ints as enums and vice versa (#4482)" (#4543)
+  * f17fe2a88 Revert json double comma (#4542)
+  * e9f830b0a Special case 'destroy' for GCC 11 to prevent '-Wstringop_overflow' warnings {DRQS 173641638} (#4524)
+  * eba098daa balxml_decoder success on incorrect input {DRQS 171405619} (#4475)
+  * fe8752fc1 Address JSON test failures after addressing double-comma bug (#4538)
+  * 3d33ef3f0 Integrate the JSON Conformance Project (#4537)
+  * 8af174839 Drqs 173788133/nb 20231214 (#4536)
+  * 49b64f929 baljsn/balber decode ints as enums and vice versa (#4482)
+  * f86d29f16 Fix compilation breakage in bdldfp_decimal.fwd.t.cpp (#4535)
+  * 4d00a50f6 Conversion from 'bsl::string_view' to 'StringRefData' has been made explicit (#4518)
+  * 6408e2267 Elide atomic constructor calls for compile-time constants for C++14+ - {DRQS 173277048} (#4466)
+  * 886ebb7be reduce td warnings (#4532)
+  * 623fd9aef bdld_datum.h fwd-only bdldfp_decimal (#4470)
+  * 2421e8e38 reduce td warnings (#4531)
+  * 7309ec3c6 Exclude Solaris Studio in -std=c++XX mode (#4509)
+  * 199660290 document compiler and standard version check macros in bsls_buildtarget (#4528)
+  * ef7c05849 Increase internal attribute print buffer size (#4526)
+  * 6033b1dc7 Remove BAEL_NONE severity level (#4516)
+  * f58ca4220 Revert "Add  values for C++20 and c++23 (#4474)" (#4515) (#4517)
+  * 64c080844 'createTemporarySubdirectory' method has been added to 'bdls::FileSystemUtil'. DRQS 173473494 (#4503)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Fri, 15 Dec 2023 17:06:17 -0500
+
+bsl-internal (3.127.0.0) git; urgency=low
+
+  * bdb17c19a Changelog for version 3.127.0.0
+  * 038cb6c30 Bumped version to 3.127.0.0
+  * 70e70ffa1 Remove use of deprecated 'allocator' method (#4505)
+  * 1209b06ed Add constructors taking bsl::basic_string to span for C++03 (#4500)
+  * 6bc1d370d Fixed broken comment (#4506)
+  * fcecc5e05 balxml: Support Customized Binary Data (#4498)
+  * ffd0511f2 Drqs 171602974/balm bdlmmetricsregistrar teom (#4490)
+  * cd6840157 Undefine BSLS_LIBRARYFEATURES_HAS_CPP20_DEPRECATED_REMOVED where feasible (#4496)
+  * 03604e0af Restore typedefs for decimal types (#4497)
+  * a78aeb139 Handle returns of non-copyable types in bsl::function {DRQS 170974958} (#4451)
+  * 788626156 Unnecessary 'volatile' qualifier has been removed (#4486)
+  * 3aa93894b Unnecessary 'volatile' qualifier has been removed (#4489)
+  * d906fd49b Bslma allocator forwarding header drqs 173385383 (#4479)
+  * 5d249af00 '@CANONICAL_HEADER' annotations have been added to 'bsl_c_*' headers (#4485)
+  * 3279b9337 add uses bslma allocator trait where needed (#4493)
+  * 9b823ab4c remove use of 'tempnam' (#4492)
+  * 9fa6da1b5 correct warnings (#4491)
+  * ff4dc6ad7 C++20 libc++ fixes (#4463)
+  * cf59243b6 Drqs 173353817/bdlm metricsregistrar augment teom (#4480)
+  * 64765572e Drqs 173411520/nb ibm sun 20231103 (#4484)
+  * 5dcf4ea86 Add  values for C++20 and c++23 (#4474)
+  * d18614ac0 fix xlc test driver compile warnings (#4481)
+  * b5c0fb6a8 drqs-156027255: 'bdlma_sequentialpool': Improve 'd_alwaysUnavailable' init. (#4478)
+  * 55ed3e5b0 Drqs 172873938/bdlmt timereventscheduler teom (#4476)
+  * a43839cd0 Drqs 172873932/bdlmt eventscheduler teom (#4472)
+  * 97af8c2ed python-bloomberg-codecs workaround (#4477)
+  * 1891143db Remove bde integral_constant VALUE usage (#4422)
+  * 82427462c Implement bsl::uncaught_exceptions {DRQS 173143272} (#4457)
+  * e5ba50edd Fix install path and INSTALL_INTERFACE property for thirdparties (#4471)
+  * c0582bd5d add metric registrar creators (#4469)
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Fri, 24 Nov 2023 12:34:19 -0500
+
+bsl-internal (3.126.0.0) git; urgency=low
+
+  * 4b80a2c56 Changelog for version 3.126.0.0
+  * 7ae4f2e2d Bumped version to 3.126.0.0
+  * 67c4968fd Update comment in bdlde_crc32c.cpp: CRC3-C -> CRC32-C (#4468)
+  * 54fa023ca Drqs 172873913/bdlmt threadpool teom (#4465)
+  * 4feaa3031 bdls_filesystemutil: Created 'mapChecked', added operator<< for all e… (#2128)
+  * 1fd5e7f82 Adding bdldfp_decimal.fwd.h (#4449)
+  * ae393e6fa Integration/teom 20230830 (#4461)
+  * 791476059 Add string enumeration with preserveEnumOrder='0' to s_baltst (DRQS 173223261) (#4460)
+  * 732052efa Add example of int enumeration to s_baltst (#4458)
+  * 315fd526c Merge pull request #4447 from afeher/drqs-172800848-validate-min-cmp-ver
+  * 763f97149 bslstl_function and bsl_nullptr test driver fixes for MSVC 2022 C++20 (#4454)
+  * 2d1e7a7d6 Regenerate bslstl_vector_cpp03.h, missed in #4448 (#4453)
+  * cddb2d925 Revamp NullableValueRef {DRQS 173091340} (#4445)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Fri, 20 Oct 2023 11:06:53 -0400
+
+bsl-internal (3.125.0.0) git; urgency=low
+
+  * 40231fe79 Changelog for version 3.125.0.0
+  * 28de33275 Match #endif commit with #if (#4448)
+  * 8a38e1e14 Bumped version to 3.125.0.0
+  * 7eb115676 Compiler minimum version check for C++20.
+  * 420abc132 fix invoke result tests on MSVC 2022 (#4446)
+  * 7bfe26a2b remove unnecessary testing-only includes (#4443)
+  * e39a6980e Use 'bsl::nullopt' in NullableValue instead of 'bdlb::nullOpt (replaces #4412) (#4441)
+  * 6f092a014 reduce cc-5.12.4 warnings (#4442)
+  * 06416cf4a 'codePointValue' function has been added to 'bdlde::Utf8Util'. DRQS 172943023  (#4429)
+  * 5ac97f80c correct bal td compile warning (#4440)
+  * 1d1d85dcc Regenerate bdlb_nullablevalueref_cpp03.h (#4437)
+  * 57066da95 Revert "Implement bsl::variant (DRQS 171356765) (#4374)" (#4435)
+  * 218942f9a Implement bsl::variant (DRQS 171356765) (#4374)
+  * fb3135a44 bdlb_nullablevalueref: Add Component-Preview Disclaimer (#4433)
+  * 9648758b1 Merge pull request #4306 from bchapman/bslmf_isbitwisecopyable-bal-drqs-172216599
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Thu, 5 Oct 2023 10:36:54 -0400
+
+bsl-internal (3.124.0.0) git; urgency=low
+
+  * d4420486a Changelog for version 3.124.0.0
+  * b5f8629fc Bumped version to 3.124.0.0
+  * 4eefd812c New component - NullableValueRef (#4428)
+  * 345874adf Fix bug in moveAndAppendDataBuffers (#4432)
+  * 69f65a001 Fix bdlb_nullablevalue.t build error on C++20 MSVC 2022 (#4368)
+  * 4074fe2c3 added BSLMT_ONCE_DO for initialization (#4425)
+  * 67321e7bd Use transparent lookup in broadcast observer (#4418)
+  * 969da3b95 bslmt_testutil: kill use of 'BSLMT_ONCE_DO' (#4424)
+  * 5ed8d1411 'bsl::vector::push_back' has been made inline. DRQS 172750717 (#4407)
+  * cbe6f08e1 Third round of changes to NullableAllocateValue (#4417)
+  * 2a0dcdf2e Adds C++20 ranges accessor tests (#4377)
+  * a9c981e72 'bsl::invoke_result_t' has been added. DRQS 172695878. (#4400)
+  * 2a481c0b1 drqs-172804421: 'bslmt_readerwritermutex.t.cpp': Fix '*LOCKASSERT*' cycle. (#4419)
+  * 460b552cc bslmf_enableif: kill depencies on is_polymorphic and is_)fundamental (#4410)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Sat, 16 Sep 2023 15:33:29 -0400
+
+bsl-internal (3.123.0.0) git; urgency=low
+
+  * 2a0aee646 Changelog for version 3.123.0.0
+  * b36889b8f Bumped version to 3.123.0.0
+  * fecb13548 Add tzdata as recommended install dependency of bal (#4413)
+  * 388d815cc Make 'bdlb::NullOpt' a synonym for 'bsl::nullopt' (#4411)
+  * 34aa40f38 bslmt_sluice: eliminate cyclic dependency on thread group (#4408)
+  * f8af219f2 Add bdlb_nullableallocatedvalue_cpp03 to bdlb.mem (#4409)
+  * 0621c16d4 Update bslstl_syncbuf to more closely follow BDE conventions (DRQS 172615685) (#4381)
+  * 36d23d06b Bslstl string stringview cycles drqs 172596744 (#4372)
+  * f43daa69f add compiler support documentation for C++20 (#4404)
+  * c612fb3a3 Fix equality operator overload resolution (#4405)
+  * 03194206b Second round of changes to NullableAllocatedValue (#4402)
+  * e42f76cc2 Merge pull request #4353 from afeher/drqs-172596104-fix-bsl_iterator-iter_swap
+  * 461e122fe Fix 'bsl::stop_token' warning on AIX (DRQS 172748854) (#4399)
+  * 79326ec8f Fix bsl::stop_token Solaris build error (#4398)
+  * b4ece257f First round of changes to NullableAllocatedValue (#4382)
+  * c729d166e Merge pull request #4390 from jberne4/more_include_cleanups
+  * 576983c5d rough out of always-post workaround (#4395)
+  * 79986c166 Implement bsl::stop_token (DRQS 171656646) (#4394)
+  * 84c640e6a Fix FALLTHROUGH macro under clang cpp03 (#4388)
+  * 1a08b0112 Comment for MSVC build failure has been added to several test drivers (#4391)
+  * 39ee5ff00 Correct BerEncoder's documentation (DRQS 172564463) (#4386)
+  * 24a006d00 Bump minimum required CMake version
+  * ace6c3d37 Shared ptr util noleak drqs 171930743 (#4360)
+  * 42dfd2c12 Bsla normalize '*_IS_ACTIVE' macros  drqs 169125741 (#4380)
+  * 3ec54de68 Merge pull request #4379 from jberne4/more_testonly_fixups
+  * c9b18c267 Bdlb variant create in place perfect forwarding drqs 172492600 (#4334)
+  * 0478973cc Drqs 172620261/bslmt fastpostsemaphore redundant signal (#4369)
+  * bf7b5c6b6 @CANONICAL_HEADER annotation added (#4378)
+  * e7a7edd9e bdlma_pool.t.cpp: TC 8: thowing in 'delete'. (#4315)
+  * fb28c2ada Rework the test driver for NullableAllocatedValue - DRQS 172558273 (#4349)
+  * 5a3843546 Rename template parameters (#4376)
+  * ddbaecec3 drqs-172595882: 'bslmf': Fix TD cycles per 'bslmf_isaccessiblebaseof' (#4371)
+  * b9418e18c temporary solution for cycle with 'fuzztest' (#4373)
+  * 0d44f45bb Cycle dependency has been removed from the 'bdlde_hexencoder'. DRQS 172595834 (#4362)
+  * 3d5d3f056 drqs-172596051: 'bslmt_readerwriterlock.t.cpp': Fix cycle on '*LOCKASSERT*' (#4367)
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Fri, 25 Aug 2023 10:25:03 -0400
+
+bsl-internal (3.122.0.0) git; urgency=low
+
+  * e026d22b5 Changelog for version 3.122.0.0
+  * 3ee16b96d Bumped version to 3.122.0.0
+  * a3d149c55 drqs-172596456: 'bslstl_stringview.t.cpp': Fix cycle per 'bsl::map'. (#4366)
+  * b72c10f63 Merge pull request #4365 from afeher/drqs-172015668-parsedouble-typo-fix
+  * 7da0e9c6b Add file based benchmarking & minor fixes. (#4351)
+  * 3ba6eb1b2 bslstl_iterator.t.cpp: introcude local 'FixedSet', elinimate 'set' dependency (#4359)
+  * d40c8140b Don't use bsl::ostream in the tests driver (#4354)
+  * 2d1ad7755 bsls_stackaddressutil.t.cpp: eliminate use of 'bsls::SystemTime'. (#4363)
+  * 8e8fa03e6 bslmt_threadutil.t.cpp: kill cycles (#4364)
+  * 2626adb58 Remove bslmf_movableref<-> bslmf_isnothrowmoveconstrucible cycle (#4355)
+  * 7175cbc3c Cycle has been removed from the 'bdlb_transparenthash' test driver (#4361)
+  * 7c421e82a Cycle is removed from the 'ball_log' test driver (#4357)
+  * bd029425e Fixed Solaris warnings when using `bsl::span` (#4343)
+  * 40a1f17f8 Testing only not testing only (#4352)
+  * 12787ae30 Fix RVO errors in optimized Sun 12.5.6 builds (#4347)
+  * 5ade11c1e fix compilation warning in NullableAllocatedValue (#4348)
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Fri, 28 Jul 2023 10:36:00 -0400
+
+bsl-internal (3.121.0.0) git; urgency=low
+
+  * 40ceca7a6 Changelog for version 3.121.0.0
+  * 335c06e32 Bumped version to 3.121.0.0
+  * 32177601b Revert "drqs-169125741: 'bsla': Normalize '*_IS_ACTIVE' macro definitions. (#4341)" (#4346)
+  * 5e0fa760f drqs-169125741: 'bsla': Normalize '*_IS_ACTIVE' macro definitions. (#4341)
+  * a584cb02b Apply consistent use of unicode compiler features (#4336)
+  * e4096cf78 Add a "small object optimization" to NullableAllocatedObject {DRQS 172370596} (#4317)
+  * 02c514df9 drqs-171821616: 'bdlde_quotedprintableencoder': Fix TC5 buffer overflow. (#4337)
+  * 90bcccc62 fix warnings (#4340)
+  * facd1ab3a addressing additional review comments (#4339)
+  * c38ebeb8d Provide C++23 bsl::string::resize_and_overwrite - {DRQS 172247358} (#4296)
+  * f218ccf62 drqs-172281072: 'balcl_commandline': programName 'printUsage' overloads. (#4333)
+  * 921350719 fix warnings (#4335)
+  * 0cab7505d Fix c++11 build for Sun Studio 12.6 (#4322)
+  * 0ac11c5be reduce nb warnings (#4332)
+  * 579648a8a remove spurious semicolon (#4330)
+  * 732682f29 Add aliases to bslstl iterator drqs171318657 (#4318)
+  * e903a60ac fix issues (#4329)
+  * d6b25cb31 restore spinlock changes from c48cca00665a5abb2bd30e34a21e0d3e58cc7db0 (#4325)
+  * 095c87090 'forward_like' has been added to the 'bslmf_util'. DRQS 171726891 (#4289)
+  * 724ef44ed fix issues (#4326)
+  * 79db960e9 fix erroneous tests (#4321)
+  * ad3b16564 Bumped version to 3.120.1.0
+  * 160276d03 Implement {make|allocate}_shared_for_overwrite. (DRQS 171318667) (#4285)
+  * 648d7150d drqs-171318758: C++20: 'bsl_type_traits'  (#4203)
+  * 3a84a371e Make bdlma::HeapBypassAllocator thread-safe - {DRQS 172253014} (#4299)
+  * c0a3f49ea Update docs for new array meta-functions {DRQS 172333233} (#4311)
+  * df6ee9b9c Workaround for bug in MSVC 17.6 compiler (#4283)
+  * 7eeaef94e Merge pull request #4145 from bchapman/bdlt_iso8601util-basic-format-drqs-171213271
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Sat, 22 Jul 2023 13:00:13 -0400
+
+bsl-internal (3.120.0.1) git; urgency=low
+
+  * dfc6dae9c Changelog for version 3.120.0.1
   * 0e3c5792b Merge pull request #4316 from afeher/drqs-172326074-fix-solaris-detection-parseDouble
   * 67cb5f6dd fix compile warnings (#4304)
 
- -- Attila Feher <afeher@bloomberg.net>  Fri, 23 Jun 2023 16:04:10 -0400
+ -- Mike Giroux <mgiroux@bloomberg.net>  Fri, 23 Jun 2023 16:25:32 -0400
 
 bsl-internal (3.120.0.0) git; urgency=low
 

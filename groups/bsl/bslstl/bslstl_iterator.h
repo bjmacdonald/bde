@@ -48,7 +48,7 @@ BSLS_IDENT("$Id: $")
 //      // changed afterwards.
 //  {
 //      // DATA
-//      VALUE  d_array[SIZE];  // storage of the container
+//      VALUE d_array[SIZE];  // storage of the container
 //
 //    public:
 //      // PUBLIC TYPES
@@ -56,10 +56,10 @@ BSLS_IDENT("$Id: $")
 //..
 // Here, we define mutable and constant iterators and reverse iterators:
 //..
-//      typedef VALUE                                  *iterator;
-//      typedef VALUE const                            *const_iterator;
-//      typedef bsl::reverse_iterator<iterator>         reverse_iterator;
-//      typedef bsl::reverse_iterator<const_iterator>   const_reverse_iterator;
+//      typedef VALUE                                 *iterator;
+//      typedef VALUE const                           *const_iterator;
+//      typedef bsl::reverse_iterator<iterator>        reverse_iterator;
+//      typedef bsl::reverse_iterator<const_iterator>  const_reverse_iterator;
 //
 //      // CREATORS
 //      //! MyFixedSizeArray() = default;
@@ -183,26 +183,26 @@ BSLS_IDENT("$Id: $")
 #include <cstddef>
 
 #ifndef BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-#include <bsls_nativestd.h>
-#endif // BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
+    #include <bsls_nativestd.h>
+#endif  // BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_TRAITS_HEADER
-#include <type_traits>    // 'common_type', 'make_signed'
-#endif
+    #include <type_traits>    // 'common_type', 'make_signed'
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_TRAITS_HEADER
 
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS)
-# include <initializer_list>
-#endif
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
+    #include <initializer_list>
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
 
 #include <iterator>
 
-#if defined(BSLS_LIBRARYFEATURES_STDCPP_LIBCSTD)
-# define BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR 1
-# define BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES 1
-#endif
+#ifdef BSLS_LIBRARYFEATURES_STDCPP_LIBCSTD
+    #define BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR                  1
+    #define BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES                           1
+#endif  // BSLS_LIBRARYFEATURES_STDCPP_LIBCSTD
 
 namespace bsl {
-// Import selected symbols into bsl namespace
+// Import selected symbols into the 'bsl' namespace
 
 // 24.3 primitives
 using std::input_iterator_tag;
@@ -223,6 +223,113 @@ using std::front_inserter;
 using std::insert_iterator;
 using std::inserter;
 
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+// 23.2
+// 23.3.2.1, incrementable traits
+using std::incrementable;
+using std::incrementable_traits;
+using std::iter_difference_t;
+
+// 23.3.2.2, indirectly readable traits
+using std::indirectly_readable_traits;
+using std::iter_value_t;
+
+// 23.3.2.3, iterator traits
+using std::iter_reference_t;
+using std::iter_rvalue_reference_t;
+
+// 23.3.4.2, concept indirectly_readable
+using std::iter_common_reference_t;
+
+// 23.3.4.3, concept indirectly_writable
+using std::indirectly_readable;
+using std::indirectly_writable;
+
+// 23.3.4.4, concept weakly_incrementable
+using std::weakly_incrementable;
+
+// 23.3.4.6, concept input_or_output_iterator
+using std::input_or_output_iterator;
+
+// 23.3.4.7, concept sentinel_for
+using std::sentinel_for;
+
+// 23.3.4.8, concept sized_sentinel_for
+using std::sized_sentinel_for;
+
+// 23.3.4.9, concept input_iterator
+using std::input_iterator;
+
+// 23.3.4.10, concept output_iterator
+using std::output_iterator;
+
+// 23.3.4.11, concept forward_iterator
+using std::forward_iterator;
+
+// 23.3.4.12, concept bidirectional_iterator
+using std::bidirectional_iterator;
+
+// 23.3.4.13, concept random_access_iterator
+using std::random_access_iterator;
+
+// 23.3.4.14, concept contiguous_iterator
+using std::contiguous_iterator;
+
+// 23.3.6.2, indirect callables
+using std::indirect_binary_predicate;
+using std::indirect_equivalence_relation;
+using std::indirect_result_t;
+using std::indirect_strict_weak_order;
+using std::indirect_unary_predicate;
+using std::indirectly_regular_unary_invocable;
+using std::indirectly_unary_invocable;
+
+// 23.3.6.3, projected
+using std::projected;
+
+// 23.3.7.2, concept indirectly_movable
+using std::indirectly_movable;
+using std::indirectly_movable_storable;
+
+// 23.3.7.3, concept indirectly_copyable
+using std::indirectly_copyable;
+using std::indirectly_copyable_storable;
+
+// 23.3.7.4, concept indirectly_swappable
+using std::indirectly_swappable;
+
+// 23.3.7.5, concept indirectly_comparable
+using std::indirectly_comparable;
+
+// 23.3.7.6, concept permutable
+using std::permutable;
+
+// 23.3.7.7, concept mergeable
+using std::mergeable;
+
+// 23.3.7.8, concept sortable
+using std::sortable;
+
+// 23.4.2, iterator tags
+using std::contiguous_iterator_tag;
+
+// 23.5.3, move iterators and sentinels
+using std::move_sentinel;
+
+// 23.5.4, common iterators
+using std::common_iterator;
+
+// 23.5.5, default sentinel
+using std::default_sentinel_t;
+
+// 23.5.6, counted iterators
+using std::counted_iterator;
+
+// 23.5.7, unreachable sentinel
+using std::unreachable_sentinel_t;
+
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY
 // 24.5 predefined iterators (C++14)
 using std::make_reverse_iterator;
@@ -235,14 +342,15 @@ using std::istreambuf_iterator;
 using std::ostreambuf_iterator;
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+// 23.5.3, move iterators and sentinels
 using std::move_iterator;
 using std::make_move_iterator;
+// 23.4.3, iterator operations
 using std::next;
 using std::prev;
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
-#if defined(BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES)
-
+#ifdef BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 // Sun does not provide 'std::iterator_traits' at all.  We will provide our own
 // in namespace 'bsl'.
 
@@ -252,7 +360,7 @@ using std::prev;
 
 template <class ITER>
 struct iterator_traits {
-    // This 'struct' will provide access to iterator traits.
+    // This 'struct' provides access to iterator traits.
 
     // TYPES
     typedef typename ITER::iterator_category iterator_category;
@@ -288,16 +396,16 @@ struct iterator_traits<TYPE *> {
     typedef TYPE*                           pointer;
     typedef TYPE&                           reference;
 };
-#else
+#else   // BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 // Just use the native version
 using std::iterator_traits;
-#endif
+#endif  // else-of BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 
-#if defined(BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR)
-// Working around a sun compiler bug where 'std::reverse_iterator' takes 6
-// (with 3 default) template arguments instead of 1, which is not standard
-// compliant.  Inherit from 'std::reverse_iterator'.  For reference, the
-// signature of sun's 'std::reverse_iterator' is:
+#ifdef BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR
+// Working around a Solaris Studio compiler bug where 'std::reverse_iterator'
+// takes 6 template arguments (of which 3 have defaults) instead of 1, which is
+// not standard compliant.  Inherit from 'std::reverse_iterator'.  For
+// reference, the signature of the Solaris Studio 'std::reverse_iterator' is:
 //..
 //  template <class Iterator,
 //            class Category,
@@ -603,12 +711,12 @@ operator+(DIFF_TYPE n, const reverse_iterator<ITER>& rhs);
     // unless 'rhs', after incrementing by 'n', is within the bounds of the
     // underlying sequence.  Note that the (template parameter) type 'ITER'
     // shall meet the requirements of random access iterator.
-#else
+#else   // BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR
 // Just use the native version
 using std::reverse_iterator;
-#endif
+#endif  // else-of BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR
 
-#if defined(BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES)
+#ifdef BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 
                         // ==========================
                         // struct IteratorDistanceImp
@@ -661,15 +769,15 @@ distance(ITER start, ITER finish);
     // 'finish' are both into the same underlying sequence, and 'start' is
     // before 'finish' in that sequence.  Note that the (template parameter)
     // type 'ITER' shall meet the requirements of input iterator.
-#else
+#else   // BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 // Just use the native version
 using std::distance;
-#endif
+#endif  // else-of BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
 using std::begin;
 using std::end;
-#else
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
 template <class T>
 typename T::iterator begin(T& container);
     // Return an iterator providing modifiable access to the first valid
@@ -710,7 +818,7 @@ const T *end(const T (&array)[N]);
     // Return the address of the non-modifiable element after the last element
     // in the specified 'array'.
 
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
+#endif  // else-of BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
 using std::cbegin;
@@ -719,7 +827,7 @@ using std::rbegin;
 using std::rend;
 using std::crbegin;
 using std::crend;
-#else
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
 template <class T>
 typename T::const_iterator cbegin(const T& container);
     // Return an iterator providing non-modifiable access to the first valid
@@ -805,23 +913,22 @@ template <class T, size_t N>
 reverse_iterator<const T *> crend(const T (&array)[N]);
     // Return the reverse iterator providing non-modifiable access to the
     // position one before the first element in the specified 'array'.
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
+#endif  // else-of BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
-
 namespace ranges {
 
 using std::ranges::distance;
+using std::ranges::iter_swap;
 
-}
-
+}  // close namespace ranges
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
 
 // ============================================================================
 //                      INLINE FUNCTION DEFINITIONS
 // ============================================================================
 
-#if defined(BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR)
+#ifdef BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR
 
                         // ---------------------------
                         // class bsl::reverse_iterator
@@ -951,7 +1058,7 @@ inline
 bool operator==(const reverse_iterator<ITER1>& lhs,
                 const reverse_iterator<ITER2>& rhs)
 {
-    // this is to compare reverse_iterator with const_reverse_iterator
+    // this overload compares a reverse_iterator with a const_reverse_iterator
 
     return lhs.base() == rhs.base();
 }
@@ -969,7 +1076,7 @@ inline
 bool operator!=(const reverse_iterator<ITER1>& lhs,
                 const reverse_iterator<ITER2>& rhs)
 {
-    // this is to compare reverse_iterator with const_reverse_iterator
+    // this overload compares a reverse_iterator with a const_reverse_iterator
 
     return ! (lhs == rhs);
 }
@@ -987,7 +1094,7 @@ inline
 bool operator<(const reverse_iterator<ITER1>& lhs,
                const reverse_iterator<ITER2>& rhs)
 {
-    // this is to compare reverse_iterator with const_reverse_iterator
+    // this overload compares a reverse_iterator with a const_reverse_iterator
 
     return rhs.base() < lhs.base();
 }
@@ -1065,23 +1172,22 @@ operator+(DIFF_TYPE n, const reverse_iterator<ITER>& rhs)
     return rhs.operator+(n);
 }
 
-#endif
+#endif  // BSLSTL_ITERATOR_IMPLEMENT_CPP11_REVERSE_ITERATOR
 
-                                    // ====
-                                    // data
-                                    // ====
+                              // ====
+                              // data
+                              // ====
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
 using std::data;
-#else
-
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
 template <class CONTAINER>
 inline BSLS_KEYWORD_CONSTEXPR
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 auto data(CONTAINER& container) -> decltype(container.data())
-#else
+#else   // BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 typename CONTAINER::value_type *data(CONTAINER& container)
-#endif
+#endif  // else-of BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
     // Return an pointer providing modifiable access to the first valid
     // element of the specified 'container'.  The 'CONTAINER' template
     // parameter type must provide a 'data' accessor.
@@ -1094,16 +1200,16 @@ template <class CONTAINER>
 inline BSLS_KEYWORD_CONSTEXPR
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 auto data(const CONTAINER& container) -> decltype(container.data())
-#else
+#else   // BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 typename CONTAINER::value_type const *data(const CONTAINER& container)
-#endif
+#endif  // else-of BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
     // Return a pointer providing non-modifiable access to the first valid
     // element of the specified 'container'.  The 'CONTAINER' template
     // parameter type must provide a 'data' accessor.
 {
     return container.data();
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
+#endif  // else-of BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
 
                                   // =====
                                   // empty
@@ -1111,7 +1217,7 @@ typename CONTAINER::value_type const *data(const CONTAINER& container)
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
 using std::empty;
-#else
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
 # ifdef BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 template <class CONTAINER>
 inline
@@ -1122,7 +1228,7 @@ BSLS_KEYWORD_CONSTEXPR auto empty(const CONTAINER& container)->
 {
     return container.empty();
 }
-# else
+# else   // BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 template <class CONTAINER>
 inline
 BSLS_KEYWORD_CONSTEXPR bool empty(const CONTAINER& container)
@@ -1131,7 +1237,7 @@ BSLS_KEYWORD_CONSTEXPR bool empty(const CONTAINER& container)
 {
     return container.empty();
 }
-# endif // BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
+# endif // else-of BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 
 template <class TYPE, size_t DIMENSION>
 inline
@@ -1152,8 +1258,7 @@ BSLS_KEYWORD_CONSTEXPR bool empty(std::initializer_list<TYPE> initializerList)
     return 0 == initializerList.size();
 }
 #endif  // BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
-
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
+#endif  // else-of BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS
 
                                   // ====
                                   // size
@@ -1162,7 +1267,7 @@ BSLS_KEYWORD_CONSTEXPR bool empty(std::initializer_list<TYPE> initializerList)
 // If the underlying standard library implements 'std::size', then we need to
 // use it.  Consider the following code:
 //..
-//  bsl::set<int, std::less<int>> s;
+//  bsl::set<int, std::less<int> > s;
 //  if (size(s) == 0) { .. }
 //..
 // Because the set 's' has hooks into both namespace 'bsl' and 'std', an
@@ -1170,37 +1275,12 @@ BSLS_KEYWORD_CONSTEXPR bool empty(std::initializer_list<TYPE> initializerList)
 // provides 'std::size' in all language modes.
 #if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY) ||               \
                                                 defined(BSLS_PLATFORM_CMP_MSVC)
-
+// The implementation has 'std::ssize()' defined, we can use it.
 using std::size;
+#else  // end - we can just use 'std::size()'
+// The implementation does not define 'std::size()', we need to implement it.
 
-#else
-
-// we need both 'decltype' and trailing return types here
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE) &&                        \
-                             201103L <= BSLS_COMPILERFEATURES_SUPPORT_CPLUSPLUS
-
-template <class CONTAINER>
-inline
-BSLS_KEYWORD_CONSTEXPR auto size(const CONTAINER& container) ->
-                                                     decltype(container.size())
-    // Return the size of the specified 'container'.  The 'CONTAINER' template
-    // parameter type must provide a 'size' accessor.
-{
-    return container.size();
-}
-
-# else
-
-template <class CONTAINER>
-inline
-BSLS_KEYWORD_CONSTEXPR size_t size(const CONTAINER& container)
-    // Return the size of the specified 'container'.  The 'CONTAINER' template
-    // parameter type must provide a 'size' accessor.
-{
-    return container.size();
-}
-
-# endif
+                    // 'bsl::size' Overload for Arrays
 
 template <class TYPE, size_t DIMENSION>
 inline
@@ -1211,7 +1291,38 @@ BSLS_KEYWORD_CONSTEXPR size_t size(
     return DIMENSION;
 }
 
-#endif
+                   // 'bsl::size' Overload for Containers
+
+// For containers we have two possible implementations for 'bsl::size()',
+// depending on the level of compiler support we can use:
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE) &&                        \
+                             201103L <= BSLS_COMPILERFEATURES_SUPPORT_CPLUSPLUS
+// We have both 'decltype' and trailing return types, we can deduce the return
+// type of the 'size()' method of containers.
+
+template <class CONTAINER>
+inline
+BSLS_KEYWORD_CONSTEXPR auto size(const CONTAINER& container) ->
+                                                     decltype(container.size())
+    // Return the size of the specified 'container'.  The 'CONTAINER' template
+    // parameter type must provide a 'size' accessor.
+{
+    return container.size();
+}
+#else  // end - 'bsl::size()' implementation that deduces the return type
+// The language features to deduce the return type of the 'size()' method of
+// containers are not present, we fall back to using 'bsl::size_t'.
+
+template <class CONTAINER>
+inline
+BSLS_KEYWORD_CONSTEXPR size_t size(const CONTAINER& container)
+    // Return the size of the specified 'container'.  The 'CONTAINER' template
+    // parameter type must provide a 'size' accessor.
+{
+    return container.size();
+}
+#endif  // end - cannot deduce return type, return 'size_t' from 'bsl::size()'
+#endif  // end - have to implement 'bsl::size()' ourselves
 
                                     // =====
                                     // ssize
@@ -1220,21 +1331,37 @@ BSLS_KEYWORD_CONSTEXPR size_t size(
 // If the underlying standard library implements 'std::ssize', then we need to
 // use it.  Consider the following code:
 //..
-//  bsl::set<int, std::less<int>> s;
+//  bsl::set<int, std::less<int> > s;
 //  if (ssize(s) == 0) { .. }
 //..
 // Because the set 's' has hooks into both namespace 'bsl' and 'std', an
 // unqualified call to 'ssize' will find both, and fail to compile.
 #if 201703L < BSLS_COMPILERFEATURES_CPLUSPLUS &&                              \
                          defined(__cpp_lib_ssize) && __cpp_lib_ssize >= 201902L
-
+// The implementation has 'std::ssize()' defined, we can use it.
 using std::ssize;
+#else   // end - we can just use 'std::ssize()'
+// The implementation does not define 'std::ssize()', we need to implement it.
 
-#else
+                    // 'bsl::ssize' Overload for Arrays
 
-// we need both 'decltype' and trailing return types here
+template <class TYPE, std::ptrdiff_t DIMENSION>
+inline
+BSLS_KEYWORD_CONSTEXPR std::ptrdiff_t ssize(
+                               const TYPE (&)[DIMENSION]) BSLS_KEYWORD_NOEXCEPT
+    // Return the dimension of the specified array argument.
+{
+    return DIMENSION;
+}
+
+                   // 'bsl::ssize' Overload for Containers
+
+// For containers we have two possible implementations for 'bsl::ssize()',
+// depending on the level of compiler support we can use:
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE) &&                        \
                              201103L <= BSLS_COMPILERFEATURES_SUPPORT_CPLUSPLUS
+// We have both 'decltype' and trailing return types, we can deduce the return
+// type of the 'size()' method of containers, and pick its signed counterpart.
 
 template <class CONTAINER>
 inline
@@ -1247,8 +1374,9 @@ BSLS_KEYWORD_CONSTEXPR auto ssize(const CONTAINER& container) ->
 {
     return container.size();
 }
-
-# else
+#else   // end - 'bsl::ssize()' implementation that deduces the return type
+// The language features to deduce the return type of the 'size()' method of
+// containers are not present, we fall back to using 'bsl::ptrdiff_t'.
 
 template <class CONTAINER>
 inline
@@ -1258,21 +1386,10 @@ BSLS_KEYWORD_CONSTEXPR std::ptrdiff_t ssize(const CONTAINER& container)
 {
     return container.size();
 }
+# endif  // end - cannot deduce return type, return 'ptrdiff_t' from 'ssize()'
+#endif  // end - have to implement 'bsl::ssize()' ourselves
 
-# endif
-
-template <class TYPE, std::ptrdiff_t DIMENSION>
-inline
-BSLS_KEYWORD_CONSTEXPR std::ptrdiff_t ssize(
-                               const TYPE (&)[DIMENSION]) BSLS_KEYWORD_NOEXCEPT
-    // Return the dimension of the specified array argument.
-{
-    return DIMENSION;
-}
-
-#endif
-
-#if defined(BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES)
+#ifdef BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 
                          // --------------------------
                          // struct IteratorDistanceImp
@@ -1327,8 +1444,7 @@ distance(ITER start, ITER finish)
     IteratorDistanceImp::getDistance(&ret, start, finish, tag());
     return ret;
 }
-
-#endif  // BSLS_PLATFORM_CMP_SUN && !BDE_BUILD_TARGET_STLPORT
+#endif  // BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
 template <class T>
@@ -1386,8 +1502,7 @@ const T *end(const T (&array)[N])
 {
     return array + N;
 }
-
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
+#endif  // !BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
 template <class T>
@@ -1504,7 +1619,7 @@ reverse_iterator<const T *> crend(const T (&array)[N])
 {
     return reverse_iterator<const T *>(array);
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
+#endif  // !BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
 
 }  // close namespace bsl
 

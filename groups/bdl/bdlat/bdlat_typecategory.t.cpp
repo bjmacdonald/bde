@@ -23,6 +23,11 @@
 
 #include <bdlb_nullablevalue.h>
 
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
+
 using namespace BloombergLP;
 using namespace bsl;
 
@@ -91,8 +96,7 @@ struct MyArrayType {
 namespace BloombergLP {
 namespace bdlat_ArrayFunctions {
     template <>
-    struct IsArray<MyArrayType> {
-        enum { VALUE = 1 };
+    struct IsArray<MyArrayType> : public bsl::true_type {
     };
 }  // close namespace bdlat_ArrayFunctions
 }  // close enterprise namespace
@@ -105,8 +109,7 @@ struct MyChoiceType {
 namespace BloombergLP {
 namespace bdlat_ChoiceFunctions {
     template <>
-    struct IsChoice<MyChoiceType> {
-        enum { VALUE = 1 };
+    struct IsChoice<MyChoiceType> : public bsl::true_type {
     };
 }  // close namespace bdlat_ChoiceFunctions
 }  // close enterprise namespace
@@ -119,8 +122,7 @@ struct MyCustomizedType {
 namespace BloombergLP {
 namespace bdlat_CustomizedTypeFunctions {
     template <>
-    struct IsCustomizedType<MyCustomizedType> {
-        enum { VALUE = 1 };
+    struct IsCustomizedType<MyCustomizedType> : public bsl::true_type {
     };
 }  // close namespace bdlat_CustomizedTypeFunctions
 }  // close enterprise namespace
@@ -133,8 +135,7 @@ struct MyEnumerationType {
 namespace BloombergLP {
 namespace bdlat_EnumFunctions {
     template <>
-    struct IsEnumeration<MyEnumerationType> {
-        enum { VALUE = 1 };
+    struct IsEnumeration<MyEnumerationType> : public bsl::true_type {
     };
 }  // close namespace bdlat_EnumFunctions
 }  // close enterprise namespace
@@ -147,8 +148,7 @@ struct MyNullableValueType {
 namespace BloombergLP {
 namespace bdlat_NullableValueFunctions {
     template <>
-    struct IsNullableValue<MyNullableValueType> {
-        enum { VALUE = 1 };
+    struct IsNullableValue<MyNullableValueType> : public bsl::true_type {
     };
 }  // close namespace bdlat_NullableValueFunctions
 }  // close enterprise namespace
@@ -161,8 +161,7 @@ struct MySequenceType {
 namespace BloombergLP {
 namespace bdlat_SequenceFunctions {
     template <>
-    struct IsSequence<MySequenceType> {
-        enum { VALUE = 1 };
+    struct IsSequence<MySequenceType> : public bsl::true_type {
     };
 }  // close namespace bdlat_SequenceFunctions
 }  // close enterprise namespace
@@ -187,8 +186,8 @@ struct MyDeclaredDynamicType {
 
 namespace BloombergLP {
     template <>
-    struct bdlat_TypeCategoryDeclareDynamic<MyDeclaredDynamicType> {
-        enum { VALUE = 1 };
+    struct bdlat_TypeCategoryDeclareDynamic<MyDeclaredDynamicType>
+    : public bsl::true_type {
     };
 }  // close enterprise namespace
 
@@ -252,15 +251,13 @@ namespace BloombergLP {
 
 namespace bdlat_SequenceFunctions {
     template <>
-    struct IsSequence<MyAutoDetectDynamicType> {
-        enum { VALUE = 1 };
+    struct IsSequence<MyAutoDetectDynamicType> : public bsl::true_type {
     };
 }  // close namespace bdlat_SequenceFunctions
 
 namespace bdlat_NullableValueFunctions {
     template <>
-    struct IsNullableValue<MyAutoDetectDynamicType> {
-        enum { VALUE = 1 };
+    struct IsNullableValue<MyAutoDetectDynamicType> : public bsl::true_type {
     };
 }  // close namespace bdlat_NullableValueFunctions
 }  // close enterprise namespace
@@ -754,8 +751,8 @@ struct MyAccessor {
     namespace BloombergLP {
 
         template <>
-        struct bdlat_TypeCategoryDeclareDynamic<mine::MyDynamicType> {
-            enum { VALUE = 1 };
+        struct bdlat_TypeCategoryDeclareDynamic<mine::MyDynamicType>
+        : public bsl::true_type {
         };
 
     }  // close enterprise namespace

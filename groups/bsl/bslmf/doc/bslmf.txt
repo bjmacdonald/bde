@@ -52,7 +52,7 @@
 
 /Hierarchical Synopsis
 /---------------------
- The 'bslmf' package currently has 89 components having 21 levels of physical
+ The 'bslmf' package currently has 90 components having 21 levels of physical
  dependency.  The list below shows the hierarchical ordering of the components.
  The order of components within each level is not architecturally significant,
  just alphabetical.
@@ -72,24 +72,24 @@
       bslmf_iscopyconstructible
       bslmf_isnothrowmoveconstructible
 
-  16. bslmf_haspointersemantics
+  16. bslmf_isbitwisecopyable
+
+  15. bslmf_haspointersemantics
       bslmf_isbitwiseequalitycomparable
       bslmf_istriviallycopyable
       bslmf_istriviallydefaultconstructible
       bslmf_matcharithmetictype
       bslmf_usesallocatorargt
 
-  15. bslmf_detectnestedtrait
+  14. bslmf_detectnestedtrait
       bslmf_isenum
 
-  14. bslmf_isaccessiblebaseof
+  13. bslmf_isaccessiblebaseof
       bslmf_isconvertibletoany
       bslmf_nestedtraitdeclaration
       bslmf_usesallocator
 
-  13. bslmf_isconvertible
-
-  12. bslmf_enableif
+  12. bslmf_isconvertible
 
   11. bslmf_isfundamental
 
@@ -125,6 +125,7 @@
       bslmf_if                                           !DEPRECATED!
       bslmf_makeintegersequence
       bslmf_matchanytype
+      bslmf_metaint                                      !DEPRECATED!
       bslmf_removecv
       bslmf_selecttrait
 
@@ -132,11 +133,11 @@
       bslmf_addrvaluereference
       bslmf_arraytopointer
       bslmf_conditional
+      bslmf_enableif
       bslmf_integersequence
       bslmf_isconst
       bslmf_isreference
       bslmf_isvolatile
-      bslmf_metaint                                      !DEPRECATED!
       bslmf_nthparameter
       bslmf_removeconst
       bslmf_removeextent
@@ -144,10 +145,12 @@
       bslmf_removevolatile
       bslmf_resulttype
       bslmf_switch
+      bslmf_tag
       bslmf_typeidentity
       bslmf_typelist
 
-   3. bslmf_isarray
+   3. bslmf_assert
+      bslmf_isarray
       bslmf_islvaluereference
       bslmf_ispair
       bslmf_isreferencewrapper
@@ -155,10 +158,8 @@
       bslmf_issame
       bslmf_istransparentpredicate
       bslmf_nil
-      bslmf_tag
 
    2. bslmf_allocatorargt
-      bslmf_assert
       bslmf_booleantestable
       bslmf_integralconstant
       bslmf_voidtype
@@ -253,6 +254,9 @@
 :
 : 'bslmf_isarray':
 :      Provide a compile-time check for array types.
+:
+: 'bslmf_isbitwisecopyable':
+:      Provide a meta-function for determining bitwise copyable types.
 :
 : 'bslmf_isbitwiseequalitycomparable':
 :      Provide a type trait for bitwise equality.

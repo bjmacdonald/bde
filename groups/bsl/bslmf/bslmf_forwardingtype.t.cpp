@@ -1,4 +1,12 @@
 // bslmf_forwardingtype.t.cpp                                         -*-C++-*-
+
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+#pragma warning(disable:4180)
+#endif
+
 #include <bslmf_forwardingtype.h>
 
 #include <bslmf_addconst.h>
@@ -10,7 +18,6 @@
 
 #include <bsls_bsltestutil.h>
 #include <bsls_compilerfeatures.h>
-#include <bsls_platform.h>
 
 #include <utility>     // 'std::move' for C++11
 
@@ -23,6 +30,11 @@ using namespace BloombergLP;
 
 #if defined(BSLS_PLATFORM_CMP_MSVC)
 #pragma warning(disable: 4521) // test classes offer multiple copy constructors
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, refarray0)
+#pragma error_messages(off, SEC_UNINITIALIZED_MEM_READ)
 #endif
 
 // Suppress bde_verify messages about all-uppercase type names.  Test drivers

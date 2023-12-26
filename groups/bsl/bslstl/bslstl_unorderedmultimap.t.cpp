@@ -569,6 +569,10 @@ class StatefulStlAllocator : public bsltf::StdTestAllocator<VALUE>
         // Alias for the base class.
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(StatefulStlAllocator,
+                                   bslma::IsStdAllocator);
+
     template <class BDE_OTHER_TYPE>
     struct rebind {
         // This nested 'struct' template, parameterized by some
@@ -915,7 +919,7 @@ class TestNonConstHashFunctor {
         return TstFacility::getIdentifier(obj);
     }
 
-    bool operator==(const TestNonConstHashFunctor&)
+    bool operator==(const TestNonConstHashFunctor&) const
     {
         return true;
     }
@@ -3009,6 +3013,14 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase6()
               printf("\nTesting signatures.\n");
     {
         typedef bool (*OP)(const Obj&, const Obj&);
+
+        // Due to the internal compiler bug the following line of code fails to
+        // be compiled by the MSVC (version 19.30) with the following error:
+        //..
+        //  error C3861: '==': identifier not found
+        //..
+        // The issue is reproduced with C++20 flag. This bug has been fixed in
+        // compiler version 19.31.  See {DRQS 172604250}.
 
         OP op = bsl::operator==;
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON

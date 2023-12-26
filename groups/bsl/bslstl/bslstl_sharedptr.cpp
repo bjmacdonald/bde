@@ -5,7 +5,6 @@
 BSLS_IDENT("$Id$ $CSID$")
 
 #include <bslstl_badweakptr.h>
-#include <bslstl_deque.h>              // for testing only
 #include <bslstl_list.h>               // for testing only
 #include <bslstl_map.h>                // for testing only
 #include <bslstl_string.h>             // for testing only
@@ -47,6 +46,13 @@ SharedPtrUtil::createInplaceUninitializedBuffer(
     };
 
     size_t repSize = (sizeof(Rep) + bufferSize - 1) & k_ALIGNMENT_MASK;
+
+    // Implementation Note
+    //-------------------
+    // Since 'MaxAlignedType' is a POD of some primitive type, its CTOR does
+    // not throw, and neither does the CTOR of 'Rep' below.  Thus, there is no
+    // need for a proctor to recover the 'repSize' allocation below in event of
+    // a thrown exception.
 
     Rep *rep = new (basicAllocator->allocate(repSize)) Rep(basicAllocator);
 

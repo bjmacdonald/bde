@@ -11,6 +11,8 @@
 
 #include <balber_berconstants.h>
 
+#include <bsla_maybeunused.h>
+
 #include <bslalg_typetraits.h>
 
 #include <bdlat_attributeinfo.h>
@@ -49,6 +51,8 @@
 
 #include <bsla_maybeunused.h>
 
+#include <bsls_platform.h>
+
 #include <bsl_algorithm.h>
 #include <bsl_cctype.h>
 #include <bsl_cfloat.h>
@@ -61,6 +65,11 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, arrowrtn)
+#endif
+
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -3644,7 +3653,7 @@ void Md5StateUtil::digest(Md5Fingerprint *fingerprint, const Md5Block& block)
     fingerprint->setTheUintAt(3, d + dd);
 }
 
-Md5Fingerprint Md5StateUtil::digest(const Md5State& state)
+BSLA_MAYBE_UNUSED Md5Fingerprint Md5StateUtil::digest(const Md5State& state)
 {
     return digest(state.fingerprint(), state.block());
 }
@@ -4526,7 +4535,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
         switch (RandomValueUtil::generateInInterval<int>(
             randomValueLoader, 0, k_NUM_SUPPORTED_TYPES - 1)) {
           case e_BOOL: {
-            bool value;
+            bool value = false;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4540,7 +4549,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_CHAR: {
-            char value;
+            char value = 0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4554,7 +4563,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_SIGNED_CHAR: {
-            signed char value;
+            signed char value = 0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4568,7 +4577,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_UNSIGNED_CHAR: {
-            unsigned char value;
+            unsigned char value = 0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4582,7 +4591,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_INT: {
-            int value;
+            int value = 0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4596,7 +4605,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_INT64: {
-            bsls::Types::Int64 value;
+            bsls::Types::Int64 value = 0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4610,7 +4619,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_UINT: {
-            unsigned int value;
+            unsigned int value = 0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4624,7 +4633,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_UINT64: {
-            bsls::Types::Uint64 value;
+            bsls::Types::Uint64 value = 0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4638,7 +4647,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_FLOAT: {
-            float value;
+            float value = 0.0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4663,7 +4672,7 @@ void checksumAppend(HASHALG& hashAlg, const GetValueFingerprint& object)
             checksumAppend(hashAlg, numBytes);
           } break;
           case e_DOUBLE: {
-            double value;
+            double value = 0.0;
             int numBytes = 0;
             ImplUtil::getRandomValue(
                 &value, &numBytes, randomValueLoader, encoderOptions);
@@ -4918,7 +4927,10 @@ void GetValueFingerprint_ImplUtil::getRandomValue(
     RandomValueUtil::load(&originalValue, loader);
 
     bdlsb::MemOutStreamBuf outStreamBuf;
-    int rc = Util::putValue(&outStreamBuf, originalValue, &options);
+
+    BSLA_MAYBE_UNUSED int rc = Util::putValue(&outStreamBuf,
+                                              originalValue,
+                                              &options);
     BSLS_ASSERT(0 == rc);
 
     bdlsb::FixedMemInStreamBuf inStreamBuf(outStreamBuf.data(),
@@ -5960,7 +5972,8 @@ int main(int argc, char *argv[])
                         continue;  // CONTINUE
                   } break;
                   case TXT: {
-                    bsl::strncpy(buffer, EXP, sizeof(buffer));
+                    bsl::strncpy(buffer, EXP, sizeof(buffer) - 1);
+                    buffer[sizeof(buffer) - 1] = '\0';
                     bufferSize = static_cast<int>(bsl::strlen(buffer));
                   } break;
                 }
@@ -6266,7 +6279,8 @@ int main(int argc, char *argv[])
                         continue;  // CONTINUE
                   } break;
                   case TXT: {
-                    bsl::strncpy(buffer, EXP, sizeof(buffer));
+                    bsl::strncpy(buffer, EXP, sizeof(buffer) - 1);
+                    buffer[sizeof(buffer) - 1] = '\0';
                     bufferSize = static_cast<int>(bsl::strlen(buffer));
                   } break;
                 }
@@ -6768,7 +6782,8 @@ int main(int argc, char *argv[])
                         continue;  // CONTINUE
                   } break;
                   case TXT: {
-                    bsl::strncpy(buffer, EXP, sizeof(buffer));
+                    bsl::strncpy(buffer, EXP, sizeof(buffer) - 1);
+                    buffer[sizeof(buffer) - 1] = '\0';
                     bufferSize = static_cast<int>(bsl::strlen(buffer));
                   } break;
                 }
@@ -7386,7 +7401,8 @@ int main(int argc, char *argv[])
                         continue;  // CONTINUE
                   } break;
                   case TXT: {
-                    bsl::strncpy(buffer, EXP, sizeof(buffer));
+                    bsl::strncpy(buffer, EXP, sizeof(buffer) - 1);
+                    buffer[sizeof(buffer) - 1] = '\0';
                     bufferSize = static_cast<int>(bsl::strlen(buffer));
                   } break;
                 }

@@ -14,6 +14,7 @@
 
 #include <bsls_asserttest.h>
 #include <bsls_bsltestutil.h>
+#include <bsls_platform.h>
 
 #include <limits.h>
 #include <stdio.h>
@@ -35,6 +36,10 @@
 
 #if defined(DELETE)
 # undef DELETE  // Awkward microsoft macro, that we would rather live without
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+#pragma warning(disable:4312)
 #endif
 
 using namespace BloombergLP;
@@ -130,7 +135,7 @@ typedef HashTableImpUtil          Obj;
 typedef BidirectionalLink         Link;
 typedef BidirectionalLinkListUtil Util;
 
-template <int N>
+template <size_t N>
 struct ArrayLength_Imp {
     char d_array[N];
 };
@@ -916,7 +921,6 @@ int main(int argc, char *argv[])
 // types:
 
         typedef bslalg::HashTableImpUtil       Obj;
-        typedef bslalg::BidirectionalNode<int> IntNode;
         typedef TestSetKeyPolicy<int>          TestPolicy;
         typedef NodeUtil<int>                  IntNodeUtil;
 

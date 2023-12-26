@@ -195,7 +195,7 @@ struct AssertLocation {
         NONE,
         FIRST_BLOCK_TOP_LEVEL,
         FIRST_BLOCK_SECOND_LEVEL,
-        SECOND_BLOCK,
+        SECOND_BLOCK
     };
 };
 
@@ -502,7 +502,7 @@ int main(int argc, char *argv[])
             // in the second level.
             uint8_t myFuzzData[32];
             myFuzzData[0] = 1;  // invoke case 1 of 'LLVMFuzzerTestOneInput'
-            bsls::Types::Int64 seconds     = 0x7FFFFFFFFFFFFFFF;
+            bsls::Types::Int64 seconds     = 0x7FFFFFFFFFFFFFFFLL;
             int                nanoseconds = 2e9;
             memcpy(myFuzzData + 1, &seconds, sizeof(bsls::Types::Int64));
             memcpy(myFuzzData + 1 + sizeof(bsls::Types::Int64),

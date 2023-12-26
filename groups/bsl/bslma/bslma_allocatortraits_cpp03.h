@@ -21,7 +21,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Dec 15 11:14:32 2022
+// Generated on Fri Aug 11 21:20:13 2023
 // Command line: sim_cpp11_features.pl bslma_allocatortraits.h
 
 #ifdef COMPILING_BSLMA_ALLOCATORTRAITS_H
@@ -460,9 +460,9 @@ struct AllocatorTraits_RebindFront {
 };
 
 template <template <class, class...> class ALLOC,
-	  class T,
-	  class ...ARGS,
-	  class U>
+          class T,
+          class ...ARGS,
+          class U>
 struct AllocatorTraits_RebindFront<ALLOC<T, ARGS...>, U> {
     using type = ALLOC<U, ARGS...>;
 };
@@ -474,8 +474,8 @@ struct AllocatorTraits_RebindFront {
 };
 
 template <template <class> class ALLOC,
-	  class T,
-	  class U>
+          class T,
+          class U>
 struct AllocatorTraits_RebindFront<ALLOC<T>, U> {
     typedef ALLOC<U> type;
 };
@@ -560,7 +560,7 @@ struct allocator_traits {
     // for accessing nested types within, and operations on, any
     // standard-conforming allocator.  A specialization of this class template
     // for 'bsl::allocator' provides support for Bloomberg's 'bslma' allocator
-    // model (see the 'bslma_stdallocator' component for more details).  In
+    // model (see the 'bslma_bslallocator' component for more details).  In
     // C++11 compilation environments, the 'construct' methods forward to the
     // allocator's 'construct' method if such a method matching the (variable
     // number of) specified constructor arguments exists; otherwise, the
@@ -659,23 +659,23 @@ struct allocator_traits {
 
     typedef typename
          BloombergLP::bslma::AllocatorTraits_PointerType<ALLOCATOR_TYPE>::type
-	                                              pointer;
+                                                      pointer;
     typedef typename
     BloombergLP::bslma::AllocatorTraits_ConstPointerType<ALLOCATOR_TYPE>::type
-	                                              const_pointer;
+                                                      const_pointer;
     typedef typename
      BloombergLP::bslma::AllocatorTraits_VoidPointerType<ALLOCATOR_TYPE>::type
-	                                              void_pointer;
+                                                      void_pointer;
     typedef typename BloombergLP::bslma::
                     AllocatorTraits_ConstVoidPointerType<ALLOCATOR_TYPE>::type
-	                                              const_void_pointer;
+                                                      const_void_pointer;
 
     typedef typename
       BloombergLP::bslma::AllocatorTraits_DifferenceType<ALLOCATOR_TYPE>::type
-	                                              difference_type;
+                                                      difference_type;
     typedef typename
-	    BloombergLP::bslma::AllocatorTraits_SizeType<ALLOCATOR_TYPE>::type
-	                                              size_type;
+            BloombergLP::bslma::AllocatorTraits_SizeType<ALLOCATOR_TYPE>::type
+                                                      size_type;
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
     template <class ELEMENT_TYPE>
@@ -700,7 +700,7 @@ struct allocator_traits {
 
         typedef typename BloombergLP::bslma::
                 AllocatorTraits_RebindAlloc<ALLOCATOR_TYPE, ELEMENT_TYPE>::type
-	                                                        allocator_type;
+                                                                allocator_type;
 
         template <typename ARG>
         rebind_alloc(const ARG& allocatorArg)
@@ -1074,7 +1074,7 @@ struct allocator_traits {
         // method enforces the default policy of propagating the allocator on
         // copy construction, as is standard practice for standard allocators
         // (i.e., returns 'rhs').  Note that the specialization of this class
-        // template for 'bsl::allocator' (in the 'bslma_stdallocator'
+        // template for 'bsl::allocator' (in the 'bslma_bslallocator'
         // component) provides the alternate default behavior of *not*
         // propagating the allocator on copy construction (i.e., returning a
         // default-constructed allocator object).
@@ -1988,7 +1988,7 @@ allocator_traits<ALLOCATOR_TYPE>::max_size(
 {
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE)
     return BloombergLP::bslma::
-	 AllocatorTraits_CallMaxSize<ALLOCATOR_TYPE>::max_size(basicAllocator);
+         AllocatorTraits_CallMaxSize<ALLOCATOR_TYPE>::max_size(basicAllocator);
 #else
     // Cannot sniff out whether 'basicAllocator.max_size()' is valid in C++03,
     // but for now require that allocators have a 'max_size' method and just
@@ -2015,7 +2015,7 @@ allocator_traits<ALLOCATOR_TYPE>::select_on_container_copy_construction(
 #endif // ! defined(INCLUDED_BSLMA_ALLOCATORTRAITS_CPP03)
 
 // ----------------------------------------------------------------------------
-// Copyright 2022 Bloomberg Finance L.P.
+// Copyright 2023 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

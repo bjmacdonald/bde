@@ -21,8 +21,8 @@ BSLS_IDENT("$Id: $")
 // moveable types, and for a very special purpose as shown in the usage
 // example.
 //
-// Overview of the operation of 'AutoArrayMoveDestructor':
-// ----------------------------------------------------------------------------
+///Overview of the operation of 'AutoArrayMoveDestructor'
+///------------------------------------------------------
 // Suppose we want to double the length of an array by prepending copies a
 // 'value' at the start of the array.  Note that we assume there is ample
 // uninitialized memory after the end of the initial array for these new
@@ -342,7 +342,7 @@ BSLS_IDENT("$Id: $")
 
 #include <bslalg_arraydestructionprimitives.h>
 
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 
 #include <bslmf_assert.h>
 #include <bslmf_isbitwisemoveable.h>

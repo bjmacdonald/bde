@@ -136,8 +136,17 @@ BSLS_IDENT("$Id: $")
 //:     settings the standard macro does not get assigned the correct value.
 //:     The values generally set (as defined in the C++ Standard) are the year
 //:     and month when the Standard was completed, and the value of this macro
-//:     should be compared with the appropriate constants -- '199711L',
-//:     '201103L', '201402L', '201703L', '202002L', etc.
+//:     should be compared with the appropriate constants:
+//:     o 199711L -- before C++11
+//:     o 201103L -- C++11
+//:     o 201402L -- C++14
+//:     o 201703L -- C++17
+//:     o 202002L -- C++20
+//:     o 202302L -- C++23
+//:     Note that compilers may report "in-between" values to indicate partial
+//:     support of a standard, so 'BSLS_COMPILERFEATURES_CPLUSPLUS > 201402L'
+//:     normally means that *some* C++17 features are available.  Since those
+//:     values are not standardized their meaning varies.
 //:
 //: 'BSLS_COMPILERFEATURES_FORWARD_REF(T)':
 //:     This macro provides a portable way to declare a function template
@@ -639,9 +648,9 @@ BSLS_IDENT("$Id: $")
 // providing the basic library facilities necessary to make use of coroutines.
 //
 //: o Compiler support (in C++20 mode):
-//:   o gcc 11
+//:   o gcc 11.1
 //:   o clang 14
-//:   o Visual Studio 2019 version 16.8 (_MSC_VER 1928)
+//:   o Visual Studio 2019 version 16.11 (_MSC_VER 1929)
 //
 ///'BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE'
 /// - - - - - - - - - - - - - - - - - - - -
@@ -877,7 +886,7 @@ BSLS_IDENT("$Id: $")
 //: o Compiler support:
 //:   o GCC 10.1
 //:   o Clang 11.0
-//:   o Visual Studio 2019 version 16.0 (_MSC_VER 1920)
+//:   o Visual Studio 2019 version 16.11 (_MSC_VER 1929)
 //
 ///'BSLS_COMPILERFEATURES_SUPPORT_VARIADIC_TEMPLATES'
 /// - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1006,6 +1015,43 @@ BSLS_IDENT("$Id: $")
     #include <version>
   #endif
 #endif
+
+// ============================================================================
+//         VERIFY COMPILER VERSION SUPPORT FOR REQUESTED ISO LANGUAGE
+// ============================================================================
+
+#ifndef BDE_BUILD_SKIP_VERSION_CHECKS
+
+  // Some level of C++20 is enabled, let's verify the compiler is supported
+  #if __cplusplus > 201703L || (defined(_MSVC_LANG) && _MSVC_LANG > 201703L)
+    #if defined(BSLS_PLATFORM_CMP_GNU) && BSLS_PLATFORM_CMP_VERSION < 110100
+      static_assert(0, "At least version 11.1 is required for C++20 support "
+          "in GNU CC g++.  This check can be disabled by defining the "
+          "'BDE_BUILD_SKIP_VERSION_CHECKS' build flag.");
+    #endif  // Too old gcc for C++20
+
+    #if defined(BSLS_PLATFORM_CMP_CLANG) && BSLS_PLATFORM_CMP_VERSION < 150000
+      static_assert(0, "At least version 15.0 is required for C++20 support "
+          "in LLVM clang.  This check can be disabled by defining the "
+          "'BDE_BUILD_SKIP_VERSION_CHECKS' build flag.");
+    #endif  // Too old clang for C++20
+
+    #if defined(BSLS_PLATFORM_CMP_MSVC) && BSLS_PLATFORM_CMP_VERSION < 1930
+      static_assert(0, "At least version 19.30 is required for C++20 support "
+          "in MS Visual C++ (MS Visual Studio 2022).  This check can be "
+          "disabled by defining build flag 'BDE_BUILD_SKIP_VERSION_CHECKS'.");
+    #endif  // Too old MSVC for C++20
+
+    #if defined(BSLS_PLATFORM_CMP_IBM) || defined(BSLS_PLATFORM_CMP_SUN)
+      #error "This compiler does not support C++20.  This check can be "      \
+             "disabled by defining the 'BDE_BUILD_SKIP_VERSION_CHECKS' build "\
+             "flag.  See also "                                               \
+"http://bloomberg.github.io/bde/library_information/supported_platforms.html "\
+             "for all compiler and other platform requirements."
+      BSLS_PLATFORM_COMPILER_ERROR;
+    #endif  // No C++20 on big iron
+  #endif  // C++20 features requested
+#endif  // ifndef BDE_BUILD_SKIP_VERSION_CHECKS
 
 // ============================================================================
 //                      UNIVERSAL MACRO DEFINITIONS
@@ -1621,9 +1667,9 @@ BSLS_IDENT("$Id: $")
   // Not yet enabling C++17 support, but pro-active test drivers may want to
   // add coverage.
   //
-  // #define BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT_IN_FNC_TYPE
-  // #define BSLS_COMPILERFEATURES_SUPPORT_INLINE_VARIABLES
   // #define BSLS_COMPILERFEATURES_SUPPORT_HAS_INCLUDE
+  // #define BSLS_COMPILERFEATURES_SUPPORT_INLINE_VARIABLES
+  // #define BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT_IN_FNC_TYPE
 
   // IBM Visual Age Suite does not yet follow WG14 N2322 Recommended practice
   // #define BSLS_COMPILERFEATURES_PP_LINE_IS_ON_FIRST
@@ -1648,6 +1694,7 @@ BSLS_IDENT("$Id: $")
     // Oracle Developer Studio 12.4 (CC version 5.13) or newer
     #if BSLS_PLATFORM_CMP_VERSION >= 0x5130
       #define BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES                   1
+      #define BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_NORETURN                1
       #define BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE                          1
       #define BSLS_COMPILERFEATURES_SUPPORT_DEFAULTED_FUNCTIONS               1
       #define BSLS_COMPILERFEATURES_SUPPORT_DELETED_FUNCTIONS                 1
@@ -1661,7 +1708,6 @@ BSLS_IDENT("$Id: $")
       #define BSLS_COMPILERFEATURES_SUPPORT_OVERRIDE                          1
       #define BSLS_COMPILERFEATURES_SUPPORT_RAW_STRINGS                       1
       #define BSLS_COMPILERFEATURES_SUPPORT_STATIC_ASSERT                     1
-      #define BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_NORETURN                1
     #endif  // at least version 5.13
 
     // Oracle Developer Studio 12.5 (CC version 5.14) or newer
@@ -1691,19 +1737,14 @@ BSLS_IDENT("$Id: $")
         // CC 12.4 has problems partially ordering template parameter packs
         // that typically result in failing to compile with ambiguity errors.
 
+      #define BSLS_COMPILERFEATURES_SUPPORT_UNICODE_CHAR_TYPES                1
+
       #define BSLS_COMPILERFEATURES_SUPPORT_USER_DEFINED_LITERALS             1
         // https://docs.oracle.com/cd/E60778_01/html/E60742/gkeza.html
     #endif  // at least version 5.14
 
-    // Exactly Oracle Developer Studio 12.6 (CC version 5.15)
-    #if BSLS_PLATFORM_CMP_VERSION == 0x5150
-      #undef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-        // CC 12.6 (beta) has a nasty bug with reference collapsing rvalue and
-        // lvalue references that crashes the compiler.
-    #endif  // exactly version 5.15
-
     // Newer than Oracle Developer Studio 12.6 (CC version 5.15)
-    #if BSLS_PLATFORM_CMP_VERSION > 0x5150
+    #if BSLS_PLATFORM_CMP_VERSION >= 0x5150
       #define BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR                         1
         // CC 12.4 'constexpr' implementation almost satisfies our testing, but
         // the compiler crashes when for some rare-but-reasonable data
@@ -1750,6 +1791,7 @@ BSLS_IDENT("$Id: $")
   // No C++17 features
   // #define BSLS_COMPILERFEATURES_SUPPORT_HAS_INCLUDE
   // #define BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS
+  // #define BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT_IN_FNC_TYPE
 
   // Oracle Solaris Studio does not yet follow WG14 N2322 Recommended practice
   // #define BSLS_COMPILERFEATURES_PP_LINE_IS_ON_FIRST

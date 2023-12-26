@@ -26,6 +26,11 @@
 
 #include <bdlb_string.h>
 
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
+
 using namespace BloombergLP;
 using namespace bsl;  // automatically added by script
 
@@ -665,8 +670,7 @@ const bdlat_AttributeInfo *Point::lookupAttributeInfo(int id)
     namespace bdlat_SequenceFunctions {
 
     template <>
-    struct IsSequence<mine::MySequence> {
-        enum { VALUE = 1 };
+    struct IsSequence<mine::MySequence> : public bsl::true_type {
     };
 
     }  // close namespace bdlat_SequenceFunctions
@@ -816,8 +820,8 @@ int main(int argc, char *argv[])
         if (verbose) cout << "\nTesting meta-functions"
                           << "\n======================" << endl;
 
-        ASSERT(0 == Obj::IsSequence<int>::VALUE);
-        ASSERT(1 == Obj::IsSequence<geom::Point>::VALUE);
+        ASSERT(0 == Obj::IsSequence<int>::value);
+        ASSERT(1 == Obj::IsSequence<geom::Point>::value);
 
       } break;
       case 1: {

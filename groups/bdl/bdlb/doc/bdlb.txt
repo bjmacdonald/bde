@@ -10,7 +10,7 @@
 
 /Hierarchical Synopsis
 /---------------------
- The 'bdlb' package currently has 49 components having 5 levels of physical
+ The 'bdlb' package currently has 54 components having 5 levels of physical
  dependency.  The list below shows the hierarchical ordering of the components.
  The order of components within each level is not architecturally significant,
  just alphabetical.
@@ -18,6 +18,7 @@
   5. bdlb_bitstringutil
      bdlb_indexspanstringutil
      bdlb_indexspanutil
+     bdlb_nullablevalueref
 
   4. bdlb_bigendian
      bdlb_bitstringimputil
@@ -51,7 +52,8 @@
      bdlb_guid
      bdlb_hashutil
      bdlb_literalutil
-     bdlb_nullopt
+     bdlb_nullableallocatedvalue_pointerbitspair                      !PRIVATE!
+     bdlb_nullopt                                        !DEPRECATED!
      bdlb_nulloutputiterator
      bdlb_pairutil
      bdlb_pcgrandomgenerator
@@ -67,7 +69,10 @@
      bdlb_transparenthash
      bdlb_transparentless
 
-  1. bdlb_nullablevalue_cpp03                                         !PRIVATE!
+  1. bdlb_nullableallocatedvalue_cpp03                                !PRIVATE!
+     bdlb_nullablevalue_cpp03                                         !PRIVATE!
+     bdlb_nullablevalueref_cpp03                                      !PRIVATE!
+     bdlb_variant_cpp03                                               !PRIVATE!
 ..
 
 /Component Synopsis
@@ -144,13 +149,25 @@
 : 'bdlb_nullableallocatedvalue':
 :      Provide a template for nullable allocated (out-of-place) objects.
 :
+: 'bdlb_nullableallocatedvalue_cpp03':                                !PRIVATE!
+:      Provide C++03 implementation for bdlb_nullableallocatedvalue.h
+:
+: 'bdlb_nullableallocatedvalue_pointerbitspair':                      !PRIVATE!
+:      Provide a mechanism for using the unused bits of a pointer.
+:
 : 'bdlb_nullablevalue':
 :      Provide a template for nullable (in-place) objects.
 :
 : 'bdlb_nullablevalue_cpp03':                                         !PRIVATE!
 :      Provide C++03 implementation for bdlb_nullablevalue.h
 :
-: 'bdlb_nullopt':
+: 'bdlb_nullablevalueref':
+:      *Tech* *preview* for non-owning reference to nullable objects.
+:
+: 'bdlb_nullablevalueref_cpp03':                                      !PRIVATE!
+:      Provide C++03 implementation for bdlb_nullablevalueref.h
+:
+: 'bdlb_nullopt':                                        !DEPRECATED!
 :      Provide a tag type and constant indicating an empty nullable value.
 :
 : 'bdlb_nulloutputiterator':
@@ -218,3 +235,6 @@
 :
 : 'bdlb_variant':
 :      Provide a variant (discriminated 'union'-like) type.
+:
+: 'bdlb_variant_cpp03':                                               !PRIVATE!
+:      Provide C++03 implementation for bdlb_variant.h

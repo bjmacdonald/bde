@@ -1182,6 +1182,8 @@ struct TestFunctionsAlloc {
 struct TestConstFunctor {
     typedef int ResultType;
 
+    TestConstFunctor() {}
+
     int operator()(const char *arg) const
     {
         ASSERT(!bsl::strcmp("woof", arg));
@@ -1255,6 +1257,11 @@ struct TestHomogMoveFunctor {
 
     typedef bslmf::MovableRefUtil MoveUtil;
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(TestHomogMoveFunctor,
+                                   bslma::UsesBslmaAllocator);
+
+
     // CREATORS
     TestHomogMoveFunctor(bslma::Allocator * = 0)
     {}
@@ -1302,6 +1309,10 @@ struct TestHeteroMoveFunctor {
     typedef int ResultType;
 
     typedef bslmf::MovableRefUtil MoveUtil;
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(TestHeteroMoveFunctor,
+                                   bslma::UsesBslmaAllocator);
 
     // CREATORS
     TestHeteroMoveFunctor(bslma::Allocator * = 0)

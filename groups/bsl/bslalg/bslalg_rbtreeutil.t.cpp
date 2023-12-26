@@ -6,13 +6,14 @@
 #include <bslalg_rangecompare.h>
 
 #include <bslma_allocator.h>
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 #include <bslma_testallocator.h>
 
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
 #include <bsls_bsltestutil.h>
 #include <bsls_libraryfeatures.h>
+#include <bsls_platform.h>
 
 #include <algorithm>
 
@@ -34,6 +35,14 @@
 
 #ifdef BSLS_PLATFORM_OS_UNIX
 #include <unistd.h>
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, arrowrtn)
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+#pragma warning(disable:4312)
 #endif
 
 using namespace BloombergLP;
@@ -808,9 +817,8 @@ const char *tempFileName(bool verboseFlag)
     GetTempPath(MAX_PATH, tmpPathBuf);
     GetTempFileName(tmpPathBuf, "bael", 0, result);
 #else
-    char *temp = tempnam(0, "bael");
-    strncpy(result, temp, MAX_LENGTH);
-    free(temp);
+    sprintf(result, "baelXXXXXX");
+    close(mkstemp(result));
 #endif
 
     if (verboseFlag) printf("\tUse %s as a base filename.\n", result);
@@ -3343,7 +3351,18 @@ void TestDriver<VALUE>::testCase9()
         enum {
             NUM_VALUES = 50000
         };
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
         int VALUES[NUM_VALUES];
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             VALUES[i] = i;
         }
@@ -3589,7 +3608,18 @@ void TestDriver<VALUE>::testCase10()
         enum {
             NUM_VALUES = 50000
         };
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
         int VALUES[NUM_VALUES];
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             VALUES[i] = rand() % NUM_VALUES;
         }
@@ -3784,7 +3814,18 @@ void TestDriver<VALUE>::testCase11()
         enum {
             NUM_VALUES = 50000
         };
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
         int VALUES[NUM_VALUES];
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             VALUES[i] = rand() % NUM_VALUES;
         }
@@ -3992,7 +4033,18 @@ void TestDriver<VALUE>::testCase12()
         enum {
             NUM_VALUES = 50000
         };
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
         int VALUES[NUM_VALUES];
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             VALUES[i] = rand() % NUM_VALUES;
         }
@@ -4190,7 +4242,18 @@ void TestDriver<VALUE>::testCase13()
         enum {
             NUM_VALUES = 50000
         };
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
         int VALUES[NUM_VALUES];
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             VALUES[i] = rand() % NUM_VALUES;
         }
@@ -4631,7 +4694,18 @@ void TestDriver<VALUE>::testCase15()
         enum {
             NUM_VALUES = 50000
         };
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
         int VALUES[NUM_VALUES];
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             VALUES[i] = rand() % NUM_VALUES;
         }
@@ -5979,7 +6053,7 @@ int main(int argc, char *argv[])
 
             memset(buffer, 0, BUFFER_SIZE);
             while (0 != fgets(line, LINE_SIZE, input)) {
-                strncat(buffer, line, BUFFER_SIZE);
+                strncat(buffer, line, LINE_SIZE);
             }
             fclose(input);
 

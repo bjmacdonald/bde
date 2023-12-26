@@ -23,6 +23,7 @@
 #include <bslim_testutil.h>
 
 #include <bsls_atomic.h>
+#include <bsls_platform.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
@@ -248,8 +249,8 @@ struct PingPongWriter
       stop = bsls::SystemTime::nowRealtimeClock();
 
       bsls::Types::Int64 elapsed = (stop - start).totalMicroseconds();
-      *d_score = ((double)numCycles / elapsed) *
-         k_MICROSECS_PER_SEC * SCORE_SCALE;
+      *d_score = ((double)numCycles / static_cast<double>(elapsed)) *
+                        static_cast<double>(k_MICROSECS_PER_SEC) * SCORE_SCALE;
 
       d_locks[0].unlock();
       d_locks[2].unlock();
@@ -305,8 +306,8 @@ struct PingPongReader
       stop = bsls::SystemTime::nowRealtimeClock();
 
       bsls::Types::Int64 elapsed = (stop - start).totalMicroseconds();
-      *d_score = ((double)numCycles / elapsed) *
-         k_MICROSECS_PER_SEC * SCORE_SCALE;
+      *d_score = ((double)numCycles / static_cast<double>(elapsed)) *
+                        static_cast<double>(k_MICROSECS_PER_SEC) * SCORE_SCALE;
 
       d_locks[1].unlock();
       d_locks[3].unlock();
@@ -351,8 +352,8 @@ struct ContentionWriter
       stop = bsls::SystemTime::nowRealtimeClock();
 
       bsls::Types::Int64 elapsed = (stop - start).totalMicroseconds();
-      *d_score = ((double)numCycles / elapsed) *
-         k_MICROSECS_PER_SEC * SCORE_SCALE;
+      *d_score = ((double)numCycles / static_cast<double>(elapsed)) *
+                        static_cast<double>(k_MICROSECS_PER_SEC) * SCORE_SCALE;
 
       d_locks[0].unlock();
    }
@@ -400,8 +401,8 @@ struct ContentionReader
       stop = bsls::SystemTime::nowRealtimeClock();
 
       bsls::Types::Int64 elapsed = (stop - start).totalMicroseconds();
-      *d_score = ((double)numCycles / elapsed) *
-         k_MICROSECS_PER_SEC * SCORE_SCALE;
+      *d_score = ((double)numCycles / static_cast<double>(elapsed)) *
+                        static_cast<double>(k_MICROSECS_PER_SEC) * SCORE_SCALE;
 
       d_locks[1].unlock();
    }
@@ -424,7 +425,18 @@ int benchmarkSpeed (LOCK       * /* lock */,
       enum {  k_NUM_MUTEXES = 750, k_MICROSECS_PER_SEC = 1000000  };
       static const double SCORE_SCALE = 1.33;
       bsls::TimeInterval start, stop;
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
       LOCK lockArray[k_NUM_MUTEXES];
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
       LOCK *lockEnd = lockArray + k_NUM_MUTEXES;
       start = bsls::SystemTime::nowRealtimeClock();
       int numCycles = 0;
@@ -446,8 +458,8 @@ int benchmarkSpeed (LOCK       * /* lock */,
       }
 
       bsls::Types::Int64 elapsed = (stop - start).totalMicroseconds();
-      score = ((double)numCycles / elapsed)
-            * k_MICROSECS_PER_SEC * SCORE_SCALE;
+      score = ((double)numCycles / static_cast<double>(elapsed)) *
+                        static_cast<double>(k_MICROSECS_PER_SEC) * SCORE_SCALE;
 
       cout << "Lock \"" << lockName << "\": individual-overhead score="
            << score << endl;

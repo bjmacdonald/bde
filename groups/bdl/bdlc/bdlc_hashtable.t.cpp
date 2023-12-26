@@ -25,6 +25,10 @@
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
 
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+#endif
+
 using namespace BloombergLP;
 using namespace bsl;
 
@@ -1544,7 +1548,7 @@ int main(int argc, char *argv[])
             const Key   KEY   = "Hello";
             const Value VALUE = 4;
 
-            Class::Handle handle;
+            Class::Handle handle = 0;
 
             ASSERT(true  == mX.insert(&handle, KEY, VALUE));
 

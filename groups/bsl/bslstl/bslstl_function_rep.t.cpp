@@ -14,8 +14,9 @@
 
 #include <bsls_alignmentfromtype.h>
 #include <bsls_asserttest.h>
-#include <bsls_keyword.h>
 #include <bsls_bsltestutil.h>
+#include <bsls_keyword.h>
+#include <bsls_platform.h>
 
 #include <bslstl_referencewrapper.h>
 
@@ -24,6 +25,10 @@
 #include <climits>  // 'INT_MIN'
 #include <cstdio>   // 'printf'
 #include <cstdlib>  // 'atoi'
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
 
 #ifdef BDE_VERIFY
 // Suppress some pedantic bde_verify checks in this test driver
@@ -309,8 +314,6 @@ class TrackableValue {
         // set 'isCopied()' to 'rhs.isCopied()', then assign 'rhs' the value
         // 'e_MOVED_FROM_VAL' and return '*this'.
 
-    void setIsCopiedRaw(bool copiedFlag);
-    void setIsMovedRaw(bool movedFlag);
     void setValueRaw(int v);
         // Set the constituent parts of this object to the specified
         // 'copiedFlag', specified 'movedFlag', or specified 'v', without
@@ -370,16 +373,6 @@ TrackableValue::operator=(bslmf::MovableRef<TrackableValue> rhs)
     d_valueAndFlags = rhsRef.d_valueAndFlags | e_MOVED_FLAG;
     rhsRef.d_valueAndFlags = e_MOVED_FROM_STATE;
     return *this;
-}
-
-void TrackableValue::setIsCopiedRaw(bool copiedFlag) {
-    d_valueAndFlags &= (e_VALUE_MASK | e_MOVED_FLAG);
-    if (copiedFlag) d_valueAndFlags |= e_COPIED_FLAG;
-}
-
-void TrackableValue::setIsMovedRaw(bool movedFlag) {
-    d_valueAndFlags &= (e_VALUE_MASK | e_COPIED_FLAG);
-    if (movedFlag) d_valueAndFlags |= e_MOVED_FLAG;
 }
 
 void TrackableValue::setValueRaw(int v) {
@@ -1206,15 +1199,7 @@ void TestDriver<TYPE>::moveInitImp(bslma::TestAllocator *ta1,
         expCopy = true;
     }
     else if (k_EXP_INPLACE) {
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES)
         expMove = ! k_IS_BITWISE_MOVABLE;  // No moves if bitwise movable
-#else
-        // TBD: In C++03 compilers, 'destructiveMove' never uses the
-        // 'MovableRef' move constructor.  Remove this conditional if that
-        // situation is ever corrected.
-        expMove = false;
-        expCopy = ! k_IS_BITWISE_MOVABLE;
-#endif
     }
     else {
         expXfer = true;
@@ -1292,21 +1277,10 @@ void TestDriver<TYPE>::TwoDTests<TYPE2>::swapImp()
     NTUnwrpType2 *target2Pre = x2.target<NTUnwrpType2>();
     Verifier2::clearFlags(target2Pre);
 
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES)
     const bool expMove1 = k_EXP_INPLACE  && ! k_IS_BITWISE_MOVABLE;
     const bool expMove2 = k_EXP_INPLACE2 && ! k_IS_BITWISE_MOVABLE2;
     const bool expCopy1 = false;
     const bool expCopy2 = false;
-#else
-    // TBD: In C++03 compilers, 'destructiveMove' never uses the 'MovableRef'
-    // move constructor.  Remove this conditional if that situation is ever
-    // corrected.
-    const bool expMove1 = false;
-    const bool expMove2 = false;
-    const bool expCopy1 = k_EXP_INPLACE  && ! k_IS_BITWISE_MOVABLE;
-    const bool expCopy2 = k_EXP_INPLACE2 && ! k_IS_BITWISE_MOVABLE2;
-#endif // defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES)
-
     const bool expXfer1 = ! k_EXP_INPLACE;
     const bool expXfer2 = ! k_EXP_INPLACE2;
 
@@ -1362,17 +1336,8 @@ void TestDriver<TYPE>::swap()
 
         Obj x2(&ta);
 
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES)
         const bool expMove = k_EXP_INPLACE && ! k_IS_BITWISE_MOVABLE;
         const bool expCopy = false;
-#else
-        // TBD: In C++03 compilers, 'destructiveMove' never uses the
-        // 'MovableRef' move constructor.  Remove this conditional if that
-        // situation is ever corrected.
-        const bool expMove = false;
-        const bool expCopy = k_EXP_INPLACE && ! k_IS_BITWISE_MOVABLE;
-#endif // defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES)
-
         const bool expXfer = ! k_EXP_INPLACE;
 
         bslma::TestAllocatorMonitor taM(&ta);

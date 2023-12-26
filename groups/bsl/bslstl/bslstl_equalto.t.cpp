@@ -1,6 +1,7 @@
 // bslstl_equalto.t.cpp                                               -*-C++-*-
 #include <bslstl_equalto.h>
 
+#include <bslma_allocatorutil.h>
 #include <bslma_constructionutil.h>
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>
@@ -182,7 +183,7 @@ class ListSet {
             return false;                                             // RETURN
         }
 
-        Node *node = (Node *) d_allocator_p->allocate(sizeof(Node));
+        Node *node = bslma::AllocatorUtil::allocateObject<Node>(d_allocator_p);
         bslma::ConstructionUtil::construct(&node->d_value,
                                            d_allocator_p,
                                            value);
@@ -498,11 +499,13 @@ int main(int argc, char *argv[])
         typedef int TYPE;
 
         ASSERT(bslmf::IsBitwiseMoveable<equal_to<TYPE> >::value);
+        ASSERT(bslmf::IsBitwiseCopyable<equal_to<TYPE> >::value);
         ASSERT(bsl::is_trivially_copyable<equal_to<TYPE> >::value);
         ASSERT(bsl::is_trivially_default_constructible<equal_to<TYPE>
                                                                      >::value);
 
         ASSERT(bslmf::IsBitwiseMoveable<equal_to<void> >::value);
+        ASSERT(bslmf::IsBitwiseCopyable<equal_to<void> >::value);
         ASSERT(bsl::is_trivially_copyable<equal_to<void> >::value);
         ASSERT(bsl::is_trivially_default_constructible<equal_to<void>
                                                                      >::value);

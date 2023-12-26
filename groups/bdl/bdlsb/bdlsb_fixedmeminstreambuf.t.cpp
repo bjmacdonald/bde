@@ -925,8 +925,6 @@ int main(int argc, char **argv)
                 const Obj::pos_type START_POS = DATA[i].d_startPos;
                 const Obj::off_type OFFSET    = DATA[i].d_offset;
                 const Obj::pos_type RETVAL    = DATA[i].d_retVal;
-                const Obj::pos_type FINAL_POS = (0 <= RETVAL ? RETVAL :
-                                                               START_POS);
 
                 if (veryVerbose) {
                     T_ P_(LINE) P_(START_POS) P_(OFFSET) P(RETVAL)
@@ -1355,7 +1353,9 @@ int main(int argc, char **argv)
             for (int j = 0; j < SAMPLE_NUM; ++j) {
                 const bsl::size_t BUFFER_SIZE = sampleSizes[j];
 
-                if (veryVerbose) T_ P(BUFFER_SIZE);
+                if (veryVerbose) {
+                    T_ P(BUFFER_SIZE);
+                }
 
                 char *buffer = new char[BUFFER_SIZE];
                 fillBuffer(buffer, BUFFER_SIZE);
@@ -1394,7 +1394,9 @@ int main(int argc, char **argv)
             for (int j = 0; j < SAMPLE_NUM; ++j) {
                 const bsl::size_t BUFFER_SIZE = sampleSizes[j];
 
-                if (veryVerbose) T_ P(BUFFER_SIZE);
+                if (veryVerbose) {
+                    T_ P(BUFFER_SIZE);
+                }
 
                 const char *buffer = new char[BUFFER_SIZE];
                 char       *hack   = const_cast<char *>(buffer);

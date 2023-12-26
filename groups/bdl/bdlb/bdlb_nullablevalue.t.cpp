@@ -7,6 +7,13 @@
 // should not be used as an example for new development.
 // ----------------------------------------------------------------------------
 
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 #include <bdlb_nullablevalue.h>
 
 #include <bslalg_constructorproxy.h>
@@ -33,7 +40,6 @@
 #include <bsls_libraryfeatures.h>
 #include <bsls_nameof.h>
 #include <bsls_objectbuffer.h>
-#include <bsls_platform.h>
 #include <bsls_types.h>
 
 #include <bsltf_movabletesttype.h>
@@ -98,8 +104,8 @@ using bsls::NameOf;
 // [11] NullableValue(const BDE_OTHER_TYPE& value, allocator);
 // [11] NullableValue(const NullableValue<BDE_OTHER_TYPE>&o);
 // [11] NullableValue(const NullableValue<BDE_OTHER_TYPE>&o, allocator);
-// [26] NullableValue(const NullOptType&);
-// [26] NullableValue(const NullOptType&, allocator);
+// [26] NullableValue(const bsl::nullopt_t&);
+// [26] NullableValue(const bsl::nullopt_t&, allocator);
 // [30] CONVERSION FROM BASE CLASS
 // [31] TESTING DEEPLY NESTED 'FROM' AND 'TO' TYPES
 // [32] TESTING 'TYPE' IS ALLOCATOR
@@ -112,7 +118,7 @@ using bsls::NameOf;
 // [10] NullableValue& operator=(const TYPE& rhs);
 // [23] NullableValue& operator=(TYPE&& rhs);
 // [12] NullableValue& operator=(const BDE_OTHER_TYPE& rhs);
-// [26] NullableValue& operator=(const NullOptType& rhs);
+// [26] NullableValue& operator=(const bsl::nullopt_t& rhs);
 // [13] void swap(NullableValue<TYPE>& other);
 // [ 3] TYPE& makeValue(const TYPE& value);
 // [12] TYPE& makeValue(const BDE_OTHER_TYPE& value);
@@ -146,34 +152,34 @@ using bsls::NameOf;
 // [ 5] bool operator<=(const NullableValue<LHS_TYPE>&, const RHS_TYPE&);
 // [ 5] bool operator> (const NullableValue<LHS_TYPE>&, const RHS_TYPE&);
 // [ 5] bool operator>=(const NullableValue<LHS_TYPE>&, const RHS_TYPE&);
-// [27] bool operator==(const NullableValue<LHS_TYPE>&, NullOptType);
-// [27] bool operator!=(const NullableValue<LHS_TYPE>&, NullOptType);
-// [27] bool operator< (const NullableValue<LHS_TYPE>&, NullOptType);
-// [27] bool operator<=(const NullableValue<LHS_TYPE>&, NullOptType);
-// [27] bool operator>=(const NullableValue<LHS_TYPE>&, NullOptType);
-// [27] bool operator> (const NullableValue<LHS_TYPE>&, NullOptType);
+// [27] bool operator==(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+// [27] bool operator!=(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+// [27] bool operator< (const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+// [27] bool operator<=(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+// [27] bool operator>=(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+// [27] bool operator> (const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
 // [ 5] bool operator==(const LHS_TYPE&, const NullableValue<RHS_TYPE>&);
 // [ 5] bool operator!=(const LHS_TYPE&, const NullableValue<RHS_TYPE>&);
 // [ 5] bool operator< (const LHS_TYPE&, const NullableValue<RHS_TYPE>&);
 // [ 5] bool operator<=(const LHS_TYPE&, const NullableValue<RHS_TYPE>&);
 // [ 5] bool operator> (const LHS_TYPE&, const NullableValue<RHS_TYPE>&);
 // [ 5] bool operator>=(const LHS_TYPE&, const NullableValue<RHS_TYPE>&);
-// [27] bool operator==(NullOptType, const NullableValue<LHS_TYPE>&);
-// [27] bool operator!=(NullOptType, const NullableValue<LHS_TYPE>&);
-// [27] bool operator< (NullOptType, const NullableValue<LHS_TYPE>&);
-// [27] bool operator<=(NullOptType, const NullableValue<LHS_TYPE>&);
-// [27] bool operator>=(NullOptType, const NullableValue<LHS_TYPE>&);
-// [27] bool operator> (NullOptType, const NullableValue<LHS_TYPE>&);
+// [27] bool operator==(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+// [27] bool operator!=(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+// [27] bool operator< (bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+// [27] bool operator<=(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+// [27] bool operator>=(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+// [27] bool operator> (bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
 
 // [ 4] ostream& operator<<(ostream&, const NullableValue<TYPE>&);
 //
 // FREE FUNCTIONS
-// [20] void hashAppend(HASHALG& hashAlg, NullableValue<TYPE>& input);
+// [19] void hashAppend(HASHALG& hashAlg, NullableValue<TYPE>& input);
 // [13] void swap(NullableValue<TYPE>& a, b);
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST 1: Using 'bsl::string'
 // [ 2] BREATHING TEST 2: Using 'int'
-// [31] USAGE EXAMPLE
+// [39] USAGE EXAMPLE
 // [24] Concern: Types that are not copy-assignable can be used.
 // [26] bsl::optional c'tors from derived type
 // [26] bsl::optional assignment from derived type
@@ -182,7 +188,12 @@ using bsls::NameOf;
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
 // [ 8] int maxSupportedBdexVersion() const;
 #endif
-// [30] CONCERN: 'operator<<' handles 'std::optional' and 'std::variant'
+// [33] CONCERN: 'operator<<' handles 'std::optional' and 'std::variant'
+// [35] REPRODUCE BUG FROM 168410920
+// [36] bsl::optional c'tors from derived type
+// [36] bsl::optional assignment from derived type
+// [38] IsBitwiseMoveable
+// [38] IsBitwiseCopyable
 
 // ----------------------------------------------------------------------------
 
@@ -321,6 +332,20 @@ bsl::ostream& operator<<(bsl::ostream& stream, bsltf::MoveState::Enum value)
     return stream;
 }
 
+void myMemcpy(void *dst, const void *src, size_t size)
+    // Functionally equivalent to 'std::memcpy', except avoids warnings on some
+    // compilers when copying objects for which 'std::is_trivially_copyable' is
+    // not true.
+{
+    char              *dstChar = static_cast<char *>(dst);
+    const char        *srcChar = static_cast<const char *>(src);
+    const char * const end     = srcChar + size;
+
+    while (srcChar < end) {
+        *dstChar++ = *srcChar++;
+    }
+}
+
 template <class FIRST_TYPE, class SECOND_TYPE, class INIT_TYPE>
 void testRelationalOperationsNonNull(const INIT_TYPE& lesserVal,
                                      const INIT_TYPE& greaterVal)
@@ -417,6 +442,67 @@ void testRelationalOperationsNonNull(const INIT_TYPE& lesserVal,
 
     ASSERTV( (secondGreater >= firstLesser  ));
     ASSERTV( (secondGreater >= firstGreater ));
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+    if constexpr (bsl::three_way_comparable_with<FIRST_TYPE, SECOND_TYPE>) {
+        ASSERTV( ((firstLesser   <=> secondLesser ) == 0));
+        ASSERTV(!((firstLesser   <=> secondLesser ) != 0));
+        ASSERTV(!((firstLesser   <=> secondLesser )  < 0));
+        ASSERTV(!((firstLesser   <=> secondLesser )  > 0));
+        ASSERTV( ((firstLesser   <=> secondLesser ) <= 0));
+        ASSERTV( ((firstLesser   <=> secondLesser ) >= 0));
+
+        ASSERTV(!((firstLesser   <=> secondGreater) == 0));
+        ASSERTV( ((firstLesser   <=> secondGreater) != 0));
+        ASSERTV( ((firstLesser   <=> secondGreater)  < 0));
+        ASSERTV(!((firstLesser   <=> secondGreater)  > 0));
+        ASSERTV( ((firstLesser   <=> secondGreater) <= 0));
+        ASSERTV(!((firstLesser   <=> secondGreater) >= 0));
+
+        ASSERTV(!((firstGreater  <=> secondLesser ) == 0));
+        ASSERTV( ((firstGreater  <=> secondLesser ) != 0));
+        ASSERTV(!((firstGreater  <=> secondLesser )  < 0));
+        ASSERTV( ((firstGreater  <=> secondLesser )  > 0));
+        ASSERTV(!((firstGreater  <=> secondLesser ) <= 0));
+        ASSERTV( ((firstGreater  <=> secondLesser ) >= 0));
+
+        ASSERTV( ((firstGreater  <=> secondGreater) == 0));
+        ASSERTV(!((firstGreater  <=> secondGreater) != 0));
+        ASSERTV(!((firstGreater  <=> secondGreater)  < 0));
+        ASSERTV(!((firstGreater  <=> secondGreater)  > 0));
+        ASSERTV( ((firstGreater  <=> secondGreater) <= 0));
+        ASSERTV( ((firstGreater  <=> secondGreater) >= 0));
+
+        ASSERTV( ((secondLesser  <=> firstLesser  ) == 0));
+        ASSERTV(!((secondLesser  <=> firstLesser  ) != 0));
+        ASSERTV(!((secondLesser  <=> firstLesser  )  < 0));
+        ASSERTV(!((secondLesser  <=> firstLesser  )  > 0));
+        ASSERTV( ((secondLesser  <=> firstLesser  ) <= 0));
+        ASSERTV( ((secondLesser  <=> firstLesser  ) >= 0));
+
+        ASSERTV(!((secondLesser  <=> firstGreater ) == 0));
+        ASSERTV( ((secondLesser  <=> firstGreater ) != 0));
+        ASSERTV( ((secondLesser  <=> firstGreater )  < 0));
+        ASSERTV(!((secondLesser  <=> firstGreater )  > 0));
+        ASSERTV( ((secondLesser  <=> firstGreater ) <= 0));
+        ASSERTV(!((secondLesser  <=> firstGreater ) >= 0));
+
+        ASSERTV(!((secondGreater <=> firstLesser  ) == 0));
+        ASSERTV( ((secondGreater <=> firstLesser  ) != 0));
+        ASSERTV(!((secondGreater <=> firstLesser  )  < 0));
+        ASSERTV( ((secondGreater <=> firstLesser  )  > 0));
+        ASSERTV(!((secondGreater <=> firstLesser  ) <= 0));
+        ASSERTV( ((secondGreater <=> firstLesser  ) >= 0));
+
+        ASSERTV( ((secondGreater <=> firstGreater ) == 0));
+        ASSERTV(!((secondGreater <=> firstGreater ) != 0));
+        ASSERTV(!((secondGreater <=> firstGreater )  < 0));
+        ASSERTV(!((secondGreater <=> firstGreater )  > 0));
+        ASSERTV( ((secondGreater <=> firstGreater ) <= 0));
+        ASSERTV( ((secondGreater <=> firstGreater ) >= 0));
+    }
+#endif
 }
 
 template <class FIRST_NV_TYPE, class SECOND_TYPE, class INIT_TYPE>
@@ -456,6 +542,25 @@ void testRelationalOperationsOneNull(const INIT_TYPE& initValue)
     ASSERTV(!(secondValue <= firstNullNV));
     ASSERTV( (secondValue >  firstNullNV));
     ASSERTV( (secondValue >= firstNullNV));
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+    if constexpr (bsl::three_way_comparable_with<FIRST_NV_TYPE, SECOND_TYPE>) {
+        ASSERTV(!((firstNullNV <=> secondValue) == 0));
+        ASSERTV( ((firstNullNV <=> secondValue) != 0));
+        ASSERTV( ((firstNullNV <=> secondValue)  < 0));
+        ASSERTV(!((firstNullNV <=> secondValue)  > 0));
+        ASSERTV( ((firstNullNV <=> secondValue) <= 0));
+        ASSERTV(!((firstNullNV <=> secondValue) >= 0));
+
+        ASSERTV(!((secondValue <=> firstNullNV) == 0));
+        ASSERTV( ((secondValue <=> firstNullNV) != 0));
+        ASSERTV(!((secondValue <=> firstNullNV)  < 0));
+        ASSERTV( ((secondValue <=> firstNullNV)  > 0));
+        ASSERTV(!((secondValue <=> firstNullNV) <= 0));
+        ASSERTV( ((secondValue <=> firstNullNV) >= 0));
+    }
+#endif
 }
 
 template <class FIRST_NV_TYPE, class SECOND_NV_TYPE>
@@ -492,6 +597,26 @@ void testRelationalOperationsBothNull()
     ASSERTV( (secondNull <= firstNull));
     ASSERTV(!(secondNull >  firstNull));
     ASSERTV( (secondNull >= firstNull));
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+    if constexpr (bsl::three_way_comparable_with<FIRST_NV_TYPE,
+                                                 SECOND_NV_TYPE>) {
+        ASSERTV( ((firstNull  <=> secondNull) == 0));
+        ASSERTV(!((firstNull  <=> secondNull) != 0));
+        ASSERTV(!((firstNull  <=> secondNull)  < 0));
+        ASSERTV(!((firstNull  <=> secondNull)  > 0));
+        ASSERTV( ((firstNull  <=> secondNull) <= 0));
+        ASSERTV( ((firstNull  <=> secondNull) >= 0));
+
+        ASSERTV( ((secondNull <=> firstNull ) == 0));
+        ASSERTV(!((secondNull <=> firstNull ) != 0));
+        ASSERTV(!((secondNull <=> firstNull )  < 0));
+        ASSERTV(!((secondNull <=> firstNull )  > 0));
+        ASSERTV( ((secondNull <=> firstNull ) <= 0));
+        ASSERTV( ((secondNull <=> firstNull ) >= 0));
+    }
+#endif
 }
 
 template <class FIRST_TYPE, class SECOND_TYPE, class INIT_TYPE>
@@ -503,6 +628,11 @@ void testRelationalOperations(const INIT_TYPE& lesserVal,
 
     typedef bsl::optional< FIRST_TYPE>        FIRST_BO_TYPE;
     typedef bsl::optional<SECOND_TYPE>        SECOND_BO_TYPE;
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+    typedef std::optional< FIRST_TYPE>        FIRST_SO_TYPE;
+    typedef std::optional<SECOND_TYPE>        SECOND_SO_TYPE;
+#endif
 
     testRelationalOperationsNonNull<FIRST_TYPE,    SECOND_NV_TYPE>(lesserVal,
                                                                    greaterVal);
@@ -524,6 +654,55 @@ void testRelationalOperations(const INIT_TYPE& lesserVal,
 
     testRelationalOperationsBothNull<FIRST_NV_TYPE, SECOND_BO_TYPE>();
     testRelationalOperationsBothNull<FIRST_BO_TYPE, SECOND_NV_TYPE>();
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+    testRelationalOperationsNonNull<FIRST_SO_TYPE, SECOND_NV_TYPE>(lesserVal,
+                                                                   greaterVal);
+    testRelationalOperationsNonNull<FIRST_NV_TYPE, SECOND_SO_TYPE>(lesserVal,
+                                                                   greaterVal);
+
+    testRelationalOperationsOneNull<FIRST_SO_TYPE, SECOND_NV_TYPE>(lesserVal);
+    testRelationalOperationsOneNull<SECOND_NV_TYPE, FIRST_SO_TYPE>(lesserVal);
+
+    testRelationalOperationsBothNull<FIRST_NV_TYPE, SECOND_SO_TYPE>();
+    testRelationalOperationsBothNull<FIRST_SO_TYPE, SECOND_NV_TYPE>();
+#endif
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_TYPE, SECOND_NV_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_TYPE, SECOND_BO_TYPE>));
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_NV_TYPE, SECOND_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_BO_TYPE, SECOND_TYPE>));
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_NV_TYPE, SECOND_NV_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_BO_TYPE, SECOND_BO_TYPE>));
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_NV_TYPE, SECOND_NV_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_BO_TYPE, SECOND_BO_TYPE>));
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_TYPE, SECOND_NV_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_TYPE, SECOND_SO_TYPE>));
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_NV_TYPE, SECOND_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_SO_TYPE, SECOND_TYPE>));
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_NV_TYPE, SECOND_NV_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_SO_TYPE, SECOND_SO_TYPE>));
+
+    ASSERTV((
+        bsl::three_way_comparable_with<FIRST_NV_TYPE, SECOND_NV_TYPE> ==
+        bsl::three_way_comparable_with<FIRST_SO_TYPE, SECOND_SO_TYPE>));
+#endif
 
 }
 
@@ -2888,6 +3067,9 @@ class TestDriver {
 
     static void testCase29();
         // Test 'noexcept'.
+
+    static void testCase38();
+        // Test 'IsBitwiseMoveable' and 'IsBitwiseCopyable'.
 };
 
 // PRIVATE CLASS METHODS
@@ -5266,6 +5448,115 @@ void TestDriver<TEST_TYPE>::testCase16()
 }
 
 template <class TEST_TYPE>
+void TestDriver<TEST_TYPE>::testCase38()
+{
+    // ------------------------------------------------------------------------
+    // TESTING 'IsBitwiseMoveable' and 'IsBitwiseCopyable'
+    //
+    // Concerns:
+    //: 1 That the 'IsBitwiseMoveable', 'IsBitwiseCopyable', and
+    //:   'UsesBslmaAllocator' traits are as expected.
+    //:
+    //: 2 If 'TEST_TYPE' is movable, we can move 'Obj' with 'memcpy'.
+    //:
+    //: 3 If 'TEST_TYPE' is copyable, we can copy 'Obj' with 'memcpy'.
+    //
+    // Plan:
+    //: 1 Check the 3 traits with asserts.
+    //:
+    //: 2 If we expect 'Obj' to be movable, try moving it between two object
+    //:   buffers.
+    //:
+    //: 3 If we expect 'Obj' to be copyable, try moving it between two object
+    //:   buffers.
+    //
+    // Testing:
+    //   IsBitwiseMoveable
+    //   IsBitwiseCopyable
+    // ------------------------------------------------------------------------
+
+    const char *type = bsls::NameOf<TEST_TYPE>().name();
+
+    if (veryVerbose) {
+        cout << type << ": Obj moves: " <<
+                   (bslmf::IsBitwiseMoveable<Obj>::value ? "true" : "false") <<
+                        ", Obj copies: " <<
+                   (bslmf::IsBitwiseCopyable<Obj>::value ? "true" : "false") <<
+                                                                          endl;
+    }
+
+    ASSERTV(type, bslmf::IsBitwiseMoveable<TEST_TYPE>::value ==
+                                         bslmf::IsBitwiseMoveable<Obj>::value);
+    ASSERTV(type, bslmf::IsBitwiseCopyable<TEST_TYPE>::value ==
+                                         bslmf::IsBitwiseCopyable<Obj>::value);
+    ASSERTV(type, bslma::UsesBslmaAllocator<TEST_TYPE>::value ==
+                                        bslma::UsesBslmaAllocator<Obj>::value);
+    (void) bslmf::IsTriviallyCopyableCheck<Obj>::value;
+
+    typedef bsls::ObjectBuffer<Obj>              ObjBuffer;
+    typedef bsls::ObjectBuffer<ObjWithAllocator> ObjWABuffer;
+
+    bslma::TestAllocator da("default", veryVeryVeryVerbose);
+    bslma::TestAllocator oa("object",  veryVeryVeryVerbose);
+    bslma::TestAllocator va("values",  veryVeryVeryVerbose);
+
+    bslma::DefaultAllocatorGuard dag(&da);
+
+    const TestValues VALUES(&va);
+
+    if (bslmf::IsBitwiseMoveable<Obj>::value) {
+        ObjWABuffer xBuffer;
+        ObjBuffer   yBuffer;
+
+        Obj& x = xBuffer.object().object();     const Obj& X = x;
+        Obj& y = yBuffer.object();              const Obj& Y = y;
+
+        new (&xBuffer.object()) ObjWithAllocator(VALUES[0], &oa);
+
+        ASSERT(X.has_value());
+        ASSERT(X.value() == VALUES[0]);
+
+        myMemcpy(yBuffer.address(), xBuffer.address(), sizeof(x));
+
+        ASSERT(Y.has_value());
+        ASSERT(Y.value() == VALUES[0]);
+
+        if (!bslmf::IsBitwiseCopyable<Obj>::value) {
+            y.~Obj();
+        }
+    }
+
+    ASSERTV(oa.numBlocksInUse(), 0 == oa.numBlocksInUse());
+    ASSERT(0 == da.numAllocations());
+
+    if (bslmf::IsBitwiseCopyable<Obj>::value) {
+        ObjWABuffer xBuffer;
+        ObjBuffer   yBuffer;
+
+        Obj& x = xBuffer.object().object();     const Obj& X = x;
+        Obj& y = yBuffer.object();              const Obj& Y = y;
+
+        new (&xBuffer.object()) ObjWithAllocator(VALUES[1], &oa);
+
+        ASSERT(X.has_value());
+        ASSERT(X.value() == VALUES[1]);
+
+        myMemcpy(yBuffer.address(), xBuffer.address(), sizeof(x));
+
+        ASSERT(Y.has_value());
+        ASSERT(Y.value() == VALUES[1]);
+        ASSERT(X.has_value());
+        ASSERT(X.value() == Y.value());
+        ASSERT(X == Y);
+
+        // bitwise copyable, no d'tor
+    }
+
+    ASSERTV(oa.numBlocksInUse(), 0 == oa.numBlocksInUse());
+    ASSERT(0 == da.numAllocations());
+}
+
+template <class TEST_TYPE>
 void TestDriver<TEST_TYPE>::testCase29()
 {
     // ------------------------------------------------------------------------
@@ -5288,7 +5579,7 @@ void TestDriver<TEST_TYPE>::testCase29()
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT
     const char *type = bsls::NameOf<TEST_TYPE>().name();
 
-    TEST_TYPE    mTT;
+    TEST_TYPE    mTT = TEST_TYPE();
 
     if (veryVerbose) {
         cout << "Type: " << type << ": default c'tor: " <<
@@ -6160,6 +6451,15 @@ void runTestCase29()
     RUN_EACH_TYPE(TestDriver, testCase29, TEST_TYPES);
 }
 
+void runTestCase38()
+{
+    if (veryVerbose) {
+        cout << "Test 'IsBitwiseMoveable' and 'IsBitwiseCopyable'\n";
+    }
+
+    RUN_EACH_TYPE(TestDriver, testCase38, TEST_TYPES);
+}
+
 namespace MoveFromAllocTypeSpace {
 
 // Needed types with 3 requirments:
@@ -6475,7 +6775,7 @@ int main(int argc, char *argv[])
     bslma::Default::setGlobalAllocator(&globalAllocator);
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 38: {
+      case 39: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   Extracted from component header file.
@@ -6519,6 +6819,13 @@ int main(int argc, char *argv[])
 //..
 
       } break;
+      case 38: {
+        // --------------------------------------------------------------------
+        // Testing 'IsBitwiseMoveable' and 'IsBitwiseCopyable'.
+        // --------------------------------------------------------------------
+
+        runTestCase38();
+      } break;
       case 37: {
         // --------------------------------------------------------------------
         // Comparison of 'tuples' -- DRQS 170454046
@@ -6551,9 +6858,12 @@ int main(int argc, char *argv[])
             PP(BSLS_COMPILERFEATURES_CPLUSPLUS);
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            auto comp = bsl::tie(o) <=> bsl::tie(o);
-            int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(o) <=> bsl::tie(o);
+                int  ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::tie(o) == bsl::tie(o));
             PP(bsl::tie(o) == bsl::tie(o));
@@ -6565,9 +6875,12 @@ int main(int argc, char *argv[])
 
             bdlb::NullableValue<int> nv;
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::tie(nv) <=> bsl::tie(nv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(nv) <=> bsl::tie(nv);
+                auto ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::tie(nv) == bsl::tie(nv));
             PP(bsl::tie(nv) == bsl::tie(nv));
@@ -6578,9 +6891,12 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::tie(o) <=> bsl::tie(nv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(o) <=> bsl::tie(nv);
+                auto ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::tie(o) == bsl::tie(nv));
             PP(bsl::tie(o) == bsl::tie(nv));
@@ -6591,9 +6907,12 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::tie(nv) <=> bsl::tie(o);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(nv) <=> bsl::tie(o);
+                auto ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::tie(nv) == bsl::tie(o));
             PP(bsl::tie(nv) == bsl::tie(o));
@@ -6606,9 +6925,12 @@ int main(int argc, char *argv[])
             o = INT_MIN;    P(*o);
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::tie(o) <=> bsl::tie(nv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(1 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(o) <=> bsl::tie(nv);
+                auto ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::tie(o) == bsl::tie(nv)));
             PP(bsl::tie(o) == bsl::tie(nv));
@@ -6619,9 +6941,12 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::tie(nv) <=> bsl::tie(o);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(-1 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(nv) <=> bsl::tie(o);
+                auto ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(-1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::tie(nv) == bsl::tie(o)));
             PP(bsl::tie(nv) == bsl::tie(o));
@@ -6634,9 +6959,12 @@ int main(int argc, char *argv[])
             nv = INT_MAX;    P(*nv);
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::tie(o) <=> bsl::tie(nv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(-1 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(o) <=> bsl::tie(nv);
+                auto ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(-1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::tie(o) == bsl::tie(nv)));
             PP(bsl::tie(o) == bsl::tie(nv));
@@ -6647,9 +6975,12 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::tie(nv) <=> bsl::tie(o);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(1 == ii);    PP(ii);
+            {
+                auto comp = bsl::tie(nv) <=> bsl::tie(o);
+                auto ii   = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::tie(nv) == bsl::tie(o)));
             PP(bsl::tie(nv) == bsl::tie(o));
@@ -6667,10 +6998,13 @@ int main(int argc, char *argv[])
             PP(BSLS_COMPILERFEATURES_CPLUSPLUS);
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            auto comp = bsl::forward_as_tuple(mo) <=>
-                                                     bsl::forward_as_tuple(mo);
-            int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mo) <=>
+                            bsl::forward_as_tuple(mo);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mo));
             PP(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mo));
@@ -6684,9 +7018,13 @@ int main(int argc, char *argv[])
             bdlb::NullableValue<int>&& mnv = std::move(nv);
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::forward_as_tuple(mnv) <=> bsl::forward_as_tuple(mnv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mnv) <=>
+                       bsl::forward_as_tuple(mnv);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mnv));
             PP(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mnv));
@@ -6697,9 +7035,13 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::forward_as_tuple(mo) <=> bsl::forward_as_tuple(mnv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mo) <=>
+                       bsl::forward_as_tuple(mnv);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mnv));
             PP(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mnv));
@@ -6710,9 +7052,13 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::forward_as_tuple(mnv) <=> bsl::forward_as_tuple(o);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(0 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mnv) <=>
+                       bsl::forward_as_tuple(o);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(0 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mo));
             PP(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mo));
@@ -6725,9 +7071,13 @@ int main(int argc, char *argv[])
             o = INT_MIN;    P(*mo);
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::forward_as_tuple(mo) <=> bsl::forward_as_tuple(mnv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(1 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mo) <=>
+                       bsl::forward_as_tuple(mnv);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mnv)));
             PP(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mnv));
@@ -6738,9 +7088,13 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::forward_as_tuple(mnv) <=> bsl::forward_as_tuple(o);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(-1 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mnv) <=>
+                       bsl::forward_as_tuple(o);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(-1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mo)));
             PP(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mo));
@@ -6753,9 +7107,13 @@ int main(int argc, char *argv[])
             nv = INT_MAX;    P(*mnv);
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::forward_as_tuple(mo) <=> bsl::forward_as_tuple(mnv);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(-1 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mo) <=>
+                       bsl::forward_as_tuple(mnv);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(-1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mnv)));
             PP(bsl::forward_as_tuple(mo) == bsl::forward_as_tuple(mnv));
@@ -6766,9 +7124,13 @@ int main(int argc, char *argv[])
             if (verbose) cout << endl;
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
-            comp = bsl::forward_as_tuple(mnv) <=> bsl::forward_as_tuple(mo);
-            ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
-            ASSERT(1 == ii);    PP(ii);
+            {
+                auto comp = bsl::forward_as_tuple(mnv) <=>
+                       bsl::forward_as_tuple(mo);
+                int ii = 0 == comp ? 0 : 0 < comp ? 1 : -1;
+                ASSERT(1 == ii);
+                PP(ii);
+            }
 #endif
             ASSERT(!(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mo)));
             PP(bsl::forward_as_tuple(mnv) == bsl::forward_as_tuple(mo));
@@ -7441,13 +7803,13 @@ int main(int argc, char *argv[])
         // TESTING 'TYPE' IS ALLOCATOR
         //
         // Concerns:
-        //: 1 That the type under test can copy or move construct or assign
+        //: 1 That the type under test can copy or move construct
         //:   when 'TYPE' is 'bsl::allocator'.
         //:
         //: 2 That the type under test can copy or move construct or assign
         //:   when 'TYPE' is 'bslma::Allocator *'.
         //:
-        //: 3 That the type under test can copy construct or assign when the
+        //: 3 That the type under test can copy construct when the
         //:   'TYPE' of the 'from' is 'bslma::Allocator *' and the 'TYPE' of
         //:   the 'to' is 'bsl::allocator'.
         //
@@ -7458,9 +7820,9 @@ int main(int argc, char *argv[])
         //:
         //:   o move construct
         //:
-        //:   o copy assign
+        //:   o copy assign (for 'bslma::Allocator *')
         //:
-        //:   o move assign
+        //:   o move assign (for 'bslma::Allocator *')
         //:
         //: 2 Test, going from 'bsl::optional' to 'NullableValue', for both
         //:   'TYPE == bsl::allocator' && 'TYPE == bslma::Allocator *',
@@ -7468,12 +7830,12 @@ int main(int argc, char *argv[])
         //:
         //:   o move construct
         //:
-        //:   o copy assign
+        //:   o copy assign (for 'bslma::Allocator *')
         //:
-        //:   o move assign
+        //:   o move assign (for 'bslma::Allocator *')
         //
         // Testing:
-        //   TYPE IS ALLOCATOR
+        //   TESTING 'TYPE' IS ALLOCATOR
         // --------------------------------------------------------------------
 
         if (verbose) cout << "TESTING 'TYPE' IS ALLOCATOR\n"
@@ -7551,17 +7913,9 @@ int main(int argc, char *argv[])
             TestAlloc taa, uaa;
             Alloc     aa(&taa), ua(&uaa);
 
-            NVAlloc       raa(aa);     const NVAlloc& RAA  = raa;
-            NVAlloc       nvAA(ua);    const NVAlloc& NVAA = nvAA;
-            NVAlloc      *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = RAA);
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(RAA ->mechanism() == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
+            // Note: do not test assignment to
+            // 'NullableValue<bsl::allocator<char>>', because
+            // 'bsl::allocator<char>' is not assignable.
 
             NVAllocPtr       raap(&taa);    const NVAllocPtr& RAAP  = raap;
             NVAllocPtr       nvAAP(&uaa);   const NVAllocPtr& NVAAP = nvAAP;
@@ -7581,17 +7935,9 @@ int main(int argc, char *argv[])
             TestAlloc taa, uaa;
             Alloc     aa(&taa), ua(&uaa);
 
-            NVAlloc       raa(aa);     const NVAlloc& RAA  = raa;
-            NVAlloc       nvAA(ua);    const NVAlloc& NVAA = nvAA;
-            NVAlloc      *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = MoveUtil::move(raa));
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(RAA ->mechanism() == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
+            // Note: do not test assignment to
+            // 'NullableValue<bsl::allocator<char>>', because
+            // 'bsl::allocator<char>' is not assignable.
 
             NVAllocPtr       raap(&taa);    const NVAllocPtr& RAAP  = raap;
             NVAllocPtr       nvAAP(&uaa);   const NVAllocPtr& NVAAP = nvAAP;
@@ -7648,17 +7994,9 @@ int main(int argc, char *argv[])
             TestAlloc taa, uaa;
             Alloc     aa(&taa), ua(&uaa);
 
-            OptAlloc      oaa(aa);     const OptAlloc& OAA = oaa;
-            NVAlloc       nvAA(ua);    const NVAlloc&  NVAA = nvAA;
-            NVAlloc      *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = OAA);
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(OAA ->mechanism() == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
+            // Note: do not test assignment to
+            // 'NullableValue<bsl::allocator<char>>', because
+            // 'bsl::allocator<char>' is not assignable.
 
             OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
             NVAllocPtr       nvAAP(&uaa);   const NVAllocPtr&  NVAAP = nvAAP;
@@ -7678,17 +8016,9 @@ int main(int argc, char *argv[])
             TestAlloc taa, uaa;
             Alloc     aa(&taa), ua(&uaa);
 
-            OptAlloc      oaa(aa);     const OptAlloc& OAA = oaa;
-            NVAlloc       nvAA(ua);    const NVAlloc&  NVAA = nvAA;
-            NVAlloc      *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = MoveUtil::move(oaa));
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(OAA ->mechanism() == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
+            // Note: do not test assignment to
+            // 'NullableValue<bsl::allocator<char>>', because
+            // 'bsl::allocator<char>' is not assignable.
 
             OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
             NVAllocPtr       nvAAP(&uaa);   const NVAllocPtr&  NVAAP = nvAAP;
@@ -7730,43 +8060,9 @@ int main(int argc, char *argv[])
         }
 #endif
 
-        if (verbose) cout << "Copy assign NV from NV diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            NVAllocPtr       raap(&taa);    const NVAllocPtr& RAAP = raap;
-            NVAlloc          nvAA(ua);      const NVAlloc& NVAA    = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = RAAP);
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(*RAAP  == &taa);
-            ASSERT(NVAA->mechanism() == &taa);
-        }
-
-#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-        if (verbose) cout << "Move assign NV from NV diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            NVAllocPtr       raap(&taa);    const NVAllocPtr& RAAP = raap;
-            NVAlloc          nvAA(ua);      const NVAlloc& NVAA    = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = MoveUtil::move(raap));
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(*RAAP  == &taa);
-            ASSERT(NVAA->mechanism() == &taa);
-        }
-#endif
+        // Note: Do not test assignment to
+        // 'NullableValue<bsl::allocator<char>>', because
+        // 'bsl::allocator<char>' is not assignable.
 
         if (verbose) cout << "Copy construct NV from Opt diff\n";
         {
@@ -7795,43 +8091,9 @@ int main(int argc, char *argv[])
         }
 #endif
 
-        if (verbose) cout << "Copy assign NV from Opt diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
-            NVAlloc          nvAA(ua);      const NVAlloc&     NVAA = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = OAAP);
-
-            ASSERT(&NVAA             == z_p);
-            ASSERT(*OAAP             == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
-        }
-
-#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-        if (verbose) cout << "Move assign NV from Opt diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
-            NVAlloc          nvAA(ua);      const NVAlloc&     NVAA = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = MoveUtil::move(oaap));
-
-            ASSERT(&NVAA             == z_p);
-            ASSERT(*OAAP             == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
-        }
-#endif
+        // Note: do not test assignment to
+        // 'NullableValue<bsl::allocator<char>>', because
+        // 'bsl::allocator<char>' is not assignable.
 
         {
             TestAlloc taa;
@@ -7936,65 +8198,9 @@ int main(int argc, char *argv[])
             ASSERT(***nvOOAAPP == &taa);
         }
 
-        if (verbose) cout << "Copy assign NV from Opt\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            OptAlloc      oaa(aa);     const OptAlloc& OAA = oaa;
-            NVAlloc       nvAA(ua);    const NVAlloc&  NVAA = nvAA;
-            NVAlloc      *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = OAA);
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(OAA ->mechanism() == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
-
-            OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
-            NVAllocPtr       nvAAP(&uaa);   const NVAllocPtr&  NVAAP = nvAAP;
-            NVAllocPtr      *zp_p = 0;
-
-            ASSERT(*nvAAP == &uaa);
-
-            zp_p = &(nvAAP = OAAP);
-
-            ASSERT(&NVAAP == zp_p);
-            ASSERT(*OAAP  == &taa);
-            ASSERT(*nvAAP == &taa);
-        }
-
-        if (verbose) cout << "Move assign NV from Opt\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            OptAlloc      oaa(aa);     const OptAlloc& OAA = oaa;
-            NVAlloc       nvAA(ua);    const NVAlloc&  NVAA = nvAA;
-            NVAlloc      *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = MoveUtil::move(oaa));
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(OAA ->mechanism() == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
-
-            OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
-            NVAllocPtr       nvAAP(&uaa);   const NVAllocPtr&  NVAAP = nvAAP;
-            NVAllocPtr      *zp_p = 0;
-
-            ASSERT(*nvAAP == &uaa);
-
-            zp_p = &(nvAAP = MoveUtil::move(oaap));
-
-            ASSERT(&NVAAP == zp_p);
-            ASSERT(*OAAP  == &taa);
-            ASSERT(*nvAAP == &taa);
-        }
+        // Note: do not test assignment to
+        // 'NullableValue<bsl::allocator<char>>', because
+        // 'bsl::allocator<char>' is not assignable.
 
         if (verbose) cout << "Copy construct NV from NV diff\n";
         {
@@ -8023,43 +8229,9 @@ int main(int argc, char *argv[])
         }
 #endif
 
-        if (verbose) cout << "Copy assign NV from NV diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            NVAllocPtr       raap(&taa);    const NVAllocPtr& RAAP = raap;
-            NVAlloc          nvAA(ua);      const NVAlloc& NVAA    = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = RAAP);
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(*RAAP  == &taa);
-            ASSERT(NVAA->mechanism() == &taa);
-        }
-
-#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-        if (verbose) cout << "Move assign NV from NV diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            NVAllocPtr       raap(&taa);    const NVAllocPtr& RAAP = raap;
-            NVAlloc          nvAA(ua);      const NVAlloc& NVAA    = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = MoveUtil::move(raap));
-
-            ASSERT(&NVAA == z_p);
-            ASSERT(*RAAP  == &taa);
-            ASSERT(NVAA->mechanism() == &taa);
-        }
-#endif
+        // Note: do not test assignment to
+        // 'NullableValue<bsl::allocator<char>>', because
+        // 'bsl::allocator<char>' is not assignable.
 
         if (verbose) cout << "Copy construct NV from Opt diff\n";
         {
@@ -8088,73 +8260,13 @@ int main(int argc, char *argv[])
         }
 #endif
 
-        if (verbose) cout << "Copy assign NV from Opt diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
-            NVAlloc          nvAA(ua);      const NVAlloc&      NVAA = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = OAAP);
-
-            ASSERT(&NVAA             == z_p);
-            ASSERT(*OAAP             == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
-        }
-
-#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-        if (verbose) cout << "Move assign NV from Opt diff\n";
-        {
-            TestAlloc taa, uaa;
-            Alloc     aa(&taa), ua(&uaa);
-
-            OptAllocPtr      oaap(&taa);    const OptAllocPtr& OAAP = oaap;
-            NVAlloc          nvAA(ua);      const NVAlloc&     NVAA = nvAA;
-            NVAlloc         *z_p = 0;
-
-            ASSERT(nvAA->mechanism() == &uaa);
-
-            z_p = &(nvAA = MoveUtil::move(oaap));
-
-            ASSERT(&NVAA             == z_p);
-            ASSERT(*OAAP             == &taa);
-            ASSERT(nvAA->mechanism() == &taa);
-        }
-#endif
-
         if (verbose) cout << "Copy assign NV from OptOpt\n";
         {
-            TestAlloc taa, txx;
-            Alloc     aa(&taa), xx(&txx);
+            // Note: do not test assignment to
+            // 'NullableValue<bsl::allocator<char>>', because
+            // 'bsl::allocator<char>' is not assignable.
 
-            OptAlloc                 oaa(aa);
-            const OptAlloc&          OAA = oaa;
-
-            OptOptAlloc              ooaa(OAA);
-            const OptOptAlloc&       OOAA = ooaa;
-
-            OptAlloc                 oxx(xx);
-            const OptAlloc&          OXX = oxx;
-
-            OptOptAlloc              ooxx(OXX);
-            const OptOptAlloc&       OOXX = ooxx;
-
-            NVOptOptAlloc            nvOOAA(OOAA);
-            const NVOptOptAlloc      nvOOXX(OOXX);
-
-            ASSERT((*OOAA)   ->mechanism() == &taa);
-            ASSERT((**nvOOAA)->mechanism() == &taa);
-            ASSERT((**nvOOXX)->mechanism() == &txx);
-
-            NVOptOptAlloc* p_z = &(nvOOAA = nvOOXX);
-
-            ASSERT(&nvOOAA == p_z);
-            ASSERT((**nvOOAA)->mechanism() == &txx);
-            ASSERT((**nvOOXX)->mechanism() == &txx);
+            TestAlloc                   taa, txx;
 
             OptAllocPtr                 oaap(&taa);
             const OptAllocPtr&          OAAP = oaap;
@@ -8176,7 +8288,6 @@ int main(int argc, char *argv[])
             ASSERT(***nvOOXXP == &txx);
 
             NVOptOptAllocPtr* p_zp = &(nvOOAAP = OOXXP);
-
             ASSERT(&nvOOAAP == p_zp);
             ASSERT(***nvOOAAP == &txx);
             ASSERT(***nvOOXXP == &txx);
@@ -8184,33 +8295,7 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "Move assign NV from OptOpt\n";
         {
-            TestAlloc taa, txx;
-            Alloc     aa(&taa), xx(&txx);
-
-            OptAlloc                 oaa(aa);
-            const OptAlloc&          OAA = oaa;
-
-            OptOptAlloc              ooaa(OAA);
-            const OptOptAlloc&       OOAA = ooaa;
-
-            OptAlloc                 oxx(xx);
-            const OptAlloc&          OXX = oxx;
-
-            OptOptAlloc              ooxx(OXX);
-            const OptOptAlloc&       OOXX = ooxx;
-
-            NVOptOptAlloc            nvOOAA(OOAA);
-            NVOptOptAlloc            nvOOXX(OOXX);
-
-            ASSERT((*OOAA)   ->mechanism() == &taa);
-            ASSERT((**nvOOAA)->mechanism() == &taa);
-            ASSERT((**nvOOXX)->mechanism() == &txx);
-
-            NVOptOptAlloc* p_z = &(nvOOAA = MoveUtil::move(nvOOXX));
-
-            ASSERT(&nvOOAA == p_z);
-            ASSERT((**nvOOAA)->mechanism() == &txx);
-            ASSERT((**nvOOXX)->mechanism() == &txx);
+            TestAlloc                   taa, txx;
 
             OptAllocPtr                 oaap(&taa);
             const OptAllocPtr&          OAAP = oaap;
@@ -8231,12 +8316,13 @@ int main(int argc, char *argv[])
             ASSERT(***nvOOAAP == &taa);
             ASSERT(***nvOOXXP == &txx);
 
-            NVOptOptAllocPtr* p_zp = &(nvOOAAP =MoveUtil::move(nvOOXXP));
+            NVOptOptAllocPtr* p_zp = &(nvOOAAP = MoveUtil::move(nvOOXXP));
 
             ASSERT(&nvOOAAP == p_zp);
             ASSERT(***nvOOAAP == &txx);
             ASSERT(***nvOOXXP == &txx);
         }
+
       } break;
       case 31: {
         // --------------------------------------------------------------------
@@ -9867,172 +9953,40 @@ int main(int argc, char *argv[])
       } break;
       case 27: {
         // --------------------------------------------------------------------
-        // TESTING 'bdlb::nullOpt' COMPARISONS
-        //  The type 'bdlb::NullOptType' is not a type suitable for arbitrary
+        // TESTING 'bsl::nullopt' COMPARISONS
+        //  The type 'bsl::nullopt_t' is not a type suitable for arbitrary
         //  user-created objects, but a proxy for conversion from the literal
-        //  value 'bdlb::nullOpt'.  As such, all testing concerns will be
-        //  phrased in terms of the 'bdlb::nullOpt' literal, rather than
-        //  'bdlb::NullOptType'.
+        //  value 'bsl::nullopt'.  As such, all testing concerns will be
+        //  phrased in terms of the 'bsl::nullopt' literal, rather than
+        //  'bsl::nullopt_t'.
         //
         // Concerns:
-        //: 1 That 'bdlb::nullOpt' orders as a null 'NullableValue'
-        //: o 'bdlb::nullOpt' orders before any non-null 'NullableValue'
-        //: o 'bdlb::nullOpt' compares equal to a null 'NullableValue'
+        //: 1 That 'bsl::nullopt' orders as a null 'NullableValue'
+        //: o 'bsl::nullopt' orders before any non-null 'NullableValue'
+        //: o 'bsl::nullopt' compares equal to a null 'NullableValue'
         //:
         //: 2 If the compiler supports 'noexcept', then none of the comparisons
-        //:   with 'bdlb::nullOpt' can throw an exception.
+        //:   with 'bsl::nullopt' can throw an exception.
         //
         // Plan:
-        //   Conduct the regular test using 'int' and 'bsl::string'.
+        //: 1 Conduct the regular test using 'int' and 'bsl::string'.
         //
         // Testing:
-        //   bool operator==(const NullableValue<LHS_TYPE>&, NullOptType);
-        //   bool operator!=(const NullableValue<LHS_TYPE>&, NullOptType);
-        //   bool operator< (const NullableValue<LHS_TYPE>&, NullOptType);
-        //   bool operator<=(const NullableValue<LHS_TYPE>&, NullOptType);
-        //   bool operator>=(const NullableValue<LHS_TYPE>&, NullOptType);
-        //   bool operator> (const NullableValue<LHS_TYPE>&, NullOptType);
-        //   bool operator==(NullOptType, const NullableValue<LHS_TYPE>&);
-        //   bool operator!=(NullOptType, const NullableValue<LHS_TYPE>&);
-        //   bool operator< (NullOptType, const NullableValue<LHS_TYPE>&);
-        //   bool operator<=(NullOptType, const NullableValue<LHS_TYPE>&);
-        //   bool operator>=(NullOptType, const NullableValue<LHS_TYPE>&);
-        //   bool operator> (NullOptType, const NullableValue<LHS_TYPE>&);
+        //   bool operator==(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+        //   bool operator!=(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+        //   bool operator< (const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+        //   bool operator<=(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+        //   bool operator>=(const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+        //   bool operator> (const NullableValue<LHS_TYPE>&, bsl::nullopt_t);
+        //   bool operator==(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+        //   bool operator!=(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+        //   bool operator< (bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+        //   bool operator<=(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+        //   bool operator>=(bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
+        //   bool operator> (bsl::nullopt_t, const NullableValue<LHS_TYPE>&);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING 'bdlb::nullOpt' COMPARISONS"
-                             "\n===================================" << endl;
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-# define ASSERT_N(         EXPRESSION  )        \
-         ASSERT  (         EXPRESSION  );       \
-         ASSERT  (noexcept(EXPRESSION) );
-#else
-# define ASSERT_N(         EXPRESSION  )        \
-         ASSERT  (         EXPRESSION  );
-#endif
-
-        if (verbose) cout << "\tfor simple 'NullableValue<int>" << endl;
-        {
-            typedef int                            ValueType;
-            typedef bdlb::NullableValue<ValueType> Obj;
-
-            Obj mX(bdlb::nullOpt);          const Obj& X = mX;
-
-            ASSERT_N(X.isNull());
-
-            ASSERT_N( (X == bdlb::nullOpt) );
-            ASSERT_N(!(X != bdlb::nullOpt) );
-            ASSERT_N(!(X <  bdlb::nullOpt) );
-            ASSERT_N( (X <= bdlb::nullOpt) );
-            ASSERT_N( (X >= bdlb::nullOpt) );
-            ASSERT_N(!(X >  bdlb::nullOpt) );
-
-            ASSERT_N( (bdlb::nullOpt == X) );
-            ASSERT_N(!(bdlb::nullOpt != X) );
-            ASSERT_N(!(bdlb::nullOpt <  X) );
-            ASSERT_N( (bdlb::nullOpt <= X) );
-            ASSERT_N( (bdlb::nullOpt >= X) );
-            ASSERT_N(!(bdlb::nullOpt >  X) );
-
-            Obj mY(0);                      const Obj& Y = mY;
-            ASSERT_N(!Y.isNull());
-
-            ASSERT_N(!(Y == bdlb::nullOpt) );
-            ASSERT_N( (Y != bdlb::nullOpt) );
-            ASSERT_N(!(Y <  bdlb::nullOpt) );
-            ASSERT_N(!(Y <= bdlb::nullOpt) );
-            ASSERT_N( (Y >= bdlb::nullOpt) );
-            ASSERT_N( (Y >  bdlb::nullOpt) );
-
-            ASSERT_N(!(bdlb::nullOpt == Y) );
-            ASSERT_N( (bdlb::nullOpt != Y) );
-            ASSERT_N( (bdlb::nullOpt <  Y) );
-            ASSERT_N( (bdlb::nullOpt <= Y) );
-            ASSERT_N(!(bdlb::nullOpt >= Y) );
-            ASSERT_N(!(bdlb::nullOpt >  Y) );
-        }
-
-        if (verbose) cout << "\tfor simple 'NullableValue<double>" << endl;
-        {
-            typedef bsl::string                    ValueType;
-            typedef bdlb::NullableValue<ValueType> Obj;
-
-            Obj mX(bdlb::nullOpt);          const Obj& X = mX;
-
-            ASSERT_N(X.isNull());
-
-            ASSERT_N( (X == bdlb::nullOpt) );
-            ASSERT_N(!(X != bdlb::nullOpt) );
-            ASSERT_N(!(X <  bdlb::nullOpt) );
-            ASSERT_N( (X <= bdlb::nullOpt) );
-            ASSERT_N( (X >= bdlb::nullOpt) );
-            ASSERT_N(!(X >  bdlb::nullOpt) );
-
-            ASSERT_N( (bdlb::nullOpt == X) );
-            ASSERT_N(!(bdlb::nullOpt != X) );
-            ASSERT_N(!(bdlb::nullOpt <  X) );
-            ASSERT_N( (bdlb::nullOpt <= X) );
-            ASSERT_N( (bdlb::nullOpt >= X) );
-            ASSERT_N(!(bdlb::nullOpt >  X) );
-
-            Obj        mY("Long string literal: no short string optimization");
-            const Obj& Y = mY;
-
-            ASSERT(!Y.isNull());
-
-            ASSERT_N(!(Y == bdlb::nullOpt) );
-            ASSERT_N( (Y != bdlb::nullOpt) );
-            ASSERT_N(!(Y <  bdlb::nullOpt) );
-            ASSERT_N(!(Y <= bdlb::nullOpt) );
-            ASSERT_N( (Y >= bdlb::nullOpt) );
-            ASSERT_N( (Y >  bdlb::nullOpt) );
-
-            ASSERT_N(!(bdlb::nullOpt == Y) );
-            ASSERT_N( (bdlb::nullOpt != Y) );
-            ASSERT_N( (bdlb::nullOpt <  Y) );
-            ASSERT_N( (bdlb::nullOpt <= Y) );
-            ASSERT_N(!(bdlb::nullOpt >= Y) );
-            ASSERT_N(!(bdlb::nullOpt >  Y) );
-        }
-#undef ASSERT_N
-      } break;
-      case 26: {
-        // --------------------------------------------------------------------
-        // TESTING 'bdlb::nullOpt' CONVERSION
-        //  The type 'bdlb::NullOptType' is not a type suitable for arbitrary
-        //  user-created objects, but a proxy for conversion from the literal
-        //  value 'bdlb::nullOpt'.  As such, all testing concerns will be
-        //  phrased in terms of the 'bdlb::nullOpt' literal, rather than
-        //  'bdlb::NullOptType'.
-        //
-        // Concerns:
-        //: 1 That 'NullableValue' objects implicit convert from the literal
-        //:   value 'bdlb::nullOpt', producing a nulll value.
-        //:
-        //: 2 That memory is allocated for subsequent values using the supplied
-        //:   allocator, or the default allocator if no allocator is supplied.
-        //:
-        //: 3 That there are no surprising ambiguities when instantiating
-        //:   'NullableValue' with gregarious types, types that convert to
-        //:   'NullOptType', or passing such types to a 'NullableValue'.
-        //:
-        //: 4 If the compiler supports 'noexcept', then none of the conversions
-        //:   from 'bdlb::nullOpt' can throw an exception.
-        //
-        // Plan:
-        //   Conduct the regular test using 'int' and 'double'.  Then try
-        //   'bsl::string' with 'char *' to observe with allocators involved
-        //   Finally, try 'bslmf::MatchAnyType' to show that there are no
-        //   surprising ambiguities.
-        //
-        // Testing:
-        //   NullableValue(const NullOptType&);
-        //   NullableValue(const NullOptType&, allocator);
-        //   NullableValue& operator=(const NullOptType& rhs);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nTESTING 'bdlb::nullOpt' CONVERSION"
+        if (verbose) cout << "\nTESTING 'bsl::nullopt' COMPARISONS"
                              "\n==================================" << endl;
 
         if (verbose) cout << "\tfor simple 'NullableValue<int>" << endl;
@@ -10040,20 +9994,248 @@ int main(int argc, char *argv[])
             typedef int                            ValueType;
             typedef bdlb::NullableValue<ValueType> Obj;
 
-            Obj mX(bdlb::nullOpt);          const Obj& X = mX;
+            Obj mX(bsl::nullopt);         const Obj& X = mX;
 
-            ASSERT(X.isNull());
+            ASSERT(!X.has_value());
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT
+            ASSERT(noexcept(X == bsl::nullopt));
+            ASSERT(noexcept(X != bsl::nullopt));
+            ASSERT(noexcept(X <  bsl::nullopt));
+            ASSERT(noexcept(X <= bsl::nullopt));
+            ASSERT(noexcept(X >= bsl::nullopt));
+            ASSERT(noexcept(X >  bsl::nullopt));
+
+            ASSERT(noexcept(bsl::nullopt == X));
+            ASSERT(noexcept(bsl::nullopt != X));
+            ASSERT(noexcept(bsl::nullopt <  X));
+            ASSERT(noexcept(bsl::nullopt <= X));
+            ASSERT(noexcept(bsl::nullopt >= X));
+            ASSERT(noexcept(bsl::nullopt >  X));
+#endif
+
+            ASSERT( (X == bsl::nullopt) );
+            ASSERT(!(X != bsl::nullopt) );
+            ASSERT(!(X <  bsl::nullopt) );
+            ASSERT( (X <= bsl::nullopt) );
+            ASSERT( (X >= bsl::nullopt) );
+            ASSERT(!(X >  bsl::nullopt) );
+
+            ASSERT( (bsl::nullopt == X) );
+            ASSERT(!(bsl::nullopt != X) );
+            ASSERT(!(bsl::nullopt <  X) );
+            ASSERT( (bsl::nullopt <= X) );
+            ASSERT( (bsl::nullopt >= X) );
+            ASSERT(!(bsl::nullopt >  X) );
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+
+            ASSERTV( ((bsl::nullopt <=> X) == 0));
+            ASSERTV(!((bsl::nullopt <=> X) != 0));
+            ASSERTV(!((bsl::nullopt <=> X)  < 0));
+            ASSERTV(!((bsl::nullopt <=> X)  > 0));
+            ASSERTV( ((bsl::nullopt <=> X) <= 0));
+            ASSERTV( ((bsl::nullopt <=> X) >= 0));
+
+            ASSERTV( ((X <=> bsl::nullopt) == 0));
+            ASSERTV(!((X <=> bsl::nullopt) != 0));
+            ASSERTV(!((X <=> bsl::nullopt)  < 0));
+            ASSERTV(!((X <=> bsl::nullopt)  > 0));
+            ASSERTV( ((X <=> bsl::nullopt) <= 0));
+            ASSERTV( ((X <=> bsl::nullopt) >= 0));
+#endif
 
             Obj mY(0);                      const Obj& Y = mY;
-            ASSERT(!Y.isNull());
+            ASSERT(Y.has_value());
 
-            mY = bdlb::nullOpt;
-            ASSERT(Y.isNull());
+            ASSERT(!(Y == bsl::nullopt) );
+            ASSERT( (Y != bsl::nullopt) );
+            ASSERT(!(Y <  bsl::nullopt) );
+            ASSERT(!(Y <= bsl::nullopt) );
+            ASSERT( (Y >= bsl::nullopt) );
+            ASSERT( (Y >  bsl::nullopt) );
+
+            ASSERT(!(bsl::nullopt == Y) );
+            ASSERT( (bsl::nullopt != Y) );
+            ASSERT( (bsl::nullopt <  Y) );
+            ASSERT( (bsl::nullopt <= Y) );
+            ASSERT(!(bsl::nullopt >= Y) );
+            ASSERT(!(bsl::nullopt >  Y) );
+
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+
+            ASSERTV(!((bsl::nullopt <=> Y) == 0));
+            ASSERTV( ((bsl::nullopt <=> Y) != 0));
+            ASSERTV( ((bsl::nullopt <=> Y)  < 0));
+            ASSERTV(!((bsl::nullopt <=> Y)  > 0));
+            ASSERTV( ((bsl::nullopt <=> Y) <= 0));
+            ASSERTV(!((bsl::nullopt <=> Y) >= 0));
+
+            ASSERTV(!((Y <=> bsl::nullopt) == 0));
+            ASSERTV( ((Y <=> bsl::nullopt) != 0));
+            ASSERTV(!((Y <=> bsl::nullopt)  < 0));
+            ASSERTV( ((Y <=> bsl::nullopt)  > 0));
+            ASSERTV(!((Y <=> bsl::nullopt) <= 0));
+            ASSERTV( ((Y <=> bsl::nullopt) >= 0));
+#endif
+        }
+
+        if (verbose) cout << "\tfor simple 'NullableValue<double>" << endl;
+        {
+            typedef bsl::string                    ValueType;
+            typedef bdlb::NullableValue<ValueType> Obj;
+
+            Obj mX(bsl::nullopt);          const Obj& X = mX;
+
+            ASSERT(!X.has_value());
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT
+            ASSERT(noexcept(X == bsl::nullopt));
+            ASSERT(noexcept(X != bsl::nullopt));
+            ASSERT(noexcept(X <  bsl::nullopt));
+            ASSERT(noexcept(X <= bsl::nullopt));
+            ASSERT(noexcept(X >= bsl::nullopt));
+            ASSERT(noexcept(X >  bsl::nullopt));
+
+            ASSERT(noexcept(bsl::nullopt == X));
+            ASSERT(noexcept(bsl::nullopt != X));
+            ASSERT(noexcept(bsl::nullopt <  X));
+            ASSERT(noexcept(bsl::nullopt <= X));
+            ASSERT(noexcept(bsl::nullopt >= X));
+            ASSERT(noexcept(bsl::nullopt >  X));
+#endif
+
+            ASSERT( (X == bsl::nullopt) );
+            ASSERT(!(X != bsl::nullopt) );
+            ASSERT(!(X <  bsl::nullopt) );
+            ASSERT( (X <= bsl::nullopt) );
+            ASSERT( (X >= bsl::nullopt) );
+            ASSERT(!(X >  bsl::nullopt) );
+
+            ASSERT( (bsl::nullopt == X) );
+            ASSERT(!(bsl::nullopt != X) );
+            ASSERT(!(bsl::nullopt <  X) );
+            ASSERT( (bsl::nullopt <= X) );
+            ASSERT( (bsl::nullopt >= X) );
+            ASSERT(!(bsl::nullopt >  X) );
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+
+            ASSERTV( ((bsl::nullopt <=> X) == 0));
+            ASSERTV(!((bsl::nullopt <=> X) != 0));
+            ASSERTV(!((bsl::nullopt <=> X)  < 0));
+            ASSERTV(!((bsl::nullopt <=> X)  > 0));
+            ASSERTV( ((bsl::nullopt <=> X) <= 0));
+            ASSERTV( ((bsl::nullopt <=> X) >= 0));
+
+            ASSERTV( ((X <=> bsl::nullopt) == 0));
+            ASSERTV(!((X <=> bsl::nullopt) != 0));
+            ASSERTV(!((X <=> bsl::nullopt)  < 0));
+            ASSERTV(!((X <=> bsl::nullopt)  > 0));
+            ASSERTV( ((X <=> bsl::nullopt) <= 0));
+            ASSERTV( ((X <=> bsl::nullopt) >= 0));
+#endif
+
+            Obj        mY("Long string literal: no short string optimization");
+            const Obj& Y = mY;
+
+            ASSERT(Y.has_value());
+
+            ASSERT(!(Y == bsl::nullopt) );
+            ASSERT( (Y != bsl::nullopt) );
+            ASSERT(!(Y <  bsl::nullopt) );
+            ASSERT(!(Y <= bsl::nullopt) );
+            ASSERT( (Y >= bsl::nullopt) );
+            ASSERT( (Y >  bsl::nullopt) );
+
+            ASSERT(!(bsl::nullopt == Y) );
+            ASSERT( (bsl::nullopt != Y) );
+            ASSERT( (bsl::nullopt <  Y) );
+            ASSERT( (bsl::nullopt <= Y) );
+            ASSERT(!(bsl::nullopt >= Y) );
+            ASSERT(!(bsl::nullopt >  Y) );
+
+
+#if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+
+            ASSERTV(!((bsl::nullopt <=> Y) == 0));
+            ASSERTV( ((bsl::nullopt <=> Y) != 0));
+            ASSERTV( ((bsl::nullopt <=> Y)  < 0));
+            ASSERTV(!((bsl::nullopt <=> Y)  > 0));
+            ASSERTV( ((bsl::nullopt <=> Y) <= 0));
+            ASSERTV(!((bsl::nullopt <=> Y) >= 0));
+
+            ASSERTV(!((Y <=> bsl::nullopt) == 0));
+            ASSERTV( ((Y <=> bsl::nullopt) != 0));
+            ASSERTV(!((Y <=> bsl::nullopt)  < 0));
+            ASSERTV( ((Y <=> bsl::nullopt)  > 0));
+            ASSERTV(!((Y <=> bsl::nullopt) <= 0));
+            ASSERTV( ((Y <=> bsl::nullopt) >= 0));
+#endif
+        }
+      } break;
+      case 26: {
+        // --------------------------------------------------------------------
+        // TESTING 'bsl::nullopt' CONVERSION
+        //  The type 'bsl::nullopt' is not a type suitable for arbitrary
+        //  user-created objects, but a proxy for conversion from the literal
+        //  value 'bsl::nullopt'.  As such, all testing concerns will be
+        //  phrased in terms of the 'bsl::nullopt' literal, rather than
+        //  'bsl::nullopt_t'.
+        //
+        // Concerns:
+        //: 1 That 'NullableValue' objects implicit convert from the literal
+        //:   value 'bsl::nullopt', producing a null value.
+        //:
+        //: 2 That memory is allocated for subsequent values using the supplied
+        //:   allocator, or the default allocator if no allocator is supplied.
+        //:
+        //: 3 That there are no surprising ambiguities when instantiating
+        //:   'NullableValue' with gregarious types, types that convert to
+        //:   'bsl::nullopt', or passing such types to a 'NullableValue'.
+        //:
+        //: 4 If the compiler supports 'noexcept', then none of the conversions
+        //:   from 'bsl::nullopt' can throw an exception.
+        //
+        // Plan:
+        //: 1  Conduct the regular test using 'int' and 'double'.  Then try
+        //:  'bsl::string' with 'char *' to observe with allocators involved
+        //:  Finally, try 'bslmf::MatchAnyType' to show that there are no
+        //:  surprising ambiguities.
+        //
+        // Testing:
+        //   NullableValue(const bsl::nullopt_t&);
+        //   NullableValue(const bsl::nullopt_t&, allocator);
+        //   NullableValue& operator=(const bsl::nullopt_t& rhs);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nTESTING 'bsl::nullopt' CONVERSION"
+                             "\n=================================" << endl;
+
+        if (verbose) cout << "\tfor simple 'NullableValue<int>" << endl;
+        {
+            typedef int                            ValueType;
+            typedef bdlb::NullableValue<ValueType> Obj;
+
+            Obj mX(bsl::nullopt);          const Obj& X = mX;
+
+            ASSERT(!X.has_value());
+
+            Obj mY(0);                      const Obj& Y = mY;
+            ASSERT(Y.has_value());
+
+            mY = bsl::nullopt;
+            ASSERT(!Y.has_value());
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-            ASSERTV( noexcept(  mY = bdlb::nullOpt      ) );
+            ASSERTV( noexcept(  mY = bsl::nullopt      ) );
             ASSERTV( noexcept( (void)Obj()              ) );
-            ASSERTV( noexcept( (void)Obj(bdlb::nullOpt) ) );
+            ASSERTV( noexcept( (void)Obj(bsl::nullopt) ) );
 #endif
         }
 
@@ -10062,20 +10244,20 @@ int main(int argc, char *argv[])
             typedef double                         ValueType;
             typedef bdlb::NullableValue<ValueType> Obj;
 
-            Obj mX(bdlb::nullOpt);          const Obj& X = mX;
+            Obj mX(bsl::nullopt);          const Obj& X = mX;
 
-            ASSERT(X.isNull());
+            ASSERT(!X.has_value());
 
             Obj mY(0);                      const Obj& Y = mY;
-            ASSERT(!Y.isNull());
+            ASSERT(Y.has_value());
 
-            mY = bdlb::nullOpt;
-            ASSERT(Y.isNull());
+            mY = bsl::nullopt;
+            ASSERT(!Y.has_value());
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-            ASSERTV( noexcept(  mY = bdlb::nullOpt      ) );
-            ASSERTV( noexcept( (void)Obj()              ) );
-            ASSERTV( noexcept( (void)Obj(bdlb::nullOpt) ) );
+            ASSERTV( noexcept(  mY = bsl::nullopt      ) );
+            ASSERTV( noexcept( (void)Obj()             ) );
+            ASSERTV( noexcept( (void)Obj(bsl::nullopt) ) );
 #endif
         }
 
@@ -10087,32 +10269,33 @@ int main(int argc, char *argv[])
 
             bslma::TestAllocator ta("test 'string'",  veryVeryVeryVerbose);
 
-            Obj mX(bdlb::nullOpt);          const Obj& X = mX;
+            Obj mX(bsl::nullopt);          const Obj& X = mX;
 
             ASSERT(X.isNull());
 
-            Obj mY(bdlb::nullOpt, &ta);     const Obj& Y = mY;
+            Obj mY(bsl::nullopt, &ta);     const Obj& Y = mY;
             ASSERT(Y.isNull());
 
-            Obj mZ("Big string literals evade short string optimization", &ta);
+            Obj        mZ(
+                   "Big string literals evade short string optimization", &ta);
             const Obj& Z = mZ;
 
             ASSERT(!Z.isNull());
-            ASSERT(Z.value().allocator() == &ta);
+            ASSERT(Z.value().get_allocator() == &ta);
 
-            mZ = bdlb::nullOpt;
+            mZ = bsl::nullopt;
             ASSERT(Z.isNull());
 
             mZ.makeValueInplace(
                   "Big string literals still evade short string optimization");
 
             ASSERT(!Z.isNull());
-            ASSERT(Z.value().allocator() == &ta);
+            ASSERT(Z.value().get_allocator() == &ta);
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-            ASSERTV( noexcept(  mY = bdlb::nullOpt      ) );
+            ASSERTV( noexcept(  mY = bsl::nullopt      ) );
             ASSERTV( noexcept( (void)Obj()              ) );
-            ASSERTV( noexcept( (void)Obj(bdlb::nullOpt) ) );
+            ASSERTV( noexcept( (void)Obj(bsl::nullopt) ) );
 #endif
         }
 
@@ -10121,20 +10304,20 @@ int main(int argc, char *argv[])
             typedef bslmf::MatchAnyType            ValueType;
             typedef bdlb::NullableValue<ValueType> Obj;
 
-            Obj mX(bdlb::nullOpt);          const Obj& X = mX;
+            Obj mX(bsl::nullopt);          const Obj& X = mX;
 
             ASSERT(X.isNull());
 
             Obj mY(0);                      const Obj& Y = mY;
             ASSERT(!Y.isNull());
 
-            mY = bdlb::nullOpt;
+            mY = bsl::nullopt;
             ASSERT(Y.isNull());
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-            ASSERTV( noexcept(  mY = bdlb::nullOpt      ) );
-            ASSERTV( noexcept( (void)Obj()              ) );
-            ASSERTV( noexcept( (void)Obj(bdlb::nullOpt) ) );
+            ASSERTV( noexcept(  mY = bsl::nullopt      ) );
+            ASSERTV( noexcept( (void)Obj()             ) );
+            ASSERTV( noexcept( (void)Obj(bsl::nullopt) ) );
 #endif
         }
 
@@ -11188,7 +11371,7 @@ int main(int argc, char *argv[])
                 ObjType2 *mR2 = &(obj2 = OBJ1a);  // null = non-null
 
                 ASSERT(VALUE1a == OBJ1a.value());
-                ASSERT(VALUE1a == OBJ2.value());
+                ASSERT(VALUE1a == static_cast<ValueType1>(OBJ2.value()));
                 ASSERT(    mR2 == &obj2);
 
                 mR2 = &(obj2 = obj1b);            // non-null = non-null
@@ -11224,7 +11407,7 @@ int main(int argc, char *argv[])
 
                 ObjType2 *mR2 = &(obj2 = VALUE1a);
 
-                ASSERT(VALUE1a == OBJ2.value());
+                ASSERT(VALUE1a == static_cast<ValueType1>(OBJ2.value()));
                 ASSERT(    mR2 == &obj2);
 
                 mR2 = &(obj2 = VALUE1b);
@@ -11238,13 +11421,13 @@ int main(int argc, char *argv[])
                 ASSERT(OBJ2.isNull());
 
                 obj2 = mVALUE2;
-                ASSERT(VALUE2 == OBJ2.value());
+                ASSERT(VALUE2 == static_cast<ValueType1>(OBJ2.value()));
 
                 obj2.reset();
                 ASSERT(OBJ2.isNull());
 
                 obj2 = mRVALUE2;
-                ASSERT(VALUE2 == OBJ2.value());
+                ASSERT(VALUE2 == static_cast<ValueType1>(OBJ2.value()));
             }
 
             if (verbose) cout << "\tmake value" << endl;
@@ -11257,7 +11440,7 @@ int main(int argc, char *argv[])
 
                 ValueType2 *addr2 = &obj2.makeValue(VALUE1a);
 
-                ASSERT(VALUE1a == OBJ2.value());
+                ASSERT(VALUE1a == static_cast<ValueType1>(OBJ2.value()));
                 ASSERT(  addr2 == &obj2.value());
 
                 addr2 = &obj2.makeValue(VALUE1b);
@@ -11341,13 +11524,13 @@ int main(int argc, char *argv[])
                 ASSERT(OBJ2.isNull());
 
                 obj2 = mVALUE2;
-                ASSERT(VALUE2 == OBJ2.value());
+                ASSERT(VALUE2 == static_cast<ValueType1>(OBJ2.value()));
 
                 obj2.reset();
                 ASSERT(OBJ2.isNull());
 
                 obj2 = mRVALUE2;
-                ASSERT(VALUE2 == OBJ2.value());
+                ASSERT(VALUE2 == static_cast<ValueType1>(OBJ2.value()));
             }
 
             if (verbose) cout << "\tmake value" << endl;

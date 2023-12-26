@@ -190,12 +190,10 @@ BSLS_IDENT("$Id: $")
 //..
 //  namespace bdlat_EnumFunctions {
 //  template <>
-//  struct IsEnumeration<mine::ImageType> {
-//      enum { VALUE = 1 };
+//  struct IsEnumeration<mine::ImageType> : bsl::true_type {
 //  };
 //  template <>
-//  struct HasFallbackEnumerator<mine::ImageType> {
-//      enum { VALUE = 1 };
+//  struct HasFallbackEnumerator<mine::ImageType> : bsl::true_type {
 //  };
 //  }  // close namespace bdlat_EnumFunctions
 //  }  // close enterprise namespace
@@ -240,6 +238,7 @@ BSLS_IDENT("$Id: $")
 #include <bdlat_enumfunctions.h>
 
 #include <bslmf_assert.h>
+#include <bslmf_integralconstant.h>
 
 #include <bsls_platform.h>
 
@@ -291,7 +290,11 @@ template <class TYPE>
 int EnumUtil::fromIntOrFallbackIfEnabled(TYPE *result, int number)
 {
 #if !defined(BSLS_PLATFORM_CMP_SUN)
-    BSLMF_ASSERT((bdlat_EnumFunctions::IsEnumeration<TYPE>::VALUE));
+#  ifdef BSL_INTEGRAL_CONSTANT_ALLOW_BDLAT_LEGACY_SPECIALIZATIONS
+      BSLMF_ASSERT((bdlat_EnumFunctions::IsEnumeration<TYPE>::VALUE));
+#  else
+      BSLMF_ASSERT((bdlat_EnumFunctions::IsEnumeration<TYPE>::value));
+#  endif
 #endif
 
     if (0 == bdlat_EnumFunctions::fromInt(result, number)) {
@@ -307,7 +310,11 @@ int EnumUtil::fromStringOrFallbackIfEnabled(TYPE       *result,
                                             int         stringLength)
 {
 #if !defined(BSLS_PLATFORM_CMP_SUN)
-    BSLMF_ASSERT((bdlat_EnumFunctions::IsEnumeration<TYPE>::VALUE));
+#  ifdef BSL_INTEGRAL_CONSTANT_ALLOW_BDLAT_LEGACY_SPECIALIZATIONS
+      BSLMF_ASSERT((bdlat_EnumFunctions::IsEnumeration<TYPE>::VALUE));
+#  else
+      BSLMF_ASSERT((bdlat_EnumFunctions::IsEnumeration<TYPE>::value));
+#  endif
 #endif
 
     if (0 == bdlat_EnumFunctions::fromString(result, string, stringLength)) {

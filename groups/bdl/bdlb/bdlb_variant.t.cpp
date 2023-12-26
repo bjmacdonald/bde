@@ -7,6 +7,13 @@
 // should not be used as an example for new development.
 // ----------------------------------------------------------------------------
 
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, SEC_NULL_PTR_DEREF)
+#endif
+
 #include <bdlb_variant.h>
 
 #include <bdlb_print.h>
@@ -28,7 +35,6 @@
 #include <bsls_asserttest.h>
 #include <bsls_compilerfeatures.h>
 #include <bsls_nameof.h>
-#include <bsls_platform.h>
 #include <bsls_types.h>
 
 #include <bsltf_movablealloctesttype.h>
@@ -69,6 +75,10 @@ using bsls::NameOf;
  && defined(BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES)
 #define BDLB_VARIANT_USING_VARIADIC_TEMPLATES
     // This macro definition parallels that defined in the header file.
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, reftoref)
 #endif
 
 // ============================================================================
@@ -179,7 +189,7 @@ using bsls::NameOf;
 // [ 8] VariantImp   g(const char *spec);
 // [19] CONCERN: No allocator pointer in object if not necessary.
 // [19] CONCERN: No 'bslma::UsesBslmaAllocator' trait when no allocator.
-// [19] CONCERN: 'bsl::is_trivially_copyable' trait
+// [19] CONCERN: 'bslmf::IsBitwiseCopyable' trait
 // [19] CONCERN: 'bslmf::IsBitwiseMoveable' trait
 // [20] CONCERN: 'applyRaw' accepts VISITORs w/o a 'bslmf::Nil' overload.
 // [27] CONCERN: Moving an object containing a 'const' variant compiles.
@@ -946,69 +956,434 @@ typedef TestArg<20> TestArg20;
 
 // ----------------------------------------------------------------------------
 
-                               // ===============
-                               // struct Copyable
-                               // ===============
+                       // ==============================
+                       // struct MovableTestTypeConsumer
+                       // ==============================
 
-enum { MAX_COPYABLE_PARAMETERS = 14 };
+enum { MAX_MOVABLETESTTYPE_PARAMETERS = 14 };
 
-struct Copyable {
-    // This 'struct' is a simple mechanism for counting the number of copy
-    // constructor calls.
+struct MovableTestTypeConsumer {
+    // This 'struct' is a simple mechanism for accepting a number of
+    // 'bsltf::MovableTestType' parameters in its constructor and forwarding
+    // them into a stored array.
 
     // PUBLIC CLASS DATA
     static bool s_copyConstructorCalled;  // flag indicating whether copy
                                           // constructor was called
 
     // PUBLIC DATA
-    bool d_arguments[MAX_COPYABLE_PARAMETERS];  // the 14 arguments
+    bsltf::MovableTestType d_arguments[MAX_MOVABLETESTTYPE_PARAMETERS];
+        // the 14 arguments
 
     // CREATORS
+    MovableTestTypeConsumer() {}
+
+    template <class TEST_TYPE_1>
     explicit
-    Copyable(bool a1  = false, bool a2  = false, bool a3  = false,
-             bool a4  = false, bool a5  = false, bool a6  = false,
-             bool a7  = false, bool a8  = false, bool a9  = false,
-             bool a10 = false, bool a11 = false, bool a12 = false,
-             bool a13 = false, bool a14 = false)
-        // Create a 'Copyable' object, initializing the 14 elements of
-        // 'd_arguments' with their specified corresponding 'a*' arguments.
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1)
     {
-        d_arguments[0]  = a1;  d_arguments[1]  = a2;  d_arguments[2]  = a3;
-        d_arguments[3]  = a4;  d_arguments[4]  = a5;  d_arguments[5]  = a6;
-        d_arguments[6]  = a7;  d_arguments[7]  = a8;  d_arguments[8]  = a9;
-        d_arguments[9]  = a10; d_arguments[10] = a11; d_arguments[11] = a12;
-        d_arguments[12] = a13; d_arguments[13] = a14;
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
     }
 
-    Copyable(const Copyable&)
+    template <class TEST_TYPE_1, class TEST_TYPE_2>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+    }
+
+    template <class TEST_TYPE_1, class TEST_TYPE_2, class TEST_TYPE_3>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3) a3)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3) a3,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4) a4)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3) a3,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4) a4,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5) a5)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3) a3,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4) a4,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5) a5,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6) a6)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3) a3,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4) a4,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5) a5,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6) a6,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7) a7)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7,
+              class TEST_TYPE_8>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3) a3,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4) a4,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5) a5,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6) a6,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7) a7,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_8) a8)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+        d_arguments[7] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_8, a8);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7,
+              class TEST_TYPE_8,
+              class TEST_TYPE_9>
+    MovableTestTypeConsumer(BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1) a1,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2) a2,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3) a3,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4) a4,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5) a5,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6) a6,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7) a7,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_8) a8,
+                            BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_9) a9)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+        d_arguments[7] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_8, a8);
+        d_arguments[8] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_9, a9);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7,
+              class TEST_TYPE_8,
+              class TEST_TYPE_9,
+              class TEST_TYPE_10>
+    MovableTestTypeConsumer(
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1)  a1,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2)  a2,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3)  a3,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4)  a4,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5)  a5,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6)  a6,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7)  a7,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_8)  a8,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_9)  a9,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_10) a10)
+    {
+        d_arguments[0] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+        d_arguments[7] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_8, a8);
+        d_arguments[8] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_9, a9);
+        d_arguments[9] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_10, a10);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7,
+              class TEST_TYPE_8,
+              class TEST_TYPE_9,
+              class TEST_TYPE_10,
+              class TEST_TYPE_11>
+    MovableTestTypeConsumer(
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1)  a1,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2)  a2,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3)  a3,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4)  a4,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5)  a5,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6)  a6,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7)  a7,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_8)  a8,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_9)  a9,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_10) a10,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_11) a11)
+    {
+        d_arguments[0]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+        d_arguments[7]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_8, a8);
+        d_arguments[8]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_9, a9);
+        d_arguments[9]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_10, a10);
+        d_arguments[10] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_11, a11);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7,
+              class TEST_TYPE_8,
+              class TEST_TYPE_9,
+              class TEST_TYPE_10,
+              class TEST_TYPE_11,
+              class TEST_TYPE_12>
+    MovableTestTypeConsumer(
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1)  a1,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2)  a2,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3)  a3,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4)  a4,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5)  a5,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6)  a6,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7)  a7,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_8)  a8,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_9)  a9,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_10) a10,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_11) a11,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_12) a12)
+    {
+        d_arguments[0]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+        d_arguments[7]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_8, a8);
+        d_arguments[8]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_9, a9);
+        d_arguments[9]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_10, a10);
+        d_arguments[10] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_11, a11);
+        d_arguments[11] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_12, a12);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7,
+              class TEST_TYPE_8,
+              class TEST_TYPE_9,
+              class TEST_TYPE_10,
+              class TEST_TYPE_11,
+              class TEST_TYPE_12,
+              class TEST_TYPE_13>
+    MovableTestTypeConsumer(
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1)  a1,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2)  a2,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3)  a3,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4)  a4,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5)  a5,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6)  a6,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7)  a7,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_8)  a8,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_9)  a9,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_10) a10,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_11) a11,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_12) a12,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_13) a13)
+    {
+        d_arguments[0]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+        d_arguments[7]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_8, a8);
+        d_arguments[8]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_9, a9);
+        d_arguments[9]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_10, a10);
+        d_arguments[10] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_11, a11);
+        d_arguments[11] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_12, a12);
+        d_arguments[12] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_13, a13);
+    }
+
+    template <class TEST_TYPE_1,
+              class TEST_TYPE_2,
+              class TEST_TYPE_3,
+              class TEST_TYPE_4,
+              class TEST_TYPE_5,
+              class TEST_TYPE_6,
+              class TEST_TYPE_7,
+              class TEST_TYPE_8,
+              class TEST_TYPE_9,
+              class TEST_TYPE_10,
+              class TEST_TYPE_11,
+              class TEST_TYPE_12,
+              class TEST_TYPE_13,
+              class TEST_TYPE_14>
+    MovableTestTypeConsumer(
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_1)  a1,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_2)  a2,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_3)  a3,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_4)  a4,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_5)  a5,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_6)  a6,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_7)  a7,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_8)  a8,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_9)  a9,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_10) a10,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_11) a11,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_12) a12,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_13) a13,
+                           BSLS_COMPILERFEATURES_FORWARD_REF(TEST_TYPE_14) a14)
+    {
+        d_arguments[0]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_1, a1);
+        d_arguments[1]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_2, a2);
+        d_arguments[2]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_3, a3);
+        d_arguments[3]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_4, a4);
+        d_arguments[4]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_5, a5);
+        d_arguments[5]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_6, a6);
+        d_arguments[6]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_7, a7);
+        d_arguments[7]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_8, a8);
+        d_arguments[8]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_9, a9);
+        d_arguments[9]  = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_10, a10);
+        d_arguments[10] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_11, a11);
+        d_arguments[11] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_12, a12);
+        d_arguments[12] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_13, a13);
+        d_arguments[13] = BSLS_COMPILERFEATURES_FORWARD(TEST_TYPE_14, a14);
+    }
+
+    MovableTestTypeConsumer(const MovableTestTypeConsumer&)
     {
         s_copyConstructorCalled = true;
     }
 
-    Copyable(int value)                                             // IMPLICIT
+    MovableTestTypeConsumer(int value)                              // IMPLICIT
     {
-        bsl::memset(this, 0,  sizeof(*this));
-        d_arguments[0] = !!value;
+        bsltf::MovableTestType mtt;
+        d_arguments[0] = mtt;
+        d_arguments[0].setData(value);
+        for (int i = 1; i < MAX_MOVABLETESTTYPE_PARAMETERS; ++i) {
+            d_arguments[i] = mtt;
+        }
     }
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_DEFAULTED_FUNCTIONS
     // MANIPULATORS
-    Copyable& operator=(const Copyable& rhs) = default;
-        // Assign to this object the value of the specified 'rhs', and return
-        // a reference providing modifiable access to this object.
+    MovableTestTypeConsumer& operator=(
+                                 const MovableTestTypeConsumer& rhs) = default;
+        // Assign to this object the value of the specified 'rhs', and return a
+        // reference providing modifiable access to this object.
 #endif
 };
 
 // PUBLIC CLASS DATA
-bool Copyable::s_copyConstructorCalled = false;
+bool MovableTestTypeConsumer::s_copyConstructorCalled = false;
 
-void checkCopyableParameters(const Copyable& object, int numTrue)
-    // Helper function that checks the specified 'numTrue' number of 'true'
-    // parameters (in increasing order of the argument list) in the specified
-    // 'Copyable' 'object'.
+void checkMoved(const MovableTestTypeConsumer& object,
+                int                            numMoved,
+                bsltf::MoveState::Enum         expectedState)
+    // Helper function that checks the specified 'numMoved' number of
+    // 'bslmf::MovableTestType' parameters (in increasing order of the argument
+    // list) have the specified 'expectedState' and their data is equal to
+    // their index in the specified 'MovableTestTypeConsumer' 'object', and the
+    // rest are in 'e_NOT_MOVED' state with the data is equal to zero.
 {
-    for (int i = 0; i < MAX_COPYABLE_PARAMETERS; ++i) {
-        ASSERTV(i, numTrue, (i < numTrue) == object.d_arguments[i]);
+    for (int i = 0; i < MAX_MOVABLETESTTYPE_PARAMETERS; ++i) {
+        ASSERTV(i,
+                numMoved,
+                ((i < numMoved) ? i + 1 : 0) == object.d_arguments[i].data());
+
+        ASSERTV(i,
+                numMoved,
+                ((i < numMoved) ? expectedState
+                                : bsltf::MoveState::e_NOT_MOVED) ==
+                    object.d_arguments[i].movedInto());
     }
 }
 
@@ -20859,9 +21234,13 @@ void TestUtil::testCase19()
     ASSERT(false == bslma::UsesBslmaAllocator<NT10>::value);
     ASSERT(false == bslma::UsesBslmaAllocator<NT20>::value);
 
-    ASSERT(false == bsl::is_trivially_copyable<NT1>::value);
-    ASSERT(false == bsl::is_trivially_copyable<NT10>::value);
-    ASSERT(false == bsl::is_trivially_copyable<NT20>::value);
+    ASSERT(false == bslmf::IsBitwiseCopyable<NT1>::value);
+    ASSERT(false == bslmf::IsBitwiseCopyable<NT10>::value);
+    ASSERT(false == bslmf::IsBitwiseCopyable<NT20>::value);
+
+    (void) bslmf::IsTriviallyCopyableCheck<NT1>();
+    (void) bslmf::IsTriviallyCopyableCheck<NT10>();
+    (void) bslmf::IsTriviallyCopyableCheck<NT20>();
 
     ASSERT(false == bslmf::IsBitwiseMoveable<NT1>::value);
     ASSERT(false == bslmf::IsBitwiseMoveable<NT10>::value);
@@ -20871,9 +21250,13 @@ void TestUtil::testCase19()
     ASSERT(true  == bslma::UsesBslmaAllocator<UA10>::value);
     ASSERT(true  == bslma::UsesBslmaAllocator<UA20>::value);
 
-    ASSERT(true  == bsl::is_trivially_copyable<BC1>::value);
-    ASSERT(true  == bsl::is_trivially_copyable<BC10>::value);
-    ASSERT(true  == bsl::is_trivially_copyable<BC20>::value);
+    ASSERT(true  == bslmf::IsBitwiseCopyable<BC1>::value);
+    ASSERT(true  == bslmf::IsBitwiseCopyable<BC10>::value);
+    ASSERT(true  == bslmf::IsBitwiseCopyable<BC20>::value);
+
+    (void) bslmf::IsTriviallyCopyableCheck<BC1>();
+    (void) bslmf::IsTriviallyCopyableCheck<BC10>();
+    (void) bslmf::IsTriviallyCopyableCheck<BC20>();
 
     ASSERT(true  == bslmf::IsBitwiseMoveable<BM1>::value);
     ASSERT(true  == bslmf::IsBitwiseMoveable<BM10>::value);
@@ -20995,8 +21378,9 @@ void TestUtil::testCase19()
     {
         typedef bdlb::VariantImp<bslmf::TypeList<NT1, NT2, NT3> > Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -21006,8 +21390,9 @@ void TestUtil::testCase19()
                                  BC8,  BC9,  BC10, BC11, BC12, BC13, BC14,
                                  BC15, BC16, BC17, BC18, BC19, BC20> > Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -21037,12 +21422,19 @@ void TestUtil::testCase19()
                                  NT13, NT14, NT15, BC16,
                                  NT17, NT18, NT19, NT20> > Obj20;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj1>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj2>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj3>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj18>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj19>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj20>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj1>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj2>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj3>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj18>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj19>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj20>::value);
+
+        (void) bslmf::IsTriviallyCopyableCheck<Obj1>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj2>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj3>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj18>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj19>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj20>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21162,8 +21554,9 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant<NT1, NT2, NT3> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -21172,8 +21565,9 @@ void TestUtil::testCase19()
                               BC8,  BC9,  BC10, BC11, BC12, BC13, BC14,
                               BC15, BC16, BC17, BC18, BC19, BC20> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -21200,12 +21594,19 @@ void TestUtil::testCase19()
                               NT13, NT14, NT15, NT16,
                               NT17, NT18, NT19, BC20> Obj20;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj1>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj2>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj3>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj18>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj19>::value);
-        ASSERT(false == bsl::is_trivially_copyable<Obj20>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj1>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj2>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj3>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj18>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj19>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj20>::value);
+
+        (void) bslmf::IsTriviallyCopyableCheck<Obj1>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj2>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj3>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj18>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj19>();
+        (void) bslmf::IsTriviallyCopyableCheck<Obj20>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21294,23 +21695,26 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant2<NT1, NT2> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
     {
         typedef bdlb::Variant2<BC1, BC2> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
     {
         typedef bdlb::Variant2<BC1, NT2> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21372,23 +21776,26 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant3<NT1, NT2, NT3> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
     {
         typedef bdlb::Variant3<BC1, BC2, BC3> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
     {
         typedef bdlb::Variant3<NT1, BC2, NT3> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21450,23 +21857,26 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant4<NT1, NT2, NT3, NT4> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
     {
         typedef bdlb::Variant4<BC1, BC2, BC3, BC4> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
     {
         typedef bdlb::Variant4<NT1, NT2, BC3, NT4> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21528,23 +21938,26 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant5<NT1, NT2, NT3, NT4, NT5> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
     {
         typedef bdlb::Variant5<BC1, BC2, BC3, BC4, BC5> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
     {
         typedef bdlb::Variant5<NT1, NT2, NT3, BC4, NT5> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21606,23 +22019,26 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant6<NT1, NT2, NT3, NT4, NT5, NT6> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
     {
         typedef bdlb::Variant6<BC1, BC2, BC3, BC4, BC5, BC6> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
     {
         typedef bdlb::Variant6<NT1, NT2, NT3, NT4, BC5, NT6> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21684,23 +22100,26 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant7<NT1, NT2, NT3, NT4, NT5, NT6, NT7> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
     {
         typedef bdlb::Variant7<BC1, BC2, BC3, BC4, BC5, BC6, BC7> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
     {
         typedef bdlb::Variant7<NT1, NT2, NT3, NT4, NT5, BC6, NT7> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21762,23 +22181,26 @@ void TestUtil::testCase19()
     {
         typedef bdlb::Variant8<NT1, NT2, NT3, NT4, NT5, NT6, NT7, NT8> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
     {
         typedef bdlb::Variant8<BC1, BC2, BC3, BC4, BC5, BC6, BC7, BC8> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
     {
         typedef bdlb::Variant8<NT1, NT2, NT3, NT4, NT5, NT6, BC7, NT8> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21844,8 +22266,9 @@ void TestUtil::testCase19()
         typedef bdlb::Variant9<NT1, NT2, NT3, NT4, NT5, NT6, NT7, NT8,
                                NT9> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -21853,8 +22276,9 @@ void TestUtil::testCase19()
         typedef bdlb::Variant9<BC1, BC2, BC3, BC4, BC5, BC6, BC7, BC8,
                                BC9> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -21862,7 +22286,8 @@ void TestUtil::testCase19()
         typedef bdlb::Variant9<NT1, NT2, NT3, NT4, NT5, NT6, NT7, BC8,
                                NT9> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -21934,8 +22359,9 @@ void TestUtil::testCase19()
                                 NT5,  NT6,  NT7,  NT8,
                                 NT9,  NT10> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -21943,8 +22369,9 @@ void TestUtil::testCase19()
         typedef bdlb::Variant10<BC1,  BC2,  BC3,  BC4,  BC5,  BC6,
                                 BC7,  BC8,  BC9,  BC10> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -21953,7 +22380,8 @@ void TestUtil::testCase19()
                                 NT5,  NT6,  NT7,  NT8,
                                 BC9,  NT10> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22027,8 +22455,9 @@ void TestUtil::testCase19()
                                 NT5,  NT6,  NT7,  NT8,
                                 NT9,  NT10, NT11> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22036,8 +22465,9 @@ void TestUtil::testCase19()
         typedef bdlb::Variant11<BC1,  BC2,  BC3,  BC4,  BC5,  BC6,
                                 BC7,  BC8,  BC9,  BC10, BC11> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22046,7 +22476,8 @@ void TestUtil::testCase19()
                                 NT5,  NT6,  NT7,  NT8,
                                 NT9,  BC10, NT11> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22120,8 +22551,9 @@ void TestUtil::testCase19()
                                 NT5,  NT6,  NT7,  NT8,
                                 NT9,  NT10, NT11, NT12> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22129,8 +22561,9 @@ void TestUtil::testCase19()
         typedef bdlb::Variant12<BC1,  BC2,  BC3,  BC4,  BC5,  BC6,
                                 BC7,  BC8,  BC9,  BC10, BC11, BC12> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22139,7 +22572,8 @@ void TestUtil::testCase19()
                                 NT5,  NT6,  NT7,  NT8,
                                 NT9,  NT10, BC11, NT12> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22217,8 +22651,9 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, NT12,
                                 NT13> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22227,8 +22662,9 @@ void TestUtil::testCase19()
                                 BC7,  BC8,  BC9,  BC10, BC11, BC12,
                                 BC13> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22238,7 +22674,8 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, BC12,
                                 NT13> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22319,8 +22756,9 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, NT12,
                                 NT13, NT14> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22329,8 +22767,9 @@ void TestUtil::testCase19()
                                 BC7,  BC8,  BC9,  BC10, BC11, BC12,
                                 BC13, BC14> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22340,7 +22779,8 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, NT12,
                                 BC13, NT14> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22421,8 +22861,9 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, NT12,
                                 NT13, NT14, NT15> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22431,8 +22872,9 @@ void TestUtil::testCase19()
                                 BC8,  BC9,  BC10, BC11, BC12, BC13, BC14,
                                 BC15> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22442,7 +22884,8 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, NT12,
                                 NT13, BC14, NT15> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22523,8 +22966,9 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, NT12,
                                 NT13, NT14, NT15, NT16> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22533,8 +22977,9 @@ void TestUtil::testCase19()
                                 BC8,  BC9,  BC10, BC11, BC12, BC13, BC14,
                                 BC15, BC16> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22544,7 +22989,8 @@ void TestUtil::testCase19()
                                 NT9,  NT10, NT11, NT12,
                                 NT13, NT14, BC15, NT16> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22628,8 +23074,9 @@ void TestUtil::testCase19()
                                 NT13, NT14, NT15, NT16,
                                 NT17> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22638,8 +23085,9 @@ void TestUtil::testCase19()
                                 BC8,  BC9,  BC10, BC11, BC12, BC13, BC14,
                                 BC15, BC16, BC17> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22650,7 +23098,8 @@ void TestUtil::testCase19()
                                 NT13, NT14, NT15, BC16,
                                 NT17> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22736,8 +23185,9 @@ void TestUtil::testCase19()
                                 NT13, NT14, NT15, NT16,
                                 NT17, NT18> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22746,8 +23196,9 @@ void TestUtil::testCase19()
                                 BC8,  BC9,  BC10, BC11, BC12, BC13, BC14,
                                 BC15, BC16, BC17, BC18> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22758,7 +23209,8 @@ void TestUtil::testCase19()
                                 NT13, NT14, NT15, NT16,
                                 BC17, NT18> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -22844,8 +23296,9 @@ void TestUtil::testCase19()
                                 NT13, NT14, NT15, NT16,
                                 NT17, NT18, NT19> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true  == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tAll are bitwise copyable." << endl;
@@ -22854,8 +23307,9 @@ void TestUtil::testCase19()
                                 BC8,  BC9,  BC10, BC11, BC12, BC13, BC14,
                                 BC15, BC16, BC17, BC18, BC19> Obj;
 
-        ASSERT(true == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(true == bslmf::IsBitwiseCopyable<Obj>::value);
         ASSERT(true == bdlb::HasPrintMethod<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\tSome are bitwise copyable." << endl;
@@ -22866,7 +23320,8 @@ void TestUtil::testCase19()
                                 NT13, NT14, NT15, NT16,
                                 NT17, BC18, NT19> Obj;
 
-        ASSERT(false == bsl::is_trivially_copyable<Obj>::value);
+        ASSERT(false == bslmf::IsBitwiseCopyable<Obj>::value);
+        (void) bslmf::IsTriviallyCopyableCheck<Obj>();
     }
 
     if (verbose) cout << "\nTesting bitwise moveable trait." << endl;
@@ -28050,281 +28505,699 @@ void TestUtil::testCase14()
     bslma::TestAllocator da("default", veryVeryVeryVerbose);
     bslma::DefaultAllocatorGuard dag(&da);
 
-    typedef bdlb::VariantImp<bslmf::TypeList<Copyable, TestString> > Obj;
+    typedef bdlb::VariantImp<
+        bslmf::TypeList<MovableTestTypeConsumer, TestString> >
+        Obj;
+
+    typedef bsltf::MovableTestType TT;  // test type
 
     if (verbose) cout << "\nTesting 'createInPlace' with no arg." << endl;
     {
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>();
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                                   mX.createInPlace<MovableTestTypeConsumer>();
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 0);
-        checkCopyableParameters(mR,                0);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   0,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 0, MoveState::e_NOT_MOVED);
 
         mX.assign<TestString>(VK);  // will allocate
-        mX.createInPlace<Copyable>();
+        mX.createInPlace<MovableTestTypeConsumer>();
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 0);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 0, MoveState::e_MOVED);
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 1 arg." << endl;
     {
+        TT mA[1];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 1);
-        checkCopyableParameters(mR,                1);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   1,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 1, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 1);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 1, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 2 args." << endl;
     {
+        TT mA[2];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                       mX.createInPlace<MovableTestTypeConsumer>(mA[0], mA[1]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 2);
-        checkCopyableParameters(mR,                2);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   2,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 2, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 2);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 2, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 3 args." << endl;
     {
+        TT mA[3];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                mX.createInPlace<MovableTestTypeConsumer>(mA[0], mA[1], mA[2]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 3);
-        checkCopyableParameters(mR,                3);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   3,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 3, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 3);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 3, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 4 args." << endl;
     {
+        TT mA[4];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                        mA[1],
+                                                                        mA[2],
+                                                                        mA[3]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 4);
-        checkCopyableParameters(mR,                4);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   4,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 4, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 4);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 4, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 5 args." << endl;
     {
+        TT mA[5];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                                                 true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                        mA[1],
+                                                                        mA[2],
+                                                                        mA[3],
+                                                                        mA[4]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 5);
-        checkCopyableParameters(mR,                5);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   5,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 5, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 5);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 5, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 6 args." << endl;
     {
+        TT mA[6];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                                           true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                        mA[1],
+                                                                        mA[2],
+                                                                        mA[3],
+                                                                        mA[4],
+                                                                        mA[5]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 6);
-        checkCopyableParameters(mR,                6);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   6,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 6, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 6);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 6, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 7 args." << endl;
     {
+        TT mA[7];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                                     true, true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                        mA[1],
+                                                                        mA[2],
+                                                                        mA[3],
+                                                                        mA[4],
+                                                                        mA[5],
+                                                                        mA[6]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 7);
-        checkCopyableParameters(mR,                7);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   7,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 7, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 7);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 7, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 8 args." << endl;
     {
+        TT mA[8];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                               true, true, true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                        mA[1],
+                                                                        mA[2],
+                                                                        mA[3],
+                                                                        mA[4],
+                                                                        mA[5],
+                                                                        mA[6],
+                                                                        mA[7]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 8);
-        checkCopyableParameters(mR,                8);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   8,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 8, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true,
-                                   true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 8);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]),
+                                                  MoveUtil::move(mA[7]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 8, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 9 args." << endl;
     {
+        TT mA[9];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                         true, true, true, true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                        mA[1],
+                                                                        mA[2],
+                                                                        mA[3],
+                                                                        mA[4],
+                                                                        mA[5],
+                                                                        mA[6],
+                                                                        mA[7],
+                                                                        mA[8]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 9);
-        checkCopyableParameters(mR,                9);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   9,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 9, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true,
-                                   true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 9);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]),
+                                                  MoveUtil::move(mA[7]),
+                                                  MoveUtil::move(mA[8]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 9, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 10 args." << endl;
     {
+        TT mA[10];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                   true, true, true, true, true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                              mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                        mA[1],
+                                                                        mA[2],
+                                                                        mA[3],
+                                                                        mA[4],
+                                                                        mA[5],
+                                                                        mA[6],
+                                                                        mA[7],
+                                                                        mA[8],
+                                                                        mA[9]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 10);
-        checkCopyableParameters(mR,                10);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   10,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 10, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true,
-                                   true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 10);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]),
+                                                  MoveUtil::move(mA[7]),
+                                                  MoveUtil::move(mA[8]),
+                                                  MoveUtil::move(mA[9]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 10, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 11 args." << endl;
     {
+        TT mA[11];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-             true, true, true, true, true, true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                             mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                       mA[1],
+                                                                       mA[2],
+                                                                       mA[3],
+                                                                       mA[4],
+                                                                       mA[5],
+                                                                       mA[6],
+                                                                       mA[7],
+                                                                       mA[8],
+                                                                       mA[9],
+                                                                       mA[10]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 11);
-        checkCopyableParameters(mR,                11);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   11,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 11, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true,
-                                   true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 11);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]),
+                                                  MoveUtil::move(mA[7]),
+                                                  MoveUtil::move(mA[8]),
+                                                  MoveUtil::move(mA[9]),
+                                                  MoveUtil::move(mA[10]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 11, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 12 args." << endl;
     {
+        TT mA[12];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                                      true, true, true, true, true, true, true,
-                                      true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                             mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                       mA[1],
+                                                                       mA[2],
+                                                                       mA[3],
+                                                                       mA[4],
+                                                                       mA[5],
+                                                                       mA[6],
+                                                                       mA[7],
+                                                                       mA[8],
+                                                                       mA[9],
+                                                                       mA[10],
+                                                                       mA[11]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 12);
-        checkCopyableParameters(mR,                12);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   12,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 12, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true,
-                                   true, true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 12);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]),
+                                                  MoveUtil::move(mA[7]),
+                                                  MoveUtil::move(mA[8]),
+                                                  MoveUtil::move(mA[9]),
+                                                  MoveUtil::move(mA[10]),
+                                                  MoveUtil::move(mA[11]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 12, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 13 args." << endl;
     {
+        TT mA[13];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                                   true, true, true, true, true, true, true,
-                                   true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                             mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                       mA[1],
+                                                                       mA[2],
+                                                                       mA[3],
+                                                                       mA[4],
+                                                                       mA[5],
+                                                                       mA[6],
+                                                                       mA[7],
+                                                                       mA[8],
+                                                                       mA[9],
+                                                                       mA[10],
+                                                                       mA[11],
+                                                                       mA[12]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 13);
-        checkCopyableParameters(mR,                13);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   13,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 13, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true,
-                                   true, true, true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 13);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]),
+                                                  MoveUtil::move(mA[7]),
+                                                  MoveUtil::move(mA[8]),
+                                                  MoveUtil::move(mA[9]),
+                                                  MoveUtil::move(mA[10]),
+                                                  MoveUtil::move(mA[11]),
+                                                  MoveUtil::move(mA[12]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 13, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 
     if (verbose) cout << "\nTesting 'createInPlace' with 14 args." << endl;
     {
+        TT mA[14];
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            mA[i].setData(i + 1);
+        }
+
         Obj mX;  const Obj& X = mX;
-        Copyable& mR = mX.createInPlace<Copyable>(
-                                   true, true, true, true, true, true, true,
-                                   true, true, true, true, true, true, true);
-        ASSERT(&X.the<Copyable>() == &mR);
+        MovableTestTypeConsumer& mR =
+                             mX.createInPlace<MovableTestTypeConsumer>(mA[0],
+                                                                       mA[1],
+                                                                       mA[2],
+                                                                       mA[3],
+                                                                       mA[4],
+                                                                       mA[5],
+                                                                       mA[6],
+                                                                       mA[7],
+                                                                       mA[8],
+                                                                       mA[9],
+                                                                       mA[10],
+                                                                       mA[11],
+                                                                       mA[12],
+                                                                       mA[13]);
+        ASSERT(&X.the<MovableTestTypeConsumer>() == &mR);
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 14);
-        checkCopyableParameters(mR,                14);
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(),
+                   14,
+                   MoveState::e_NOT_MOVED);
+        checkMoved(mR, 14, MoveState::e_NOT_MOVED);
 
-        mX.assign<TestString>(VK);
-        mX.createInPlace<Copyable>(true, true, true, true, true, true, true,
-                                   true, true, true, true, true, true, true);
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_NOT_MOVED);
+        }
 
-        ASSERT(false == Copyable::s_copyConstructorCalled);
-        checkCopyableParameters(X.the<Copyable>(), 14);
+        mX.assign<TestString>(VK);  // will allocate
+        mX.createInPlace<MovableTestTypeConsumer>(MoveUtil::move(mA[0]),
+                                                  MoveUtil::move(mA[1]),
+                                                  MoveUtil::move(mA[2]),
+                                                  MoveUtil::move(mA[3]),
+                                                  MoveUtil::move(mA[4]),
+                                                  MoveUtil::move(mA[5]),
+                                                  MoveUtil::move(mA[6]),
+                                                  MoveUtil::move(mA[7]),
+                                                  MoveUtil::move(mA[8]),
+                                                  MoveUtil::move(mA[9]),
+                                                  MoveUtil::move(mA[10]),
+                                                  MoveUtil::move(mA[11]),
+                                                  MoveUtil::move(mA[12]),
+                                                  MoveUtil::move(mA[13]));
+
+        ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
+        checkMoved(mX.the<MovableTestTypeConsumer>(), 14, MoveState::e_MOVED);
+
+        for (int i = 0; i < bsl::ssize(mA); ++i) {
+            MoveState::Enum mStateI = mA[i].movedFrom();
+            ASSERTV(i, mStateI, mStateI == MoveState::e_MOVED);
+        }
     }
 }
 
@@ -29805,7 +30678,7 @@ int main(int argc, char *argv[])
         //      types has the trait, then the variant itself will not have the
         //      trait.
         //   3. When any type held by the variant does not have the
-        //      'bsl::is_trivially_copyable' trait, then the variant itself
+        //      'bslmf::IsBitwiseCopyable' trait, then the variant itself
         //      will not have the bitwise copyable trait.
         //   4. When any type held by the variant does not have the
         //      'bslmf::IsBitwiseMoveable' trait, then the variant itself will
@@ -29815,7 +30688,7 @@ int main(int argc, char *argv[])
         //   To address all the concerns, create a variety of types that have
         //   the following traits:
         //       o 'bslma::UsesBslmaAllocator'
-        //       o 'bsl::is_trivially_copyable'
+        //       o 'bslmf::IsBitwiseCopyable'
         //       o 'bslmf::IsBitwiseMoveable'
         //       o no traits
         //   Then populate the variant with different types and different
@@ -29825,7 +30698,7 @@ int main(int argc, char *argv[])
         // Testing:
         //   CONCERN: No allocator pointer in object if not necessary.
         //   CONCERN: No 'bslma::UsesBslmaAllocator' trait when no allocator.
-        //   CONCERN: 'bsl::is_trivially_copyable' trait
+        //   CONCERN: 'bslmf::IsBitwiseCopyable' trait
         //   CONCERN: 'bslmf::IsBitwiseMoveable' trait
         // --------------------------------------------------------------------
 
@@ -30063,14 +30936,14 @@ int main(int argc, char *argv[])
         //      arguments are forwarded properly).
         //
         // Plan:
-        //   Define a 'Copyable' class whose copy constructor is monitored and
-        //   has a constructor that takes up to 14 arguments.  Also provide an
-        //   accessor to the 14 arguments being passed in.  Then invoke all 15
-        //   versions of 'createInPlace' and verify the arguments are forwarded
-        //   properly.  Also assert that the copy constructor is never invoked.
+        //   Define a 'MovableTestTypeConsumer' class whose copy constructor is
+        //   monitored and has a constructor that takes up to 14 arguments.
+        //   Also provide an accessor to the 14 arguments being passed in.
+        //   Then invoke all 15 versions of 'createInPlace' and verify the
+        //   arguments are forwarded properly (including their value category).
+        //   Also assert that the copy constructor is never invoked.
         //
-        // Testing:
-        //   TYPE& createInPlace<TYPE>(...);
+        // Testing: TYPE& createInPlace<TYPE>(...);
         // --------------------------------------------------------------------
 
         // This test case is defined outside of 'main' to avoid out-of-memory
@@ -30185,34 +31058,38 @@ int main(int argc, char *argv[])
         //   should not invoke the copy constructor.
         //
         // Plan:
-        //   Define a 'Copyable' class whose copy constructor is monitored.
-        //   Invoke the 'assign' method of a variant that wraps this 'Copyable'
-        //   class.  Verify that the copy constructor has not been called.
+        //   Define a 'MovableTestTypeConsumer' class whose copy constructor is
+        //   monitored.  Invoke the 'assign' method of a variant that wraps
+        //   this 'MovableTestTypeConsumer' class.  Verify that the copy
+        //   constructor has not been called.
         //
-        // Testing:
-        //   VariantImp& assignTo(const SOURCE& value);
+        // Testing: VariantImp& assignTo(const SOURCE& value);
         // --------------------------------------------------------------------
 
         if (verbose) cout << endl
                           << "TESTING 'assignTo'" << endl
                           << "==================" << endl;
 
-        if (verbose) cout << "\nWith custom 'Copyable' type." << endl;
+        if (verbose)
+            cout << "\nWith custom 'MovableTestTypeConsumer' type." << endl;
         {
-            typedef bdlb::VariantImp<bslmf::TypeList<Copyable> > Obj;
+            typedef bdlb::VariantImp<bslmf::TypeList<MovableTestTypeConsumer> >
+                Obj;
 
-            ASSERT(false == Copyable::s_copyConstructorCalled);
+            ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
 
             Obj mX;  const Obj& X = mX;
             ASSERT( X.isUnset());
 
-            mX.assignTo<Copyable>(true);
+            mX.assignTo<MovableTestTypeConsumer>(1);
 
             ASSERT(!X.isUnset());
-            ASSERT( X.is<Copyable>());
-            ASSERT(false == Copyable::s_copyConstructorCalled);
+            ASSERT( X.is<MovableTestTypeConsumer>());
+            ASSERT(false == MovableTestTypeConsumer::s_copyConstructorCalled);
 
-            checkCopyableParameters(X.the<Copyable>(), 1);
+            checkMoved(X.the<MovableTestTypeConsumer>(),
+                       1,
+                       bsltf::MoveState::e_NOT_MOVED);
         }
 
         bslma::TestAllocator da("default", veryVeryVeryVerbose);

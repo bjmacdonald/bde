@@ -1,12 +1,4 @@
 // ball_observer.h                                                    -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #ifndef INCLUDED_BALL_OBSERVER
 #define INCLUDED_BALL_OBSERVER
 
@@ -57,6 +49,7 @@ BSLS_IDENT("$Id: $")
 //       public:
 //         my_OstreamObserver(ostream& stream) : d_stream(stream) { }
 //         virtual ~my_OstreamObserver();
+//         using Observer::publish;  // avoid hiding base class method
 //         virtual void publish(const ball::Record&  record,
 //                              const ball::Context& context);
 //     };

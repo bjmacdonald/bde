@@ -19,6 +19,10 @@
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 
+#ifdef BSLS_PLATFORM_CMP_AIX
+#pragma report(disable, "1540-1297")
+#endif
+
 using namespace BloombergLP;
 using bsl::cout;
 using bsl::endl;
@@ -326,10 +330,9 @@ int main(int argc, char *argv[])
 
         typedef bsl::is_same<void, Obj::result_type> IsSame;
         BSLMF_ASSERT(IsSame::value == true);
-        BSLMF_ASSERT(bsl::is_trivially_copyable<Obj>::value == true);
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
-        BSLMF_ASSERT(std::is_trivially_copyable<Obj>::value == true);
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+        BSLMF_ASSERT(bslmf::IsBitwiseMoveable<Obj>::value == true);
+        BSLMF_ASSERT(bslmf::IsBitwiseCopyable<Obj>::value == true);
+        BSLMF_ASSERT(bslmf::IsTriviallyCopyableCheck<Obj>::value == true);
       } break;
       case 5: {
         // --------------------------------------------------------------------

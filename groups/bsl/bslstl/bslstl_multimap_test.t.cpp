@@ -1,4 +1,17 @@
 // bslstl_multimap_test.t.cpp                                         -*-C++-*-
+
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, SEC_NULL_PTR_DEREF)
+#endif
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wstringop-overflow="
+#endif
+
 #include <bslstl_multimap_test.h>
 
 #include <bslstl_forwarditerator.h>
@@ -34,7 +47,6 @@
 #include <bsls_libraryfeatures.h>
 #include <bsls_nameof.h>
 #include <bsls_objectbuffer.h>
-#include <bsls_platform.h>
 
 #include <bsltf_allocargumenttype.h>
 #include <bsltf_argumenttype.h>
@@ -5009,7 +5021,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase27_dispatch()
 
                     bool empty = 0 == ZZ.size();
 
-                    typename Obj::const_pointer pointers[2];
+                    typename Obj::const_pointer pointers[2] = { 0, 0 };
                     storeFirstNElemAddr(pointers, Z,
                             sizeof pointers / sizeof *pointers);
 
@@ -5438,7 +5450,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase26()
                 Obj *srcPtr = new (fa) Obj(&sa);
                 Obj& mZ = *srcPtr; const Obj& Z = gg(&mZ, SPEC);
 
-                typename Obj::const_pointer pointers[2];
+                typename Obj::const_pointer pointers[2] = { 0, 0 };
                 storeFirstNElemAddr(pointers, Z,
                                     sizeof pointers / sizeof *pointers);
 
@@ -6058,6 +6070,8 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase23()
     BSLMF_ASSERT((0 == bsl::is_trivially_copyable<Obj>::value));
 
     BSLMF_ASSERT((0 == bslmf::IsBitwiseEqualityComparable<Obj>::value));
+
+    BSLMF_ASSERT((0 == bslmf::IsBitwiseCopyable<Obj>::value));
 
     BSLMF_ASSERT((0 == bslmf::IsBitwiseMoveable<Obj>::value));
 

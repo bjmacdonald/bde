@@ -6,6 +6,8 @@
 #include <bslstl_string.h>
 #include <bslstl_vector.h>
 
+#include <bsla_maybeunused.h>
+
 #include <bslalg_swaputil.h>
 
 #include <bslma_allocator.h>
@@ -59,6 +61,10 @@
 #include <string.h>
 #include <cstring>  // for 'strtok'
 #include <ctype.h>  // for 'toupper'
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
 
 using namespace BloombergLP;
 using bsls::NameOf;
@@ -515,6 +521,7 @@ TYPE& copyAssignTo(TYPE *dst, const TYPE& src)
 }
 
 template <>
+BSLA_MAYBE_UNUSED
 bsltf::MoveOnlyAllocTestType&
 copyAssignTo(bsltf::MoveOnlyAllocTestType        *dst,
              const bsltf::MoveOnlyAllocTestType&  src)
@@ -525,6 +532,7 @@ copyAssignTo(bsltf::MoveOnlyAllocTestType        *dst,
 }
 
 template <>
+BSLA_MAYBE_UNUSED
 bsltf::WellBehavedMoveOnlyAllocTestType&
 copyAssignTo(bsltf::WellBehavedMoveOnlyAllocTestType        *dst,
              const bsltf::WellBehavedMoveOnlyAllocTestType&  src)
@@ -5740,6 +5748,10 @@ class StatefulStlAllocator : public bsltf::StdTestAllocator<VALUE>
         // Alias for the base class.
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(StatefulStlAllocator,
+                                   bslma::IsStdAllocator);
+
     template <class BDE_OTHER_TYPE>
     struct rebind {
         // This nested 'struct' template, parameterized by some
@@ -6127,6 +6139,9 @@ class DummyAllocator {
     // reproduce an AIX bug.  Every method is a no-op.
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DummyAllocator, bslma::IsStdAllocator);
+
     // PUBLIC TYPES
     typedef std::size_t     size_type;
     typedef std::ptrdiff_t  difference_type;
@@ -8318,6 +8333,14 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase6()
 
         // Verify that the signatures and return types are standard.
 
+        // Due to the internal compiler bug the following line of code fails to
+        // be compiled by the MSVC (version 19.30) with the following error:
+        //..
+        //  error C3861: '==': identifier not found
+        //..
+        // The issue is reproduced with C++20 flag. This bug has been fixed in
+        // compiler version 19.31.  See {DRQS 172604250}.
+
         OP op = bsl::operator==;
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
         (void) [](const Obj& lhs, const Obj& rhs) -> bool {
@@ -9038,7 +9061,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase3_verifySpec()
                                                   // too
 
         const bool empty = 0 == LENGTH;
-        char deletedVal;
+        char deletedVal = 0;
         if (!empty) {
             // Erase the first node and observe that spec no longer matches.
 

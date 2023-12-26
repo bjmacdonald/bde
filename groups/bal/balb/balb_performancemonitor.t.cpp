@@ -14,6 +14,8 @@
 #include <bdlt_currenttime.h>
 #include <bdlt_datetimeinterval.h>
 
+#include <bsla_maybeunused.h>
+
 #include <bslmt_barrier.h>
 #include <bslmt_threadgroup.h>
 #include <bslmt_threadutil.h>
@@ -450,7 +452,7 @@ class MmapAllocator : public bslma::Allocator {
 
         bsl::size_t size = it->second;
 
-        int rc = munmap(static_cast<char*>(address), size);
+        BSLA_MAYBE_UNUSED int rc = munmap(static_cast<char*>(address), size);
         BSLS_ASSERT(-1 != rc);
 #endif
     }
@@ -520,8 +522,10 @@ double wasteCpuTime()
 {
 #ifdef BSLS_PLATFORM_OS_UNIX
     struct tms tmsBuffer;
-    clock_t    rc = times(&tmsBuffer);
+
+    BSLA_MAYBE_UNUSED clock_t rc = times(&tmsBuffer);
     BSLS_ASSERT(-1 != rc);
+
     clock_t startTime = tmsBuffer.tms_utime + tmsBuffer.tms_stime;
 
     double x = 1.0;
@@ -541,7 +545,7 @@ double wasteCpuTime()
 
 bsls::Types::Int64 controlledCpuBurn()
 {
-    volatile bsls::Types::Int64 factorial = 1;
+    bsls::Types::Int64 factorial = 1;
     bsls::TimeInterval begin = bdlt::CurrentTime::now();
 
     while (1) {

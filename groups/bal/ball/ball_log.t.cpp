@@ -6,14 +6,13 @@
 #include <ball_attributecontainer.h>
 #include <ball_attributecontainerlist.h>
 #include <ball_attributecontext.h>
-#include <ball_scopedattribute.h>
 #include <ball_defaultattributecontainer.h>
-#include <ball_fileobserver2.h>
 #include <ball_loggermanagerconfiguration.h>
 #include <ball_predicate.h>
 #include <ball_record.h>
 #include <ball_recordstringformatter.h>
 #include <ball_rule.h>
+#include <ball_scopedattribute.h>
 #include <ball_streamobserver.h>
 #include <ball_testobserver.h>
 #include <ball_thresholdaggregate.h>
@@ -88,6 +87,10 @@
 // Undefine some awkwardly named Windows macros that interfere with this cpp
 // file, but only after the last #include.
 # undef ERROR
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, wvarhidemem)
 #endif
 
 // Warning: the following 'using' declarations interfere with the testing of
@@ -2209,6 +2212,8 @@ class my_PublishCountingObserver : public BloombergLP::ball::Observer {
     }
 
     // MANIPULATORS
+    using Observer::publish;  // avoid hiding base class method
+
     void publish(const BloombergLP::ball::Record&,
                  const BloombergLP::ball::Context&)
         // Increment the count maintained by this observer by 1, and ignore any
@@ -2561,6 +2566,8 @@ class my_Observer : public BloombergLP::ball::Observer {
     ~my_Observer() {}
 
     // MANIPULATORS
+    using Observer::publish;  // avoid hiding base class method
+
     void publish(const BloombergLP::ball::Record&  record,
                  const BloombergLP::ball::Context&)
     {
@@ -2772,7 +2779,7 @@ struct ThreadFunctor {
 
         const Uint64 id = BloombergLP::bslmt::ThreadUtil::selfIdAsUint64();
 
-        while (true) {
+        for (unsigned i = 0; i < 4000000000U; ++i) {
             BALL_LOG_ERROR << "ERROR " << id;
         }
     }
@@ -3374,7 +3381,7 @@ if (verbose) bsl::cout << "printf-style macro usage" << bsl::endl;
         // Plan:
         //: 1 Define three functions, 'recurseStreamBasedMacros',
         //:   'recursePrintfStyleMacros' and 'recurseCallbackMacros', that log
-        //:   using the stream-based macros, 'printf'-style macros and calback
+        //:   using the stream-based macros, 'printf'-style macros and callback
         //:   macros, respectively.  Call these three functions in the context
         //:   of invocations of the various logging macros and verify the
         //:   results.  (C-1, 2)
@@ -3389,8 +3396,7 @@ if (verbose) bsl::cout << "printf-style macro usage" << bsl::endl;
 
         using namespace BALL_LOG_TEST_CASE_35;
 
-        typedef BloombergLP::ball::FileObserver2  FileObserver;
-        typedef BloombergLP::bdls::FilesystemUtil FilesystemUtil;
+        typedef BloombergLP::ball::StreamObserver  StreamObserver;
 
         TestAllocator ta(veryVeryVeryVerbose);
 
@@ -3399,18 +3405,11 @@ if (verbose) bsl::cout << "printf-style macro usage" << bsl::endl;
 
         LoggerManager& manager = LoggerManager::singleton();
 
-        TempDirectoryGuard tempDirGuard("ball_");
+        bsl::ostringstream              os(&ta);
+        bsl::shared_ptr<StreamObserver> observer(
+                                       new (ta) StreamObserver(&os, &ta), &ta);
 
-        bsl::string baseName(tempDirGuard.getTempDirName());
-        BloombergLP::bdls::PathUtil::appendRaw(&baseName, "testLog");
-
-        if (veryVeryVerbose) { T_; T_; P(baseName); }
-
-        bsl::shared_ptr<FileObserver> observer(
-                                              new (ta) FileObserver(&ta), &ta);
-
-        observer->enableFileLogging(baseName.c_str(), false);
-        observer->setLogFileFunctor(
+        observer->setRecordFormatFunctor(
                              BloombergLP::ball::RecordStringFormatter("%m\n"));
 
         ASSERT(0 == manager.registerObserver(observer, "test"));
@@ -3464,23 +3463,11 @@ if (verbose) bsl::cout << "printf-style macro usage" << bsl::endl;
             BALL_LOGVA_INFO("%s %d", "Outer INFO[2]",
                             recursePrintfStyleMacros<2>(Sev::e_INFO));
 
-            FilesystemUtil::FileDescriptor fd = FilesystemUtil::open(
-                                                  baseName,
-                                                  FilesystemUtil::e_OPEN,
-                                                  FilesystemUtil::e_READ_ONLY);
+            bsl::string result = os.str();
 
-            const size_t READ_BUFFER_SIZE = 8192;
-            char         buffer[READ_BUFFER_SIZE];
-            memset(buffer, 0, READ_BUFFER_SIZE);
-
-            int numBytes = static_cast<int>(FilesystemUtil::read(
-                                                fd, buffer, READ_BUFFER_SIZE));
-
-            ASSERTV(EXPECTED_LENGTH, numBytes, EXPECTED_LENGTH == numBytes);
-            ASSERTV(EXPECTED_LOG, buffer,
-                    0 == bsl::strcmp(EXPECTED_LOG, buffer));
-
-            FilesystemUtil::close(fd);
+            ASSERTV(EXPECTED_LENGTH, result.length(),
+                    EXPECTED_LENGTH == result.length());
+            ASSERTV(EXPECTED_LOG, result, EXPECTED_LOG == result);
         }
 
         if (verbose) bsl::cout << "\tStream-based recurses to stream-based.\n";
@@ -4701,7 +4688,7 @@ if (verbose) bsl::cout << "printf-style macro usage" << bsl::endl;
 
             TC::CatHolder catHolderX;
 
-            bsl::memcpy(&catHolderX,
+            bsl::memcpy(static_cast<void *>(&catHolderX),
                         RET(woof_b).d_holder_p,
                         sizeof(catHolderX));
             CALL(woof_b, MLEVELS, RET(woof_a).d_holder_p);
@@ -4710,7 +4697,7 @@ if (verbose) bsl::cout << "printf-style macro usage" << bsl::endl;
                                 ret_p->d_holder_p,
                                 sizeof(*ret_p->d_holder_p)));
 
-            bsl::memcpy(&catHolderX,
+            bsl::memcpy(static_cast<void *>(&catHolderX),
                         RET(meowBark).d_holder_p,
                         sizeof(catHolderX));
             CALL(meowBark, JLEVELS, 0);
@@ -4719,7 +4706,7 @@ if (verbose) bsl::cout << "printf-style macro usage" << bsl::endl;
                                 ret_p->d_holder_p,
                                 sizeof(*ret_p->d_holder_p)));
 
-            bsl::memcpy(&catHolderX,
+            bsl::memcpy(static_cast<void *>(&catHolderX),
                         RET(meow).d_holder_p,
                         sizeof(catHolderX));
             CALL(meow, CLEVELS, 0);

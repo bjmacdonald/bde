@@ -34,7 +34,7 @@ BSLS_IDENT("$Id: $")
 //:   ('accessSelection'), and
 //: o obtain the id for the current selection ('selectionId').
 //
-// Also, the meta-function 'IsChoice' contains a compile-time constant 'VALUE'
+// Also, the meta-function 'IsChoice' contains a compile-time constant 'value'
 // that is non-zero if the parameterized 'TYPE' exposes "choice" behavior
 // through the 'bdlat_ChoiceFunctions' 'namespace'.
 //
@@ -355,8 +355,7 @@ BSLS_IDENT("$Id: $")
 //  namespace bdlat_ChoiceFunctions {
 //
 //  template <>
-//  struct IsChoice<mine::MyChoice> {
-//      enum { VALUE = 1 };
+//  struct IsChoice<mine::MyChoice> : bsl::true_type {
 //  };
 //
 //  }  // close namespace bdlat_ChoiceFunctions
@@ -455,7 +454,7 @@ BSLS_IDENT("$Id: $")
 #include <bslalg_hastrait.h>
 
 #include <bslmf_assert.h>
-#include <bslmf_metaint.h>
+#include <bslmf_integralconstant.h>
 
 #include <bsls_assert.h>
 #include <bsls_platform.h>
@@ -483,15 +482,13 @@ namespace bdlat_ChoiceFunctions {
 
     // META-FUNCTIONS
     template <class TYPE>
-    struct IsChoice {
+    struct IsChoice
+    : public bsl::integral_constant<
+          bool,
+          bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value> {
         // This 'struct' should be specialized for third-party types that need
         // to expose "choice" behavior.  See the component-level documentation
         // for further information.
-
-        // TYPES
-        enum {
-            VALUE = bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE
-        };
     };
 
     // MANIPULATORS
@@ -678,7 +675,7 @@ inline
 int bdlat_ChoiceFunctions::bdlat_choiceMakeSelection(TYPE *object,
                                                      int   selectionId)
 {
-    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE));
+    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value));
 
     return object->makeSelection(selectionId);
 }
@@ -690,7 +687,7 @@ int bdlat_ChoiceFunctions::bdlat_choiceMakeSelection(
                                                const char *selectionName,
                                                int         selectionNameLength)
 {
-    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE));
+    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value));
 
     return object->makeSelection(selectionName, selectionNameLength);
 }
@@ -701,7 +698,7 @@ int bdlat_ChoiceFunctions::bdlat_choiceManipulateSelection(
                                                      TYPE         *object,
                                                      MANIPULATOR&  manipulator)
 {
-    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE));
+    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value));
 
     return object->manipulateSelection(manipulator);
 }
@@ -712,7 +709,7 @@ inline
 int bdlat_ChoiceFunctions::bdlat_choiceAccessSelection(const TYPE& object,
                                                        ACCESSOR&   accessor)
 {
-    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE));
+    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value));
 
     return object.accessSelection(accessor);
 }
@@ -724,7 +721,7 @@ bool bdlat_ChoiceFunctions::bdlat_choiceHasSelection(
                                               const char  *selectionName,
                                               int          selectionNameLength)
 {
-    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE));
+    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value));
 
     return 0 != object.lookupSelectionInfo(selectionName, selectionNameLength);
 }
@@ -734,7 +731,7 @@ inline
 bool bdlat_ChoiceFunctions::bdlat_choiceHasSelection(const TYPE& object,
                                                      int         selectionId)
 {
-    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE));
+    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value));
 
     return 0 != object.lookupSelectionInfo(selectionId);
 }
@@ -743,7 +740,7 @@ template <class TYPE>
 inline
 int bdlat_ChoiceFunctions::bdlat_choiceSelectionId(const TYPE& object)
 {
-    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE));
+    BSLMF_ASSERT((bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value));
 
     return object.selectionId();
 }

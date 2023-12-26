@@ -1,4 +1,18 @@
 // bslstl_set_test.t.cpp                                              -*-C++-*-
+
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, SEC_NULL_PTR_DEREF)
+#endif
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wstringop-overflow="
+#endif
+
 #include <bslstl_set_test.h>
 
 #include <bslstl_forwarditerator.h>
@@ -20,6 +34,7 @@
 #include <bslma_usesbslmaallocator.h>
 
 #include <bslmf_assert.h>
+#include <bslmf_isbitwisecopyable.h>
 #include <bslmf_issame.h>
 #include <bslmf_haspointersemantics.h>
 
@@ -31,7 +46,6 @@
 #include <bsls_keyword.h>
 #include <bsls_libraryfeatures.h>
 #include <bsls_nameof.h>
-#include <bsls_platform.h>
 #include <bsls_types.h>
 
 #include <bsltf_allocargumenttype.h>
@@ -4553,7 +4567,7 @@ void TestDriver<KEY, COMP, ALLOC>::testCase27_dispatch()
 
                     bool empty = 0 == ZZ.size();
 
-                    typename Obj::const_pointer pointers[2];
+                    typename Obj::const_pointer pointers[2] = { 0, 0 };
                     storeFirstNElemAddr(pointers,
                                         Z,
                                         sizeof pointers / sizeof *pointers);
@@ -4995,7 +5009,7 @@ void TestDriver<KEY, COMP, ALLOC>::testCase26()
                 Obj&        mZ = *srcPtr;
                 const Obj&  Z = gg(&mZ, SPEC);
 
-                typename Obj::const_pointer pointers[2];
+                typename Obj::const_pointer pointers[2] = { 0, 0 };
                 storeFirstNElemAddr(pointers, Z,
                                     sizeof pointers / sizeof *pointers);
 
@@ -5475,6 +5489,15 @@ void TestDriver<KEY, COMP, ALLOC>::testCase25()
     // template <class Key, class Compare, class Allocator>
     // bool operator==(const set<Key,Compare,Allocator>& x,
     // const set<Key,Compare,Allocator>& y);
+
+    // Due to the internal compiler bug the following line of code fails to be
+    // compiled by the MSVC (version 19.30) with the following error:
+    //..
+    //  error C3861: '==': identifier not found
+    //..
+    // The issue is reproduced with C++20 flag. This bug has been fixed in
+    // compiler version 19.31.  See {DRQS 172604250}.
+
     bool (*operatorEq)(const Obj&, const Obj&) = operator==;
     (void) operatorEq;
 
@@ -5612,6 +5635,8 @@ void TestDriver<KEY, COMP, ALLOC>::testCase23()
 
     BSLMF_ASSERT((0 ==
                   bslmf::IsBitwiseEqualityComparable<bsl::set<KEY> >::value));
+
+    BSLMF_ASSERT((0 == bslmf::IsBitwiseCopyable<bsl::set<KEY> >::value));
 
     BSLMF_ASSERT((0 == bslmf::IsBitwiseMoveable<bsl::set<KEY> >::value));
 

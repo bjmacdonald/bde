@@ -10,6 +10,11 @@
 
 #include <cmath>
 
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
+
 using namespace BloombergLP;
 using namespace bsl;
 

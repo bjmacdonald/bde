@@ -1,12 +1,10 @@
 // bslstl_iterator.t.cpp                                              -*-C++-*-
-
 #include <bslstl_iterator.h>
 
 #include <bsls_bsltestutil.h>
 #include <bsls_libraryfeatures.h>
 #include <bsls_objectbuffer.h>
-
-#include <bslstl_set.h>
+#include <bsls_platform.h>
 
 #include <new>
 
@@ -14,6 +12,11 @@
 #include <stdlib.h>
 
 using namespace BloombergLP;
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, arrowrtn)
+#pragma error_messages(off, SEC_UNINITIALIZED_MEM_READ)
+#endif
 
 //=============================================================================
 //                             TEST PLAN
@@ -213,7 +216,7 @@ class MyFixedSizeArray
     // changed afterwards.
 {
     // DATA
-    VALUE  d_array[SIZE];  // storage of the container
+    VALUE d_array[SIZE];  // storage of the container
 
   public:
     // PUBLIC TYPES
@@ -221,10 +224,10 @@ class MyFixedSizeArray
 //..
 // Here, we define mutable and constant iterators and reverse iterators:
 //..
-    typedef VALUE                                  *iterator;
-    typedef VALUE const                            *const_iterator;
-    typedef bsl::reverse_iterator<iterator>         reverse_iterator;
-    typedef bsl::reverse_iterator<const_iterator>   const_reverse_iterator;
+    typedef VALUE                                 *iterator;
+    typedef VALUE const                           *const_iterator;
+    typedef bsl::reverse_iterator<iterator>        reverse_iterator;
+    typedef bsl::reverse_iterator<const_iterator>  const_reverse_iterator;
 
     // CREATORS
     //! MyFixedSizeArray() = default;
@@ -483,7 +486,7 @@ class AccessTestContainer
     size_t size() const;
         // Return the length of this container.
 
-    int functionCalled() const;
+    int  functionCalled() const;
     bool beginCalled() const;
     bool constBeginCalled() const;
     bool reverseBeginCalled() const;
@@ -628,8 +631,345 @@ bool AccessTestContainer::sizeCalled() const
 }  // close namespace testcontainer
 
 // ============================================================================
+//                          BSL/STD FIXED SET CONTAINER
+//
+// Originally, TC 15 simultaneously exposed both 'bsl::set' and 'std::set' and
+// then used 'bsl::set'.  This was problematic because including 'bslstl_set.h'
+// in this test driver introduced a cycle.  So we declare a minimal simulation
+// of a set in both 'bsl' and 'std' here, such that the 'bsl' set will pass the
+// test and the 'std' set won't.
+// ----------------------------------------------------------------------------
+
+namespace std {
+
+class FixedSet {
+    // This container just has to simulate a 'bsl::set<int>' containing 1, 2,
+    // 3, 4, and 5.  We do not want to use 'bsl::set' because including it from
+    // this file introduces dependency cycles.  It is not necessary for this
+    // container to be modifiable.
+    //
+    // This 'std' version of 'FixedSet' is meant to never be used by the test,
+    // it is just here to see if the compiler gets confused between
+    // 'bsl::FixedSet' (below) and 'std::FixedSet' (this one).  This 'std' one
+    // is slightly different from the 'bsl' one to ensure that if the compiler
+    // chooses this one, the tests will fail at run-time.
+
+    // DATA
+    int d_ints[5];
+
+  public:
+    class iterator;
+    typedef bsl::reverse_iterator<iterator> reverse_iterator;
+    typedef iterator                        const_iterator;
+    typedef reverse_iterator                const_reverse_iterator;
+
+    // CREATORS
+    FixedSet()
+    {
+        d_ints[0] = -11;
+        d_ints[1] = -12;
+        d_ints[2] = -13;
+        d_ints[3] = -14;
+        d_ints[4] = -15;
+    }
+
+    iterator begin() const;
+    iterator end() const;
+    reverse_iterator rbegin() const;
+    reverse_iterator rend() const;
+
+    const_iterator cbegin() const;
+    const_iterator cend() const;
+    const_reverse_iterator crbegin() const;
+    const_reverse_iterator crend() const;
+
+    std::size_t size() const { return 5; }
+    std::ptrdiff_t ssize() const { return 5; }
+};
+
+class FixedSet::iterator {
+    // DATA
+    const FixedSet *d_fixedSet_p;
+    int             d_index;
+
+  public:
+    // PUBLIC TYPES
+    typedef bsl::bidirectional_iterator_tag iterator_category;
+    typedef int                             value_type;
+    typedef std::ptrdiff_t                  difference_type;
+    typedef const int*                      pointer;
+    typedef const int&                      reference;
+
+    // CREATORS
+    iterator()
+    : d_fixedSet_p(0)
+    , d_index(-1)
+    {}
+
+    iterator(const FixedSet *fixedSet_p, int index)
+    : d_fixedSet_p(fixedSet_p)
+    , d_index(index)
+    {}
+
+    iterator(const iterator& original)
+    : d_fixedSet_p(original.d_fixedSet_p)
+    , d_index(original.d_index)
+    {}
+
+    // MANIPULATORS
+    iterator& operator=(const iterator& rhs)
+    {
+        d_fixedSet_p = rhs.d_fixedSet_p;
+        d_index      = rhs.d_index;
+
+        return *this;
+    }
+
+    iterator& operator++()
+    {
+        ++d_index;
+        return *this;
+    }
+
+    iterator operator++(int)
+    {
+        iterator ret(*this);
+
+        ++d_index;
+        return ret;
+    }
+
+    iterator& operator--()
+    {
+        --d_index;
+        return *this;
+    }
+
+    iterator operator--(int)
+    {
+        iterator ret(*this);
+
+        --d_index;
+        return ret;
+    }
+
+    // ACCESSORS
+    reference operator*() const
+    {
+        return d_fixedSet_p->d_ints[d_index];
+    }
+
+    pointer operator->() const
+    {
+        return d_fixedSet_p->d_ints + d_index;
+    }
+};
+
+FixedSet::iterator FixedSet::begin() const
+{
+    return iterator(this, 0);
+}
+
+FixedSet::iterator FixedSet::end() const
+{
+    return iterator(this, 5);
+}
+
+FixedSet::reverse_iterator FixedSet::rbegin() const
+{
+    return reverse_iterator(end());
+}
+
+FixedSet::reverse_iterator FixedSet::rend() const
+{
+    return reverse_iterator(begin());
+}
+
+FixedSet::const_iterator FixedSet::cbegin() const
+{
+    return begin();
+}
+
+FixedSet::const_iterator FixedSet::cend() const
+{
+    return end();
+}
+
+FixedSet::const_reverse_iterator FixedSet::crbegin() const
+{
+    return rbegin();
+}
+
+FixedSet::const_reverse_iterator FixedSet::crend() const
+{
+    return rend();
+}
+
+}  // close namespace std
+
+namespace bsl {
+
+class FixedSet {
+    // This container just has to simulate a 'bsl::set<int>' containing 1, 2,
+    // and 3.  We do not want to use 'bsl::set' because including it from this
+    // file introduces dependency cycles.  It is not necessary for this
+    // container to be modifiable.
+
+    // DATA
+    int d_ints[3];
+
+  public:
+    class iterator;
+    typedef bsl::reverse_iterator<iterator> reverse_iterator;
+    typedef iterator                        const_iterator;
+    typedef reverse_iterator                const_reverse_iterator;
+
+    // CREATORS
+    FixedSet()
+    {
+        d_ints[0] = 1;
+        d_ints[1] = 2;
+        d_ints[2] = 3;
+    }
+
+    iterator begin() const;
+    iterator end() const;
+    reverse_iterator rbegin() const;
+    reverse_iterator rend() const;
+
+    const_iterator cbegin() const;
+    const_iterator cend() const;
+    const_reverse_iterator crbegin() const;
+    const_reverse_iterator crend() const;
+
+    std::size_t size() const { return 3; }
+    std::ptrdiff_t ssize() const { return 3; }
+};
+
+class FixedSet::iterator {
+    // DATA
+    const FixedSet *d_fixedSet_p;
+    int             d_index;
+
+  public:
+    // PUBLIC TYPES
+    typedef bsl::bidirectional_iterator_tag iterator_category;
+    typedef int                             value_type;
+    typedef std::ptrdiff_t                  difference_type;
+    typedef const int*                      pointer;
+    typedef const int&                      reference;
+
+    // CREATORS
+    iterator()
+    : d_fixedSet_p(0)
+    , d_index(-1)
+    {}
+
+    iterator(const FixedSet *fixedSet_p, int index)
+    : d_fixedSet_p(fixedSet_p)
+    , d_index(index)
+    {}
+
+    iterator(const iterator& original)
+    : d_fixedSet_p(original.d_fixedSet_p)
+    , d_index(original.d_index)
+    {}
+
+    // MANIPULATORS
+    iterator& operator=(const iterator& rhs)
+    {
+        d_fixedSet_p = rhs.d_fixedSet_p;
+        d_index      = rhs.d_index;
+
+        return *this;
+    }
+
+    iterator& operator++()
+    {
+        ++d_index;
+        return *this;
+    }
+
+    iterator operator++(int)
+    {
+        iterator ret(*this);
+
+        ++d_index;
+        return ret;
+    }
+
+    iterator& operator--()
+    {
+        --d_index;
+        return *this;
+    }
+
+    iterator operator--(int)
+    {
+        iterator ret(*this);
+
+        --d_index;
+        return ret;
+    }
+
+    // ACCESSORS
+    reference operator*() const
+    {
+        return d_fixedSet_p->d_ints[d_index];
+    }
+
+    pointer operator->() const
+    {
+        return d_fixedSet_p->d_ints + d_index;
+    }
+};
+
+FixedSet::iterator FixedSet::begin() const
+{
+    return iterator(this, 0);
+}
+
+FixedSet::iterator FixedSet::end() const
+{
+    return iterator(this, 3);
+}
+
+FixedSet::reverse_iterator FixedSet::rbegin() const
+{
+    return reverse_iterator(end());
+}
+
+FixedSet::reverse_iterator FixedSet::rend() const
+{
+    return reverse_iterator(begin());
+}
+
+FixedSet::const_iterator FixedSet::cbegin() const
+{
+    return begin();
+}
+
+FixedSet::const_iterator FixedSet::cend() const
+{
+    return end();
+}
+
+FixedSet::const_reverse_iterator FixedSet::crbegin() const
+{
+    return rbegin();
+}
+
+FixedSet::const_reverse_iterator FixedSet::crend() const
+{
+    return rend();
+}
+
+}  // close namespace bsl
+
+// ============================================================================
 //                    GLOBAL HELPER FUNCTIONS FOR TESTING
 // ----------------------------------------------------------------------------
+
 namespace {
 
 // The following functions are used solely to verify that the value returned
@@ -670,11 +1010,7 @@ int main(int argc, char *argv[])
     int                 test = argc > 1 ? atoi(argv[1]) : 0;
     bool             verbose = argc > 2;
     bool         veryVerbose = argc > 3;
-    bool     veryVeryVerbose = argc > 4;
-    bool veryVeryVeryVerbose = argc > 5;
-
-    (void)veryVeryVerbose;      // suppress warning
-    (void)veryVeryVeryVerbose;  // suppress warning
+    bool     veryVeryVerbose = argc > 4;  (void)veryVeryVerbose;
 
     setbuf(stdout, NULL);    // Use unbuffered output
 
@@ -690,6 +1026,11 @@ int main(int argc, char *argv[])
                             "===============\n");
 
         using namespace testcontainer;
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 
 // Then, we create a 'MyFixedSizeArray' and initialize its elements:
 //..
@@ -738,6 +1079,9 @@ int main(int argc, char *argv[])
 //       Element: 2
 //       Element: 1
 //..
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+    #pragma GCC diagnostic pop
+#endif
       } break;
       case 18: {
         // --------------------------------------------------------------------
@@ -760,9 +1104,10 @@ int main(int argc, char *argv[])
         if (verbose) printf("TESTING CONTAINER DATA CALLS\n"
                             "============================\n");
 
-        testcontainer::MyFixedSizeArray<int, 1>    c1;
-        testcontainer::MyFixedSizeArray<float, 2>  c2;
+        testcontainer::MyFixedSizeArray<int,    1> c1;
+        testcontainer::MyFixedSizeArray<float,  2> c2;
         testcontainer::MyFixedSizeArray<double, 3> c3;
+
         ASSERT(bsl::data(c1) == c1.data());
         ASSERT(bsl::data(c2) == c2.data());
         ASSERT(bsl::data(c3) == c3.data());
@@ -849,11 +1194,12 @@ int main(int argc, char *argv[])
         //: 1 Range functions can be used with 'std' containers under ADL.
         //
         // Plan:
-        //: 1 Call all 10 range functions (unqualified) for a 'bsl::set<int>',
-        //:   as this will be associated with both namespace 'bsl' and native
-        //:   'std' (for 'std::less' as a template parameter).  Note that this
-        //:   test scenario is implemented in the test driver of the
-        //:   'bslim_bslstandardheadertest' component to avoid include loop.
+        //: 1 Call all 10 range functions (unqualified) for a 'bsl::FixedSet'
+        //:   (defined in this test driver), as this will be associated with
+        //:   both namespace 'bsl' and native 'std' (for 'std::less' as a
+        //:   template parameter).  Note that this test scenario is implemented
+        //:   in the test driver of the 'bslim_bslstandardheadertest' component
+        //:   to avoid include loop.
         //:
         //: 2 Explicitly introduce both namespaces ('bsl' and 'std') and
         //:   call all 10 range functions for an array of integers.  (C-1)
@@ -869,13 +1215,10 @@ int main(int argc, char *argv[])
         using namespace std;
 
         {
-            bsl::set<int> mY;
-            mY.insert(1);
-            mY.insert(2);
-            mY.insert(3);
+            bsl::FixedSet mY;
 
-            bsl::set<int>::iterator it;
-            bsl::reverse_iterator<bsl::set<int>::iterator> rit;
+            bsl::FixedSet::iterator it;
+            bsl::FixedSet::reverse_iterator rit;
 
             ASSERT(1 == *begin(mY));
             it = end(mY);
@@ -1430,7 +1773,8 @@ int main(int argc, char *argv[])
         //  Declare test data and types.
 
         int testData[] = { 42, 13, 56, 72, 39, };
-        int numElements = sizeof(testData) / sizeof(int);
+        const int numElements = sizeof testData / sizeof *testData;
+
         typedef int                                   *iterator;
         typedef int const                             *const_iterator;
         typedef bsl::reverse_iterator<iterator>        reverse_iterator;
@@ -1489,7 +1833,8 @@ int main(int argc, char *argv[])
         //  Declare test data and types.
 
         int testData[] = { 42, 13, 56, 72, 39, };
-        int numElements = sizeof(testData) / sizeof(int);
+        const int numElements = sizeof testData / sizeof *testData;
+
         typedef int                             *iterator;
         typedef bsl::reverse_iterator<iterator>  reverse_iterator;
 
@@ -1536,7 +1881,8 @@ int main(int argc, char *argv[])
         //  Declare test data and types.
 
         int testData[] = { 42, 13, 56, 72, };
-        int numElements = sizeof(testData) / sizeof(int);
+        const int numElements = sizeof testData / sizeof *testData;
+
         typedef int                                   *iterator;
         typedef int const                             *const_iterator;
         typedef bsl::reverse_iterator<iterator>        reverse_iterator;
@@ -1636,7 +1982,8 @@ int main(int argc, char *argv[])
         //  Declare test data and types.
 
         int testData[] = { 42, 13, 56, 72, };
-        int numElements = sizeof(testData) / sizeof(int);
+        const int numElements = sizeof testData / sizeof *testData;
+
         typedef int                                   *iterator;
         typedef int const                             *const_iterator;
         typedef bsl::reverse_iterator<iterator>        reverse_iterator;
@@ -1977,7 +2324,7 @@ int main(int argc, char *argv[])
         //  Declare test data and types.
 
         int testData[4] = { 0, 1, 2, 3 };
-        int numElements = sizeof(testData) / sizeof(int);
+        const int numElements = sizeof testData / sizeof *testData;
 
         typedef int                                   *iterator;
         typedef int const                             *const_iterator;

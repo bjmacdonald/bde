@@ -12,7 +12,12 @@
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bdlmt_fixedthreadpool_cpp,"$Id$ $CSID$")
 
+#include <bdlf_bind.h>
 #include <bdlf_memfn.h>
+
+#include <bdlm_defaultmetricsregistrar.h>
+#include <bdlm_metric.h>
+#include <bdlm_metricdescriptor.h>
 
 #include <bsls_nullptr.h>
 #include <bsls_performancehint.h>
@@ -24,6 +29,9 @@ BSLS_IDENT_RCSID(bdlmt_fixedthreadpool_cpp,"$Id$ $CSID$")
 #endif
 
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
+#include <bsl_sstream.h>
+#include <bsl_string.h>
 
 namespace {
 
@@ -52,6 +60,23 @@ void initBlockSet(sigset_t *blockSet)
     }
 }
 #endif
+
+void backlogMetric(BloombergLP::bdlm::Metric           *value,
+                   BloombergLP::bdlmt::FixedThreadPool *object)
+{
+    *value = BloombergLP::bdlm::Metric::Gauge(  object->numPendingJobs()
+                                              + object->numActiveThreads()
+                                              - object->numThreadsStarted());
+}
+
+void usedCapacityMetric(BloombergLP::bdlm::Metric           *value,
+                        BloombergLP::bdlmt::FixedThreadPool *object)
+{
+    *value = BloombergLP::bdlm::Metric::Gauge(
+                                  static_cast<double>(object->numPendingJobs())
+                                                    / object->queueCapacity());
+}
+
 }  // close unnamed namespace
 
 namespace BloombergLP {
@@ -65,6 +90,53 @@ namespace bdlmt {
 const char FixedThreadPool::s_defaultThreadName[16] = { "bdl.FixedPool" };
 
 // PRIVATE MANIPULATORS
+void FixedThreadPool::initialize(const bsl::string_view& metricsIdentifier)
+{
+    d_queue.disablePushBack();
+    d_queue.disablePopFront();
+
+    if (d_threadAttributes.threadName().empty()) {
+        d_threadAttributes.setThreadName(s_defaultThreadName);
+    }
+
+#if defined(BSLS_PLATFORM_OS_UNIX)
+    initBlockSet(&d_blockSet);
+#endif
+
+    bdlm::MetricDescriptor mdBacklog(
+                                d_metricsRegistrar_p->defaultMetricNamespace(),
+                                "backlog",
+                                "bdlmt.fixedthreadpool",
+                                metricsIdentifier);
+
+    bdlm::MetricDescriptor mdUsedCapacity(
+                                d_metricsRegistrar_p->defaultMetricNamespace(),
+                                "usedcapacity",
+                                "bdlmt.fixedthreadpool",
+                                metricsIdentifier);
+
+    if (metricsIdentifier.empty()) {
+        bsl::stringstream identifier;
+        identifier << d_metricsRegistrar_p->defaultObjectIdentifierPrefix()
+                   << ".ftp."
+                   << d_metricsRegistrar_p->incrementInstanceCount(mdBacklog);
+        mdBacklog.setObjectIdentifier(identifier.str());
+        mdUsedCapacity.setObjectIdentifier(identifier.str());
+    }
+
+    d_backlogHandle = d_metricsRegistrar_p->registerCollectionCallback(
+                                mdBacklog,
+                                bdlf::BindUtil::bind(&backlogMetric,
+                                                     bdlf::PlaceHolders::_1,
+                                                     this));
+
+    d_usedCapacityHandle = d_metricsRegistrar_p->registerCollectionCallback(
+                                 mdUsedCapacity,
+                                 bdlf::BindUtil::bind(&usedCapacityMetric,
+                                                      bdlf::PlaceHolders::_1,
+                                                      this));
+}
+
 void FixedThreadPool::workerThread()
 {
     d_barrier.wait();  // initial synchronization in 'start'
@@ -121,19 +193,33 @@ FixedThreadPool::FixedThreadPool(
 , d_threadGroup(basicAllocator)
 , d_threadAttributes(threadAttributes, basicAllocator)
 , d_numThreads(numThreads)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
     BSLS_ASSERT_OPT(1 <= numThreads);
 
-    d_queue.disablePushBack();
-    d_queue.disablePopFront();
+    initialize("");
+}
 
-    if (d_threadAttributes.threadName().empty()) {
-        d_threadAttributes.setThreadName(s_defaultThreadName);
-    }
+FixedThreadPool::FixedThreadPool(
+                             const bslmt::ThreadAttributes&  threadAttributes,
+                             int                             numThreads,
+                             int                             maxNumPendingJobs,
+                             const bsl::string_view&         metricsIdentifier,
+                             bdlm::MetricsRegistrar         *metricsRegistrar,
+                             bslma::Allocator               *basicAllocator)
+: d_queue(maxNumPendingJobs, basicAllocator)
+, d_numActiveThreads(0)
+, d_drainFlag(false)
+, d_barrier(numThreads + 1)
+, d_threadGroup(basicAllocator)
+, d_threadAttributes(threadAttributes, basicAllocator)
+, d_numThreads(numThreads)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    BSLS_ASSERT_OPT(1 <= numThreads);
 
-#if defined(BSLS_PLATFORM_OS_UNIX)
-    initBlockSet(&d_blockSet);
-#endif
+    initialize(metricsIdentifier);
 }
 
 FixedThreadPool::FixedThreadPool(int               numThreads,
@@ -146,22 +232,39 @@ FixedThreadPool::FixedThreadPool(int               numThreads,
 , d_threadGroup(basicAllocator)
 , d_threadAttributes(basicAllocator)
 , d_numThreads(numThreads)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar())
 {
     BSLS_ASSERT_OPT(1 <= numThreads);
 
-    d_queue.disablePushBack();
-    d_queue.disablePopFront();
+    initialize("");
+}
 
-    d_threadAttributes.setThreadName(s_defaultThreadName);
+FixedThreadPool::FixedThreadPool(int                      numThreads,
+                                 int                      maxNumPendingJobs,
+                                 const bsl::string_view&  metricsIdentifier,
+                                 bdlm::MetricsRegistrar  *metricsRegistrar,
+                                 bslma::Allocator        *basicAllocator)
+: d_queue(maxNumPendingJobs, basicAllocator)
+, d_numActiveThreads(0)
+, d_drainFlag(false)
+, d_barrier(numThreads + 1)
+, d_threadGroup(basicAllocator)
+, d_threadAttributes(basicAllocator)
+, d_numThreads(numThreads)
+, d_metricsRegistrar_p(bdlm::DefaultMetricsRegistrar::metricsRegistrar(
+                                                             metricsRegistrar))
+{
+    BSLS_ASSERT_OPT(1 <= numThreads);
 
-#if defined(BSLS_PLATFORM_OS_UNIX)
-    initBlockSet(&d_blockSet);
-#endif
+    initialize(metricsIdentifier);
 }
 
 FixedThreadPool::~FixedThreadPool()
 {
     shutdown();
+
+    d_metricsRegistrar_p->removeCollectionCallback(d_backlogHandle);
+    d_metricsRegistrar_p->removeCollectionCallback(d_usedCapacityHandle);
 }
 
 // MANIPULATORS

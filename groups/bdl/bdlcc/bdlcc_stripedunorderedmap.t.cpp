@@ -63,6 +63,10 @@
 #include <bsl_vector.h>
 #include <bsl_unordered_map.h>
 
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 using namespace BloombergLP;
 using namespace bsl;
 
@@ -2639,7 +2643,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase18()
         ASSERTV(EXP_NUM_VISITS, s_testCase19_visitedElements.size(),
                 EXP_NUM_VISITS == s_testCase19_visitedElements.size());
 
-        VALUE value;
+        VALUE value = VALUES[1].second;
         for (bsl::size_t tj = 0; tj < LENGTH; ++tj) {
             bsl::size_t rc1 = X.getValue(&value, VALUES[tj].first);
             ASSERTV(1 == rc1);
@@ -2735,7 +2739,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase18()
         ASSERTV(dam.isTotalSame());
 
         // Confirm that values remain unchanged.
-        VALUE value;
+        VALUE value = VALUES[1].second;
         for (bsl::size_t tj = 0; tj < LENGTH; ++tj) {
             bsl::size_t rc1 = X.getValue(&value, VALUES[tj].first);
             ASSERTV(1 == rc1);
@@ -5878,7 +5882,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase3()
                     ASSERTV(bucketIndex, EXP_BIDX  == bucketIndex);
                     ASSERTV(bucketSize,  EXP_BSIZE == bucketSize);
 
-                    VALUE value;
+                    VALUE value = TstFacility::create<VALUE>(0);
                     rc = X.getValue(&value, cKEY);
 
                     ASSERT(numElements == rc);

@@ -24,12 +24,13 @@ BSLS_IDENT_RCSID(bdls_filesystemutil_cpp, "$Id$ $CSID$")
 #include <bdlf_bind.h>
 #include <bdlt_epochutil.h>
 #include <bdlf_placeholder.h>
-#include <bdlt_currenttime.h> // for testing only
 #include <bdlma_bufferedsequentialallocator.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>
+#include <bslmf_assert.h>
 #include <bslmf_movableref.h>
+
 #include <bslmt_threadutil.h>
 
 #include <bsla_maybeunused.h>
@@ -532,25 +533,28 @@ namespace {
 # endif
 
 static inline
-int performStat(const char *fileName, StatResult *statResult)
-    // Run the appropriate 'stat' or 'stat64' function on the specified
-    // 'fileName', returning the results in the specified 'statResult'.
+int performFStat(BloombergLP::bdls::FilesystemUtil::FileDescriptor  descriptor,
+                 StatResult                                        *statResult)
+    // Run the appropriate 'fstat' or 'fstat64' function on the specified file
+    // 'descriptor', returning the results in the specified 'statResult'.
 {
-# if defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
-    return ::stat  (fileName, statResult);
-# elif defined(U_USE_TRANSITIONAL_UNIX_FILE_SYSTEM_INTERFACE)
-    return ::stat64(fileName, statResult);
-# else
-#  error "'bdls_filesystemutil' does not support this platform."
-# endif
+#if   defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
+    return ::fstat  (descriptor, statResult);
+#elif defined(U_USE_TRANSITIONAL_UNIX_FILE_SYSTEM_INTERFACE)
+    return ::fstat64(descriptor, statResult);
+#else
+#  error "bdls_filesystemutil: 'performFStat' does not support this platform."
+#endif
 }
 
 static inline
-int performStat(const char *fileName, StatResult *statResult, bool followLinks)
+int performStat(const char *fileName,
+                StatResult *statResult,
+                bool        followLinks = true)
     // Run the appropriate 'stat' or 'stat64' function on the specified
     // 'fileName', returning the results in the specified 'statResult', where
     // the specified 'followLinks' indicates whether symlinks are to be
-    // followed.
+    // followed using 'lstat' or 'lstat64'.
 {
 # if defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
     return followLinks ?  ::stat(fileName, statResult)
@@ -889,6 +893,294 @@ int removeFile(const char *path)
 
 #endif
 
+namespace {
+#ifdef BSLS_PLATFORM_OS_WINDOWS
+template <class STRING_TYPE>
+int u_getSystemTemporaryDirectory(STRING_TYPE *path)
+{
+    WCHAR wpath[MAX_PATH + 1];
+    const DWORD getTempPathStatus = ::GetTempPathW(MAX_PATH, wpath);
+    if (0 == getTempPathStatus) {
+        return -1;                                                    // RETURN
+    }
+
+    STRING_TYPE result;
+    int rc = bdlde::CharConvertUtf16::utf16ToUtf8(&result, wpath);
+    if (0 != rc) {
+        return -1;                                                    // RETURN
+    }
+
+    *path = bslmf::MovableRefUtil::move(result);
+    return 0;
+}
+
+template <class STRING_TYPE>
+int u_getSymbolicLinkTarget(STRING_TYPE *result,
+                            const char  *path)
+{
+    BSLS_ASSERT(path);
+    BSLS_ASSERT(result);
+
+    bsl::wstring wide;
+    if (!narrowToWide(&wide, path)) {
+        return -1;                                                    // RETURN
+    }
+
+    // 'char memory[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];' -- can be large so use
+    // heap
+
+    bsl::string memory(MAXIMUM_REPARSE_DATA_BUFFER_SIZE, '\x0');
+    REPARSE_DATA_BUFFER *rdb =
+                         reinterpret_cast<REPARSE_DATA_BUFFER*>(memory.data());
+
+    HANDLE hFile = CreateFileW(
+        wide.c_str(),
+        FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+        NULL
+    );
+    if (hFile == INVALID_HANDLE_VALUE) {
+        return -1;                                                    // RETURN
+    }
+
+    DWORD bytesReturned;
+    bool ok = DeviceIoControl(
+        hFile,
+        FSCTL_GET_REPARSE_POINT,
+        0,
+        0,
+        rdb,
+        MAXIMUM_REPARSE_DATA_BUFFER_SIZE,
+        &bytesReturned,
+        0
+    );
+    CloseHandle(hFile);
+    if (!ok) {
+        return -1;                                                    // RETURN
+    }
+
+    const wchar_t *name;
+    size_t         nameLen;
+    switch (rdb->ReparseTag) {
+      case IO_REPARSE_TAG_SYMLINK: {  // symlink
+        name =
+              rdb->SymbolicLinkReparseBuffer.PathBuffer +
+              rdb->SymbolicLinkReparseBuffer.PrintNameOffset / sizeof(wchar_t);
+        nameLen =
+              rdb->SymbolicLinkReparseBuffer.PrintNameLength / sizeof(wchar_t);
+      } break;
+      case IO_REPARSE_TAG_MOUNT_POINT: {  // directory junction
+        name =  rdb->MountPointReparseBuffer.PathBuffer +
+                rdb->MountPointReparseBuffer.PrintNameOffset / sizeof(wchar_t);
+        nameLen =
+                rdb->MountPointReparseBuffer.PrintNameLength / sizeof(wchar_t);
+      } break;
+      default: {
+        return -1;                                                    // RETURN
+      }
+    }
+
+    if (!wideToNarrow(result, bsl::wstring_view(name, nameLen))) {
+        return -1;                                                    // RETURN
+    }
+    return 0;
+}
+
+template <class STRING_TYPE>
+int u_getWorkingDirectory(STRING_TYPE *path)
+{
+    BSLS_ASSERT(path);
+
+    enum { BUFFER_SIZE = 4096 };
+    wchar_t buffer[BUFFER_SIZE];
+
+    wchar_t *retval = _wgetcwd(buffer, BUFFER_SIZE);
+    if (buffer == retval && wideToNarrow(path, buffer)) {
+        //our contract requires an absolute path
+
+        return bdls::PathUtil::isRelative(*path);                     // RETURN
+    }
+    return -1;
+}
+
+#else  // BSLS_PLATFORM_OS_WINDOWS
+
+template <class STRING_TYPE>
+int u_getSystemTemporaryDirectory(STRING_TYPE *path)
+{
+    // 'TMPDIR' is not chosen arbitrarily, it is an environment variable that
+    // all versions of the IEEE Std 1003.1 (POSIX) specification mandate exist
+    // and contain a path-name of a directory made available for programs that
+    // need a place to create temporary files.
+
+    const char *const tmpdir = ::getenv("TMPDIR");
+    if (0 == tmpdir) {
+        return -1;                                                    // RETURN
+    }
+
+    *path = tmpdir;
+    return 0;
+}
+
+template <class STRING_TYPE>
+int u_getSymbolicLinkTarget(STRING_TYPE *result,
+                            const char  *path)
+{
+    BSLS_ASSERT(path);
+    BSLS_ASSERT(result);
+
+    char buffer[4096];
+
+    ssize_t nBytes = ::readlink(path, buffer, sizeof buffer);
+    if (nBytes >= 0) {
+        result->assign(buffer, nBytes);
+        return 0;                                                     // RETURN
+    }
+    // 'errno' contains the error code
+    return -1;
+}
+
+template <class STRING_TYPE>
+int u_getWorkingDirectory(STRING_TYPE *path)
+{
+    BSLS_ASSERT(path);
+
+    enum {BUFFER_SIZE = 4096};
+    char buffer[BUFFER_SIZE];
+
+    char *retval = getcwd(buffer, BUFFER_SIZE);
+    if (buffer == retval) {
+        *path = buffer;
+
+        //our contract requires an absolute path
+
+        return bdls::PathUtil::isRelative(*path);                     // RETURN
+    }
+    return -1;
+}
+
+#endif  // !BSLS_PLATFORM_OS_WINDOWS
+
+template <class VECTOR_TYPE>
+int u_findMatchingPaths(VECTOR_TYPE *result, const char *pattern)
+{
+    BSLS_ASSERT(result);
+
+    result->clear();
+    return bdls::FilesystemUtil::visitPaths(
+        pattern,
+        bdlf::BindUtil::bind(
+            &pushBackWrapper<VECTOR_TYPE>, result, bdlf::PlaceHolders::_1));
+}
+
+#if defined(BSLS_PLATFORM_OS_SOLARIS)
+BSLA_MAYBE_UNUSED
+int posix_fallocate(...)
+    // Always return -1.  Overload resolution makes this function inferior to
+    // the real 'posix_fallocate' provded it exists.  (It doesn't on Solaris 10
+    // and earlier.)
+{
+    return -1;
+}
+#endif
+
+template <class STRING_TYPE>
+bdls::FilesystemUtil::FileDescriptor u_createTemporaryFile(
+                                              STRING_TYPE             *outPath,
+                                              const bsl::string_view&  prefix)
+{
+    BSLS_ASSERT(outPath);
+
+    bdls::FilesystemUtil::FileDescriptor result;
+    STRING_TYPE                          localOutPath = *outPath;
+    for (int i = 0; i < 10; ++i) {
+        bdls::FilesystemUtil::makeUnsafeTemporaryFilename(&localOutPath,
+                                                          prefix);
+        result = bdls::FilesystemUtil::open(
+                                        localOutPath.c_str(),
+                                        bdls::FilesystemUtil::e_CREATE_PRIVATE,
+                                        bdls::FilesystemUtil::e_READ_WRITE);
+        if (result != bdls::FilesystemUtil::k_INVALID_FD) {
+            *outPath = localOutPath;
+            break;
+        }
+    }
+    return result;
+}
+
+template <class STRING_TYPE>
+void u_makeUnsafeTemporaryFilename(STRING_TYPE             *outPath,
+                                   const bsl::string_view&  prefix)
+{
+    BSLS_ASSERT(outPath);
+
+    char suffix[8];
+    bsls::Types::Int64 now = bsls::TimeUtil::getTimer();
+    bsls::Types::Uint64 tid =
+                    bslmt::ThreadUtil::idAsUint64(bslmt::ThreadUtil::selfId());
+    using bslh::hashAppend;
+    bslh::DefaultHashAlgorithm hashee;
+    hashAppend(hashee, now);
+    hashAppend(hashee, prefix);
+    hashAppend(hashee, *outPath);
+    hashAppend(hashee, tid);
+    hashAppend(hashee, getProcessId());
+    bslh::DefaultHashAlgorithm::result_type hash = hashee.computeHash();
+    for (int i = 0; i < int(sizeof(suffix)); ++i) {
+        static const char s[63] =
+              "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        suffix[i] = s[hash % 62];
+        hash /= 62;
+    }
+    outPath->assign(prefix.data(), prefix.length());
+    outPath->append(suffix, sizeof(suffix));
+}
+
+template <class STRING_TYPE>
+int u_createTemporaryDirectory(STRING_TYPE             *outPath,
+                               const bsl::string_view&  prefix)
+{
+    BSLS_ASSERT(outPath);
+
+    int result;
+    STRING_TYPE localOutPath = *outPath;
+    for (int i = 0; i < 10; ++i) {
+        bdls::FilesystemUtil::makeUnsafeTemporaryFilename(&localOutPath,
+                                                          prefix);
+        result = bdls::FilesystemUtil::createPrivateDirectory(localOutPath);
+        if (result == 0) {
+            *outPath = localOutPath;
+            break;
+        }
+    }
+    return result;
+}
+
+template <class STRING_TYPE>
+int u_createTemporarySubdirectory(STRING_TYPE             *outPath,
+                                  const bsl::string_view&  rootDirectory,
+                                  const bsl::string_view&  prefix)
+{
+    BSLS_ASSERT(outPath);
+
+    bsl::string compositePrefix(rootDirectory);
+
+    int rc = bdls::PathUtil::appendIfValid(&compositePrefix, prefix);
+    if (0 != rc) {
+        return rc;                                                    // RETURN
+    }
+    if (!rootDirectory.empty() && prefix.empty()) {
+        compositePrefix.push_back(bdls::PathUtil::k_SEPARATOR);
+    }
+
+    return u_createTemporaryDirectory(outPath, compositePrefix.c_str());
+}
+
+}  // close unnamed namespace
+
                         // ----------------------------
                         // struct bdls::FilesystemUtil
                         // ----------------------------
@@ -1147,9 +1439,17 @@ int FilesystemUtil::sync(char *address, bsl::size_t numBytes, bool)
 {
     BSLS_ASSERT(0 != address);
     BSLS_ASSERT(0 <= numBytes);
-    BSLS_ASSERT(0 == numBytes % MemoryUtil::pageSize());
-    BSLS_ASSERT(0 == reinterpret_cast<bsls::Types::UintPtr>(address) %
-                     MemoryUtil::pageSize());
+
+    // The test driver verifies that page size is a multiple of 2.  Note that
+    // since page size is run time value, the compiler does not realize that
+    // it's a power of 2 and therefore cannot optimize '0 == offset % pageSize'
+    // (slow) into '0 == (offset & (pageSize - 1))' (fast).
+
+    static int pageSizeMask = MemoryUtil::pageSize() - 1;  (void) pageSizeMask;
+
+    BSLS_ASSERT(0 == (numBytes & pageSizeMask));
+    BSLS_ASSERT(0 == (reinterpret_cast<bsls::Types::UintPtr>(address) &
+                                                                pageSizeMask));
 
     // The meaning of the 'sync' flag (cause this function to be synchronous
     // vs. asynchronous) does not appear to be supported by 'FlushViewOfFile'.
@@ -1436,27 +1736,6 @@ int FilesystemUtil::visitPaths(
     return numFiles;
 }
 
-namespace {
-template <class STRING_TYPE>
-int u_getSystemTemporaryDirectory(STRING_TYPE *path)
-{
-    WCHAR wpath[MAX_PATH + 1];
-    const DWORD getTempPathStatus = ::GetTempPathW(MAX_PATH, wpath);
-    if (0 == getTempPathStatus) {
-        return -1;                                                    // RETURN
-    }
-
-    STRING_TYPE result;
-    int rc = bdlde::CharConvertUtf16::utf16ToUtf8(&result, wpath);
-    if (0 != rc) {
-        return -1;                                                    // RETURN
-    }
-
-    *path = bslmf::MovableRefUtil::move(result);
-    return 0;
-}
-}  // close unnamed namespace
-
 int FilesystemUtil::visitTree(
                          const bsl::string_view&                      root,
                          const bsl::string_view&                      pattern,
@@ -1737,7 +2016,16 @@ FilesystemUtil::Offset FilesystemUtil::getFileSize(const char *path)
 
 FilesystemUtil::Offset FilesystemUtil::getFileSize(FileDescriptor descriptor)
 {
-    return u::WindowsImpUtil::getFileSize(descriptor);
+    if (k_INVALID_FD == descriptor) {
+        return -1;                                                    // RETURN
+    }
+
+    LARGE_INTEGER li;
+    if (!::GetFileSizeEx(descriptor, &li)) {
+        return -1;                                                    // RETURN
+    }
+
+    return li.QuadPart;
 }
 
 FilesystemUtil::Offset FilesystemUtil::getFileSizeLimit()
@@ -1746,100 +2034,6 @@ FilesystemUtil::Offset FilesystemUtil::getFileSizeLimit()
 
     return k_OFFSET_MAX;
 }
-
-namespace {
-template <class STRING_TYPE>
-int u_getSymbolicLinkTarget(STRING_TYPE *result,
-                            const char  *path)
-{
-    BSLS_ASSERT(path);
-    BSLS_ASSERT(result);
-
-    bsl::wstring wide;
-    if (!narrowToWide(&wide, path)) {
-        return -1;                                                    // RETURN
-    }
-
-    //char memory[MAXIMUM_REPARSE_DATA_BUFFER_SIZE]; //can be large so use heap
-    bsl::string memory(MAXIMUM_REPARSE_DATA_BUFFER_SIZE, '\x0');
-    REPARSE_DATA_BUFFER *rdb =
-                         reinterpret_cast<REPARSE_DATA_BUFFER*>(memory.data());
-
-    HANDLE hFile = CreateFileW(
-        wide.c_str(),
-        FILE_READ_ATTRIBUTES,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        NULL,
-        OPEN_EXISTING,
-        FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
-        NULL
-    );
-    if (hFile == INVALID_HANDLE_VALUE) {
-        return -1;                                                    // RETURN
-    }
-
-    DWORD bytesReturned;
-    bool ok = DeviceIoControl(
-        hFile,
-        FSCTL_GET_REPARSE_POINT,
-        0,
-        0,
-        rdb,
-        MAXIMUM_REPARSE_DATA_BUFFER_SIZE,
-        &bytesReturned,
-        0
-    );
-    CloseHandle(hFile);
-    if (!ok) {
-        return -1;                                                    // RETURN
-    }
-
-    const wchar_t *name;
-    size_t         nameLen;
-    switch (rdb->ReparseTag) {
-      case IO_REPARSE_TAG_SYMLINK: {  // symlink
-        name =
-              rdb->SymbolicLinkReparseBuffer.PathBuffer +
-              rdb->SymbolicLinkReparseBuffer.PrintNameOffset / sizeof(wchar_t);
-        nameLen =
-              rdb->SymbolicLinkReparseBuffer.PrintNameLength / sizeof(wchar_t);
-      } break;
-      case IO_REPARSE_TAG_MOUNT_POINT: {  // directory junction
-        name =  rdb->MountPointReparseBuffer.PathBuffer +
-                rdb->MountPointReparseBuffer.PrintNameOffset / sizeof(wchar_t);
-        nameLen =
-                rdb->MountPointReparseBuffer.PrintNameLength / sizeof(wchar_t);
-      } break;
-      default: {
-        return -1;                                                    // RETURN
-      }
-    }
-
-    if(!wideToNarrow(result, bsl::wstring_view(name, nameLen))) {
-        return -1;                                                    // RETURN
-    }
-    return 0;
-}
-}  // close unnamed namespace
-
-namespace {
-template <class STRING_TYPE>
-int u_getWorkingDirectory(STRING_TYPE *path)
-{
-    BSLS_ASSERT(path);
-
-    enum { BUFFER_SIZE = 4096 };
-    wchar_t buffer[BUFFER_SIZE];
-
-    wchar_t *retval = _wgetcwd(buffer, BUFFER_SIZE);
-    if (buffer == retval && wideToNarrow(path, buffer)) {
-        //our contract requires an absolute path
-
-        return PathUtil::isRelative(*path);                           // RETURN
-    }
-    return -1;
-}
-}  // close unnamed namespace
 
 int FilesystemUtil::setWorkingDirectory(const char *path)
 {
@@ -1858,7 +2052,6 @@ int FilesystemUtil::setWorkingDirectory(const char *path)
     return status;
 }
 }  // close package namespace
-
 #else
 // unix specific implementation
 
@@ -2146,9 +2339,17 @@ int  FilesystemUtil::unmap(void *address, bsl::size_t size)
 int FilesystemUtil::sync(char *address, bsl::size_t numBytes, bool syncFlag)
 {
     BSLS_ASSERT(0 != address);
-    BSLS_ASSERT(0 == numBytes % MemoryUtil::pageSize());
-    BSLS_ASSERT(0 == reinterpret_cast<bsls::Types::UintPtr>(address) %
-                     MemoryUtil::pageSize());
+
+    // The test driver verifies that page size is a multiple of 2.  Note that
+    // since page size is run time value, the compiler does not realize that
+    // it's a power of 2 and therefore cannot optimize '0 == offset % pageSize'
+    // (slow) into '0 == (offset & (pageSize - 1))' (fast).
+
+    static int pageSizeMask = MemoryUtil::pageSize() - 1;  (void) pageSizeMask;
+
+    BSLS_ASSERT(0 == (numBytes & pageSizeMask));
+    BSLS_ASSERT(0 == (reinterpret_cast<bsls::Types::UintPtr>(address) &
+                                                                pageSizeMask));
 
     int rc = ::msync(address, numBytes, syncFlag ? MS_SYNC : MS_ASYNC);
 
@@ -2303,25 +2504,6 @@ int FilesystemUtil::getLastModificationTime(bdlt::Datetime *time,
 
     return u::ImpUtil::getLastModificationTime(time, descriptor);
 }
-
-namespace {
-template <class STRING_TYPE>
-int u_getSystemTemporaryDirectory(STRING_TYPE *path)
-{
-    // 'TMPDIR' is not chosen arbitrarily, it is an environment variable that
-    // all versions of the IEEE Std 1003.1 (POSIX) specification mandate exist
-    // and contain a path-name of a directory made available for programs that
-    // need a place to create temporary files.
-
-    const char *const tmpdir = ::getenv("TMPDIR");
-    if (0 == tmpdir) {
-        return -1;                                                    // RETURN
-    }
-
-    *path = tmpdir;
-    return 0;
-}
-}  // close unnamed namespace
 
 int FilesystemUtil::visitPaths(
                              const char                               *pattern,
@@ -2610,12 +2792,30 @@ FilesystemUtil::Offset FilesystemUtil::getFileSize(const char *path)
         return -1;                                                    // RETURN
     }
 
-    return fileStats.st_size;
+# if defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
+    return u::            UnixInterfaceUtil::get_st_size(fileStats);
+# elif defined(U_USE_TRANSITIONAL_UNIX_FILE_SYSTEM_INTERFACE)
+    return u::TransitionalUnixInterfaceUtil::get_st_size(fileStats);
+# else
+#  error "'bdls_filesystemutil' does not support this platform."
+# endif
 }
 
 FilesystemUtil::Offset FilesystemUtil::getFileSize(FileDescriptor descriptor)
 {
-    return u::ImpUtil::getFileSize(descriptor);
+    StatResult fileStats;
+
+    if (0 != ::performFStat(descriptor, &fileStats)) {
+        return -1;                                                    // RETURN
+    }
+
+# if defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
+    return u::            UnixInterfaceUtil::get_st_size(fileStats);
+# elif defined(U_USE_TRANSITIONAL_UNIX_FILE_SYSTEM_INTERFACE)
+    return u::TransitionalUnixInterfaceUtil::get_st_size(fileStats);
+# else
+#  error "'bdls_filesystemutil' does not support this platform."
+# endif
 }
 
 FilesystemUtil::Offset FilesystemUtil::getFileSizeLimit()
@@ -2647,47 +2847,6 @@ FilesystemUtil::Offset FilesystemUtil::getFileSizeLimit()
         return rl.rlim_cur;                                           // RETURN
     }
 }
-
-namespace {
-template <class STRING_TYPE>
-int u_getSymbolicLinkTarget(STRING_TYPE *result,
-                            const char  *path)
-{
-    BSLS_ASSERT(path);
-    BSLS_ASSERT(result);
-
-    char buffer[4096];
-
-    ssize_t nBytes = ::readlink(path, buffer, sizeof buffer);
-    if (nBytes >= 0) {
-        result->assign(buffer, nBytes);
-        return 0;                                                     // RETURN
-    }
-    // 'errno' contains the error code
-    return -1;
-}
-}  // close unnamed namespace
-
-namespace {
-template <class STRING_TYPE>
-int u_getWorkingDirectory(STRING_TYPE *path)
-{
-    BSLS_ASSERT(path);
-
-    enum {BUFFER_SIZE = 4096};
-    char buffer[BUFFER_SIZE];
-
-    char *retval = getcwd(buffer, BUFFER_SIZE);
-    if (buffer == retval) {
-        *path = buffer;
-
-        //our contract requires an absolute path
-
-        return PathUtil::isRelative(*path);                           // RETURN
-    }
-    return -1;
-}
-}  // close unnamed namespace
 
 int FilesystemUtil::setWorkingDirectory(const char *path)
 {
@@ -2817,20 +2976,6 @@ int FilesystemUtil::createPrivateDirectory(const char *path)
     return makeDirectory(path, true);
 }
 
-namespace {
-template <class VECTOR_TYPE>
-int u_findMatchingPaths(VECTOR_TYPE *result, const char *pattern)
-{
-    BSLS_ASSERT(result);
-
-    result->clear();
-    return FilesystemUtil::visitPaths(
-        pattern,
-        bdlf::BindUtil::bind(
-            &pushBackWrapper<VECTOR_TYPE>, result, bdlf::PlaceHolders::_1));
-}
-}  // close unnamed namespace
-
 int FilesystemUtil::findMatchingPaths(bsl::vector<bsl::string> *result,
                                       const char               *pattern)
 {
@@ -2853,22 +2998,6 @@ int FilesystemUtil::findMatchingPaths(
 }
 #endif
 
-}  // close package namespace
-
-#if defined(BSLS_PLATFORM_OS_SOLARIS)
-namespace {
-BSLA_MAYBE_UNUSED
-int posix_fallocate(...)
-    // Always return -1.  Overload resolution makes this function inferior to
-    // the real 'posix_fallocate' provded it exists.  (It doesn't on Solaris 10
-    // and earlier.)
-{
-    return -1;
-}
-}  // close unnamed namespace
-#endif
-
-namespace bdls {
 int FilesystemUtil::growFile(FileDescriptor         descriptor,
                              FilesystemUtil::Offset size,
                              bool                   reserveFlag,
@@ -2954,6 +3083,7 @@ int FilesystemUtil::rollFileChain(const bsl::string_view& path, int maxSuffix)
         static_cast<int>(path.length()) + MAX_SUFFIX_LENGTH + 2;
 
     // Use a single RAII allocation to ensure exception neutrality.
+
     bsl::vector<char> bufferVector(2 * length, '\0');
     char *buffer   = bufferVector.data();
     char *fromName = buffer;
@@ -2984,6 +3114,7 @@ int FilesystemUtil::rollFileChain(const bsl::string_view& path, int maxSuffix)
         }
 
         // NUL-terminate 'fromName' so it matches 'path', removing any suffix.
+
         *fromSuffixPos = '\0';
         if (0 == maxSuffix && exists(fromName) &&
             0 != move(fromName, toName)) {
@@ -2994,30 +3125,6 @@ int FilesystemUtil::rollFileChain(const bsl::string_view& path, int maxSuffix)
     return maxSuffix;
 }
 
-namespace {
-template <class STRING_TYPE>
-FilesystemUtil::FileDescriptor u_createTemporaryFile(
-                                              STRING_TYPE             *outPath,
-                                              const bsl::string_view&  prefix)
-{
-    BSLS_ASSERT(outPath);
-
-    FilesystemUtil::FileDescriptor result;
-    STRING_TYPE localOutPath = *outPath;
-    for (int i = 0; i < 10; ++i) {
-        FilesystemUtil::makeUnsafeTemporaryFilename(&localOutPath, prefix);
-        result = FilesystemUtil::open(localOutPath.c_str(),
-                                      FilesystemUtil::e_CREATE_PRIVATE,
-                                      FilesystemUtil::e_READ_WRITE);
-        if (result != FilesystemUtil::k_INVALID_FD) {
-            *outPath = localOutPath;
-            break;
-        }
-    }
-    return result;
-}
-}  // close unnamed namespace
-
 FilesystemUtil::FileDescriptor FilesystemUtil::createTemporaryFile(
                                               bsl::string             *outPath,
                                               const bsl::string_view&  prefix)
@@ -3041,36 +3148,6 @@ FilesystemUtil::FileDescriptor FilesystemUtil::createTemporaryFile(
 }
 #endif
 
-namespace {
-template <class STRING_TYPE>
-void u_makeUnsafeTemporaryFilename(STRING_TYPE             *outPath,
-                                   const bsl::string_view&  prefix)
-{
-    BSLS_ASSERT(outPath);
-
-    char suffix[8];
-    bsls::Types::Int64 now = bsls::TimeUtil::getTimer();
-    bsls::Types::Uint64 tid =
-                    bslmt::ThreadUtil::idAsUint64(bslmt::ThreadUtil::selfId());
-    using bslh::hashAppend;
-    bslh::DefaultHashAlgorithm hashee;
-    hashAppend(hashee, now);
-    hashAppend(hashee, prefix);
-    hashAppend(hashee, *outPath);
-    hashAppend(hashee, tid);
-    hashAppend(hashee, getProcessId());
-    bslh::DefaultHashAlgorithm::result_type hash = hashee.computeHash();
-    for (int i = 0; i < int(sizeof(suffix)); ++i) {
-        static const char s[63] =
-              "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        suffix[i] = s[hash % 62];
-        hash /= 62;
-    }
-    outPath->assign(prefix.data(), prefix.length());
-    outPath->append(suffix, sizeof(suffix));
-}
-}  // close unnamed namespace
-
 void FilesystemUtil::makeUnsafeTemporaryFilename(
                                               bsl::string             *outPath,
                                               const bsl::string_view&  prefix)
@@ -3093,28 +3170,6 @@ void FilesystemUtil::makeUnsafeTemporaryFilename(
     u_makeUnsafeTemporaryFilename(outPath, prefix);
 }
 #endif
-
-
-namespace {
-template <class STRING_TYPE>
-int u_createTemporaryDirectory(STRING_TYPE             *outPath,
-                               const bsl::string_view&  prefix)
-{
-    BSLS_ASSERT(outPath);
-
-    int result;
-    STRING_TYPE localOutPath = *outPath;
-    for (int i = 0; i < 10; ++i) {
-        FilesystemUtil::makeUnsafeTemporaryFilename(&localOutPath, prefix);
-        result = FilesystemUtil::createPrivateDirectory(localOutPath);
-        if (result == 0) {
-            *outPath = localOutPath;
-            break;
-        }
-    }
-    return result;
-}
-}  // close unnamed namespace
 
 int FilesystemUtil::createTemporaryDirectory(bsl::string             *outPath,
                                              const bsl::string_view&  prefix)
@@ -3136,6 +3191,177 @@ int FilesystemUtil::createTemporaryDirectory(std::pmr::string        *outPath,
 }
 #endif
 
+int FilesystemUtil::createTemporarySubdirectory(
+                                        bsl::string             *outPath,
+                                        const bsl::string_view&  rootDirectory,
+                                        const bsl::string_view&  prefix)
+{
+    return u_createTemporarySubdirectory(outPath, rootDirectory, prefix);
+}
+
+int FilesystemUtil::createTemporarySubdirectory(
+                                        std::string             *outPath,
+                                        const bsl::string_view&  rootDirectory,
+                                        const bsl::string_view&  prefix)
+{
+    return u_createTemporarySubdirectory(outPath, rootDirectory, prefix);
+}
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+int FilesystemUtil::createTemporarySubdirectory(
+                                        std::pmr::string        *outPath,
+                                        const bsl::string_view&  rootDirectory,
+                                        const bsl::string_view&  prefix)
+{
+    return u_createTemporarySubdirectory(outPath, rootDirectory, prefix);
+}
+#endif
+
+int FilesystemUtil::mapChecked(FileDescriptor   descriptor,
+                               void           **address,
+                               Offset           offset,
+                               bsl::size_t      size,
+                               int              mode)
+{
+    BSLS_ASSERT(address);
+    BSLS_ASSERT(0 == (mode & ~MemoryUtil::k_ACCESS_READ_WRITE_EXECUTE));
+    BSLS_ASSERT(0 <= offset);
+    BSLS_ASSERT(0 <  size);
+
+    // The test driver verifies that page size is a multiple of 2.  Note that
+    // since page size is run time value, the compiler does not realize that
+    // it's a power of 2 and therefore cannot optimize '0 == offset % pageSize'
+    // (slow) into '0 == (offset & (pageSize - 1))' (fast).
+
+    static const Offset pageSizeMask = MemoryUtil::pageSize() - 1;
+    (void)pageSizeMask;
+
+    BSLS_ASSERT_OPT(0 == (offset & pageSizeMask) &&
+                                               "mapChecked: page not aligned");
+
+    if (k_INVALID_FD == descriptor) {
+        return k_BAD_FILE_DESCRIPTOR;                                 // RETURN
+    }
+
+    BSLMF_ASSERT(sizeof(size) <= sizeof(offset));
+
+    const Offset endMapOffset = offset + size;
+    if (endMapOffset < offset) {
+        // 'offset + size' wrapped.  Interpret as past EOF.
+
+        return k_ERROR_PAST_EOF;                                      // RETURN
+    }
+    if (getFileSize(descriptor) < endMapOffset) {
+        return k_ERROR_PAST_EOF;                                      // RETURN
+    }
+
+    return map(descriptor, address, offset, size, mode);
+}
+
+bsl::ostream& operator<<(bsl::ostream& stream, FilesystemUtil::Whence value)
+{
+    const char *output = 0;
+    switch (value) {
+#undef   CASE
+#define  CASE(str) case FilesystemUtil::e_ ## str: output = #str; break
+      CASE(SEEK_FROM_BEGINNING);
+      CASE(SEEK_FROM_CURRENT);
+      CASE(SEEK_FROM_END);
+#undef   CASE
+      default: {
+        return stream << "Invalid 'Whence' == " << static_cast<int>(value);
+                                                                      // RETURN
+      }
+    }
+
+    return stream << output;
+}
+
+bsl::ostream& operator<<(bsl::ostream&                      stream,
+                         FilesystemUtil::ErrorType          value)
+{
+    const char *output = 0;
+    switch (value) {
+#undef   CASE
+#define  CASE(str) case FilesystemUtil::k_ ## str: output = #str; break
+      CASE(ERROR_LOCKING_CONFLICT);
+      CASE(ERROR_LOCKING_INTERRUPTED);
+      CASE(ERROR_ALREADY_EXISTS);
+      CASE(ERROR_PATH_NOT_FOUND);
+      CASE(ERROR_PAST_EOF);
+      CASE(BAD_FILE_DESCRIPTOR);
+#undef   CASE
+      default: {
+        return stream << "Invalid 'ErrorType' == " << static_cast<int>(value);
+                                                                      // RETURN
+      }
+    }
+
+    return stream << output;
+}
+
+bsl::ostream& operator<<(bsl::ostream&                      stream,
+                         FilesystemUtil::FileOpenPolicy     value)
+{
+    const char *output = 0;
+    switch (value) {
+#undef   CASE
+#define  CASE(str) case FilesystemUtil::e_ ## str: output = #str; break
+      CASE(OPEN);
+      CASE(CREATE);
+      CASE(CREATE_PRIVATE);
+      CASE(OPEN_OR_CREATE);
+#undef   CASE
+      default: {
+        return stream << "Invalid 'FileOpenPolicy' == " <<
+                                             static_cast<int>(value); // RETURN
+      }
+    }
+
+    return stream << output;
+}
+
+bsl::ostream& operator<<(bsl::ostream&                      stream,
+                         FilesystemUtil::FileIOPolicy       value)
+{
+    const char *output = 0;
+    switch (value) {
+#undef   CASE
+#define  CASE(str) case FilesystemUtil::e_ ## str: output = #str; break
+      CASE(READ_ONLY);
+      CASE(WRITE_ONLY);
+      CASE(APPEND_ONLY);
+      CASE(READ_WRITE);
+      CASE(READ_APPEND);
+#undef   CASE
+      default: {
+        return stream << "Invalid 'FileIOPolicy' == " <<
+                                             static_cast<int>(value); // RETURN
+      }
+    }
+
+    return stream << output;
+}
+
+bsl::ostream& operator<<(bsl::ostream&                      stream,
+                         FilesystemUtil::FileTruncatePolicy value)
+{
+    const char *output = 0;
+    switch (value) {
+#undef   CASE
+#define  CASE(str) case FilesystemUtil::e_ ## str: output = #str; break
+      CASE(TRUNCATE);
+      CASE(KEEP);
+#undef   CASE
+      default: {
+        return stream << "Invalid 'FileTruncatePolicy' == " <<
+                                             static_cast<int>(value); // RETURN
+      }
+    }
+
+    return stream << output;
+}
+
 }  // close package namespace
 
 namespace {
@@ -3151,8 +3377,7 @@ namespace u {
 // CLASS METHODS
 long UnixInterfaceUtil::get_st_mtim_nsec(const stat& stat)
 {
-    (void) stat;
-     return stat.BDLS_FILESYSTEMUTIL_UNIXPLATFORM_STAT_NS_MEMBER;
+    return stat.BDLS_FILESYSTEMUTIL_UNIXPLATFORM_STAT_NS_MEMBER;
 }
 
 UnixInterfaceUtil::time_t UnixInterfaceUtil::get_st_mtime(const stat& stat)

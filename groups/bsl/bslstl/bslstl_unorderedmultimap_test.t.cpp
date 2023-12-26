@@ -948,7 +948,7 @@ class TestNonConstHashFunctor {
         return TstFacility::getIdentifier(obj);
     }
 
-    bool operator==(const TestNonConstHashFunctor&)
+    bool operator==(const TestNonConstHashFunctor&) const
     {
         return true;
     }
@@ -5113,7 +5113,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase27()
 
                     bool empty = 0 == ZZ.size();
 
-                    typename Obj::const_pointer pointers[2];
+                    typename Obj::const_pointer pointers[2] = { 0, 0};
                     storeFirstNElemAddr(pointers, Z,
                             sizeof pointers / sizeof *pointers);
 
@@ -5537,7 +5537,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase26()
                                                      EQUAL().id() != equ.id());
                 }
 
-                typename Obj::const_pointer pointers[2];
+                typename Obj::const_pointer pointers[2] = { 0, 0 };
                 storeFirstNElemAddr(pointers, Z,
                                     sizeof pointers / sizeof *pointers);
 
@@ -6978,10 +6978,6 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase14()
                                   const bsl::pair<const KEY, VALUE>*>::value));
     BSLMF_ASSERT(1 == (bsl::is_same<typename CLIter::reference,
                                   const bsl::pair<const KEY, VALUE>&>::value));
-
-#if !defined(BSLS_PLATFORM_CMP_MSVC)
-# warning "TBD: implementation is missing"
-#endif
 }
 
 template <class KEY, class VALUE, class HASH, class EQUAL, class ALLOC>

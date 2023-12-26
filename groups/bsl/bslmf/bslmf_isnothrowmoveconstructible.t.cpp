@@ -9,7 +9,6 @@
 #include <bslmf_addvolatile.h>
 #include <bslmf_isarray.h>      // MSVC workaround, pre-VC 2017
 #include <bslmf_issame.h>
-#include <bslmf_movableref.h>
 #include <bslmf_nestedtraitdeclaration.h>
 
 #include <bsls_bsltestutil.h>
@@ -48,16 +47,20 @@ using namespace BloombergLP;
 // marked as 'noexcept' for C++11 and this trait is not explicitly enabled via
 // a 'BSLMF_NESTED_TRAIT_DECLARATION' or specialization.  We expect false
 // positives in C++03 for non-trivial types that use BDE traits customization
-// for the 'is_trivially_copyable' trait, as this serves as a proxy for
+// for the 'bslmf::IsBitwiseCopyable' trait, as this serves as a proxy for
 // detecting no-throw movability on a wider range of C++03 types.
 //
 // Thus, we need to ensure that the metafunction correctly identifies natively
 // supported types by testing the metafunction with each of the supported type
-// categories.  We also need to verify that the metafunction can be correctly
-// extended to support user defined types through either of the two supported
-// mechanisms; however, extension testing must be done in the
-// 'bslmf_movableref' test driver to avoid a cyclic dependency (to expose
-// extensions to C++03 environments, 'bslmf::MovableRef' must be used).
+// categories.  We also need to verify that the metafunction correctly
+// identifies types whose move constructor is declared using
+// 'bslmf::MovableRef'; however such testing is done in the 'bslmf_movableref'
+// test driver to avoid a cyclic dependency.  We also need to verify that the
+// metafunction can be correctly extended to support user defined types through
+// either of the two supported mechanisms; however, extension testing must be
+// done in the 'bslmf_movableref' test driver to avoid a cyclic dependency (to
+// expose extensions to C++03 environments, 'bslmf::MovableRef' must be used).
+//
 // Finally, we need to test correct support for cv-qualified and array types,
 // where the underlying type may have a 'noexcept' move constructor.
 // ----------------------------------------------------------------------------
@@ -390,32 +393,6 @@ struct NonTrivialWithNoexceptMoveConstructor {
 };
 #endif // BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
 
-struct NonTrivialWithMovableRefConstructor {
-    // This 'struct' has a non-'noexcept' 'MovableRef' move constructor, so is
-    // not no-throw move constructible in any dialect of C++.
-
-    // CREATORS
-    NonTrivialWithMovableRefConstructor(
-                        bslmf::MovableRef<NonTrivialWithMovableRefConstructor>)
-        // Create an instance of the object using move construction.
-    {
-    }
-};
-
-struct NonTrivialWithNoexceptMovableRefConstructor {
-    // This 'struct' has a 'noexcept' 'MovableRef' move constructor, so is
-    // no-throw move constructible in any dialect of C++ that supports
-    // 'noexcept'.
-
-    // CREATORS
-    NonTrivialWithNoexceptMovableRefConstructor(
-                bslmf::MovableRef<NonTrivialWithNoexceptMovableRefConstructor>)
-        BSLS_KEYWORD_NOEXCEPT
-        // Create an instance of the object using move construction.
-    {
-    }
-};
-
 union NonTrivialUnion {
     // This 'struct' has non-trivial constructors and no trait customizations,
     // so is clearly NOT no-throw move constructible in any dialect of C++.
@@ -430,7 +407,7 @@ struct ClassUsingNestedCopyable {
     // using the 'BSLMF_NESTED_TRAIT_DECLARATION' macro, is used for testing.
 
     BSLMF_NESTED_TRAIT_DECLARATION(ClassUsingNestedCopyable,
-                                   bsl::is_trivially_copyable);
+                                   bslmf::IsBitwiseCopyable);
 };
 
 struct ClassUsingNestedMovable {
@@ -446,7 +423,7 @@ union UnionUsingNestedCopyable {
     // using the 'BSLMF_NESTED_TRAIT_DECLARATION' macro, is used for testing.
 
     BSLMF_NESTED_TRAIT_DECLARATION(UnionUsingNestedCopyable,
-                                   bsl::is_trivially_copyable);
+                                   bslmf::IsBitwiseCopyable);
 };
 
 union UnionUsingNestedMovable {
@@ -471,20 +448,27 @@ union NothrowMovableUnion {
 
 struct TrivialClass {
     // This empty 'struct' indicates its triviality to C++03 toolchains by
-    // explicitly specializing the 'bsl::is_trivially_copyable' trait.
+    // explicitly specializing the 'bslmf::IsBitwiseCopyable' trait.
 };
 
 union TrivialUnion {
     // This empty 'union' indicates its triviality to C++03 toolchains by
-    // explicitly specializing the 'bsl::is_trivially_copyable' trait.
+    // explicitly specializing the 'bslmf::IsBitwiseCopyable' trait.
 };
 
-namespace bsl {
-template <>
-struct is_trivially_copyable<TrivialClass> : bsl::true_type {};
-template <>
-struct is_trivially_copyable<TrivialUnion> : bsl::true_type {};
+namespace BloombergLP {
+namespace bslmf {
 
+template <>
+struct IsBitwiseCopyable<TrivialClass> : bsl::true_type {};
+template <>
+struct IsBitwiseCopyable<TrivialUnion> : bsl::true_type {};
+
+}  // close namespace bslmf
+}  // close enterprise namespace
+
+
+namespace bsl {
 template <>
 struct is_nothrow_move_constructible<NothrowMovableClass> : bsl::true_type {};
 template <>
@@ -634,7 +618,7 @@ int main(int argc, char *argv[])
         // Testing:
         //   CONCERN: basic support for class types
         //   CONCERN: traits customization for 'is_nothrow_move_constructible'
-        //   CONCERN: traits customization for 'is_trivially_copyable'
+        //   CONCERN: traits customization for 'bslmf::IsBitwiseCopyable'
         // --------------------------------------------------------------------
 
         if (verbose) printf("\nTESTING BASIC SUPPORT FOR CLASS TYPES"
@@ -664,20 +648,6 @@ int main(int argc, char *argv[])
                                    BSLS_KEYWORD_NOEXCEPT_AVAILABLE,
                                    false);
 #endif // BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-
-        // The move constructor is non-'noexcept' so we expect 'false'.
-        ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE_OBJECT_TYPE(
-                                   NonTrivialWithMovableRefConstructor,
-                                   false,
-                                   false);
-
-        // The move constructor in the test class is not usable for
-        // cv-qualified types, so we expect the trait to return 'false'.  Move
-        // construction is no-throw only if 'noexcept' is supported.
-        ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE_OBJECT_TYPE(
-                                   NonTrivialWithNoexceptMovableRefConstructor,
-                                   BSLS_KEYWORD_NOEXCEPT_AVAILABLE,
-                                   false);
 
         // C-3
         ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE(ClassUsingNestedCopyable, true);

@@ -201,7 +201,7 @@ BSLS_IDENT("$Id: $")
 
 #include <bslma_usesbslmaallocator.h>
 
-#include <bslmf_istriviallycopyable.h>
+#include <bslmf_isbitwisecopyable.h>
 #include <bslmf_movableref.h>
 #include <bslmf_nestedtraitdeclaration.h>
 
@@ -306,7 +306,7 @@ struct BoundedQueue_Node;
     // template when the value of 'isUnconstructed' is known at compile-time.
     // If 'RECLAIMABLE' is 'false' then it can be determined at compile time
     // that the construction of 'TYPE' will uncoditionally succeed (e.g., it
-    // 'is_trivially_copyable'), and the 'isUnconstructed' property does not
+    // 'IsBitwiseCopyable'), and the 'isUnconstructed' property does not
     // require a data member to be accessed at run-time.
 
 template <class TYPE>
@@ -378,7 +378,7 @@ class BoundedQueue {
     typedef typename bsls::AtomicOperations AtomicOp;
 
     typedef BoundedQueue_Node<TYPE,
-                              !bsl::is_trivially_copyable<TYPE>::value> Node;
+                              !bslmf::IsBitwiseCopyable<TYPE>::value> Node;
 
     // DATA
     bslmt::FastPostSemaphore  d_pushSemaphore;     // synchronization primitive
@@ -438,7 +438,7 @@ class BoundedQueue {
                                                    // comprise the bounded
                                                    // queue
 
-    Uint64                    d_capacity;          // capacity of the queue
+    const Uint64              d_capacity;          // capacity of the queue
 
     bslma::Allocator         *d_allocator_p;       // allocator, held not owned
 
@@ -874,7 +874,10 @@ void BoundedQueue<TYPE>::popComplete(Node *node)
         if (AtomicOp::testAndSwapUint64AcqRel(&d_popCount,
                                               count,
                                               0) == count) {
-            d_pushSemaphore.post(static_cast<int>(count & k_STARTED_MASK));
+            d_pushSemaphore.postWithRedundantSignal(
+                                      static_cast<int>(count & k_STARTED_MASK),
+                                      static_cast<int>(d_capacity),
+                                      1);
 
             Uint emptyCount = AtomicOp::getUintAcquire(&d_emptyWaiterCount);
 
@@ -936,7 +939,10 @@ void BoundedQueue<TYPE>::pushComplete()
         if (AtomicOp::testAndSwapUint64AcqRel(&d_pushCount,
                                                count,
                                                0) == count) {
-            d_popSemaphore.post(static_cast<int>(count & k_STARTED_MASK));
+            d_popSemaphore.postWithRedundantSignal(
+                                      static_cast<int>(count & k_STARTED_MASK),
+                                      static_cast<int>(d_capacity),
+                                      1);
         }
     }
 }

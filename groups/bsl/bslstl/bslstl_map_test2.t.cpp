@@ -17,7 +17,7 @@
 #include <bslma_destructorguard.h>
 #include <bslma_destructorproctor.h>
 #include <bslma_mallocfreeallocator.h>
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 #include <bslma_testallocator.h>
 #include <bslma_testallocatormonitor.h>
 #include <bslma_usesbslmaallocator.h>
@@ -1270,7 +1270,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase28_dispatch()
 
                     bool empty = 0 == ZZ.size();
 
-                    const typename Obj::value_type *pointers[2];
+                    const typename Obj::value_type *pointers[2] = { 0, 0 };
                     storeFirstNElemAddr(pointers, Z,
                                         sizeof pointers / sizeof *pointers);
 

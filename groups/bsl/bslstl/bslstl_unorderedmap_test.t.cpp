@@ -1,4 +1,12 @@
 // bslstl_unorderedmap_test.t.cpp                                     -*-C++-*-
+
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, SEC_NULL_PTR_DEREF)
+#endif
+
 #include <bslstl_unorderedmap_test.h>
 
 #include <bslstl_hash.h>
@@ -7,6 +15,8 @@
 #include <bslstl_string.h>
 #include <bslstl_unorderedmap.h>
 #include <bslstl_vector.h>
+
+#include <bsla_maybeunused.h>
 
 #include <bslalg_swaputil.h>
 
@@ -20,6 +30,7 @@
 
 #include <bslmf_assert.h>
 #include <bslmf_haspointersemantics.h>
+#include <bslmf_isbitwisecopyable.h>
 #include <bslmf_issame.h>
 #include <bslmf_istriviallydefaultconstructible.h>
 #include <bslmf_removeconst.h>
@@ -33,7 +44,6 @@
 #include <bsls_libraryfeatures.h>
 #include <bsls_nameof.h>
 #include <bsls_objectbuffer.h>
-#include <bsls_platform.h>
 #include <bsls_types.h>
 #include <bsls_util.h>
 
@@ -545,6 +555,7 @@ TYPE& copyAssignTo(TYPE *dst, const TYPE& src)
 }
 
 template <>
+BSLA_MAYBE_UNUSED
 bsltf::MoveOnlyAllocTestType&
 copyAssignTo(bsltf::MoveOnlyAllocTestType        *dst,
              const bsltf::MoveOnlyAllocTestType&  src)
@@ -555,6 +566,7 @@ copyAssignTo(bsltf::MoveOnlyAllocTestType        *dst,
 }
 
 template <>
+BSLA_MAYBE_UNUSED
 bsltf::WellBehavedMoveOnlyAllocTestType&
 copyAssignTo(bsltf::WellBehavedMoveOnlyAllocTestType        *dst,
              const bsltf::WellBehavedMoveOnlyAllocTestType&  src)
@@ -756,6 +768,10 @@ class StatefulStlAllocator : public bsltf::StdTestAllocator<VALUE>
         // Alias for the base class.
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(StatefulStlAllocator,
+                                   bslma::IsStdAllocator);
+
     template <class BDE_OTHER_TYPE>
     struct rebind {
         // This nested 'struct' template, parameterized by some
@@ -1179,6 +1195,9 @@ class DummyAllocator {
     // reproduce an AIX bug.  Every method is a no-op.
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DummyAllocator, bslma::IsStdAllocator);
+
     // PUBLIC TYPES
     typedef std::size_t     size_type;
     typedef std::ptrdiff_t  difference_type;
@@ -7062,6 +7081,14 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase26()
     {
         using namespace bsl;
 
+        // Due to the internal compiler bug the following line of code fails to
+        // be compiled by the MSVC (version 19.30) with the following error:
+        //..
+        //  error C3861: '==': identifier not found
+        //..
+        // The issue is reproduced with C++20 flag. This bug has been fixed in
+        // compiler version 19.31.  See {DRQS 172604250}.
+
         bool (*operatorEq)(const Obj&, const Obj&) = &operator==;
         (void)operatorEq;
 
@@ -7386,6 +7413,8 @@ void TestDriver<KEY, VALUE, HASH, EQUAL, ALLOC>::testCase23()
     BSLMF_ASSERT((0 == bslma::UsesBslmaAllocator<ObjStlAlloc>::value));
 
     // Verify unordered_map does not define other common traits.
+
+    BSLMF_ASSERT((0 == bslmf::IsBitwiseCopyable<UMKV>::value));
 
     BSLMF_ASSERT((0 == bsl::is_trivially_copyable<UMKV>::value));
 
@@ -9470,8 +9499,13 @@ int main(int argc, char *argv[])
         if (verbose)
             printf("\nTESTING 'TRY_EMPLACE' AND 'INSERT_OR_ASSIGN'\n"
                      "============================================\n");
+
+        // The Sun CC-5.12.4 compiler fails with an ICE trying to compile more
+        // than one call to 'testCase43'.
+#ifndef BSLS_PLATFORM_CMP_SUN
         TestDriver<char, size_t>::testCase43();
         TestDriver<int,  size_t>::testCase43();
+#endif
         TestDriver<long, size_t>::testCase43();
 
         // test 'try_emplace' with different numbers of arguments

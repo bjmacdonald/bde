@@ -386,6 +386,7 @@ BSLS_IDENT("$Id: $")
 //                            const RHS_TYPE&  rhs)
 //  {
 //      BSLS_ASSERT(lhs);
+//      (void)lhs;
 //      (void)rhs;
 //
 //      return -999;  // Pick a distinctive non-negative value.
@@ -857,10 +858,10 @@ inline
 void bdlat_ValueTypeFunctions_Imp::reset(TYPE *object)
 {
     enum {
-        HAS_TRAIT = bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::VALUE
-                 || bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::VALUE
+        HAS_TRAIT = bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicChoice>::value
+                 || bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicSequence>::value
                  || bslalg::HasTrait<TYPE,
-                                    bdlat_TypeTraitBasicCustomizedType>::VALUE
+                                    bdlat_TypeTraitBasicCustomizedType>::value
     };
 
     typedef typename bsl::conditional<

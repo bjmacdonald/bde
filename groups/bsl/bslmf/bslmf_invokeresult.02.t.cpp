@@ -80,6 +80,22 @@ struct FuncTest {
         ASSERTV(LINE, (IsInvokeResult<EXPECTED_RT, Fn&&, char>::value));
         ASSERTV(LINE, (IsInvokeResult<EXPECTED_RT, Fn *&&, char>::value));
 #endif
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
+
+        // Testing 'bsl::invoke_result_t'.
+
+        ASSERTV(LINE, (IsInvokeResultT<Fn,         char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fn&,        char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fn *,       char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fn *&,      char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fn *const&, char>::value));
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
+        ASSERTV(LINE, (IsInvokeResultT<Fn&&,       char>::value));
+        ASSERTV(LINE, (IsInvokeResultT<Fn *&&,     char>::value));
+#endif
+
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
     }
 };
 
@@ -163,6 +179,8 @@ int main(int argc, char *argv[])
         //:   reference-to-function type.
         //: 6 Results are not affected by arguments that decay (arrays,
         //:   functions), reference binding, or valid volatile arguments.
+        //: 7 The 'bsl::invoke_result_t' represents the expected type for
+        //:   invocables of function type.
         //
         // Plan:
         //: 1 For concerns 1 and 2, define a functor template 'FuncTest' which
@@ -185,6 +203,10 @@ int main(int argc, char *argv[])
         //: 5 For concern 6, invoke 'bsl::invoke_result' in a one-off fashion
         //:   with the argument categories listed in the concern and verify
         //:   correct operation.
+        //: 6 For concern 7, verify, for each of the parameter types specified
+        //:   in concern 2, that the type yielded by the 'bsl::invoke_result_t'
+        //:   matches the type yielded by the 'bsl::invoke_result'
+        //:   meta-function.
         //
         // Testing:
         //     FUNCTION INVOCABLES
@@ -214,11 +236,11 @@ int main(int argc, char *argv[])
         // Arrays and functions cannot be returned by value, so we test only
         // references.  We can't apply a pointer or reference to something that
         // is already a reference, so simply call the 'apply' method directly.
-        // MSVC 2019 and earlier fails to propagate the reference qualifier.
+        // MSVC 2022 and earlier fails to propagate the reference qualifier.
         // However, MSVC 2013 uses the C++03 implementation of
         // 'bsl::invoke_result', which correctly calculates the return type.
 
-#if MSVC_2019 || MSVC_2017 || MSVC_2015
+#if MSVC_2022 || MSVC_2019 || MSVC_2017 || MSVC_2015
         FuncTest::apply<Arry&      , Arry>(L_);
         FuncTest::apply<Arry const&, Arry const>(L_);
 #else
@@ -227,7 +249,7 @@ int main(int argc, char *argv[])
 #endif
         FuncTest::apply<F&>(L_);
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
-#if MSVC_2019 || MSVC_2017 || MSVC_2015
+#if MSVC_2022 || MSVC_2019 || MSVC_2017 || MSVC_2015
         FuncTest::apply<Arry&&, Arry>(L_);
 #else
         FuncTest::apply<Arry&&>(L_);
@@ -235,7 +257,7 @@ int main(int argc, char *argv[])
 
         // Rvalue references to functions are special in that they are lvalues,
         // unlike rvalue references to other types, which are conditionally
-        // either lvalues or xvalues.  MSVC 2019 and earlier appears to get
+        // either lvalues or xvalues.  MSVC 2022 and earlier appears to get
         // this wrong.
 #if MSVC
         FuncTest::apply<F&&, F&&>(L_);

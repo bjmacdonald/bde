@@ -17,7 +17,6 @@
 #endif
 
 #include <bslstl_sharedptr.h>
-
 #include <bslstl_badweakptr.h>
 
 #include <bslalg_autoscalardestructor.h>
@@ -26,7 +25,7 @@
 
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_newdeleteallocator.h>
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 #include <bslma_testallocator.h>
 #include <bslma_testallocatormonitor.h>
 #include <bslma_usesbslmaallocator.h>
@@ -80,6 +79,10 @@
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_TRAITS_HEADER)
 # include <type_traits>
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, ptrarray0)
 #endif
 
 // BDE_VERIFY pragma: -FE01  // Testing throws exceptions not derived from std
@@ -493,21 +496,21 @@ using namespace BloombergLP;
 //
 // class NonPolymorphicTestObject
 //-------------------------------
-// [  ] volatile bsls::Types::Int64 *deleteCounter() const
-// [  ] volatile bsls::Types::Int64 *copyCounter() const
+// [  ] bsls::Types::Int64 *deleteCounter() const
+// [  ] bsls::Types::Int64 *copyCounter() const
 //
 // class MyTestObject
 //-------------------
-// [  ] volatile bsls::Types::Int64 *deleteCounter() const
-// [  ] volatile bsls::Types::Int64 *copyCounter() const
+// [  ] bsls::Types::Int64 *deleteCounter() const
+// [  ] bsls::Types::Int64 *copyCounter() const
 //
 // class MyTestBaseObject
 //-----------------------
 //
 // class MyTestDerivedObject
 //--------------------------
-// [  ] volatile bsls::Types::Int64 *deleteCounter() const
-// [  ] volatile bsls::Types::Int64 *copyCounter() const
+// [  ] bsls::Types::Int64 *deleteCounter() const
+// [  ] bsls::Types::Int64 *copyCounter() const
 //
 // class MyPDTestObject
 //---------------------
@@ -1770,8 +1773,8 @@ class NonPolymorphicTestObject : public NonPolymorphicTestBaseObject {
     // many objects have been copied.
 
     // DATA
-    volatile bsls::Types::Int64 *d_deleteCounter_p;
-    volatile bsls::Types::Int64 *d_copyCounter_p;
+    bsls::Types::Int64 *d_deleteCounter_p;
+    bsls::Types::Int64 *d_copyCounter_p;
 
   public:
     // CREATORS
@@ -1786,11 +1789,11 @@ class NonPolymorphicTestObject : public NonPolymorphicTestBaseObject {
         // virtual.
 
     // ACCESSORS
-    volatile bsls::Types::Int64 *copyCounter() const;
+    bsls::Types::Int64 *copyCounter() const;
         // Return a pointer to the counter (if any) used to track the number of
         // times an object of type 'NonPolymorphicTestObject' has been copied.
 
-    volatile bsls::Types::Int64 *deleteCounter() const;
+    bsls::Types::Int64 *deleteCounter() const;
         // Return a pointer to the counter used to track the number of times an
         // object of type 'NonPolymorphicTestObject' has been copied.
 
@@ -1836,8 +1839,8 @@ class MyTestObject : public MyTestBaseObject {
     // have been copied.
 
     // DATA
-    volatile bsls::Types::Int64 *d_deleteCounter_p;
-    volatile bsls::Types::Int64 *d_copyCounter_p;
+    bsls::Types::Int64 *d_deleteCounter_p;
+    bsls::Types::Int64 *d_copyCounter_p;
 
   public:
     // CREATORS
@@ -1851,11 +1854,11 @@ class MyTestObject : public MyTestBaseObject {
         // Destroy this object.
 
     // ACCESSORS
-    volatile bsls::Types::Int64 *copyCounter() const;
+    bsls::Types::Int64 *copyCounter() const;
         // Return a pointer to the counter (if any) used to track the number of
         // times an object of type 'MyTestObject' has been copied.
 
-    volatile bsls::Types::Int64 *deleteCounter() const;
+    bsls::Types::Int64 *deleteCounter() const;
         // Return a pointer to the counter used to track the number of times an
         // object of type 'MyTestObject' has been copied.
 
@@ -2558,7 +2561,7 @@ struct NothrowAndBitwiseMovableTestType {
 
     // 'bslmf::IsBitwiseMoveable' has special logic for empty types, so we need
     // to include data to ensure that our tests work as intended.
-    BSLA_MAYBE_UNUSED int dummy_d;
+    int dummy_d;
 
   public:
     // TRAITS
@@ -2599,7 +2602,7 @@ struct NonNothrowAndNonBitwiseMovableTestType {
 
     // 'bslmf::IsBitwiseMoveable' has special logic for empty types, so we need
     // to include data to ensure that our tests work as intended.
-    BSLA_MAYBE_UNUSED int dummy_d;
+    int dummy_d;
 
   public:
     // CREATORS
@@ -2636,7 +2639,7 @@ struct CountConstructorsAndDestructors {
 
     // 'bslmf::IsBitwiseMoveable' has special logic for empty types, so we need
     // to include data to ensure that our tests work as intended.
-    BSLA_MAYBE_UNUSED int d_dummy;
+    int d_dummy;
 
   public:
     // CREATORS
@@ -2667,7 +2670,7 @@ struct SometimesThrowOnConstruction {
 
     // 'bslmf::IsBitwiseMoveable' has special logic for empty types, so we need
     // to include data to ensure that our tests work as intended.
-    BSLA_MAYBE_UNUSED int d_dummy;
+    int d_dummy;
 
   public:
     // CREATORS
@@ -2826,12 +2829,12 @@ NonPolymorphicTestObject::~NonPolymorphicTestObject()
 }
 
 // ACCESSORS
-volatile bsls::Types::Int64* NonPolymorphicTestObject::copyCounter() const
+bsls::Types::Int64* NonPolymorphicTestObject::copyCounter() const
 {
     return d_copyCounter_p;
 }
 
-volatile bsls::Types::Int64* NonPolymorphicTestObject::deleteCounter() const
+bsls::Types::Int64* NonPolymorphicTestObject::deleteCounter() const
 {
     return d_deleteCounter_p;
 }
@@ -2862,12 +2865,12 @@ MyTestObject::~MyTestObject()
 }
 
 // ACCESSORS
-volatile bsls::Types::Int64* MyTestObject::copyCounter() const
+bsls::Types::Int64* MyTestObject::copyCounter() const
 {
     return d_copyCounter_p;
 }
 
-volatile bsls::Types::Int64* MyTestObject::deleteCounter() const
+bsls::Types::Int64* MyTestObject::deleteCounter() const
 {
     return d_deleteCounter_p;
 }
@@ -3096,7 +3099,7 @@ MyBslAllocArgTestDeleter::MyBslAllocArgTestDeleter(
 
 MyBslAllocArgTestDeleter::~MyBslAllocArgTestDeleter()
 {
-    d_allocator.deallocate(static_cast<char *>(d_memory_p));
+    d_allocator.deallocate(static_cast<char *>(d_memory_p), 13);
 }
 
 // MANIPULATORS

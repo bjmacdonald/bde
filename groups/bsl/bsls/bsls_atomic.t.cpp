@@ -23,6 +23,10 @@ typedef pthread_t thread_t;
 
 #endif
 
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+#pragma warning(disable:4312)
+#endif
+
 using namespace BloombergLP;
 using namespace std;
 
@@ -248,8 +252,8 @@ typedef bsls::AtomicBool                     AB;
 typedef bsls::Types::Int64            Int64;
 typedef bsls::Types::Uint64           Uint64;
 
-#define UINT64_M1 0xFFFFFFFFFFFFFFFFLL
-#define UINT64_M2 0xFFFFFFFFFFFFFFFELL
+#define UINT64_M1 0xFFFFFFFFFFFFFFFFULL
+#define UINT64_M2 0xFFFFFFFFFFFFFFFEULL
 #define INT64_MN  0x1000000000000000LL
 #define INT64_MN1 0x1000000000000001LL
 
@@ -1348,8 +1352,7 @@ int main(int argc, char *argv[])
             const std::size_t NUM_VALUES = sizeof VALUES / sizeof *VALUES;
 
             for (std::size_t i = 0; i < NUM_VALUES; ++i) {
-                const int   VAL   = VALUES[i].d_value;
-                const Int64 VAL64 = VALUES[i].d_value;
+                const int VAL = VALUES[i].d_value;
 
                 for (std::size_t j = 0; j < NUM_VALUES; ++j) {
                     const int   VAL2 = VALUES[j].d_value;
@@ -1994,13 +1997,13 @@ int main(int argc, char *argv[])
                 Uint64 d_expected;  // input value
 
             } VALUES[] = {
-                //line value                   expected
-                //---- -------------------     ---------------------
-                { L_,   0                    , 1                    },
-                { L_,   1                    , 2                    },
-                { L_,  11LL                  , 12                   },
-                { L_,   0xFFFFFFFFLL         , 0x100000000LL        },
-                { L_,   0xFFFFFFFFFFFFFFFFLL , 0                    }
+                //line value                    expected
+                //---- -----------------------  ---------------------
+                { L_,   0                     , 1                     },
+                { L_,   1                     , 2                     },
+                { L_,  11ULL                  , 12                    },
+                { L_,   0xFFFFFFFFULL         , 0x100000000ULL        },
+                { L_,   0xFFFFFFFFFFFFFFFFULL , 0                     }
             };
 
             const std::size_t NUM_VALUES = sizeof VALUES / sizeof *VALUES;
@@ -2055,13 +2058,13 @@ int main(int argc, char *argv[])
                 Uint64 d_value;     // input value
 
             } VALUES[] = {
-                //line expected                value
-                //---- -------------------    --------------------
-                { L_,   0                   , 1                   },
-                { L_,   1                   , 2                   },
-                { L_,  11LL                 , 12                  },
-                { L_,  0xFFFFFFFFLL         , 0x100000000LL       },
-                { L_,  0xFFFFFFFFFFFFFFFFLL , 0                   }
+                //line value                    expected
+                //---- -----------------------  ---------------------
+                { L_,   0                     , 1                     },
+                { L_,   1                     , 2                     },
+                { L_,  11ULL                  , 12                    },
+                { L_,   0xFFFFFFFFULL         , 0x100000000ULL        },
+                { L_,   0xFFFFFFFFFFFFFFFFULL , 0                     }
             };
 
             const std::size_t NUM_VALUES = sizeof VALUES / sizeof *VALUES;
@@ -3290,12 +3293,12 @@ int main(int argc, char *argv[])
                 Uint64 d_value;    // input value
             } VALUES[] = {
                 //line d_x
-                //---- -------------------
-                { L_,   0                  },
-                { L_,   1                  },
-                { L_, 0xFFFFFFFFFFFFFFFFLL },
-                { L_,   2                  },
-                { L_, 0xFFFFFFFFFFFFFFFELL }
+                //---- --------------------
+                { L_,   0                   },
+                { L_,   1                   },
+                { L_, 0xFFFFFFFFFFFFFFFFULL },
+                { L_,   2                   },
+                { L_, 0xFFFFFFFFFFFFFFFEULL }
             };
 
             const std::size_t NUM_VALUES = sizeof VALUES / sizeof *VALUES;
@@ -3336,15 +3339,15 @@ int main(int argc, char *argv[])
                 Uint64 d_amount;    // amount to add
                 Uint64 d_expected;  // expected value
             } VALUES[] = {
-                //line d_base        d_amount   d_expected
-                //---- ------------- --------   ----------
-                { L_,  UINT64_M1    , 10       , 9             },
-                { L_,  1            , UINT64_M2, UINT64_M1     },
-                { L_,  UINT64_M1    , 2LL      , 1LL           },
-                { L_,  0xFFFFFFFFLL , 1LL      , 0x100000000LL },
-                { L_, INT64_MN      , 1        , INT64_MN1     },
-                { L_,   1           , INT64_MN , INT64_MN1     },
-                { L_,  0x100000000LL, UINT64_M2, 0xFFFFFFFELL  }
+                //line d_base          d_amount   d_expected
+                //---- --------------  ---------  --------------
+                { L_,  UINT64_M1     , 10       , 9              },
+                { L_,  1             , UINT64_M2, UINT64_M1      },
+                { L_,  UINT64_M1     , 2ULL     , 1ULL           },
+                { L_,  0xFFFFFFFFULL , 1ULL     , 0x100000000ULL },
+                { L_, INT64_MN       , 1        , INT64_MN1      },
+                { L_,   1            , INT64_MN , INT64_MN1      },
+                { L_,  0x100000000ULL, UINT64_M2, 0xFFFFFFFEULL  }
             };
 
             const std::size_t NUM_VALUES = sizeof VALUES / sizeof *VALUES;
@@ -3626,11 +3629,11 @@ int main(int argc, char *argv[])
             } VALUES[] = {
                 //line value
                 //---- -------------------
-                { L_,  0                   },
-                { L_,  1                   },
-                { L_, 0xFFFFFFFFFFFFFFFFLL },
-                { L_, 0xFFFFFFFFLL         },
-                { L_, 0x100000000LL        }
+                { L_,  0                    },
+                { L_,  1                    },
+                { L_, 0xFFFFFFFFFFFFFFFFULL },
+                { L_, 0xFFFFFFFFULL         },
+                { L_, 0x100000000ULL        }
             };
 
             const std::size_t NUM_VALUES = sizeof VALUES / sizeof *VALUES;
@@ -3890,11 +3893,11 @@ int main(int argc, char *argv[])
             } VALUES[] = {
                 //line value
                 //---- -------------------
-                { L_,  0                   },
-                { L_,  1                   },
-                { L_, 0xFFFFFFFFFFFFFFFFLL },
-                { L_, 0xFFFFFFFFLL         },
-                { L_, 0x100000000LL        }
+                { L_,  0                    },
+                { L_,  1                    },
+                { L_, 0xFFFFFFFFFFFFFFFFULL },
+                { L_, 0xFFFFFFFFULL         },
+                { L_, 0x100000000ULL        }
             };
 
             const std::size_t NUM_VALUES = sizeof VALUES / sizeof *VALUES;

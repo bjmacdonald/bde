@@ -25,6 +25,11 @@
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
 
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wstringop-overflow="
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+#endif
+
 using namespace BloombergLP;
 using namespace bsl;
 

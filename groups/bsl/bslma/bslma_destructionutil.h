@@ -20,7 +20,7 @@ BSLS_IDENT("$Id: $")
 //..
 //  Trait                             Note
 //  -------------------------------   -------------------------------------
-//  bsl::is_trivially_copyable        Expressed in English as "TYPE has the
+//  bslmf::IsBitwiseCopyable          Expressed in English as "TYPE has the
 //                                    bit-wise copyable trait", or "TYPE is
 //                                    bit-wise copyable", this trait also
 //                                    implies that destructor calls can be
@@ -88,12 +88,13 @@ BSLS_IDENT("$Id: $")
 #include <bslscm_version.h>
 
 #include <bslmf_integralconstant.h>
-#include <bslmf_istriviallycopyable.h>
+#include <bslmf_isbitwisecopyable.h>
 #include <bslmf_removecv.h>
 
 #include <bsls_assert.h>
 #include <bsls_platform.h>
 
+#include <stddef.h>  // 'size_t'
 #include <string.h>  // 'memset'
 
 namespace BloombergLP {
@@ -134,6 +135,7 @@ struct DestructionUtil {
         // occupied by 'object'.  Note that the destructor may deallocate other
         // memory owned by 'object'.  Also note that this function is a no-op
         // if the 'TYPE' has the trivial destructor trait.
+
 };
 
 // ============================================================================
@@ -149,9 +151,30 @@ template <class TYPE>
 inline
 void DestructionUtil::destroy(TYPE *address, bsl::true_type)
 {
-    // No-op.
 #ifdef BSLS_ASSERT_SAFE_IS_ACTIVE
-    memset((void *)address, 0xa5, sizeof *address);
+# if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wclass-memaccess"
+# endif
+
+    // GCC 11 has a bug https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101854
+    // which mistakenly generates a -Wstringop-overflow warning for this code.
+    // For that compiler, we replace the call to 'memset' with a loop.  This
+    // bug is fixed in GCC 12.  At '-O2' and '-O3', (on GCC 11) the loop
+    // generates identical code as the call to 'memset'.
+# if defined(BSLS_PLATFORM_CMP_GNU) &&                                        \
+          (BSLS_PLATFORM_VERSION >= 110000) && (BSLS_PLATFORM_VERSION < 120000)
+    unsigned char *pBegin = reinterpret_cast<unsigned char *>(address);
+    unsigned char *pEnd   = pBegin + sizeof(TYPE);
+    for (unsigned char *p = pBegin; p < pEnd; ++p) {
+        *p = 0xa5;
+    }
+# else
+    memset(address, 0xa5, sizeof(TYPE));
+# endif
+# if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+# pragma GCC diagnostic pop
+# endif
 #else
     (void) address;
 #endif
@@ -197,7 +220,7 @@ void DestructionUtil::destroy(TYPE *object)
 {
     BSLS_ASSERT_SAFE(object);
 
-    destroy(object, typename bsl::is_trivially_copyable<TYPE>::type());
+    destroy(object, typename bslmf::IsBitwiseCopyable<TYPE>::type());
 }
 
 }  // close package namespace

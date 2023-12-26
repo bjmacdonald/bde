@@ -14,7 +14,7 @@
 #include <bslma_destructorguard.h>
 #include <bslma_destructorproctor.h>
 #include <bslma_rawdeleterproctor.h>
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 #include <bslma_testallocator.h>
 #include <bslma_testallocatorexception.h>
 #include <bslma_testallocatormonitor.h>
@@ -161,6 +161,7 @@
 //
 // INTERACTIVE AND SPECIAL TESTS
 // [-1] PERFORMANCE TEST
+// [-2] 'push_back' PERFORMANCE TEST
 //
 // ~~ bslstl_vector.2.t.cpp ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // CREATORS:

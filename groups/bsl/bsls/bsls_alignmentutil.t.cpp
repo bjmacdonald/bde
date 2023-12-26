@@ -16,6 +16,10 @@
 #include <cstdlib>  // atoi()
 #include <cstring>
 
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+#pragma warning(disable:4312)
+#endif
+
 using namespace BloombergLP;
 using namespace std;
 
@@ -605,7 +609,7 @@ static
                 }
                 else
                 {
-                    int a;
+                    int a = 0;
                     ASSERT_SAFE_PASS(a = bsls::AlignmentUtil::
                                      calculateAlignmentOffset(
                                          ADDRESS,
@@ -760,7 +764,7 @@ static
         //     and sizeof(MaxAlignedType) == BSLS_MAX_ALIGNMENT
         //
         // Plan:
-        //   Use bsls::AlignmentUtilFromType<T>::VALUE to verify
+        //   Use bsls::AlignmentUtilFromType<T>::value to verify
         //   alignment of MaxAlignedType.
         //
         // Tactics:

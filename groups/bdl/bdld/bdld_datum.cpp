@@ -4,7 +4,6 @@
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bdld_datum_cpp,"$Id$ $CSID$")
 
-//
 ///Implementation Notes
 ///--------------------
 ///
@@ -146,10 +145,10 @@ BSLS_IDENT_RCSID(bdld_datum_cpp,"$Id$ $CSID$")
 #include <bsl_sstream.h>
 #include <bsl_utility.h>
 
-namespace BloombergLP {
-namespace bdld {
-
 namespace {
+
+using namespace BloombergLP;
+using namespace bdld;
 
 bool compareLess(const DatumMapEntry& lhs, const DatumMapEntry& rhs);
     // Return 'true' if key in the specified 'lhs' is less than key in the
@@ -821,11 +820,8 @@ const Datum *findElementLinear(const bslstl::StringRef& key,
 
 }  // close unnamed namespace
 
-BSLMF_ASSERT(bsl::is_trivially_copyable<Datum>::value);
-BSLMF_ASSERT(bsl::is_trivially_default_constructible<Datum>::value);
-BSLMF_ASSERT(bslmf::IsBitwiseMoveable<Datum>::value);
-BSLMF_ASSERT(!(bslma::UsesBslmaAllocator<Datum>::value));
-BSLMF_ASSERT(!(bslmf::IsBitwiseEqualityComparable<Datum>::value));
+namespace BloombergLP {
+namespace bdld {
 
                                 // -----------
                                 // class Datum
@@ -1328,10 +1324,10 @@ Datum Datum::clone(bslma::Allocator *basicAllocator) const
     return result;
 }
 
-#ifdef BSLS_PLATFORM_CPU_32_BIT
 bdldfp::Decimal64 Datum::theDecimal64() const
 {
     BSLS_ASSERT(isDecimal64());
+#ifdef BSLS_PLATFORM_CPU_32_BIT
     using namespace bdldfp;
 
     switch (
@@ -1364,9 +1360,11 @@ bdldfp::Decimal64 Datum::theDecimal64() const
       } break;
     }
 
-    return Decimal64(); // silence compiler.
+    return Decimal64(); // silence compiler warning
+#else   // end - 32 bit / begin - 64 bit
+    return *reinterpret_cast<const bdldfp::Decimal64 *>(theInlineStorage());
+#endif  // end - 64 bit
 }
-#endif  // BSLS_PLATFORM_CPU_32_BIT
 
 bsl::ostream& Datum::print(bsl::ostream& stream,
                            int           level,

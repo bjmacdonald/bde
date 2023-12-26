@@ -58,6 +58,10 @@
 #include <bsl_vector.h>
 #include <bsl_unordered_map.h>
 
+#ifdef BSLS_PLATFORM_CMP_AIX
+#pragma report(disable, "1540-0306")
+#endif
+
 using namespace BloombergLP;
 using namespace bsl;
 
@@ -6093,7 +6097,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase10()
                     // values.
                     for (bsl::size_t i = 0; i < tk; ++i) {
                         bsl::size_t j = i + tkOffset + LENGTH;
-                        VALUE       value;
+                        VALUE       value = VALUES[0].second;
                         rc = X.getValue(&value, VALUES[j].first);
                         ASSERTV(1 == rc);
                         ASSERTV(areEqual(value, VALUES[j].second));
@@ -6103,7 +6107,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase10()
                     // values.
                     for (bsl::size_t i = 0; i < tk; ++i) {
                         bsl::size_t j = i + tkOffset;
-                        VALUE       value;
+                        VALUE       value = VALUES[0].second;
                         rc = X.getValue(&value, VALUES[j].first);
                         ASSERTV(1 == rc);
                         ASSERTV(areEqual(value, VALUES[j + 1].second));
@@ -6114,7 +6118,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase10()
 
                 // Confirm that the untouched keys have the same values.
                 for (bsl::size_t i = tkOffset; i < LENGTH; ++i) {
-                    VALUE value;
+                    VALUE value = VALUES[0].second;
                     rc = X.getValue(&value, VALUES[i].first);
                     ASSERTV(1 == rc);
                     ASSERTV(areEqual(value, VALUES[i].second));
@@ -6261,7 +6265,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase10()
                     // values.
                     for (bsl::size_t i = 0; i < tk; ++i) {
                         bsl::size_t j = i + tkOffset + LENGTH;
-                        VALUE       value;
+                        VALUE       value = VALUES[0].second;
                         rc = X.getValue(&value, VALUES[j].first);
                         ASSERTV(1 == rc);
                         ASSERTV(areEqual(value, VALUES[j].second));
@@ -6482,7 +6486,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase10()
                     // values.
                     for (bsl::size_t i = 0; i < tk; ++i) {
                         bsl::size_t j = i + tkOffset + LENGTH;
-                        VALUE       value;
+                        VALUE       value = VALUES[0].second;
                         rc = X.getValue(&value, VALUES[j].first);
                         ASSERTV(1 == rc);
                         ASSERTV(areEqual(value, VALUES[j].second));
@@ -6506,7 +6510,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase10()
 
                 // Confirm that the untouched keys have the same values.
                 for (bsl::size_t i = tkOffset; i < LENGTH; ++i) {
-                    VALUE value;
+                    VALUE value = VALUES[0].second;
                     rc = X.getValue(&value, VALUES[i].first);
                     ASSERTV(1 == rc);
                     ASSERTV(areEqual(value, VALUES[i].second));
@@ -6653,7 +6657,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase10()
                     // values.
                     for (bsl::size_t i = 0; i < tk; ++i) {
                         bsl::size_t j = i + tkOffset + LENGTH;
-                        VALUE       value;
+                        VALUE       value = VALUES[0].second;
                         rc = X.getValue(&value, VALUES[j].first);
                         ASSERTV(1 == rc);
                         ASSERTV(areEqual(value, VALUES[j].second));

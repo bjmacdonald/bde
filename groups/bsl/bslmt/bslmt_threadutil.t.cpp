@@ -852,7 +852,7 @@ enum {  k_NUM_THREADS = 10,
         // in bslmt_threadutilimpl_windows.cpp when translating UTF-8 to
         // UTF-16.
 
-        k_EXP_DEFAULT_ALLOCS = k_NUM_THREADS,
+        k_EXP_DEFAULT_ALLOCS = k_NUM_THREADS
 
 #elif   defined(BSLS_PLATFORM_OS_UNIX)
         // The max thread name is short enough to fit in a short string, but we
@@ -862,7 +862,7 @@ enum {  k_NUM_THREADS = 10,
 
         // No unicode translation on Unix.
 
-        k_EXP_DEFAULT_ALLOCS = 0,
+        k_EXP_DEFAULT_ALLOCS = 0
 #else
 # error unrecognized platform
 #endif
@@ -1573,7 +1573,7 @@ extern "C" void *secondClearanceTest(void *vStackSize)
 
     static int diff;
 
-    for (;; pc += growth) {
+    for (int i = 0; i < 2000000000; ++i, pc += growth) {
         *pc = 0;
         diff =  stackSize - (int) myAbs(pc - &c);
 
@@ -3196,8 +3196,9 @@ int main(int argc, char *argv[])
 
         Q(Test 0 Completed);
 
-        for (clearanceTestAllocaSize = clearanceTestStackSize / 2;;
-                                              clearanceTestAllocaSize += 100) {
+        for (clearanceTestAllocaSize = clearanceTestStackSize / 2;
+             clearanceTestAllocaSize <= 1000000000;
+             clearanceTestAllocaSize += 100) {
             int diff = clearanceTestStackSize - clearanceTestAllocaSize;
             P(diff);
 

@@ -30,7 +30,7 @@ BSLS_IDENT("$Id: $")
 //      o convert from customized type to base type ('convertToBaseType').
 //..
 // Also, the meta-function 'IsCustomizedType' contains a compile-time constant
-// 'VALUE' that is non-zero if the parameterized 'TYPE' exposes
+// 'value' that is non-zero if the parameterized 'TYPE' exposes
 // "customized type" behavior through the 'bdlat_CustomizedTypeFunctions'
 // 'namespace'.
 //
@@ -250,8 +250,7 @@ BSLS_IDENT("$Id: $")
 //  namespace bdlat_CustomizedTypeFunctions {
 //
 //      template <>
-//      struct IsCustomizedType<mine::Cusip> {
-//          enum { VALUE = 1 };
+//      struct IsCustomizedType<mine::Cusip> : bsl::true_type {
 //      };
 //
 //  } // close namespace 'bdlat_CustomizedTypeFunctions'
@@ -457,7 +456,7 @@ BSLS_IDENT("$Id: $")
 #include <bslalg_hastrait.h>
 
 #include <bslmf_assert.h>
-#include <bslmf_metaint.h>
+#include <bslmf_integralconstant.h>
 
 #include <bsls_platform.h>
 #include <bsls_types.h>
@@ -477,15 +476,13 @@ namespace bdlat_CustomizedTypeFunctions {
 
     // META-FUNCTIONS
     template <class TYPE>
-    struct IsCustomizedType {
+    struct IsCustomizedType
+    : public bsl::integral_constant<
+        bool,
+        bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicCustomizedType>::value> {
         // This 'struct' should be specialized for third-party types that need
         // to expose "customized type" behavior.  See the component-level
         // documentation for further information.
-
-        enum {
-            VALUE = bslalg::HasTrait<TYPE,
-                                     bdlat_TypeTraitBasicCustomizedType>::VALUE
-        };
     };
 
     template <class TYPE>
@@ -494,7 +491,7 @@ namespace bdlat_CustomizedTypeFunctions {
         // the default base type for the parameterized 'TYPE'.
 
         BSLMF_ASSERT(
-          (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicCustomizedType>::VALUE));
+          (bslalg::HasTrait<TYPE, bdlat_TypeTraitBasicCustomizedType>::value));
 
         typedef typename TYPE::BaseType Type;
     };
@@ -740,7 +737,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(TYPE *object,
                                                            bool  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromBool(value);
 }
@@ -751,7 +748,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(TYPE *object,
                                                            int   value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromInt(value);
 }
@@ -762,7 +759,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(TYPE *object,
                                                            char  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromChar(value);
 }
@@ -773,7 +770,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(TYPE  *object,
                                                            short  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromShort(value);
 }
@@ -785,7 +782,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                     bsls::Types::Int64  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromInt64(value);
 }
@@ -797,7 +794,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                           unsigned int  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromUnsignedInt(value);
 }
@@ -809,7 +806,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                          unsigned char  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromUnsignedChar(value);
 }
@@ -821,7 +818,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                         unsigned short  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromUnsignedShort(value);
 }
@@ -833,7 +830,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                    bsls::Types::Uint64  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromUnsignedInt64(value);
 }
@@ -844,7 +841,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(TYPE  *object,
                                                            float  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromFloat(value);
 }
@@ -855,7 +852,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(TYPE   *object,
                                                            double  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromDouble(value);
 }
@@ -867,7 +864,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                      const bdlt::Date&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromDate(value);
 }
@@ -879,7 +876,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                    const bdlt::DateTz&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromDateTz(value);
 }
@@ -891,7 +888,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                  const bdlt::Datetime&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromDatetime(value);
 }
@@ -903,7 +900,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                const bdlt::DatetimeTz&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromDatetimeTz(value);
 }
@@ -915,7 +912,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                      const bdlt::Time&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromTime(value);
 }
@@ -927,7 +924,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                    const bdlt::TimeTz&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromTimeTz(value);
 }
@@ -939,7 +936,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                                     const bsl::string&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromString(value);
 }
@@ -951,7 +948,7 @@ int bdlat_CustomizedTypeFunctions_Imp::convertFromBaseType(
                                               const bsl::vector<char>&  value)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object->fromVector(value);
 }
@@ -963,7 +960,7 @@ const bool& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            bool        *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toBool();
 }
@@ -975,7 +972,7 @@ const int& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            int         *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toInt();
 }
@@ -987,7 +984,7 @@ const char& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            char        *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toChar();
 }
@@ -999,7 +996,7 @@ const short& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            short       *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toShort();
 }
@@ -1012,7 +1009,7 @@ bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                     bsls::Types::Int64 *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toInt64();
 }
@@ -1024,7 +1021,7 @@ const unsigned int& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                           unsigned int *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toUnsignedInt();
 }
@@ -1036,7 +1033,7 @@ const unsigned char& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                          unsigned char *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toUnsignedChar();
 }
@@ -1048,7 +1045,7 @@ const unsigned short& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                         unsigned short *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toUnsignedShort();
 }
@@ -1061,7 +1058,7 @@ bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                    bsls::Types::Uint64 *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toUnsignedInt64();
 }
@@ -1073,7 +1070,7 @@ const float& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            float       *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toFloat();
 }
@@ -1085,7 +1082,7 @@ const double& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            double      *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toDouble();
 }
@@ -1097,7 +1094,7 @@ const bdlt::Date& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            bdlt::Date  *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toDate();
 }
@@ -1109,7 +1106,7 @@ const bdlt::DateTz& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                           bdlt::DateTz *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toDateTz();
 }
@@ -1121,7 +1118,7 @@ const bdlt::Datetime& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                         bdlt::Datetime *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toDatetime();
 }
@@ -1133,7 +1130,7 @@ const bdlt::DatetimeTz& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                       bdlt::DatetimeTz *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toDatetimeTz();
 }
@@ -1145,7 +1142,7 @@ const bdlt::Time& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            bdlt::Time  *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toTime();
 }
@@ -1157,7 +1154,7 @@ const bdlt::TimeTz& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                           bdlt::TimeTz *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toTimeTz();
 }
@@ -1169,7 +1166,7 @@ const bsl::string& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                            bsl::string *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toString();
 }
@@ -1181,7 +1178,7 @@ const bsl::vector<char>& bdlat_CustomizedTypeFunctions_Imp::convertToBaseType(
                                                      bsl::vector<char> *)
 {
     BSLMF_ASSERT((bslalg::HasTrait<TYPE,
-                                  bdlat_TypeTraitBasicCustomizedType>::VALUE));
+                                  bdlat_TypeTraitBasicCustomizedType>::value));
 
     return object.toVector();
 }

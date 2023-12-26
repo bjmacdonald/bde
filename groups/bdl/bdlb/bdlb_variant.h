@@ -434,7 +434,7 @@ BSLS_IDENT("$Id: $")
 //: o The return value is specified with the function call.
 //
 ///'bslmf::Nil' Passed to Visitor
-///-  -  -  -  -  -  -  -  -  - -
+///  -  -  -  -  -  -  -  -  -  -
 // A simple visitor that does not require any return value might be one that
 // prints the value of the variant to 'stdout':
 //..
@@ -625,10 +625,10 @@ BSLS_IDENT("$Id: $")
 #include <bslmf_conditional.h>
 #include <bslmf_enableif.h>
 #include <bslmf_integralconstant.h>
+#include <bslmf_isbitwisecopyable.h>
 #include <bslmf_isbitwisemoveable.h>
 #include <bslmf_isconvertible.h>
 #include <bslmf_issame.h>
-#include <bslmf_istriviallycopyable.h>
 #include <bslmf_movableref.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmf_nil.h>
@@ -660,6 +660,15 @@ BSLS_IDENT("$Id: $")
 
 #include <bsl_typeinfo.h>
 #endif  // BDE_OMIT_INTERNAL_DEPRECATED
+
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// Include version that can be compiled with C++03
+// Generated on Fri Jul 14 13:20:25 2023
+// Command line: sim_cpp11_features.pl bdlb_variant.h
+# define COMPILING_BDLB_VARIANT_H
+# include <bdlb_variant_cpp03.h>
+# undef COMPILING_BDLB_VARIANT_H
+#else
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_VARIADIC_TEMPLATES) \
  && defined(BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES)
@@ -698,12 +707,11 @@ typedef struct { char a[2]; } Variant_ReturnValueHelper_NoType;
 BSLMF_ASSERT(sizeof(Variant_ReturnValueHelper_YesType)
              != sizeof(Variant_ReturnValueHelper_NoType));
 
-template <class VISITOR>
-struct Variant_ReturnValueHelper {
-    // This struct is a component-private meta-function.  Do *not* use.  This
-    // meta-function checks whether the template parameter type 'VISITOR' has
-    // the member 'ResultType' defined using "SFINAE" (Substitution Failure Is
-    // Not An Error).
+struct Variant_ReturnValueHelper_Matcher {
+    // This struct is a component-private struct.  Do *not* use.  This provides
+    // functions, the matching of which are used by Variant_ReturnValueHelper
+    // to determine whether the template parameter type 'VISITOR' has the
+    // member 'ResultType' defined.
 
     template <class T>
     static Variant_ReturnValueHelper_YesType match(
@@ -713,19 +721,19 @@ struct Variant_ReturnValueHelper {
         // Return 'YesType' if 'T::ResultType' exists, and 'NoType' otherwise.
         // Note that if 'T::ResultType' exists, then the first function is a
         // better match than the ellipsis version.
+};
 
-    enum {
-        value =
-         sizeof(match<VISITOR>(0)) == sizeof(Variant_ReturnValueHelper_YesType)
-
-#ifndef BDE_OMIT_INTERNAL_DEPRECATED  // BDE3.0
-      , VALUE =
-         sizeof(match<VISITOR>(0)) == sizeof(Variant_ReturnValueHelper_YesType)
-#endif  // BDE_OMIT_INTERNAL_DEPRECATED -- BDE3.0
-
-    };
-        // A 'value' of 'true' indicates 'VISITOR::ResultType' exists, and
-        // 'false' otherwise.
+template <class VISITOR>
+struct Variant_ReturnValueHelper
+: public bsl::integral_constant<
+      bool,
+      sizeof(Variant_ReturnValueHelper_Matcher::match<VISITOR>(0)) ==
+          sizeof(Variant_ReturnValueHelper_YesType)> {
+    // This struct is a component-private meta-function.  Do *not* use.  This
+    // meta-function checks whether the template parameter type 'VISITOR' has
+    // the member 'ResultType' defined using "SFINAE" (Substitution Failure Is
+    // Not An Error).  A 'value' of 'true' indicates 'VISITOR::ResultType'
+    // exists, and 'false' otherwise.
 };
 
                    // =====================================
@@ -992,26 +1000,26 @@ struct VariantImp_Traits {
          || bslma::UsesBslmaAllocator<Type20>::value),
 
         k_VARIANT_IS_BITWISE_COPYABLE = (
-            bsl::is_trivially_copyable< Type1>::value
-         && bsl::is_trivially_copyable< Type2>::value
-         && bsl::is_trivially_copyable< Type3>::value
-         && bsl::is_trivially_copyable< Type4>::value
-         && bsl::is_trivially_copyable< Type5>::value
-         && bsl::is_trivially_copyable< Type6>::value
-         && bsl::is_trivially_copyable< Type7>::value
-         && bsl::is_trivially_copyable< Type8>::value
-         && bsl::is_trivially_copyable< Type9>::value
-         && bsl::is_trivially_copyable<Type10>::value
-         && bsl::is_trivially_copyable<Type11>::value
-         && bsl::is_trivially_copyable<Type12>::value
-         && bsl::is_trivially_copyable<Type13>::value
-         && bsl::is_trivially_copyable<Type14>::value
-         && bsl::is_trivially_copyable<Type15>::value
-         && bsl::is_trivially_copyable<Type16>::value
-         && bsl::is_trivially_copyable<Type17>::value
-         && bsl::is_trivially_copyable<Type18>::value
-         && bsl::is_trivially_copyable<Type19>::value
-         && bsl::is_trivially_copyable<Type20>::value),
+            bslmf::IsBitwiseCopyable< Type1>::value
+         && bslmf::IsBitwiseCopyable< Type2>::value
+         && bslmf::IsBitwiseCopyable< Type3>::value
+         && bslmf::IsBitwiseCopyable< Type4>::value
+         && bslmf::IsBitwiseCopyable< Type5>::value
+         && bslmf::IsBitwiseCopyable< Type6>::value
+         && bslmf::IsBitwiseCopyable< Type7>::value
+         && bslmf::IsBitwiseCopyable< Type8>::value
+         && bslmf::IsBitwiseCopyable< Type9>::value
+         && bslmf::IsBitwiseCopyable<Type10>::value
+         && bslmf::IsBitwiseCopyable<Type11>::value
+         && bslmf::IsBitwiseCopyable<Type12>::value
+         && bslmf::IsBitwiseCopyable<Type13>::value
+         && bslmf::IsBitwiseCopyable<Type14>::value
+         && bslmf::IsBitwiseCopyable<Type15>::value
+         && bslmf::IsBitwiseCopyable<Type16>::value
+         && bslmf::IsBitwiseCopyable<Type17>::value
+         && bslmf::IsBitwiseCopyable<Type18>::value
+         && bslmf::IsBitwiseCopyable<Type19>::value
+         && bslmf::IsBitwiseCopyable<Type20>::value),
 
         k_VARIANT_IS_BITWISE_MOVEABLE = (
             bslmf::IsBitwiseMoveable< Type1>::value
@@ -1322,7 +1330,7 @@ class VariantImp : public VariantImp_Traits<TYPES>::BaseType {
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(VariantImp,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(VariantImp,
                                       bslmf::IsBitwiseMoveable,
@@ -1820,73 +1828,9 @@ class VariantImp : public VariantImp_Traits<TYPES>::BaseType {
         // the types that this variant can hold and 'SOURCE_TYPE' must be
         // convertible to 'TYPE'.
 
-    template <class TYPE>
-    TYPE& createInPlace();
-    template <class TYPE, class A1>
-    TYPE& createInPlace(const A1& a1);
-    template <class TYPE, class A1, class A2>
-    TYPE& createInPlace(const A1& a1, const A2& a2);
-    template <class TYPE, class A1, class A2, class A3>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3);
-    template <class TYPE, class A1, class A2, class A3, class A4>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3,
-                        const A4& a4);
-    template <class TYPE, class A1, class A2, class A3, class A4, class A5>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5);
-    template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                          class A6>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6);
-    template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                          class A6, class A7>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6, const A7& a7);
-    template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                          class A6, class A7, class A8>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6, const A7& a7,
-                        const A8& a8);
-    template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                          class A6, class A7, class A8, class A9>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6, const A7& a7, const A8& a8,
-                        const A9& a9);
-    template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                          class A6, class A7, class A8, class A9, class A10>
-    TYPE& createInPlace(const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6, const A7& a7, const A8& a8,
-                        const A9& a9, const A10& a10);
-    template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                          class A6, class A7, class A8, class A9, class A10,
-                          class A11>
-    TYPE& createInPlace(const A1&  a1,  const A2&  a2, const A3& a3,
-                        const A4&  a4,  const A5&  a5, const A6& a6,
-                        const A7&  a7,  const A8&  a8, const A9& a9,
-                        const A10& a10, const A11& a11);
-    template <class TYPE, class A1,  class A2, class A3, class A4, class A5,
-                          class A6,  class A7, class A8, class A9, class A10,
-                          class A11, class A12>
-    TYPE& createInPlace(const A1&  a1,  const A2&  a2,  const A3&  a3,
-                        const A4&  a4,  const A5&  a5,  const A6&  a6,
-                        const A7&  a7,  const A8&  a8,  const A9&  a9,
-                        const A10& a10, const A11& a11, const A12& a12);
-    template <class TYPE, class A1,  class A2,  class A3, class A4, class A5,
-                          class A6,  class A7,  class A8, class A9, class A10,
-                          class A11, class A12, class A13>
-    TYPE& createInPlace(const A1&  a1,  const A2&  a2,  const A3&  a3,
-                        const A4&  a4,  const A5&  a5,  const A6&  a6,
-                        const A7&  a7,  const A8&  a8,  const A9&  a9,
-                        const A10& a10, const A11& a11, const A12& a12,
-                        const A13& a13);
-    template <class TYPE, class A1,  class A2,  class A3,  class A4, class A5,
-                          class A6,  class A7,  class A8,  class A9, class A10,
-                          class A11, class A12, class A13, class A14>
-    TYPE& createInPlace(const A1&  a1,  const A2&  a2,  const A3&  a3,
-                        const A4&  a4,  const A5&  a5,  const A6&  a6,
-                        const A7&  a7,  const A8&  a8,  const A9&  a9,
-                        const A10& a10, const A11& a11, const A12& a12,
-                        const A13& a13, const A14& a14);
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
+    template <class TYPE, class... ARGS>
+    TYPE& createInPlace(ARGS&&... arguments);
         // Create an instance of template parameter 'TYPE' in this variant
         // object with up to 14 parameters using the allocator currently held
         // by this variant to supply memory, and return a reference providing
@@ -1896,6 +1840,7 @@ class VariantImp : public VariantImp_Traits<TYPES>::BaseType {
         // one of the types that this variant can hold.  Note the order of the
         // template arguments was chosen so that 'TYPE' must always be
         // specified.
+#endif
 
     void reset();
         // Destroy the current value held by this variant (if any), and reset
@@ -2380,7 +2325,7 @@ class Variant : public VariantImp<typename bslmf::TypeList<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant,
                                       bslmf::IsBitwiseMoveable,
@@ -2562,7 +2507,7 @@ class Variant2 : public VariantImp<typename bslmf::TypeList2<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant2,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant2,
                                       bslmf::IsBitwiseMoveable,
@@ -2745,7 +2690,7 @@ class Variant3 : public VariantImp<typename bslmf::TypeList3<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant3,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant3,
                                       bslmf::IsBitwiseMoveable,
@@ -2928,7 +2873,7 @@ class Variant4 : public VariantImp<typename bslmf::TypeList4<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant4,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant4,
                                       bslmf::IsBitwiseMoveable,
@@ -3111,7 +3056,7 @@ class Variant5 : public VariantImp<typename bslmf::TypeList5<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant5,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant5,
                                       bslmf::IsBitwiseMoveable,
@@ -3294,7 +3239,7 @@ class Variant6 : public VariantImp<typename bslmf::TypeList6<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant6,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant6,
                                       bslmf::IsBitwiseMoveable,
@@ -3478,7 +3423,7 @@ class Variant7 : public VariantImp<typename bslmf::TypeList7<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant7,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant7,
                                       bslmf::IsBitwiseMoveable,
@@ -3662,7 +3607,7 @@ class Variant8 : public VariantImp<typename bslmf::TypeList8<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant8,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant8,
                                       bslmf::IsBitwiseMoveable,
@@ -3846,7 +3791,7 @@ class Variant9 : public VariantImp<typename bslmf::TypeList9<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant9,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant9,
                                       bslmf::IsBitwiseMoveable,
@@ -4031,7 +3976,7 @@ class Variant10 : public VariantImp<typename bslmf::TypeList10<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant10,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant10,
                                       bslmf::IsBitwiseMoveable,
@@ -4217,7 +4162,7 @@ class Variant11 : public VariantImp<typename bslmf::TypeList11<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant11,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant11,
                                       bslmf::IsBitwiseMoveable,
@@ -4403,7 +4348,7 @@ class Variant12 : public VariantImp<typename bslmf::TypeList12<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant12,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant12,
                                       bslmf::IsBitwiseMoveable,
@@ -4590,7 +4535,7 @@ class Variant13 : public VariantImp<typename bslmf::TypeList13<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant13,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant13,
                                       bslmf::IsBitwiseMoveable,
@@ -4780,7 +4725,7 @@ class Variant14 : public VariantImp<typename bslmf::TypeList14<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant14,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant14,
                                       bslmf::IsBitwiseMoveable,
@@ -4970,7 +4915,7 @@ class Variant15 : public VariantImp<typename bslmf::TypeList15<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant15,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant15,
                                       bslmf::IsBitwiseMoveable,
@@ -5161,7 +5106,7 @@ class Variant16 : public VariantImp<typename bslmf::TypeList16<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant16,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant16,
                                       bslmf::IsBitwiseMoveable,
@@ -5352,7 +5297,7 @@ class Variant17 : public VariantImp<typename bslmf::TypeList17<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant17,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant17,
                                       bslmf::IsBitwiseMoveable,
@@ -5543,7 +5488,7 @@ class Variant18 : public VariantImp<typename bslmf::TypeList18<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant18,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant18,
                                       bslmf::IsBitwiseMoveable,
@@ -5736,7 +5681,7 @@ class Variant19 : public VariantImp<typename bslmf::TypeList19<
                                       bslma::UsesBslmaAllocator,
                                       Traits::k_VARIANT_USES_BSLMA_ALLOCATOR);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant19,
-                                      bsl::is_trivially_copyable,
+                                      bslmf::IsBitwiseCopyable,
                                       Traits::k_VARIANT_IS_BITWISE_COPYABLE);
     BSLMF_NESTED_TRAIT_DECLARATION_IF(Variant19,
                                       bslmf::IsBitwiseMoveable,
@@ -7519,308 +7464,27 @@ VariantImp<TYPES>& VariantImp<TYPES>::assignTo(const SOURCE_TYPE& value)
     return *this;
 }
 
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=14
+
 template <class TYPES>
-template <class TYPE>
+template <class TYPE, class... ARGS>
 inline
-TYPE& VariantImp<TYPES>::createInPlace()
+TYPE& VariantImp<TYPES>::createInPlace(ARGS&&... arguments)
 {
     typedef bsls::ObjectBuffer<TYPE> BufferType;
     BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
 
     reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator());
+    bslma::ConstructionUtil::construct(
+                            bufR.address(),
+                            this->getAllocator(),
+                            BSLS_COMPILERFEATURES_FORWARD(ARGS, arguments)...);
     this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
 
     return bufR.object();
 }
 
-template <class TYPES>
-template <class TYPE, class A1>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(const A1& a1)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(const A1& a1, const A2& a2)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                                      const A1& a1, const A2& a2, const A3& a3)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                        const A1& a1, const A2& a2, const A3& a3, const A4& a4)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4, class A5>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                        const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                      class A6>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                        const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                      class A6, class A7>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                        const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6, const A7& a7)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                      class A6, class A7, class A8>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                        const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6, const A7& a7, const A8& a8)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7, a8);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                      class A6, class A7, class A8, class A9>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                        const A1& a1, const A2& a2, const A3& a3, const A4& a4,
-                        const A5& a5, const A6& a6, const A7& a7, const A8& a8,
-                        const A9& a9)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7, a8, a9);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                      class A6, class A7, class A8, class A9, class A10>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                       const A1& a1, const A2&  a2, const A3& a3, const A4& a4,
-                       const A5& a5, const A6&  a6, const A7& a7, const A8& a8,
-                       const A9& a9, const A10& a10)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7, a8, a9,
-                                                                          a10);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1, class A2, class A3, class A4, class A5,
-                      class A6, class A7, class A8, class A9, class A10,
-                      class A11>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                     const A1& a1, const A2&  a2,  const A3&  a3, const A4& a4,
-                     const A5& a5, const A6&  a6,  const A7&  a7, const A8& a8,
-                     const A9& a9, const A10& a10, const A11& a11)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
-                                                                          a11);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1,  class A2,  class A3, class A4, class A5,
-                      class A6,  class A7,  class A8, class A9, class A10,
-                      class A11, class A12>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                    const A1&  a1, const A2&  a2,  const A3&  a3, const A4& a4,
-                    const A5&  a5, const A6&  a6,  const A7&  a7, const A8& a8,
-                    const A9&  a9, const A10& a10, const A11& a11,
-                    const A12& a12)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
-                                                                     a11, a12);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1,  class A2,  class A3,  class A4, class A5,
-                      class A6,  class A7,  class A8,  class A9, class A10,
-                      class A11, class A12, class A13>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                   const A1&  a1,  const A2&  a2,  const A3&  a3, const A4& a4,
-                   const A5&  a5,  const A6&  a6,  const A7&  a7, const A8& a8,
-                   const A9&  a9,  const A10& a10, const A11& a11,
-                   const A12& a12, const A13& a13)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
-                                                                a11, a12, a13);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
-
-template <class TYPES>
-template <class TYPE, class A1,  class A2,  class A3,  class A4,  class A5,
-                      class A6,  class A7,  class A8,  class A9,  class A10,
-                      class A11, class A12, class A13, class A14>
-inline
-TYPE& VariantImp<TYPES>::createInPlace(
-                   const A1&  a1,  const A2&  a2,  const A3&  a3, const A4& a4,
-                   const A5&  a5,  const A6&  a6,  const A7&  a7, const A8& a8,
-                   const A9&  a9,  const A10& a10, const A11& a11,
-                   const A12& a12, const A13& a13, const A14& a14)
-{
-    typedef bsls::ObjectBuffer<TYPE> BufferType;
-    BufferType& bufR = *reinterpret_cast<BufferType *>(&this->d_value);
-
-    reset();
-    bslma::ConstructionUtil::construct(bufR.address(),
-                                       this->getAllocator(),
-                                       a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
-                                                           a11, a12, a13, a14);
-    this->d_type = Variant_TypeIndex<TYPES, TYPE>::value;
-
-    return bufR.object();
-}
+#endif
 
 template <class TYPES>
 void VariantImp<TYPES>::reset()
@@ -11624,6 +11288,8 @@ operator=(bslmf::MovableRef<Variant19> rhs)
 
 }  // close package namespace
 }  // close enterprise namespace
+
+#endif // End C++11 code
 
 #endif
 

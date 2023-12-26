@@ -571,9 +571,10 @@ BSLS_IDENT("$Id: $")
 
 #include <bslma_allocator.h>
 #include <bslma_allocatortraits.h>
+#include <bslma_allocatorutil.h>
 #include <bslma_autodestructor.h>
 #include <bslma_isstdallocator.h>
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 #include <bslma_usesbslmaallocator.h>
 
 #include <bslmf_enableif.h>
@@ -970,6 +971,10 @@ class vector : public  vectorBase<VALUE_TYPE>
         // This 'typedef' is a convenient alias for the utility associated with
         // movable references.
 
+    typedef BloombergLP::bslma::AllocatorUtil         AllocatorUtil;
+        // This 'typedef' is an alias for a utility class that provides many
+        // useful functions that operate on allocators.
+
     typedef allocator_traits<ALLOCATOR>               AllocatorTraits;
         // This 'typedef' is an alias for the allocator traits type associated
         // with this container.
@@ -1102,6 +1107,31 @@ class vector : public  vectorBase<VALUE_TYPE>
     void privateReserveEmpty(size_type numElements);
         // Reserve exactly the specified 'numElements'.  The behavior is
         // undefined unless this vector is empty and has no capacity.
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    template <class... Args>
+    void privateEmplaceBackWithAllocation(Args&&...arguments);
+        // Change the capacity of this vector and append to its end a newly
+        // created 'value_type' object, constructed by forwarding
+        // 'get_allocator()' (if required) and the specified (variable number
+        // of) 'arguments' to the corresponding constructor of 'value_type'.
+        // If an exception is thrown (other than by the move constructor of a
+        // non-copy-insertable 'value_type'), '*this' is unaffected.  Throw
+        // 'std::length_error' if 'size() == max_size()'.
+#endif
+
+    void privatePushBackWithAllocation(const VALUE_TYPE& value);
+        // Append a copy of the specified 'value' to the end of this vector
+        // after changing its capacity.  If an exception is thrown, '*this' is
+        // unaffected.  Throw 'std::length_error' if 'size() == max_size()'.
+
+    void privatePushBackWithAllocation(
+                             BloombergLP::bslmf::MovableRef<VALUE_TYPE> value);
+        // Append the specified move-insertable 'value' to the end of this
+        // vector after changing its capacity.  'value' is left in a valid but
+        // unspecified state.  If an exception is thrown (other than by the
+        // move constructor of a non-copy-insertable 'value_type'), '*this' is
+        // unaffected.  Throw 'std::length_error' if 'size() == max_size()'.
 
   public:
     // CREATORS
@@ -1265,7 +1295,9 @@ class vector : public  vectorBase<VALUE_TYPE>
         // left in a valid but unspecified state.  This method requires that
         // the (template parameter) type 'VALUE_TYPE' be 'move-assignable' and
         // 'move-insertable' into this vector (see {Requirements on
-        // 'VALUE_TYPE'}).
+        // 'VALUE_TYPE'}).  Note that the 'vector' template arguments must be
+        // explicitly spelled out to work around an MSVC 2022 bug, see DRQS
+        // 171087946.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS)
     vector& operator=(std::initializer_list<VALUE_TYPE> values);
@@ -1368,10 +1400,10 @@ class vector : public  vectorBase<VALUE_TYPE>
         // corresponding constructor of 'value_type'.  Return a reference
         // providing modifiable access to the inserted element.  If an
         // exception is thrown (other than by the move constructor of a
-        // non-copy-insertable 'value_type'), '*this' is unaffected.  This
-        // method requires that the (template parameter) type 'VALUE_TYPE' be
-        // 'move-insertable' into this vector and 'emplace-constructible' from
-        // 'arguments' (see
+        // non-copy-insertable 'value_type'), '*this' is unaffected.  Throw
+        // 'std::length_error' if 'size() == max_size()'.  This method requires
+        // that the (template parameter) type 'VALUE_TYPE' be 'move-insertable'
+        // into this vector and 'emplace-constructible' from 'arguments' (see
         // {Requirements on 'VALUE_TYPE'}).
 #endif
 
@@ -1444,7 +1476,7 @@ class vector : public  vectorBase<VALUE_TYPE>
                 this->d_dataBegin_p,
                 pos,
                 this->d_dataEnd_p,
-                ContainerBase::allocator(),
+                this->allocatorRef(),
                 BSLS_COMPILERFEATURES_FORWARD(Args, arguments)...);
 
             temp.d_dataEnd_p += newSize;
@@ -1454,7 +1486,7 @@ class vector : public  vectorBase<VALUE_TYPE>
             ArrayPrimitives::emplace(
                 pos,
                 this->end(),
-                ContainerBase::allocator(),
+                this->allocatorRef(),
                 BSLS_COMPILERFEATURES_FORWARD(Args, arguments)...);
             ++this->d_dataEnd_p;
         }
@@ -1832,10 +1864,17 @@ class vector<VALUE_TYPE *, ALLOCATOR>
 
     // MANIPULATORS
     vector& operator=(const vector& rhs);
+
     vector& operator=(
           BloombergLP::bslmf::MovableRef<vector<VALUE_TYPE *, ALLOCATOR> > rhs)
         BSLS_KEYWORD_NOEXCEPT_SPECIFICATION(BSLS_KEYWORD_NOEXCEPT_OPERATOR(
-                       d_impl = MoveUtil::move(MoveUtil::access(rhs).d_impl)));
+                       d_impl = MoveUtil::move(MoveUtil::access(rhs).d_impl)))
+        // NOTE: This function has been implemented inline due to an issue with
+        // the Sun compiler.
+    {
+        d_impl = MoveUtil::move(MoveUtil::access(rhs).d_impl);
+        return *this;
+    }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS)
     vector& operator=(std::initializer_list<VALUE_TYPE *> values);
@@ -2015,7 +2054,7 @@ class vector<VALUE_TYPE *, ALLOCATOR>
         return lhs.d_impl >= rhs.d_impl;
     }
 
-#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+#endif  // BSLALG_SYNTHTHREEWAYUTIL_AVAILABLE
 
     friend
     void swap(vector& a, vector& b)
@@ -2622,8 +2661,11 @@ template <class VALUE_TYPE, class ALLOCATOR>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
 vector<VALUE_TYPE, ALLOCATOR>::Proctor::~Proctor()
 {
+    using BloombergLP::bslma::AllocatorUtil;
+
     if (d_data_p) {
-        d_container_p->deallocateN(d_data_p, d_capacity);
+        AllocatorUtil::deallocateObject(d_container_p->allocatorRef(),
+                                        d_data_p, d_capacity);
     }
 }
 
@@ -2671,7 +2713,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::constructFromRange(
     ArrayPrimitives::copyConstruct(this->d_dataEnd_p,
                                    first,
                                    last,
-                                   ContainerBase::allocator());
+                                   this->allocatorRef());
     proctor.release();
     this->d_dataEnd_p += newSize;
 }
@@ -2730,7 +2772,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::constructFromRange(
         ArrayPrimitives::uninitializedFillN(this->d_dataBegin_p,
                                             initialSize,
                                             static_cast<VALUE_TYPE>(value),
-                                            ContainerBase::allocator());
+                                            this->allocatorRef());
 
         proctor.release();
         this->d_dataEnd_p += initialSize;
@@ -2957,7 +2999,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::privateInsert(
                                                   first,
                                                   last,
                                                   n,
-                                                  ContainerBase::allocator());
+                                                  this->allocatorRef());
         temp.d_dataEnd_p += newSize;
         Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
     }
@@ -2967,7 +3009,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::privateInsert(
                                 first,
                                 last,
                                 n,
-                                ContainerBase::allocator());
+                                this->allocatorRef());
         this->d_dataEnd_p += n;
     }
 }
@@ -3007,7 +3049,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::privateMoveInsert(
             fromVector->d_dataBegin_p,
             fromVector->d_dataEnd_p,
             n,
-            ContainerBase::allocator());
+            this->allocatorRef());
         temp.d_dataEnd_p += newSize;
         Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
     }
@@ -3018,7 +3060,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::privateMoveInsert(
                                     fromVector->d_dataBegin_p,
                                     fromVector->d_dataEnd_p,
                                     n,
-                                    ContainerBase::allocator());
+                                    this->allocatorRef());
         this->d_dataEnd_p += n;
     }
 }
@@ -3030,9 +3072,124 @@ void vector<VALUE_TYPE, ALLOCATOR>::privateReserveEmpty(size_type numElements)
     BSLS_ASSERT_SAFE(this->empty());
     BSLS_ASSERT_SAFE(0 == this->capacity());
 
-    this->d_dataBegin_p = this->d_dataEnd_p = this->allocateN(
-                                                (VALUE_TYPE *) 0, numElements);
+    this->d_dataBegin_p = this->d_dataEnd_p =
+        AllocatorUtil::allocateObject<VALUE_TYPE>(this->allocatorRef(),
+                                                  numElements);
+
     this->d_capacity = numElements;
+}
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+template <class VALUE_TYPE, class ALLOCATOR>
+template <class... Args>
+void vector<VALUE_TYPE, ALLOCATOR>::privateEmplaceBackWithAllocation(
+                                                            Args&&...arguments)
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(max_size() == this->size())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BloombergLP::bslstl::StdExceptUtil::throwLengthError(
+                         "vector<...>:emplace_back(args...): vector too long");
+    }
+
+    size_type newCapacity = Vector_Util::computeNewCapacity(this->size() + 1,
+                                                            this->d_capacity,
+                                                            this->max_size());
+    vector    temp(this->get_allocator());
+    temp.privateReserveEmpty(newCapacity);
+
+    // Construct before we risk invalidating the reference
+    VALUE_TYPE *pos = temp.d_dataBegin_p + this->size();
+    AllocatorTraits::construct(
+                            this->allocatorRef(),
+                            pos,
+                            BSLS_COMPILERFEATURES_FORWARD(Args, arguments)...);
+
+    // Nothing else should throw, but probably worth guarding the above
+    // 'construct' call for types with potentially-throwing destructive moves.
+    Vector_PushProctor<VALUE_TYPE, ALLOCATOR> guard(pos, this->allocatorRef());
+    ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
+                                     this->d_dataBegin_p,
+                                     this->d_dataEnd_p,
+                                     this->allocatorRef());
+    guard.release();  // Nothing after this can throw
+
+    this->d_dataEnd_p = this->d_dataBegin_p;
+    temp.d_dataEnd_p  = ++pos;
+    Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
+}
+#endif
+
+template <class VALUE_TYPE, class ALLOCATOR>
+void vector<VALUE_TYPE, ALLOCATOR>::privatePushBackWithAllocation(
+                                                       const VALUE_TYPE& value)
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(max_size() == this->size())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BloombergLP::bslstl::StdExceptUtil::throwLengthError(
+                             "vector<...>:push_back(lvalue): vector too long");
+    }
+
+    size_type newCapacity = Vector_Util::computeNewCapacity(this->size() + 1,
+                                                            this->d_capacity,
+                                                            this->max_size());
+
+    vector temp(this->get_allocator());
+    temp.privateReserveEmpty(newCapacity);
+
+    // Construct before we risk invalidating the reference
+    VALUE_TYPE *pos = temp.d_dataBegin_p + this->size();
+    AllocatorTraits::construct(this->allocatorRef(), pos, value);
+
+    // Nothing else should throw, but probably worth guarding the above
+    // 'construct' call for types with potentially-throwing destructive moves.
+    Vector_PushProctor<VALUE_TYPE, ALLOCATOR> guard(pos, this->allocatorRef());
+    ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
+                                     this->d_dataBegin_p,
+                                     this->d_dataEnd_p,
+                                     this->allocatorRef());
+    guard.release();  // Nothing after this can throw
+
+    this->d_dataEnd_p = this->d_dataBegin_p;
+    temp.d_dataEnd_p  = ++pos;
+    Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
+}
+
+template <class VALUE_TYPE, class ALLOCATOR>
+void vector<VALUE_TYPE, ALLOCATOR>::privatePushBackWithAllocation(
+                              BloombergLP::bslmf::MovableRef<VALUE_TYPE> value)
+{
+    VALUE_TYPE& lvalue = value;
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(max_size() == this->size())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BloombergLP::bslstl::StdExceptUtil::throwLengthError(
+                             "vector<...>:push_back(rvalue): vector too long");
+    }
+
+    size_type newCapacity = Vector_Util::computeNewCapacity(this->size() + 1,
+                                                            this->d_capacity,
+                                                            this->max_size());
+
+    vector temp(this->get_allocator());
+    temp.privateReserveEmpty(newCapacity);
+
+    // Construct before we risk invalidating the reference
+    VALUE_TYPE *pos = temp.d_dataBegin_p + this->size();
+    AllocatorTraits::construct(this->allocatorRef(),
+                               pos,
+                               MoveUtil::move(lvalue));
+
+    // Nothing else should throw, but probably worth guarding the above
+    // 'construct' call for types with potentially-throwing destructive moves.
+    Vector_PushProctor<VALUE_TYPE, ALLOCATOR> guard(pos, this->allocatorRef());
+    ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
+                                     this->d_dataBegin_p,
+                                     this->d_dataEnd_p,
+                                     this->allocatorRef());
+    guard.release();  // Nothing after this can throw
+
+    this->d_dataEnd_p = this->d_dataBegin_p;
+    temp.d_dataEnd_p  = ++pos;
+    Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
 }
 
 // CREATORS
@@ -3075,7 +3232,7 @@ vector<VALUE_TYPE, ALLOCATOR>::vector(size_type        initialSize,
 
         ArrayPrimitives::defaultConstruct(this->d_dataBegin_p,
                                           initialSize,
-                                          ContainerBase::allocator());
+                                          this->allocatorRef());
 
         proctor.release();
         this->d_dataEnd_p += initialSize;
@@ -3103,7 +3260,7 @@ vector<VALUE_TYPE, ALLOCATOR>::vector(size_type         initialSize,
         ArrayPrimitives::uninitializedFillN(this->d_dataBegin_p,
                                             initialSize,
                                             value,
-                                            ContainerBase::allocator());
+                                            this->allocatorRef());
 
         proctor.release();
         this->d_dataEnd_p += initialSize;
@@ -3133,7 +3290,7 @@ template <class VALUE_TYPE, class ALLOCATOR>
 vector<VALUE_TYPE, ALLOCATOR>::vector(const vector& original)
 : vectorBase<VALUE_TYPE>()
 , ContainerBase(AllocatorTraits::select_on_container_copy_construction(
-                                          original.ContainerBase::allocator()))
+                                                     original.get_allocator()))
 {
     if (original.size() > 0) {
         privateReserveEmpty(original.size());
@@ -3144,7 +3301,7 @@ vector<VALUE_TYPE, ALLOCATOR>::vector(const vector& original)
         ArrayPrimitives::copyConstruct(this->d_dataBegin_p,
                                        original.begin(),
                                        original.end(),
-                                       ContainerBase::allocator());
+                                       this->allocatorRef());
 
         proctor.release();
         this->d_dataEnd_p += original.size();
@@ -3167,7 +3324,7 @@ vector(const vector& original,
         ArrayPrimitives::copyConstruct(this->d_dataBegin_p,
                                        original.begin(),
                                        original.end(),
-                                       ContainerBase::allocator());
+                                       this->allocatorRef());
 
         proctor.release();
         this->d_dataEnd_p += original.size();
@@ -3208,7 +3365,7 @@ vector<VALUE_TYPE, ALLOCATOR>::vector(
             ArrayPrimitives::moveConstruct(this->d_dataBegin_p,
                                            lvalue.begin(),
                                            lvalue.end(),
-                                           ContainerBase::allocator());
+                                           this->allocatorRef());
 
             proctor.release();
             this->d_dataEnd_p += lvalue.size();
@@ -3239,12 +3396,14 @@ template <class VALUE_TYPE, class ALLOCATOR>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
 vector<VALUE_TYPE, ALLOCATOR>::~vector()
 {
+    using BloombergLP::bslalg::ArrayDestructionPrimitives;
+
     if (this->d_dataBegin_p) {
-        BloombergLP::bslalg::ArrayDestructionPrimitives::destroy(
-                                            this->d_dataBegin_p,
+        ArrayDestructionPrimitives::destroy(this->d_dataBegin_p,
                                             this->d_dataEnd_p,
-                                            ContainerBase::allocator());
-        this->deallocateN(this->d_dataBegin_p, this->d_capacity);
+                                            this->allocatorRef());
+        AllocatorUtil::deallocateObject(this->allocatorRef(),
+                                        this->d_dataBegin_p, this->d_capacity);
     }
 }
 
@@ -3253,12 +3412,16 @@ template <class VALUE_TYPE, class ALLOCATOR>
 vector<VALUE_TYPE, ALLOCATOR>&
 vector<VALUE_TYPE, ALLOCATOR>::operator=(const vector& rhs)
 {
+    typedef typename
+        AllocatorTraits::propagate_on_container_copy_assignment Propagate;
+
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(this != &rhs)) {
-        if (AllocatorTraits::propagate_on_container_copy_assignment::value) {
+        if (Propagate::value) {
             vector other(rhs, rhs.get_allocator());
             Vector_Util::swap(&this->d_dataBegin_p, &other.d_dataBegin_p);
-            using std::swap;
-            swap(ContainerBase::allocator(), other.ContainerBase::allocator());
+            AllocatorUtil::swap(&this->allocatorRef(),
+                                &other.allocatorRef(),
+                                Propagate());
         }
         else {
             // Invoke 'erase' only if the current vector is not empty.
@@ -3278,22 +3441,24 @@ vector<VALUE_TYPE, ALLOCATOR>& vector<VALUE_TYPE, ALLOCATOR>::operator=(
               AllocatorTraits::propagate_on_container_move_assignment::value ||
               AllocatorTraits::is_always_equal::value)
 {
+    typedef typename
+        AllocatorTraits::propagate_on_container_move_assignment Propagate;
+
     vector& lvalue = rhs;
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(this != &lvalue)) {
         if (get_allocator() == lvalue.get_allocator()) {
             vector other(MoveUtil::move(lvalue));
             Vector_Util::swap(&this->d_dataBegin_p, &other.d_dataBegin_p);
         }
-        else if (AllocatorTraits::
-                               propagate_on_container_move_assignment::value) {
+        else if (Propagate::value) {
             vector other(MoveUtil::move(lvalue));
-            using std::swap;
-            swap(ContainerBase::allocator(), other.ContainerBase::allocator());
+            AllocatorUtil::swap(&this->allocatorRef(),
+                                &other.allocatorRef(),
+                                Propagate());
             Vector_Util::swap(&this->d_dataBegin_p, &other.d_dataBegin_p);
         }
         else {
-            vector other(MoveUtil::move(lvalue),
-                             ContainerBase::allocator());
+            vector other(MoveUtil::move(lvalue), this->allocatorRef());
             Vector_Util::swap(&this->d_dataBegin_p, &other.d_dataBegin_p);
         }
     }
@@ -3361,7 +3526,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::resize(size_type newSize)
         BloombergLP::bslalg::ArrayDestructionPrimitives::destroy(
                                             this->d_dataBegin_p + newSize,
                                             this->d_dataEnd_p,
-                                            ContainerBase::allocator());
+                                            this->allocatorRef());
         this->d_dataEnd_p = this->d_dataBegin_p + newSize;
     }
     else if (0 == this->d_capacity) {
@@ -3384,14 +3549,13 @@ void vector<VALUE_TYPE, ALLOCATOR>::resize(size_type newSize)
         vector temp(this->get_allocator());
         temp.privateReserveEmpty(newCapacity);
 
-        ArrayPrimitives::destructiveMoveAndInsert(
-            temp.d_dataBegin_p,
-            &this->d_dataEnd_p,
-            this->d_dataBegin_p,
-            this->d_dataEnd_p,
-            this->d_dataEnd_p,
-            newSize - this->size(),
-            ContainerBase::allocator());
+        ArrayPrimitives::destructiveMoveAndInsert(temp.d_dataBegin_p,
+                                                  &this->d_dataEnd_p,
+                                                  this->d_dataBegin_p,
+                                                  this->d_dataEnd_p,
+                                                  this->d_dataEnd_p,
+                                                  newSize - this->size(),
+                                                  this->allocatorRef());
 
         temp.d_dataEnd_p += newSize;
         Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
@@ -3399,7 +3563,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::resize(size_type newSize)
     else {
         ArrayPrimitives::defaultConstruct(this->d_dataEnd_p,
                                           newSize - this->size(),
-                                          ContainerBase::allocator());
+                                          this->allocatorRef());
         this->d_dataEnd_p = this->d_dataBegin_p + newSize;
     }
 }
@@ -3415,7 +3579,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::resize(size_type         newSize,
         BloombergLP::bslalg::ArrayDestructionPrimitives::destroy(
                                             this->d_dataBegin_p + newSize,
                                             this->d_dataEnd_p,
-                                            ContainerBase::allocator());
+                                            this->allocatorRef());
         this->d_dataEnd_p = this->d_dataBegin_p + newSize;
     }
     else {
@@ -3441,7 +3605,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::reserve(size_type newCapacity)
         ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
                                          this->d_dataBegin_p,
                                          this->d_dataEnd_p,
-                                         ContainerBase::allocator());
+                                         this->allocatorRef());
 
         temp.d_dataEnd_p += this->size();
         this->d_dataEnd_p = this->d_dataBegin_p;
@@ -3458,7 +3622,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::shrink_to_fit()
         ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
                                          this->d_dataBegin_p,
                                          this->d_dataEnd_p,
-                                         ContainerBase::allocator());
+                                         this->allocatorRef());
 
         temp.d_dataEnd_p += this->size();
         this->d_dataEnd_p = this->d_dataBegin_p;
@@ -3477,146 +3641,48 @@ vector<VALUE_TYPE, ALLOCATOR>::emplace_back(Args&&...arguments)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(this->d_capacity > this->size())) {
         AllocatorTraits::construct(
-            ContainerBase::allocator(),
+            this->allocatorRef(),
             this->d_dataEnd_p,
             BSLS_COMPILERFEATURES_FORWARD(Args, arguments)...);
         ++this->d_dataEnd_p;
     }
     else {
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(max_size() == this->size())){
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BloombergLP::bslstl::StdExceptUtil::throwLengthError(
-                         "vector<...>:emplace_back(args...): vector too long");
-        }
-
-        size_type newCapacity = Vector_Util::computeNewCapacity(
-                                                             this->size() + 1,
-                                                             this->d_capacity,
-                                                             this->max_size());
-        vector temp(this->get_allocator());
-        temp.privateReserveEmpty(newCapacity);
-
-        // Construct before we risk invalidating the reference
-        VALUE_TYPE *pos = temp.d_dataBegin_p + this->size();
-        AllocatorTraits::construct(
-                            ContainerBase::allocator(),
-                            pos,
+        privateEmplaceBackWithAllocation(
                             BSLS_COMPILERFEATURES_FORWARD(Args, arguments)...);
-
-        // Nothing else should throw, but probably worth guarding the above
-        // 'construct' call for types with potentially-throwing destructive
-        // moves.
-        Vector_PushProctor<VALUE_TYPE, ALLOCATOR> guard(
-                                                   pos,
-                                                   ContainerBase::allocator());
-        ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
-                                         this->d_dataBegin_p,
-                                         this->d_dataEnd_p,
-                                         ContainerBase::allocator());
-        guard.release();  // Nothing after this can throw
-
-        this->d_dataEnd_p = this->d_dataBegin_p;
-        temp.d_dataEnd_p = ++pos;
-        Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
     }
     return *(this->d_dataEnd_p - 1);
 }
 #endif
 
 template <class VALUE_TYPE, class ALLOCATOR>
+inline
 void vector<VALUE_TYPE, ALLOCATOR>::push_back(const VALUE_TYPE& value)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(this->d_capacity > this->size())) {
-        AllocatorTraits::construct(ContainerBase::allocator(),
+        AllocatorTraits::construct(this->allocatorRef(),
                                    this->d_dataEnd_p,
                                    value);
         ++this->d_dataEnd_p;
     }
     else {
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(max_size() == this->size())){
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BloombergLP::bslstl::StdExceptUtil::throwLengthError(
-                             "vector<...>:push_back(lvalue): vector too long");
-        }
-
-        size_type newCapacity = Vector_Util::computeNewCapacity(
-                                                             this->size() + 1,
-                                                             this->d_capacity,
-                                                             this->max_size());
-
-        vector temp(this->get_allocator());
-        temp.privateReserveEmpty(newCapacity);
-
-        // Construct before we risk invalidating the reference
-        VALUE_TYPE *pos = temp.d_dataBegin_p + this->size();
-        AllocatorTraits::construct(ContainerBase::allocator(),
-                                   pos,
-                                   value);
-
-        // Nothing else should throw, but probably worth guarding the above
-        // 'construct' call for types with potentially-throwing destructive
-        // moves.
-        Vector_PushProctor<VALUE_TYPE, ALLOCATOR> guard(
-                                                   pos,
-                                                   ContainerBase::allocator());
-        ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
-                                         this->d_dataBegin_p,
-                                         this->d_dataEnd_p,
-                                         ContainerBase::allocator());
-        guard.release();  // Nothing after this can throw
-
-        this->d_dataEnd_p = this->d_dataBegin_p;
-        temp.d_dataEnd_p = ++pos;
-        Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
+        privatePushBackWithAllocation(value);
     }
 }
 
 template <class VALUE_TYPE, class ALLOCATOR>
+inline
 void vector<VALUE_TYPE, ALLOCATOR>::push_back(
                               BloombergLP::bslmf::MovableRef<VALUE_TYPE> value)
 {
     VALUE_TYPE& lvalue = value;
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(this->d_capacity > this->size())) {
-        AllocatorTraits::construct(ContainerBase::allocator(),
+        AllocatorTraits::construct(this->allocatorRef(),
                                    this->d_dataEnd_p,
                                    MoveUtil::move(lvalue));
         ++this->d_dataEnd_p;
     }
     else {
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(this->size() == max_size())){
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BloombergLP::bslstl::StdExceptUtil::throwLengthError(
-                             "vector<...>:push_back(rvalue): vector too long");
-        }
-
-        size_type newCapacity = Vector_Util::computeNewCapacity(
-                                                             this->size() + 1,
-                                                             this->d_capacity,
-                                                             this->max_size());
-
-        vector temp(this->get_allocator());
-        temp.privateReserveEmpty(newCapacity);
-
-        // Construct before we risk invalidating the reference
-        VALUE_TYPE *pos = temp.d_dataBegin_p + this->size();
-        AllocatorTraits::construct(ContainerBase::allocator(),
-                                   pos,
-                                   MoveUtil::move(lvalue));
-
-        // Nothing else should throw, but probably worth guarding the above
-        // 'construct' call for types with potentially-throwing destructive
-        // moves.
-        Vector_PushProctor<VALUE_TYPE, ALLOCATOR> guard(
-                                                   pos,
-                                                   ContainerBase::allocator());
-        ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
-                                         this->d_dataBegin_p,
-                                         this->d_dataEnd_p,
-                                         ContainerBase::allocator());
-        this->d_dataEnd_p = this->d_dataBegin_p;
-        guard.release();  // Nothing after this can throw
-        temp.d_dataEnd_p = ++pos;
-        Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
+        privatePushBackWithAllocation(MoveUtil::move(lvalue));
     }
 }
 
@@ -3626,7 +3692,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::pop_back()
 {
     BSLS_ASSERT_SAFE(!this->empty());
 
-    AllocatorTraits::destroy(ContainerBase::allocator(),
+    AllocatorTraits::destroy(this->allocatorRef(),
                              --this->d_dataEnd_p);
 }
 
@@ -3678,7 +3744,7 @@ vector<VALUE_TYPE, ALLOCATOR>::insert(
                                                    this->d_dataBegin_p,
                                                    pos,
                                                    this->d_dataEnd_p,
-                                                   ContainerBase::allocator(),
+                                                   this->allocatorRef(),
                                                    MoveUtil::move(lvalue));
 
         temp.d_dataEnd_p += newSize;
@@ -3688,7 +3754,7 @@ vector<VALUE_TYPE, ALLOCATOR>::insert(
         ArrayPrimitives::insert(pos,
                                 this->end(),
                                 MoveUtil::move(lvalue),
-                                ContainerBase::allocator());
+                                this->allocatorRef());
         ++this->d_dataEnd_p;
     }
 
@@ -3732,7 +3798,7 @@ vector<VALUE_TYPE, ALLOCATOR>::insert(const_iterator    position,
                                                   this->d_dataEnd_p,
                                                   value,
                                                   numElements,
-                                                  ContainerBase::allocator());
+                                                  this->allocatorRef());
 
         temp.d_dataEnd_p += newSize;
         Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
@@ -3742,7 +3808,7 @@ vector<VALUE_TYPE, ALLOCATOR>::insert(const_iterator    position,
                                 this->end(),
                                 value,
                                 numElements,
-                                ContainerBase::allocator());
+                                this->allocatorRef());
         this->d_dataEnd_p += numElements;
     }
     return this->begin() + index;
@@ -3788,7 +3854,7 @@ vector<VALUE_TYPE, ALLOCATOR>::erase(const_iterator first, const_iterator last)
     ArrayPrimitives::erase(const_cast<VALUE_TYPE *>(first),
                            const_cast<VALUE_TYPE *>(last),
                            this->d_dataEnd_p,
-                           ContainerBase::allocator());
+                           this->allocatorRef());
     this->d_dataEnd_p -= n;
     return const_cast<VALUE_TYPE *>(first);
 }
@@ -3799,10 +3865,14 @@ void vector<VALUE_TYPE, ALLOCATOR>::swap(vector<VALUE_TYPE, ALLOCATOR>& other)
                          AllocatorTraits::propagate_on_container_swap::value ||
                          AllocatorTraits::is_always_equal::value)
 {
-    if (AllocatorTraits::propagate_on_container_swap::value) {
+    typedef typename
+        AllocatorTraits::propagate_on_container_swap Propagate;
+
+    if (Propagate::value) {
         Vector_Util::swap(&this->d_dataBegin_p, &other.d_dataBegin_p);
-        using std::swap;
-        swap(ContainerBase::allocator(), other.ContainerBase::allocator());
+        AllocatorUtil::swap(&this->allocatorRef(),
+                            &other.allocatorRef(),
+                            Propagate());
     }
     else {
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
@@ -3833,7 +3903,7 @@ void vector<VALUE_TYPE, ALLOCATOR>::clear() BSLS_KEYWORD_NOEXCEPT
         BloombergLP::bslalg::ArrayDestructionPrimitives::destroy(
                                                    this->d_dataBegin_p,
                                                    this->d_dataEnd_p,
-                                                   ContainerBase::allocator());
+                                                   this->allocatorRef());
         this->d_dataEnd_p = this->d_dataBegin_p;
     }
     else {
@@ -3847,7 +3917,7 @@ inline
 typename vector<VALUE_TYPE, ALLOCATOR>::allocator_type
 vector<VALUE_TYPE, ALLOCATOR>::get_allocator() const BSLS_KEYWORD_NOEXCEPT
 {
-    return ContainerBase::allocator();
+    return this->allocatorRef();
 }
 
                          // *** capacity ***
@@ -3857,7 +3927,7 @@ inline
 typename vector<VALUE_TYPE, ALLOCATOR>::size_type
 vector<VALUE_TYPE, ALLOCATOR>::max_size() const BSLS_KEYWORD_NOEXCEPT
 {
-    return AllocatorTraits::max_size(ContainerBase::allocator());
+    return AllocatorTraits::max_size(this->allocatorRef());
 }
 
 // FREE OPERATORS
@@ -4109,18 +4179,6 @@ vector<VALUE_TYPE *, ALLOCATOR>& vector<VALUE_TYPE *, ALLOCATOR>::operator=(
                                                              const vector& rhs)
 {
     d_impl = rhs.d_impl;
-    return *this;
-}
-
-template <class VALUE_TYPE, class ALLOCATOR>
-inline
-vector<VALUE_TYPE *, ALLOCATOR>&
-vector<VALUE_TYPE *, ALLOCATOR>::operator=(
-          BloombergLP::bslmf::MovableRef<vector<VALUE_TYPE *, ALLOCATOR> > rhs)
-    BSLS_KEYWORD_NOEXCEPT_SPECIFICATION(BSLS_KEYWORD_NOEXCEPT_OPERATOR(
-                        d_impl = MoveUtil::move(MoveUtil::access(rhs).d_impl)))
-{
-    d_impl = MoveUtil::move(MoveUtil::access(rhs).d_impl);
     return *this;
 }
 

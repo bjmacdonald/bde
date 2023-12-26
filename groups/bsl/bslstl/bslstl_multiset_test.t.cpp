@@ -1,4 +1,18 @@
 // bslstl_multiset_test.t.cpp                                         -*-C++-*-
+
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+#pragma error_messages(off, SEC_NULL_PTR_DEREF)
+#endif
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wstringop-overflow="
+#endif
+
 #include <bslstl_multiset_test.h>
 
 #include <bslstl_forwarditerator.h>
@@ -13,7 +27,7 @@
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_destructorguard.h>
-#include <bslma_stdallocator.h>
+#include <bslma_bslallocator.h>
 #include <bslma_testallocator.h>
 #include <bslma_testallocatormonitor.h>
 #include <bslma_usesbslmaallocator.h>
@@ -31,7 +45,6 @@
 #include <bsls_keyword.h>
 #include <bsls_libraryfeatures.h>
 #include <bsls_nameof.h>
-#include <bsls_platform.h>
 
 #include <bsltf_allocargumenttype.h>
 #include <bsltf_argumenttype.h>
@@ -4792,7 +4805,7 @@ void TestDriver<KEY, COMP, ALLOC>::testCase27_dispatch()
                     ASSERTV(SPEC1, SPEC2, Z, X, (Z == X) == (ti == tj));
                     const bool empty = 0 == ZZ.size();
 
-                    typename Obj::const_pointer pointers[2];
+                    typename Obj::const_pointer pointers[2] = { 0, 0 };
                     storeFirstNElemAddr(pointers, Z,
                             sizeof pointers / sizeof *pointers);
 
@@ -5196,7 +5209,7 @@ void TestDriver<KEY, COMP, ALLOC>::testCase26()
                 Obj *srcPtr = new (fa) Obj(xsa);
                 Obj& mZ = *srcPtr; const Obj& Z = gg(&mZ, SPEC);
 
-                typename Obj::const_pointer pointers[2];
+                typename Obj::const_pointer pointers[2] = { 0, 0 };
                 storeFirstNElemAddr(pointers, Z,
                                     sizeof pointers / sizeof *pointers);
 

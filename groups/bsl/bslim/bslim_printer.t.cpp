@@ -1,11 +1,19 @@
 // bslim_printer.t.cpp                                                -*-C++-*-
+
+#include <bsls_platform.h>
+
+// the following suppresses warnings from '#include' inlined functions
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 #include <bslim_printer.h>
 
 #include <bslim_testutil.h>  // for testing only
 
 #include <bslma_testallocator.h>
+
 #include <bsls_compilerfeatures.h>
-#include <bsls_platform.h>
 
 #include <bsltf_streamutil.h>
 #include <bsltf_templatetestfacility.h>
@@ -34,6 +42,10 @@
 
 #if defined(BSLS_PLATFORM_CMP_MSVC)
 #define snprintf _snprintf
+#endif
+
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+#pragma warning(disable:4312)
 #endif
 
 using namespace BloombergLP;
@@ -4206,7 +4218,9 @@ int main(int argc, char *argv[])
 
             LOOP2_ASSERT(ABSLVL_EXP, ABSLVL_ACT, ABSLVL_EXP == ABSLVL_ACT);
             LOOP2_ASSERT(SPL_EXP, SPL_ACT, SPL_EXP == SPL_ACT);
-            LOOP2_ASSERT(SIIFLAG_EXP, SIIFLAG_ACT, SIIFLAG_EXP == SIIFLAG_ACT);
+            LOOP2_ASSERT(SIIFLAG_EXP,
+                         SIIFLAG_ACT,
+                         SIIFLAG_EXP == !!SIIFLAG_ACT);
         }
       } break;
       case 1: {

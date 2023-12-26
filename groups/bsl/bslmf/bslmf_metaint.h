@@ -102,6 +102,8 @@ BSLS_IDENT("$Id: $")
 #include <bslmf_tag.h>
 
 #include <bsls_compilerfeatures.h>
+#include <bsls_deprecatefeature.h>
+#include <bsls_platform.h>
 
 namespace BloombergLP {
 
@@ -112,7 +114,11 @@ namespace bslmf {
                            // ==============
 
 template <int t_INT_VALUE>
-struct MetaInt : public bsl::integral_constant<int, t_INT_VALUE> {
+struct
+BSLS_DEPRECATE_FEATURE("bsl",
+                       "bslmf_MetaInt",
+                       "use 'integral_constant' instead")
+MetaInt : public bsl::integral_constant<int, t_INT_VALUE> {
     // Instantiating this template produces a distinct type for each
     // non-negative integer value.  This template has been deprecated in favor
     // of the standard 'integral_constant' template.
@@ -123,7 +129,17 @@ struct MetaInt : public bsl::integral_constant<int, t_INT_VALUE> {
 
     // TYPES
     typedef MetaInt<t_INT_VALUE>    Type;
+
+#ifdef BSLS_PLATFORM_CMP_IBM
+// Suppress a compile warning on xlc for negative unsigned values.
+#pragma report(disable, "1540-0724")
+#endif
+
     typedef bslmf::Tag<t_INT_VALUE> Tag;
+
+#ifdef BSLS_PLATFORM_CMP_IBM
+#pragma report(pop)
+#endif
 
     enum { VALUE = t_INT_VALUE };
 
@@ -151,7 +167,11 @@ struct MetaInt : public bsl::integral_constant<int, t_INT_VALUE> {
 };
 
 template <>
-struct MetaInt<0> : public bsl::false_type {
+struct
+BSLS_DEPRECATE_FEATURE("bsl",
+                       "bslmf_MetaInt",
+                       "use 'integral_constant' instead")
+MetaInt<0> : public bsl::false_type {
     // This specialization of 'MetaInt' has a 'VAL' of zero and is convertible
     // to and from 'bsl::false_type'.
 
@@ -189,7 +209,11 @@ struct MetaInt<0> : public bsl::false_type {
 };
 
 template <>
-struct MetaInt<1> : public bsl::true_type {
+struct
+BSLS_DEPRECATE_FEATURE("bsl",
+                       "bslmf_MetaInt",
+                       "use 'integral_constant' instead")
+MetaInt<1> : public bsl::true_type {
     // This specialization of 'MetaInt' has a 'VAL' of one and is convertible
     // to and from 'bsl::true_type'.
 

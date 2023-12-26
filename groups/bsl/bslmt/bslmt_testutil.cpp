@@ -4,11 +4,10 @@
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bslmt_testutil_cpp,"$Id$ $CSID$")
 
-#include <bslmt_barrier.h>            // for testing only
 #include <bslmt_lockguard.h>          // for testing only
 #include <bslmt_mutex.h>              // for testing only
-#include <bslmt_once.h>
-#include <bslmt_threadgroup.h>        // for testing only
+
+#include <bsls_bslonce.h>
 
 
 namespace BloombergLP {
@@ -32,8 +31,10 @@ RecursiveMutex& TestUtil_Guard::singletonMutex()
     // Return a reference to the recursive mutex created by this singleton.
 {
     static RecursiveMutex *mutex_p;
+    static bsls::BslOnce   once = BSLS_BSLONCE_INITIALIZER;
 
-    BSLMT_ONCE_DO {
+    bsls::BslOnceGuard onceGuard;
+    if (onceGuard.enter(&once)) {
         static RecursiveMutex mutex;
 
         mutex_p = &mutex;

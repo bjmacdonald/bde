@@ -579,6 +579,8 @@ BSLS_IDENT("$Id$")
 //      == BDLDFP_DECIMAL_DD(0.3));
 //..
 
+#include <bdldfp_decimal.fwd.h>
+
 #include <bdlscm_version.h>
 
 #include <bdldfp_decimalimputil.h>
@@ -626,23 +628,11 @@ BSLS_IDENT("$Id$")
 namespace BloombergLP {
 namespace bdldfp {
 
-                            // FORWARD DECLARATIONS
-
-class Decimal_Type32;
-class Decimal_Type64;
-class Decimal_Type128;
-    // These are the actual (decimal floating-point) types being implemented.
-    // They use a different name to cause an error if the official types are
-    // forward declared: The exact definition of the decimal types is left
-    // unspecified so that that can potentially be aliases for built-in types.
-
 typedef Decimal_Type32  Decimal32;
 typedef Decimal_Type64  Decimal64;
 typedef Decimal_Type128 Decimal128;
     // The decimal floating-point types are typedefs to the unspecified
     // implementation types.
-
-                      // THE DECIMAL FLOATING-POINT TYPES
 
                             // ====================
                             // class Decimal_Type32
@@ -675,8 +665,8 @@ class Decimal_Type32 {
         // containers.
 
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Decimal_Type32, bsl::is_trivially_copyable);
-
+    BSLMF_NESTED_TRAIT_DECLARATION(Decimal_Type32,
+                                   bsl::is_trivially_copyable);
 
     // CREATORS
     Decimal_Type32();
@@ -1910,8 +1900,8 @@ class Decimal_Type64 {
         // containers.
 
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Decimal_Type64, bsl::is_trivially_copyable);
-
+    BSLMF_NESTED_TRAIT_DECLARATION(Decimal_Type64,
+                                   bsl::is_trivially_copyable);
 
     // CREATORS
     Decimal_Type64();

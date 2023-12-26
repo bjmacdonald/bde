@@ -4,6 +4,7 @@ bslstl_allocator
 bslstl_array
 bslstl_badfunctioncall
 bslstl_badoptionalaccess
+bslstl_badvariantaccess
 bslstl_badweakptr
 bslstl_bidirectionaliterator
 bslstl_bidirectionalnodepool
@@ -20,6 +21,7 @@ bslstl_deque_cpp03
 bslstl_equalto
 bslstl_errc
 bslstl_error
+bslstl_exception
 bslstl_forwarditerator
 bslstl_function
 bslstl_function_cpp03
@@ -52,6 +54,7 @@ bslstl_map_test1
 bslstl_map_test2
 bslstl_map_test3
 bslstl_mapcomparator
+bslstl_monostate
 bslstl_multimap
 bslstl_multimap_cpp03
 bslstl_multimap_test
@@ -85,6 +88,8 @@ bslstl_span
 bslstl_stack
 bslstl_stack_cpp03
 bslstl_stdexceptutil
+bslstl_stopstate
+bslstl_stoptoken
 bslstl_string
 bslstl_string_test
 bslstl_stringbuf
@@ -93,6 +98,7 @@ bslstl_stringrefdata
 bslstl_stringstream
 bslstl_stringview
 bslstl_syncbuf
+bslstl_syncbufbase
 bslstl_systemerror
 bslstl_treeiterator
 bslstl_treenode
@@ -114,5 +120,7 @@ bslstl_unorderedset_cpp03
 bslstl_unorderedset_test
 bslstl_unorderedsetkeyconfiguration
 bslstl_utility
+bslstl_variant
+bslstl_variant_cpp03
 bslstl_vector
 bslstl_vector_cpp03
