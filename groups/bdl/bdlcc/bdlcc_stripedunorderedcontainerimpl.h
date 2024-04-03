@@ -133,10 +133,6 @@ BSLS_IDENT("$Id: $")
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-# include <memory_resource>
-#endif
-
 #include <vector>
 
 namespace BloombergLP {
@@ -454,6 +450,7 @@ class StripedUnorderedContainerImpl {
         //      // Return 'true' if the specified 'value' is to be removed from
         //      // the container, and 'false' otherwise.  Note that this
         //      // functor can *not* change the values associated with 'value'.
+        //..
 
   private:
     // PRIVATE CONSTANTS

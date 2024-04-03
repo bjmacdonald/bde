@@ -1,12 +1,4 @@
 // balxml_util.h                                                      -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #ifndef INCLUDED_BALXML_UTIL
 #define INCLUDED_BALXML_UTIL
 
@@ -116,10 +108,6 @@ BSLS_IDENT("$Id: $")
 
 #include <bsls_libraryfeatures.h>
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-#include <memory_resource>  // 'std::pmr::polymorphic_allocator'
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-
 #include <string>                   // 'std::string', 'std::pmr::string'
 
 namespace BloombergLP  {
@@ -138,7 +126,7 @@ struct Util {
     static bool extractNamespaceFromXsd(
                                      const bsl::string_view&  xsdSource,
                                      std::string             *targetNamespace);
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
     static bool extractNamespaceFromXsd(
                                      const bsl::string_view&  xsdSource,
                                      std::pmr::string        *targetNamespace);
@@ -148,7 +136,7 @@ struct Util {
                                         bsl::string      *targetNamespace);
     static bool extractNamespaceFromXsd(bsl::streambuf   *xsdSource,
                                         std::string      *targetNamespace);
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
     static bool extractNamespaceFromXsd(bsl::streambuf   *xsdSource,
                                         std::pmr::string *targetNamespace);
 #endif

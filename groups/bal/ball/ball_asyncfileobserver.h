@@ -1,12 +1,4 @@
 // ball_asyncfileobserver.h                                           -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #ifndef INCLUDED_BALL_ASYNCFILEOBSERVER
 #define INCLUDED_BALL_ASYNCFILEOBSERVER
 
@@ -538,10 +530,6 @@ BSLS_IDENT("$Id: $")
 #include <bsl_memory.h>
 #include <bsl_string.h>
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-#include <memory_resource>  // 'std::pmr::polymorphic_allocator'
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-
 #include <string>                  // 'std::string', 'std::pmr::string'
 
 namespace BloombergLP {
@@ -957,7 +945,7 @@ class AsyncFileObserver : public Observer {
         // received through the 'publish' method of this async file observer
         // may still be logged to 'stdout' when this method returns 'false'.
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
     bool isFileLoggingEnabled(std::pmr::string *result) const;
         // Return 'true' if file logging is enabled for this async file
         // observer, and 'false' otherwise.  Load the specified 'result' with
@@ -965,7 +953,7 @@ class AsyncFileObserver : public Observer {
         // leave 'result' unmodified otherwise.  Note that records received
         // through the 'publish' method of this async file observer may still
         // be logged to 'stdout' when this method returns 'false'.
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
 
     bool isPublicationThreadRunning() const;
         // Return 'true' if a publication thread is running, and 'false'
@@ -1165,13 +1153,13 @@ bool AsyncFileObserver::isFileLoggingEnabled(std::string *result) const
     return d_fileObserver.isFileLoggingEnabled(result);
 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
 inline
 bool AsyncFileObserver::isFileLoggingEnabled(std::pmr::string *result) const
 {
     return d_fileObserver.isFileLoggingEnabled(result);
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
 
 inline
 bool AsyncFileObserver::isPublicationThreadRunning() const

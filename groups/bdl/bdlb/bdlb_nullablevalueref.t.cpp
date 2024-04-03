@@ -4,6 +4,8 @@
 #include <bdlb_nullablevalue.h>           // NullableValue
 #include <bdlb_nullableallocatedvalue.h>  // NullableAllocatedValue
 
+#include <bsla_maybeunused.h>
+
 #include <bslim_testutil.h>
 
 #include <bslma_defaultallocatorguard.h>
@@ -59,9 +61,15 @@ using namespace bsl;
 //
 // ACCESSORS
 // [ 2] bool has_value() const;
+// [ 2] bool isNull() const noexcept;
 // [ 2] const TYPE& value() const;
 // [ 2] operator->() const;
 // [ 2] operator*() const;
+// [ 2] explicit operator bool() const noexcept;
+//
+// FREE FUNCTIONS
+// [ 7] void hashAppend(HASHALG&, NullableValueRef<TYPE>&);
+// [ 7] void hashAppend(HASHALG&, ConstNullableValue<TYPE>&);
 //
 // FREE OPERATORS
 // [ 5] bool operator==(NVWrapper<LHS_TYPE>&, NVWrapper<RHS_TYPE>&);
@@ -140,7 +148,7 @@ using namespace bsl;
 // [ 5] bool operator>=(VWrapper<LHS_TYPE>&, CNVWrapper<RHS_TYPE>&);
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [ 7] USAGE EXAMPLE
+// [ 8] USAGE EXAMPLE
 
 // ----------------------------------------------------------------------------
 
@@ -281,6 +289,48 @@ struct SimpleStruct {
         return -1;
     }
 };
+
+struct SimpleHash {
+  private:
+    size_t d_value;
+
+  public:
+    // TYPES
+    typedef size_t result_type;
+
+    // CREATORS
+    SimpleHash();
+        // Construct a SimpleHash object
+
+    // MANIPULATORS
+    void operator()(const void *input, size_t numBytes);
+        // Add the bytes specified by ['input', 'input' + 'numBytes') to the
+        // hash.
+
+    result_type computeHash();
+        // Compute the result of the hash.
+};
+
+SimpleHash::SimpleHash()
+: d_value(0)
+{
+}
+
+void SimpleHash::operator()(const void *input, size_t numBytes)
+{
+    // Code lifted from bslh_hash.t.cpp
+    const unsigned char *p = static_cast<unsigned const char *>(input);
+    const unsigned char *end = p + numBytes;
+    while (p < end) {
+        d_value += *p++;
+        d_value *= 99991;    // highest prime below 100,000
+    }
+}
+
+SimpleHash::result_type SimpleHash::computeHash()
+{
+    return d_value;
+}
 
 
 template <class TYPE, bool IS_CONST, bool IS_NAV>
@@ -598,7 +648,7 @@ int main(int argc, char *argv[])
     bslma::Default::setGlobalAllocator(&globalAllocator);
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 7: {
+      case 8: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   Extracted from component header file.
@@ -653,6 +703,90 @@ int main(int argc, char *argv[])
         ASSERT(23 == w1.value());
         ASSERT(34 == w2.value());
         //..
+      } break;
+      case 7: {
+        // --------------------------------------------------------------------
+        // TESTING: HASHING
+        //
+        // Concerns:
+        //: 1 Hashing a valueRef is the same as hashing the referenced nullable
+        //:   value.
+        //:
+        // Plan:
+        //: 2 Create a non-null nullable value for a series of test values and
+        //:   verify that hashing it produces the same result as hashing 'true'
+        //:   and then the test values themselves.
+        //
+        // Testing:
+        //   void hashAppend(HASHALG&, NullableValueRef<TYPE>&);
+        //   void hashAppend(HASHALG&, ConstNullableValue<TYPE>&);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << endl << "TESTING: HASHING" << endl
+                                  << "================" << endl;
+
+        bsl::optional<int>                   op0;
+        bsl::optional<int>                   op1(32);
+        bdlb::NullableValue<int>             nv0;
+        bdlb::NullableValue<int>             nv1(33);
+        bdlb::NullableAllocatedValue<int>    av0;
+        bdlb::NullableAllocatedValue<int>    av1(34);
+        bdlb::NullableValueRef<int>          nw0(op0);
+        bdlb::ConstNullableValueRef<int>     nw1(op1);
+        bdlb::NullableValueRef<int>          nw2(nv0);
+        bdlb::ConstNullableValueRef<int>     nw3(nv1);
+        bdlb::NullableValueRef<int>          nw4(av0);
+        bdlb::ConstNullableValueRef<int>     nw5(av1);
+
+        size_t hashValue1, hashValue2;
+        hashValue1 =  bslh::Hash<>()(op0);
+        hashValue2 =  bslh::Hash<>()(nw0);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<>()(op1);
+        hashValue2 =  bslh::Hash<>()(nw1);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<>()(nv0);
+        hashValue2 =  bslh::Hash<>()(nw2);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<>()(nv1);
+        hashValue2 =  bslh::Hash<>()(nw3);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<>()(av0);
+        hashValue2 =  bslh::Hash<>()(nw4);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<>()(av1);
+        hashValue2 =  bslh::Hash<>()(nw5);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<SimpleHash>()(op0);
+        hashValue2 =  bslh::Hash<SimpleHash>()(nw0);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<SimpleHash>()(op1);
+        hashValue2 =  bslh::Hash<SimpleHash>()(nw1);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<SimpleHash>()(nv0);
+        hashValue2 =  bslh::Hash<SimpleHash>()(nw2);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<SimpleHash>()(nv1);
+        hashValue2 =  bslh::Hash<SimpleHash>()(nw3);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<SimpleHash>()(av0);
+        hashValue2 =  bslh::Hash<SimpleHash>()(nw4);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
+        hashValue1 =  bslh::Hash<SimpleHash>()(av1);
+        hashValue2 =  bslh::Hash<SimpleHash>()(nw5);
+        ASSERTV(hashValue1, hashValue2, hashValue1 == hashValue2);
+
       } break;
       case 6: {
         // --------------------------------------------------------------------
@@ -1213,16 +1347,21 @@ int main(int argc, char *argv[])
         //   expected.
         //
         // Concerns:
-        //:  1 The wrapper object should report the same state as the target.
-        //:  2 The constructor must not copy the target object.
+        //: 1 The wrapper object should report the same state as the target.
+        //:
+        //: 2 The constructor must not copy the target object.
+        //:
+        //: 3 The conversion from 'bsl::optional', 'NullableValue', and
+        //:   'NullableAllocatedValue' to 'NullableValueRef' or
+        //:   'ConstNullableValueRef' can be done implicitly.
         //
         // Plan:
-        //:  1 Create six objects; two each of 'bsl::optiona', 'NullableValue'
-        //:  and 'NullableAllocatedValue'.  Create a 'NullableValueRef' and a
-        //:  'ConstNullableValueRef' for each of them.  Verify that the
-        //:  contents of the wrappers match the contents of the wrapped
-        //:  objects.  Then make changes to the target, and verify that both
-        //:  the wrappers and the target objects change.
+        //: 1 Create six objects; two each of 'bsl::optional', 'NullableValue',
+        //:   and 'NullableAllocatedValue'.  Create a 'NullableValueRef' and a
+        //:   'ConstNullableValueRef' for each of them.  Verify that the
+        //:   contents of the wrappers match the contents of the wrapped
+        //:   objects.  Then make changes to the target, and verify that both
+        //:   the wrappers and the target objects change.  (C-1..3)
         //
         // Testing:
         //   NullableValueRef(bsl::optional<TYPE> &);
@@ -1232,9 +1371,11 @@ int main(int argc, char *argv[])
         //   ConstNullableValueRef(NullableValue<TYPE> &);
         //   ConstNullableValueRef(NullableAllocatedValue<TYPE> &);
         //   bool has_value() const;
+        //   bool isNull() const noexcept;
         //   const TYPE& value() const;
         //   operator->() const;
         //   operator*() const;
+        //   explicit operator bool() const noexcept;
         // --------------------------------------------------------------------
 
         if (verbose) cout <<
@@ -1242,24 +1383,25 @@ int main(int argc, char *argv[])
                            "\n=================================="
                           << endl;
 
-        bsl::optional<int>                   op0;
-        bsl::optional<int>                   op1(12);
-        bdlb::NullableValue<int>             nv0;
-        bdlb::NullableValue<int>             nv1(13);
-        bdlb::NullableAllocatedValue<int>    av0;
-        bdlb::NullableAllocatedValue<int>    av1(14);
-        bdlb::NullableValueRef<int>          nw0(op0);
-        bdlb::NullableValueRef<int>          nw1(op1);
-        bdlb::NullableValueRef<int>          nw2(nv0);
-        bdlb::NullableValueRef<int>          nw3(nv1);
-        bdlb::NullableValueRef<int>          nw4(av0);
-        bdlb::NullableValueRef<int>          nw5(av1);
-        bdlb::ConstNullableValueRef<int>     cw0(op0);
-        bdlb::ConstNullableValueRef<int>     cw1(op1);
-        bdlb::ConstNullableValueRef<int>     cw2(nv0);
-        bdlb::ConstNullableValueRef<int>     cw3(nv1);
-        bdlb::ConstNullableValueRef<int>     cw4(av0);
-        bdlb::ConstNullableValueRef<int>     cw5(av1);
+        bsl::optional<int>                op0;
+        bsl::optional<int>                op1(12);
+        bdlb::NullableValue<int>          nv0;
+        bdlb::NullableValue<int>          nv1(13);
+        bdlb::NullableAllocatedValue<int> av0;
+        bdlb::NullableAllocatedValue<int> av1(14);
+        bdlb::NullableValueRef<int>       nw0 = op0;
+        bdlb::NullableValueRef<int>       nw1 = op1;
+        bdlb::NullableValueRef<int>       nw2 = nv0;
+        bdlb::NullableValueRef<int>       nw3 = nv1;
+        bdlb::NullableValueRef<int>       nw4 = av0;
+        bdlb::NullableValueRef<int>       nw5 = av1;
+
+        BSLA_MAYBE_UNUSED bdlb::ConstNullableValueRef<int> cw0 = op0;
+        BSLA_MAYBE_UNUSED bdlb::ConstNullableValueRef<int> cw1 = op1;
+        BSLA_MAYBE_UNUSED bdlb::ConstNullableValueRef<int> cw2 = nv0;
+        BSLA_MAYBE_UNUSED bdlb::ConstNullableValueRef<int> cw3 = nv1;
+        BSLA_MAYBE_UNUSED bdlb::ConstNullableValueRef<int> cw4 = av0;
+        BSLA_MAYBE_UNUSED bdlb::ConstNullableValueRef<int> cw5 = av1;
 
         ASSERT(!nw0.has_value());
         ASSERT( nw1.has_value());
@@ -1267,6 +1409,20 @@ int main(int argc, char *argv[])
         ASSERT( nw3.has_value());
         ASSERT(!nw4.has_value());
         ASSERT( nw5.has_value());
+
+        ASSERT(!nw5.isNull());
+        ASSERT( nw0.isNull());
+        ASSERT(!nw1.isNull());
+        ASSERT( nw2.isNull());
+        ASSERT(!nw3.isNull());
+        ASSERT( nw4.isNull());
+
+        ASSERT(false == !!nw0.has_value());
+        ASSERT(true  == !!nw1.has_value());
+        ASSERT(false == !!nw2.has_value());
+        ASSERT(true  == !!nw3.has_value());
+        ASSERT(false == !!nw4.has_value());
+        ASSERT(true  == !!nw5.has_value());
 
         ASSERT(12 == nw1.value());
         ASSERT(13 == nw3.value());
@@ -1355,12 +1511,16 @@ int main(int argc, char *argv[])
         bdlb::NullableValueRef<int>       nw3(nv1);
         bdlb::NullableValueRef<int>       nw4(av0);
         bdlb::NullableValueRef<int>       nw5(av1);
+        bdlb::NullableValueRef<int>       nw6(nw0);
+        bdlb::NullableValueRef<int>       nw7(nw5);
         bdlb::ConstNullableValueRef<int>  cw0(op0);
         bdlb::ConstNullableValueRef<int>  cw1(op1);
         bdlb::ConstNullableValueRef<int>  cw2(nv0);
         bdlb::ConstNullableValueRef<int>  cw3(nv1);
         bdlb::ConstNullableValueRef<int>  cw4(av0);
         bdlb::ConstNullableValueRef<int>  cw5(av1);
+        bdlb::ConstNullableValueRef<int>  cw6(cw0);
+        bdlb::ConstNullableValueRef<int>  cw7(cw5);
 
         ASSERT(!op0.has_value());
         ASSERT( op1.has_value());
@@ -1374,19 +1534,25 @@ int main(int argc, char *argv[])
         ASSERT(nv1.has_value() == nw3.has_value());
         ASSERT(av0.has_value() == nw4.has_value());
         ASSERT(av1.has_value() == nw5.has_value());
+        ASSERT(nw0.has_value() == nw6.has_value());
+        ASSERT(nw5.has_value() == nw7.has_value());
         ASSERT(op0.has_value() == cw0.has_value());
         ASSERT(op1.has_value() == cw1.has_value());
         ASSERT(nv0.has_value() == cw2.has_value());
         ASSERT(nv1.has_value() == cw3.has_value());
         ASSERT(av0.has_value() == nw4.has_value());
         ASSERT(av1.has_value() == nw5.has_value());
+        ASSERT(cw0.has_value() == cw6.has_value());
+        ASSERT(cw5.has_value() == cw7.has_value());
 
         ASSERT(op1.value() == nw1.value());
         ASSERT(nv1.value() == nw3.value());
         ASSERT(av1.value() == nw5.value());
+        ASSERT(nw5.value() == nw7.value());
         ASSERT(op1.value() == cw1.value());
         ASSERT(nv1.value() == cw3.value());
         ASSERT(av1.value() == cw5.value());
+        ASSERT(cw5.value() == cw7.value());
 
         nw0 = 42;
         ASSERT( op0.has_value());

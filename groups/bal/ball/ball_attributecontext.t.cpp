@@ -1,12 +1,4 @@
 // ball_attributecontext.t.cpp                                        -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <ball_attributecontext.h>
 
 #include <ball_attributecontainer.h>
@@ -219,6 +211,9 @@ struct AttributeComparator {
           case 8: // const void *
             return lhs.value().the<const void *>() <
                    rhs.value().the<const void *>();                   // RETURN
+          case 9: // Guid
+            return lhs.value().the<bdlb::Guid>() <
+                   rhs.value().the<bdlb::Guid>();                     // RETURN
         }
         BSLS_ASSERT_OPT(false);
         return false;

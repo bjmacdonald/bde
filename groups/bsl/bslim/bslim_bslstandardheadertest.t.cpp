@@ -232,6 +232,7 @@ using namespace BloombergLP;
 // defined in 'bslstl'.
 //
 //-----------------------------------------------------------------------------
+// [38] CONCERN: 'copy_n' function is usable from 'bsl'.
 // [37] C++20 'bsl_type_traits.h' HEADER ADDITIONS
 // [36] C++20 'std::ranges' interop with 'bsl::array' CONTAINER
 // [35] bsl::coroutine_traits<>
@@ -640,36 +641,6 @@ namespace SW {
     {}
 }  // close namespace SW
 
-void Conjunction ()
-    // Test that 'bsl::conjunction_v<TYPES...>' returns the same value as
-    // 'bsl::conjunction<TYPES...>::value.
-{
-    typedef bsl::false_type F;
-    typedef bsl::true_type  T;
-
-    static_assert(bsl::conjunction<F   >::value == bsl::conjunction_v<F   >);
-    static_assert(bsl::conjunction<T   >::value == bsl::conjunction_v<T   >);
-    static_assert(bsl::conjunction<F, F>::value == bsl::conjunction_v<F, F>);
-    static_assert(bsl::conjunction<F, T>::value == bsl::conjunction_v<F, T>);
-    static_assert(bsl::conjunction<T, F>::value == bsl::conjunction_v<T, F>);
-    static_assert(bsl::conjunction<T, T>::value == bsl::conjunction_v<T, T>);
-}
-
-void Disjunction ()
-    // Test that 'bsl::disjunction_v<TYPES...>' returns the same value as
-    // 'bsl::disjunction<TYPES...>::value.
-{
-    typedef bsl::false_type F;
-    typedef bsl::true_type  T;
-
-    static_assert(bsl::disjunction<F>::value    == bsl::disjunction_v<F>);
-    static_assert(bsl::disjunction<T>::value    == bsl::disjunction_v<T>);
-    static_assert(bsl::disjunction  <F, F>::value == bsl::disjunction_v<F, F>);
-    static_assert(bsl::disjunction  <F, T>::value == bsl::disjunction_v<F, T>);
-    static_assert(bsl::disjunction  <T, F>::value == bsl::disjunction_v<T, F>);
-    static_assert(bsl::disjunction  <T, T>::value == bsl::disjunction_v<T, T>);
-}
-
 void HasUniqueObjectReps ()
     // Test that 'bsl::has_unique_object_representations_v<TYPE>' returns the
     // same value as 'bsl::has_unique_object_representations<TYPE>::value'.
@@ -744,17 +715,6 @@ void IsSwappableWith ()
     static_assert(
         bsl::is_nothrow_swappable_with  <SW::SwapA, SW::SwapC>::value ==
         bsl::is_nothrow_swappable_with_v<SW::SwapA, SW::SwapC>);
-}
-
-void Negation ()
-    // Test that 'bsl::negation_v<TYPE>' returns the same value as
-    // 'bsl::negation<TYPE>::value'.
-{
-    typedef bsl::false_type F;
-    typedef bsl::true_type  T;
-
-    static_assert(bsl::negation<F>::value == bsl::negation_v<F>);
-    static_assert(bsl::negation<T>::value == bsl::negation_v<T>);
 }
 
 }  // close namespace TestCxx17TypeAliases
@@ -902,6 +862,58 @@ int main(int argc, char *argv[])
     printf("TEST " __FILE__ " CASE %d\n", test);
 
     switch (test) { case 0:  // Zero is always the leading case.
+      case 38: {
+        // --------------------------------------------------------------------
+        // TESTING 'bsl::copy_n'
+        //
+        // Concerns:
+        //: 1 The 'copy_n' function is available in 'bsl' to users who include
+        //:   'bsl_algorithm.h'.
+        //
+        // Plan:
+        //: 1 Create a simple example that uses the function.  Compilation of
+        //:   the example demonstrates that the function can be found in 'bsl'.
+        //
+        // Testing
+        //   CONCERN: 'copy_n' function is usable from 'bsl'.
+        // --------------------------------------------------------------------
+
+        if (verbose) printf("\nTESTING 'bsl::copy_n'"
+                            "\n=====================\n");
+
+        typedef bsl::vector<int>       Vector;
+        typedef Vector::iterator       Iterator;
+        typedef Vector::const_iterator ConstIterator;
+
+        const int     SIZE      = 10;
+        const size_t  NUM_ITEMS_TO_COPY = 5;
+        Vector        in;
+        Vector        out;
+
+        for (int i = 0; i < SIZE; ++i) {
+            in.push_back(i);
+            out.push_back(i + 10);
+        }
+
+        ConstIterator EXPECTED_IN  = in.cbegin() + NUM_ITEMS_TO_COPY;
+        Iterator      EXPECTED_OUT = out.begin() + NUM_ITEMS_TO_COPY;
+
+        bsl::pair<ConstIterator, Iterator> result =
+                      bsl::copy_n(in.cbegin(), NUM_ITEMS_TO_COPY, out.begin());
+
+        ConstIterator resultIn  = result.first;
+        Iterator      resultOut = result.second;
+
+        ASSERT(EXPECTED_IN  == resultIn);
+        ASSERT(EXPECTED_OUT == resultOut);
+
+        for (size_t i = 0; i < NUM_ITEMS_TO_COPY; ++i) {
+            ASSERTV(in[i], out[i], in[i] == out[i]);
+        }
+        for (size_t i = NUM_ITEMS_TO_COPY; i < in.size(); ++i) {
+            ASSERTV(in[i], out[i], in[i] != out[i]);
+        }
+      } break;
       case 37: {
         // --------------------------------------------------------------------
         // TESTING C++20 'bsl_type_traits.h' HEADER ADDITIONS
@@ -2294,14 +2306,19 @@ int main(int argc, char *argv[])
         //: 5 'bind_front' is available in C++20 mode in the 'bsl' namespace to
         //:   users who include 'bsl_functional.h'.
         //:
-        //: 6 The feature test macros defined for the imported features are
-        //:   available and have appropriate values.
+        //: 6 'jthread' is available in C++20 mode in the 'bsl' namespace to
+        //:   users who include `bsl_thread.h", and is an alias to the
+        //:   standard library type.
         //
+        //: 7 The feature test macros defined for the imported features are
+        //:   available and have appropriate values.
+        //:
         // Plan:
         //: 1 Verify that
         //:    o '__cpp_lib_interpolate >= 201902L',
         //:    o '__cpp_lib_execution >= 201902L',
-        //:    o '__cpp_lib_bind_front >= 201907L'.
+        //:    o '__cpp_lib_bind_front >= 201907L',
+        //:    o '__cpp_lib_jthread >= 201911L'.
         //:
         //: 2 Form some valid expression with every name with 'bsl' prefix.
         //
@@ -2333,6 +2350,11 @@ int main(int argc, char *argv[])
 
         BSLMF_ASSERT(__cpp_lib_bind_front >= 201907L);
         (void) bsl::bind_front([](int){}, 1);
+
+        BSLMF_ASSERT(__cpp_lib_jthread>= 201911L);
+        bsl::jthread jthread;
+        (void) jthread;
+        ASSERT((bsl::is_same_v<std::jthread, bsl::jthread>));
 #endif
       } break;
       case 30: {
@@ -4396,15 +4418,12 @@ int main(int argc, char *argv[])
         // We don't really need to call these routines, because all they do is
         // 'static_assert', but this keeps the compiler from warning about
         // "unused functions".
-        TestCpp17TypeAliases::Conjunction();
-        TestCpp17TypeAliases::Disjunction();
         TestCpp17TypeAliases::HasUniqueObjectReps();
         TestCpp17TypeAliases::IsAggregate();
         TestCpp17TypeAliases::IsInvocable();
         TestCpp17TypeAliases::IsInvocableR();
         TestCpp17TypeAliases::IsSwappable();
         TestCpp17TypeAliases::IsSwappableWith();
-        TestCpp17TypeAliases::Negation();
 #endif
 
       } break;
@@ -4686,7 +4705,7 @@ int main(int argc, char *argv[])
         typedef bsl::unique_ptr<int> Id;
         typedef bsl::pair<int, Id>   Item;
 
-# if !defined(BSLS_PLATFORM_CMP_MSVC) || BSLS_PLATFORM_CMP_VERSION > 1800
+# if !(defined(BSLS_PLATFORM_CMP_MSVC) && BSLS_PLATFORM_CMP_VERSION <= 1800)
         bsl::vector<Item> items;
 
         Item item(7, Id(new int(14)));

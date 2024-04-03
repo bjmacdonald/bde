@@ -42,6 +42,17 @@
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 
+#include <bsls_compilerfeatures.h>
+
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// Include version that can be compiled with C++03
+// Generated on Wed Feb 14 11:15:56 2024
+// Command line: sim_cpp11_features.pl bdlc_flathashtable.t.cpp
+# define COMPILING_BDLC_FLATHASHTABLE_T_CPP
+# include <bdlc_flathashtable_cpp03.t.cpp>
+# undef COMPILING_BDLC_FLATHASHTABLE_T_CPP
+#else
+
 using namespace BloombergLP;
 using namespace bsl;
 
@@ -104,6 +115,7 @@ using namespace bsl;
 // [15] FlatHashTable& operator=(FlatHashTable&&);
 // [20] ENTRY& operator[](FORWARD_REF(KEY_TYPE) key);
 // [ 2] void clear();
+// [22] emplace(ARGS&&...);
 // [12] bsl::pair<iterator, iterator> equal_range(const KEY&);
 // [ 2] size_t erase(const KEY&);
 // [17] iterator erase(const_iterator);
@@ -115,6 +127,8 @@ using namespace bsl;
 // [19] void rehash(size_t);
 // [19] void reserve(size_t);
 // [ 2] void reset();
+// [22] try_emplace(const KEY &,  ARGS&&...);
+// [22] try_emplace(      KEY &&, ARGS&&...);
 //
 // [12] iterator begin();
 // [12] iterator end();
@@ -312,6 +326,38 @@ static const DefaultDataRow DEFAULT_DATA[] = {
 const bsl::size_t DEFAULT_NUM_DATA = sizeof  DEFAULT_DATA
                                    / sizeof *DEFAULT_DATA;
 
+struct EmplaceValue {
+    int d_lineNum;  // source line number
+    int d_key;      // the key for the value to emplace
+    int d_value;    // the value to be emplaced with the key
+};
+
+static const EmplaceValue EMPLACE_DATA[] = {
+    { L_,   0,  20},
+    { L_,   1,  21},
+    { L_,   2,  22},
+    { L_,   3,  23},
+    { L_,   4,  24},
+    { L_,   5,  25},
+    { L_,   6,  26},
+    { L_,   6,  265},
+    { L_,   7,  27},
+    { L_,   8,  28},
+    { L_,   9,  29},
+    { L_,  10,  30},
+    { L_,  10,  305},
+    { L_,  11,  31},
+    { L_,  12,  32},
+    { L_,  13,  33},
+    { L_,  14,  34},
+    { L_,  15,  35},
+    { L_,  99, -127},
+    { L_, -99,  127}
+};
+
+const bsl::size_t EMPLACE_NUM_DATA = sizeof  EMPLACE_DATA
+                                   / sizeof *EMPLACE_DATA;
+
 // ============================================================================
 //                  GLOBAL CLASSES/STRUCTS FOR TESTING
 // ----------------------------------------------------------------------------
@@ -435,9 +481,24 @@ struct TestEntryUtil
     // specified integer key, and a method to extract the key from an 'ENTRY'.
 {
     // CLASS METHODS
-    static void construct(ENTRY             *entry,
-                          bslma::Allocator  *allocator,
-                          int                key)
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    template <class... ARGS>
+    static void construct(ENTRY                                     *entry,
+                          bslma::Allocator                          *allocator,
+                          ARGS&&...                                  args)
+        // Load into the specified 'entry' a new entry constructed from the
+        // specified 'args', using the specified 'allocator' to supply memory.
+    {
+        bslma::ConstructionUtil::construct(
+                                 entry,
+                                 allocator,
+                                 BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+    }
+#endif
+
+    static void constructFromKey(ENTRY             *entry,
+                                 bslma::Allocator  *allocator,
+                                 int                key)
         // Load into the specified 'entry' the specified 'key' value, using the
         // specified 'allocator' to supply memory.
     {
@@ -457,9 +518,24 @@ struct TestEntryUtil<int>
     // and a method to extract the value from an entry.
 {
     // CLASS METHODS
-    static void construct(int               *entry,
-                          bslma::Allocator  *,
-                          int                key)
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    template <class... ARGS>
+    static void construct(int                                       *entry,
+                          bslma::Allocator                          *allocator,
+                          ARGS&&...                                  args)
+        // Load into the specified 'entry' a new entry constructed from the
+        // specified 'args', using the specified 'allocator' to supply memory.
+    {
+        bslma::ConstructionUtil::construct(
+                                 entry,
+                                 allocator,
+                                 BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+    }
+#endif
+
+    static void constructFromKey(int               *entry,
+                                 bslma::Allocator  *,
+                                 int                key)
         // Load into the specified 'entry' the specified 'key' value.
     {
         *entry = key;
@@ -480,9 +556,24 @@ struct TestEntryUtil<bsl::pair<const int, int> >
     // 'bsl::pair<const int, int>'.
 {
     // CLASS METHODS
-    static void construct(bsl::pair<const int, int> *entry,
-                          bslma::Allocator          *allocator,
-                          int                        key)
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    template <class... ARGS>
+    static void construct(bsl::pair<const int, int>                 *entry,
+                          bslma::Allocator                          *allocator,
+                          ARGS&&...                                  args)
+        // Load into the specified 'entry' a new entry constructed from the
+        // specified 'args', using the specified 'allocator' to supply memory.
+    {
+        bslma::ConstructionUtil::construct(
+                                 entry,
+                                 allocator,
+                                 BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+    }
+#endif
+
+    static void constructFromKey(bsl::pair<const int, int> *entry,
+                                 bslma::Allocator          *allocator,
+                                 int                        key)
         // Load into the specified 'entry' the pair value comprised of the
         // value of the specified 'key' and zero, using the specified
         // 'allocator' to supply memory.
@@ -490,16 +581,7 @@ struct TestEntryUtil<bsl::pair<const int, int> >
         bslma::ConstructionUtil::construct(entry, allocator, key, 0);
     }
 
-#if defined(BSLS_PLATFORM_CMP_SUN) && BSLS_PLATFORM_CMP_VERSION < 0x5130
-    template <class ENTRY_TYPE>
-    static const int& key(const ENTRY_TYPE& entry)
-#else
-    template <class ENTRY_TYPE>
-    static typename enable_if<is_convertible<ENTRY_TYPE,
-                                             const bsl::pair<const int,
-                                                             int> >::value,
-                              const int&>::type key(const ENTRY_TYPE& entry)
-#endif
+    static const int& key(const bsl::pair<const int, int>& entry)
         // Return the key of the specified 'entry'.
     {
         return entry.first;
@@ -517,8 +599,23 @@ struct TestPairEntryUtil
     // 'ENTRY'.
 {
     // CLASS METHODS
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    template <class... ARGS>
+    static void construct(ENTRY                                     *entry,
+                          bslma::Allocator                          *allocator,
+                          ARGS&&...                                  args)
+        // Load into the specified 'entry' a new entry constructed from the
+        // specified 'args', using the specified 'allocator' to supply memory.
+    {
+        bslma::ConstructionUtil::construct(
+                                 entry,
+                                 allocator,
+                                 BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+    }
+#endif
+
     template <class KEY_TYPE>
-    static void construct(
+    static void constructFromKey(
                         ENTRY                                       *entry,
                         bslma::Allocator                            *allocator,
                         BSLS_COMPILERFEATURES_FORWARD_REF(KEY_TYPE)  key)
@@ -1919,7 +2016,7 @@ void testCase14MoveConstructorWithAllocator(int id)
                 othAllocatorPtr = &da;
               } break;
               default: {
-                LOOP3_ASSERT(id, LINE, CONFIG, !"Bad allocator config.");
+                LOOP4_ASSERT(id, LINE, CONFIG, "Bad allocator config.", false);
                 return;                                               // RETURN
               }
             }
@@ -2531,7 +2628,7 @@ void testCase7CopyConstructor(int id)
                 objAllocatorPtr = &sa;
               } break;
               default: {
-                LOOP_ASSERT(CONFIG, !"Bad allocator config.");
+                LOOP2_ASSERT(CONFIG, "Bad allocator config.", false);
                 continue;
               } break;
             }
@@ -3066,6 +3163,338 @@ int main(int argc, char *argv[])
     bslma::Default::setDefaultAllocatorRaw(&defaultAllocator);
 
     switch (test) { case 0:  // Zero is always the leading case.
+      case 22: {
+        // --------------------------------------------------------------------
+        // 'try_emplace' AND 'emplace'
+        //
+        // Ensure the 'try_emplace' method operates as expected.
+        //
+        // Concerns:
+        //: 1 The methods 'emplace' and 'try_emplace' produce the expected
+        //:   return values, result in a valid state, increase capacity as
+        //:   needed, are exception neutral with respect to memory allocation,
+        //:   and use the supplied allocator.
+        //:
+        //: 2 The returned reference refers to the correct entry and is
+        //:   modifiable.
+        //:
+        //: 3 Memory is not leaked by any method and the destructor properly
+        //:   deallocates the residual allocated memory.
+        //
+        // Plan:
+        //: 1 Create objects 'X' of varying value using the
+        //:   'bslma::TestAllocator'.  Modify 'X' with the methods 'emplace'
+        //:   and 'try_emplace' and verify the return referred to object has
+        //:   the correct key valued.  Use the 'isValid' global method to
+        //:   ensure 'X' is a valid table.  Also vary the test allocator's
+        //:   allocation limit to verify behavior in the presence of
+        //:   exceptions.  (C-1)
+        //:
+        //: 2 Use a supplied 'bslma::TestAllocator' that goes out-of-scope
+        //:   at the conclusion of each test to ensure all memory is returned
+        //:   to the allocator.  (C-4)
+        //
+        // Testing:
+        //   emplace(ARGS&&...);
+        //   try_emplace(const KEY &,  ARGS&&...);
+        //   try_emplace(      KEY &&, ARGS&&...);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << endl
+                          << "'try_emplace' AND 'emplace'" << endl
+                          << "===========================" << endl;
+
+        bsl::size_t                  errorIndex;
+        const bsl::size_t            NUM_DATA  = DEFAULT_NUM_DATA;
+        const DefaultDataRow (&DATA)[NUM_DATA] = DEFAULT_DATA;
+
+        if (verbose) cout << "Testing in a set" << endl;
+
+        {
+            typedef TestEntryUtil<int>                               Util;
+            typedef IntValueIsHash                                   Hash;
+            typedef bsl::equal_to<int>                               Equal;
+            typedef bdlc::FlatHashTable<int, int, Util, Hash, Equal> Obj;
+            typedef bsl::pair<Obj::iterator, bool>                   Ret;
+
+            if (veryVerbose) cout << "Testing 'emplace'." << endl;
+            {
+                for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+                    const int            LINE = DATA[ti].d_lineNum;
+                    const char *const    SPEC = DATA[ti].d_spec_p;
+
+                    bslma::TestAllocator ta("test", veryVeryVeryVerbose);
+
+                    Obj        mX(0, Hash(), Equal(), &ta);
+                    const Obj& X = gg(&mX, SPEC);
+                    size_t     sz = X.size();
+
+                    ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                    for (bsl::size_t idx = 0; idx < EMPLACE_NUM_DATA; ++idx) {
+                        const int     LINE2 = EMPLACE_DATA[idx].d_key;
+                        const int     key = EMPLACE_DATA[idx].d_key;
+                        Obj::iterator pos = mX.find(key);
+                        bool          exists = pos != mX.end();
+                        Ret           ret = mX.emplace(key);
+
+                        LOOP2_ASSERT(LINE, LINE2, ret.second == !exists);
+                        LOOP2_ASSERT(LINE, LINE2, *ret.first == key);
+                        if (!exists) {
+                            ++sz;
+                        }
+                        ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                        LOOP_ASSERT(LINE, X.size() == sz);
+
+                        BSLMA_TESTALLOCATOR_EXCEPTION_TEST_BEGIN(ta) {
+                            Obj mZ(0, Hash(), Equal(), &ta);
+                            Ret ret = mZ.emplace(key);
+                            LOOP2_ASSERT(LINE, LINE2, ret.second);
+                            LOOP2_ASSERT(LINE, LINE2, *ret.first == key);
+                        } BSLMA_TESTALLOCATOR_EXCEPTION_TEST_END
+                    }
+                }
+            }
+
+            if (veryVerbose) cout << "Testing 'try_emplace' (lvalue)." << endl;
+            {
+                for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+                    const int            LINE = DATA[ti].d_lineNum;
+                    const char *const    SPEC = DATA[ti].d_spec_p;
+
+                    bslma::TestAllocator ta("test", veryVeryVeryVerbose);
+
+                    Obj        mX(0, Hash(), Equal(), &ta);
+                    const Obj& X = gg(&mX, SPEC);
+                    size_t     sz = X.size();
+
+                    ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                    for (bsl::size_t idx = 0; idx < EMPLACE_NUM_DATA; ++idx) {
+                        const int     LINE2 = EMPLACE_DATA[idx].d_key;
+                        const int     key = EMPLACE_DATA[idx].d_key;
+                        Obj::iterator pos = mX.find(key);
+                        bool          exists = pos != mX.end();
+                        Ret           ret = mX.try_emplace(key, key);
+
+                        LOOP2_ASSERT(LINE, LINE2, ret.second == !exists);
+                        LOOP2_ASSERT(LINE, LINE2, *ret.first == key);
+                        if (!exists) {
+                            ++sz;
+                        }
+                        ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                        LOOP_ASSERT(LINE, X.size() == sz);
+
+                        BSLMA_TESTALLOCATOR_EXCEPTION_TEST_BEGIN(ta) {
+                            Obj mZ(0, Hash(), Equal(), &ta);
+                            Ret ret = mZ.try_emplace(key, key);
+                            LOOP2_ASSERT(LINE, LINE2, ret.second);
+                            LOOP2_ASSERT(LINE, LINE2, *ret.first == key);
+                        } BSLMA_TESTALLOCATOR_EXCEPTION_TEST_END
+                    }
+                }
+            }
+
+            if (veryVerbose) cout << "Testing 'try_emplace' (rvalue)." << endl;
+            {
+                for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+                    const int            LINE = DATA[ti].d_lineNum;
+                    const char *const    SPEC = DATA[ti].d_spec_p;
+
+                    bslma::TestAllocator ta("test", veryVeryVeryVerbose);
+
+                    Obj        mX(0, Hash(), Equal(), &ta);
+                    const Obj& X = gg(&mX, SPEC);
+                    size_t     sz = X.size();
+
+                    ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                    for (bsl::size_t idx = 0; idx < EMPLACE_NUM_DATA; ++idx) {
+                        const int     LINE2 = EMPLACE_DATA[idx].d_key;
+                        const int     key = EMPLACE_DATA[idx].d_key;
+                        Obj::iterator pos = mX.find(key);
+                        bool          exists = pos != mX.end();
+                        Ret           ret = mX.try_emplace(
+                                              bslmf::MovableRefUtil::move(key),
+                                              key);
+
+                        LOOP2_ASSERT(LINE, LINE2, ret.second == !exists);
+                        LOOP2_ASSERT(LINE, LINE2, *ret.first == key);
+                        if (!exists) {
+                            ++sz;
+                        }
+                        ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                        LOOP_ASSERT(LINE, X.size() == sz);
+
+                        BSLMA_TESTALLOCATOR_EXCEPTION_TEST_BEGIN(ta) {
+                            Obj mZ(0, Hash(), Equal(), &ta);
+                            Ret ret = mZ.try_emplace(
+                                              bslmf::MovableRefUtil::move(key),
+                                              key);
+                            LOOP2_ASSERT(LINE, LINE2, ret.second);
+                            LOOP2_ASSERT(LINE, LINE2, *ret.first == key);
+                        } BSLMA_TESTALLOCATOR_EXCEPTION_TEST_END
+                    }
+                }
+            }
+        }
+
+
+        if (verbose) cout << "Testing in a map" << endl;
+
+        {
+            typedef bsl::pair<const int, int>                        ValueType;
+            typedef TestEntryUtil<ValueType>                         Util;
+            typedef IntValueIsHash                                   Hash;
+            typedef bsl::equal_to<int>                               Equal;
+            typedef bdlc::FlatHashTable<
+                                  int, ValueType, Util, Hash, Equal> Obj;
+            typedef bsl::pair<Obj::iterator, bool>                   Ret;
+
+            if (veryVerbose) cout << "Testing 'emplace'." << endl;
+            {
+                for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+                    const int            LINE = DATA[ti].d_lineNum;
+                 // const char *const    SPEC = DATA[ti].d_spec_p;
+
+                    bslma::TestAllocator ta("test", veryVeryVeryVerbose);
+
+                    Obj        mX(0, Hash(), Equal(), &ta);
+                    const Obj& X = mX; // gg(&mX, SPEC);
+                    size_t     sz = X.size();
+
+                    ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                    for (bsl::size_t idx = 0; idx < EMPLACE_NUM_DATA; ++idx) {
+                        const int     LINE2 = EMPLACE_DATA[idx].d_key;
+                        const int     key = EMPLACE_DATA[idx].d_key;
+                        const int     value = EMPLACE_DATA[idx].d_value;
+                        Obj::iterator pos = mX.find(key);
+                        bool          exists = pos != mX.end();
+                        Ret           ret = mX.emplace(key, value);
+
+                        LOOP2_ASSERT(LINE, LINE2, ret.second == !exists);
+                        LOOP2_ASSERT(LINE, LINE2, ret.first->first == key);
+                        if (!exists) {
+                            LOOP2_ASSERT(LINE, LINE2,
+                                                   ret.first->second == value);
+                            ++sz;
+                        }
+                        ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                        LOOP_ASSERT(LINE, X.size() == sz);
+
+                        BSLMA_TESTALLOCATOR_EXCEPTION_TEST_BEGIN(ta) {
+                            Obj mZ(0, Hash(), Equal(), &ta);
+                            Ret ret = mZ.emplace(key, value);
+                            LOOP2_ASSERT(LINE, LINE2, ret.second);
+                            LOOP2_ASSERT(LINE, LINE2, ret.first->first == key);
+                            LOOP2_ASSERT(LINE, LINE2,
+                                                   ret.first->second == value);
+                        } BSLMA_TESTALLOCATOR_EXCEPTION_TEST_END
+                    }
+                }
+            }
+
+            if (veryVerbose) cout << "Testing 'try_emplace' (lvalue)." << endl;
+            {
+                for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+                    const int            LINE = DATA[ti].d_lineNum;
+                //  const char *const    SPEC = DATA[ti].d_spec_p;
+
+                    bslma::TestAllocator ta("test", veryVeryVeryVerbose);
+
+                    Obj        mX(0, Hash(), Equal(), &ta);
+                    const Obj& X = mX; // gg(&mX, SPEC);
+                    size_t     sz = X.size();
+
+                    ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                    for (bsl::size_t idx = 0; idx < EMPLACE_NUM_DATA; ++idx) {
+                        const int     LINE2 = EMPLACE_DATA[idx].d_key;
+                        const int     key = EMPLACE_DATA[idx].d_key;
+                        const int     value = EMPLACE_DATA[idx].d_value;
+                        Obj::iterator pos = mX.find(key);
+                        bool          exists = pos != mX.end();
+                        Ret           ret = mX.try_emplace(key, key, value);
+
+                        LOOP2_ASSERT(LINE, LINE2, ret.second == !exists);
+                        LOOP2_ASSERT(LINE, LINE2, ret.first->first == key);
+                        if (!exists) {
+                            LOOP2_ASSERT(LINE, LINE2,
+                                                   ret.first->second == value);
+                            ++sz;
+                        }
+                        ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                        LOOP_ASSERT(LINE, X.size() == sz);
+
+                        BSLMA_TESTALLOCATOR_EXCEPTION_TEST_BEGIN(ta) {
+                            Obj mZ(0, Hash(), Equal(), &ta);
+                            Ret ret = mZ.try_emplace(key, key, value);
+                            LOOP2_ASSERT(LINE, LINE2, ret.second);
+                            LOOP2_ASSERT(LINE, LINE2, ret.first->first == key);
+                            LOOP2_ASSERT(LINE, LINE2,
+                                                   ret.first->second == value);
+                        } BSLMA_TESTALLOCATOR_EXCEPTION_TEST_END
+                    }
+                }
+            }
+
+            if (veryVerbose) cout << "Testing 'try_emplace' (rvalue)." << endl;
+            {
+                for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+                    const int            LINE = DATA[ti].d_lineNum;
+                //  const char *const    SPEC = DATA[ti].d_spec_p;
+
+                    bslma::TestAllocator ta("test", veryVeryVeryVerbose);
+
+                    Obj        mX(0, Hash(), Equal(), &ta);
+                    const Obj& X = mX; // gg(&mX, SPEC);
+                    size_t     sz = X.size();
+
+                    ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                    for (bsl::size_t idx = 0; idx < EMPLACE_NUM_DATA; ++idx) {
+                        const int     LINE2 = EMPLACE_DATA[idx].d_key;
+                        const int     key = EMPLACE_DATA[idx].d_key;
+                        const int     value = EMPLACE_DATA[idx].d_value;
+                        Obj::iterator pos = mX.find(key);
+                        bool          exists = pos != mX.end();
+                        Ret           ret = mX.try_emplace(
+                                              bslmf::MovableRefUtil::move(key),
+                                              key, value);
+
+                        LOOP2_ASSERT(LINE, LINE2, ret.second == !exists);
+                        LOOP2_ASSERT(LINE, LINE2, ret.first->first == key);
+                        if (!exists) {
+                            LOOP2_ASSERT(LINE, LINE2,
+                                                   ret.first->second == value);
+                            ++sz;
+                        }
+                        ASSERT(IsValidResult::e_SUCCESS ==
+                                                     isValid(&errorIndex, mX));
+                        LOOP_ASSERT(LINE, X.size() == sz);
+
+                        BSLMA_TESTALLOCATOR_EXCEPTION_TEST_BEGIN(ta) {
+                            Obj mZ(0, Hash(), Equal(), &ta);
+                            Ret ret = mZ.try_emplace(
+                                              bslmf::MovableRefUtil::move(key),
+                                              key, value);
+                            LOOP2_ASSERT(LINE, LINE2, ret.second);
+                            LOOP2_ASSERT(LINE, LINE2, ret.first->first == key);
+                            LOOP2_ASSERT(LINE, LINE2,
+                                                   ret.first->second == value);
+                        } BSLMA_TESTALLOCATOR_EXCEPTION_TEST_END
+                    }
+                }
+            }
+        }
+
+      } break;
       case 21: {
         // --------------------------------------------------------------------
         // {DRQS 167125039} BASIC OPERATIONS OF MOVED-TO TABLES
@@ -3138,9 +3567,9 @@ int main(int argc, char *argv[])
 
         if (verbose)
             cout << endl
-                 << "{DRQS 167125039} BASIC OPERATIONS OF MOVED-TO TABALES"
+                 << "{DRQS 167125039} BASIC OPERATIONS OF MOVED-TO TABLES"
                  << endl
-                 << "====================================================="
+                 << "===================================================="
                  << endl;
 
         if (verbose)
@@ -5872,6 +6301,8 @@ int main(int argc, char *argv[])
     }
     return testStatus;
 }
+
+#endif // End C++11 code
 
 // ----------------------------------------------------------------------------
 // Copyright 2020 Bloomberg Finance L.P.

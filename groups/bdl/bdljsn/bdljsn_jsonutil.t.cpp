@@ -2,6 +2,8 @@
 #include <bdljsn_jsonutil.h>
 
 #include <bdljsn_error.h>
+#include <bdljsn_jsonnumber.h>
+#include <bdljsn_jsontestsuiteutil.h>
 #include <bdljsn_readoptions.h>
 #include <bdljsn_writeoptions.h>
 #include <bdljsn_writestyle.h>
@@ -27,16 +29,24 @@
 
 #include <bslmf_assert.h>
 
+#include <bsls_assert.h>
 #include <bsls_asserttest.h>
 #include <bsls_compilerfeatures.h>
 #include <bsls_fuzztest.h>
+#include <bsls_libraryfeatures.h>
 #include <bsls_platform.h>
 #include <bsls_review.h>
+#include <bsls_types.h>
 
+#include <bsl_cstddef.h>  // 'bsl::size_t'
 #include <bsl_cstdlib.h>
+#include <bsl_cstring.h>  // 'bsl::strlen', 'bsl::strcmp'
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bsl_sstream.h>
-#include <bsl_string.h>
+#include <bsl_string_view.h>
+#include <bsl_utility.h>
 
 using namespace BloombergLP;
 using bsl::cerr;
@@ -61,7 +71,7 @@ using bsl::ends;
 // matches the expected value.
 
 // ----------------------------------------------------------------------------
-//                              CLASS METHODS
+// CLASS METHODS
 // [ 2] static int read(Json*, Error*, const string_view&, const ReadOptions&);
 // [ 3] static int read(Json*, istream&);
 // [ 3] static int read(Json*, istream&, const ReadOptions&);
@@ -89,7 +99,8 @@ using bsl::ends;
 // [ 6] static ostream& printError(ostream&, string_view&, const Error&);
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [ 7] USAGE EXAMPLE
+// [ 8] USAGE EXAMPLE
+// [ 7] CONCERN: JSON TEST SUITE COMPLIANCE
 
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
@@ -135,7 +146,7 @@ void aSsErT(bool condition, const char *message, int line)
 #define T_ BSLIM_TESTUTIL_T_  // Print a tab (w/o newline).
 #define L_ BSLIM_TESTUTIL_L_  // current Line number
 
-#define WS "   \t       \n      \v       \f       \r       "
+#define WS "   \t       \n      \v       \r       "  // Note: no form-feed
 
 // ============================================================================
 //                     NEGATIVE-TEST MACRO ABBREVIATIONS
@@ -169,7 +180,7 @@ typedef bsls::Types::Int64       Int64;
 
 // Note that the members of the objects in this JSON are deliberately sorted.
 
-const char *OLD_STYLE_SIMPLE_JSON =
+const char *SIMPLE_JSON =
 "{\n"
 "  \"array\": [\n"
 "    3.1,\n"
@@ -189,33 +200,6 @@ const char *OLD_STYLE_SIMPLE_JSON =
 "  },\n"
 "  \"string\": \"abc\"\n"
 "}";
-
-#ifdef BSLS_COMPILERFEATURES_SUPPORT_RAW_STRINGS
-const char *SIMPLE_JSON =
-R"JSON({
-  "array": [
-    3.1,
-    11,
-    "abc",
-    true
-  ],
-  "boolean": true,
-  "date": "1970-01-01",
-  "integer": 10,
-  "number": 2.1,
-  "object": {
-    "boolean": true,
-    "date": "1970-01-01",
-    "integer": 10,
-    "string": "abc"
-  },
-  "string": "abc"
-})JSON";
-// This assertion is validated at runtime in its own test case
-// ASSERT(bsl::string(SIMPLE_JSON) == bsl::string(OLD_STYLE_SIMPLE_JSON));
-#else
-const char *SIMPLE_JSON = OLD_STYLE_SIMPLE_JSON;
-#endif // def BSLS_COMPILERFEATURES_SUPPORT_RAW_STRINGS
 
 // These otherwise standard test driver scaffolding variables are global in
 // this test driver so they can be accessed in helper functions.
@@ -585,6 +569,94 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     return 0;
 }
 
+// ===========================================================================
+//                      JSON TEST SUITE FOR 'bdljsn'
+// ---------------------------------------------------------------------------
+// The expected values assigned for the 'i_' cases correspond to
+// 'bdljsn_jsonutil', an implementation that uses a 'bdljsn::Tokenizer' in
+// "strict' conformance mode.
+//..
+//  +-----------------------------+-------+-----------------+
+//  | 'i_' Categories             | Count | Expected result |
+//  +-----------------------------+-------+-----------------+
+//  | Tests of numeric limits     |    10 | All accepted    |
+//  | Tests of encoding tolerance |    25 | All rejected    |
+//  +-----------------------------+-------+-----------------+
+//..
+
+typedef bdljsn::JsonTestSuiteUtil JTSU;
+
+                // JTSU: Implementation Dependent Cases
+
+static struct JtsuforBdljsnDatum {
+    int             d_line;
+    const char     *d_testName_p;
+    JTSU::Expected  d_expected;
+} JSON_TEST_SUITE_FOR_BDLJSN[] = {
+
+// Accept all numeric limit tests.
+
+  { L_, "i_number_double_huge_neg_exp.json",                   JTSU::e_ACCEPT }
+, { L_, "i_number_huge_exp.json",                              JTSU::e_ACCEPT }
+, { L_, "i_number_neg_int_huge_exp.json",                      JTSU::e_ACCEPT }
+, { L_, "i_number_pos_double_huge_exp.json",                   JTSU::e_ACCEPT }
+, { L_, "i_number_real_neg_overflow.json",                     JTSU::e_ACCEPT }
+, { L_, "i_number_real_pos_overflow.json",                     JTSU::e_ACCEPT }
+, { L_, "i_number_real_underflow.json",                        JTSU::e_ACCEPT }
+, { L_, "i_number_too_big_neg_int.json",                       JTSU::e_ACCEPT }
+, { L_, "i_number_too_big_pos_int.json",                       JTSU::e_ACCEPT }
+, { L_, "i_number_very_big_negative_int.json",                 JTSU::e_ACCEPT }
+
+// Reject all encoding tests.
+
+, { L_, "i_object_key_lone_2nd_surrogate.json",                JTSU::e_REJECT }
+, { L_, "i_string_1st_surrogate_but_2nd_missing.json",         JTSU::e_REJECT }
+, { L_, "i_string_1st_valid_surrogate_2nd_invalid.json",       JTSU::e_REJECT }
+, { L_, "i_string_UTF-16LE_with_BOM.json",                     JTSU::e_REJECT }
+, { L_, "i_string_UTF-8_invalid_sequence.json",                JTSU::e_REJECT }
+, { L_, "i_string_UTF8_surrogate_U+D800.json",                 JTSU::e_REJECT }
+, { L_, "i_string_incomplete_surrogate_and_escape_valid.json", JTSU::e_REJECT }
+, { L_, "i_string_incomplete_surrogate_pair.json",             JTSU::e_REJECT }
+, { L_, "i_string_incomplete_surrogates_escape_valid.json",    JTSU::e_REJECT }
+, { L_, "i_string_invalid_lonely_surrogate.json",              JTSU::e_REJECT }
+, { L_, "i_string_invalid_surrogate.json",                     JTSU::e_REJECT }
+, { L_, "i_string_invalid_utf-8.json",                         JTSU::e_REJECT }
+, { L_, "i_string_inverted_surrogates_U+1D11E.json",           JTSU::e_REJECT }
+, { L_, "i_string_iso_latin_1.json",                           JTSU::e_REJECT }
+, { L_, "i_string_lone_second_surrogate.json",                 JTSU::e_REJECT }
+, { L_, "i_string_lone_utf8_continuation_byte.json",           JTSU::e_REJECT }
+, { L_, "i_string_not_in_unicode_range.json",                  JTSU::e_REJECT }
+, { L_, "i_string_overlong_sequence_2_bytes.json",             JTSU::e_REJECT }
+, { L_, "i_string_overlong_sequence_6_bytes.json",             JTSU::e_REJECT }
+, { L_, "i_string_overlong_sequence_6_bytes_null.json",        JTSU::e_REJECT }
+, { L_, "i_string_truncated-utf-8.json",                       JTSU::e_REJECT }
+, { L_, "i_string_utf16BE_no_BOM.json",                        JTSU::e_REJECT }
+, { L_, "i_string_utf16LE_no_BOM.json",                        JTSU::e_REJECT }
+, { L_, "i_structure_500_nested_arrays.json",                  JTSU::e_REJECT }
+                                            // Note: Default max nesting is 64.
+, { L_, "i_structure_UTF-8_BOM_empty_object.json",             JTSU::e_REJECT }
+};
+
+static  bsl::size_t NUM_JSON_TEST_SUITE_FOR_BDLJSN
+                                          = sizeof  JSON_TEST_SUITE_FOR_BDLJSN
+                                          / sizeof *JSON_TEST_SUITE_FOR_BDLJSN;
+
+static JtsuforBdljsnDatum *findBdljsnDatum(const char *testName)
+    // Return the result expected from 'bdljsn::JsonUtil' for the *JSON* *Test*
+    // *Suite* data point having the specified 'testName', or 0 if 'testName'
+    // is unknown.
+{
+    for (JtsuforBdljsnDatum *itr  =     JSON_TEST_SUITE_FOR_BDLJSN,
+                            *end  =     JSON_TEST_SUITE_FOR_BDLJSN
+                                  + NUM_JSON_TEST_SUITE_FOR_BDLJSN;
+                             end != itr; ++itr) {
+        if (0 == bsl::strcmp(itr->d_testName_p, testName)) {
+            return itr;                                               // RETURN
+        }
+    }
+    return 0;
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -613,8 +685,7 @@ int main(int argc, char *argv[])
     bslma::Default::setGlobalAllocator(&globalAllocator);
 
     switch (test) {
-      case 0:
-      case 7: {
+      case 8: { case 0:
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   First usage example extracted from component header file.
@@ -645,100 +716,70 @@ int main(int argc, char *argv[])
 //
 // First, we define the JSON data we plan to read:
 //..
-   const char *OLD_STYLE_INPUT_JSON =
-   "{\n"
-   "  \"a boolean\": true,\n"
-   "  \"a date\": \"1970-01-01\",\n"
-   "  \"a number\": 2.1,\n"
-   "  \"an integer\": 10,\n"
-   "  \"array of values\": [\n"
-   "    -1,\n"
-   "    0,\n"
-   "    2.718281828459045,\n"
-   "    3.1415926535979,\n"
-   "    \"abc\",\n"
-   "    true\n"
-   "  ],\n"
-   "  \"event\": {\n"
-   "    \"date\": \"1969-07-16\",\n"
-   "    \"description\": \"Apollo 11 Moon Landing\",\n"
-   "    \"passengers\": [\n"
-   "      \"Neil Armstrong\",\n"
-   "      \"Buzz Aldrin\"\n"
-   "    ],\n"
-   "    \"success\": true\n"
-   "  }\n"
-   "}";
-
-#ifdef BSLS_COMPILERFEATURES_SUPPORT_RAW_STRINGS
-    const char *INPUT_JSON = R"JSON({
-  "a boolean": true,
-  "a date": "1970-01-01",
-  "a number": 2.1,
-  "an integer": 10,
-  "array of values": [
-    -1,
-    0,
-    2.718281828459045,
-    3.1415926535979,
-    "abc",
-    true
-  ],
-  "event": {
-    "date": "1969-07-16",
-    "description": "Apollo 11 Moon Landing",
-    "passengers": [
-      "Neil Armstrong",
-      "Buzz Aldrin"
-    ],
-    "success": true
-  }
-})JSON";
-    ASSERT(areEqual(INPUT_JSON, OLD_STYLE_INPUT_JSON));
-#else
-    const char *INPUT_JSON = OLD_STYLE_INPUT_JSON;
-#endif // def BSLS_COMPILERFEATURES_SUPPORT_RAW_STRINGS
-
+    const char *INPUT_JSON =
+    "{\n"
+    "  \"a boolean\": true,\n"
+    "  \"a date\": \"1970-01-01\",\n"
+    "  \"a number\": 2.1,\n"
+    "  \"an integer\": 10,\n"
+    "  \"array of values\": [\n"
+    "    -1,\n"
+    "    0,\n"
+    "    2.718281828459045,\n"
+    "    3.1415926535979,\n"
+    "    \"abc\",\n"
+    "    true\n"
+    "  ],\n"
+    "  \"event\": {\n"
+    "    \"date\": \"1969-07-16\",\n"
+    "    \"description\": \"Apollo 11 Moon Landing\",\n"
+    "    \"passengers\": [\n"
+    "      \"Neil Armstrong\",\n"
+    "      \"Buzz Aldrin\"\n"
+    "    ],\n"
+    "    \"success\": true\n"
+    "  }\n"
+    "}";
 //..
 // Next, we read the JSON data into a 'Json' object:
 //..
-   bdljsn::Json        result;
-   bdljsn::Error       error;
+    bdljsn::Json        result;
+    bdljsn::Error       error;
 
-   int rc = bdljsn::JsonUtil::read(&result, &error, INPUT_JSON);
+    int rc = bdljsn::JsonUtil::read(&result, &error, INPUT_JSON);
 
-   ASSERT(0 == rc);
+    ASSERT(0 == rc);
 
-   if (0 != rc) {
-       bsl::cout << "Error message: \"" << error.message() << "\""
-                 << bsl::endl;
-   }
+    if (0 != rc) {
+        bsl::cout << "Error message: \"" << error.message() << "\""
+                  << bsl::endl;
+    }
 
 //..
 // Then, we check the values of a few selected fields:
 //..
-   ASSERT(result.type() == JsonType::e_OBJECT);
-   ASSERT(result["array of values"][2].theNumber().asDouble()
-          == 2.718281828459045);
-   ASSERT(result["event"]["date"].theString() == "1969-07-16");
-   ASSERT(result["event"]["passengers"][1].theString() == "Buzz Aldrin");
+    ASSERT(result.type() == JsonType::e_OBJECT);
+    ASSERT(result["array of values"][2].theNumber().asDouble()
+           == 2.718281828459045);
+    ASSERT(result["event"]["date"].theString() == "1969-07-16");
+    ASSERT(result["event"]["passengers"][1].theString() == "Buzz Aldrin");
 //..
 // Finally, we'll 'write' the 'result' back into another string and make sure
 // we got the same value back, by using the correct 'WriteOptions' to match
 // the input format:
 //..
-   bsl::string resultString;
+    bsl::string resultString;
 
-   // Set the WriteOptions to match the initial style:
-   WriteOptions writeOptions;
-   writeOptions.setStyle(bdljsn::WriteStyle::e_PRETTY);
-   writeOptions.setInitialIndentLevel(0);
-   writeOptions.setSpacesPerLevel(2);
-   writeOptions.setSortMembers(true);
+    // Set the WriteOptions to match the initial style:
+    WriteOptions writeOptions;
+    writeOptions.setStyle(bdljsn::WriteStyle::e_PRETTY);
+    writeOptions.setInitialIndentLevel(0);
+    writeOptions.setSpacesPerLevel(2);
+    writeOptions.setSortMembers(true);
 
-   bdljsn::JsonUtil::write(&resultString, result, writeOptions);
+    bdljsn::JsonUtil::write(&resultString, result, writeOptions);
 
-   ASSERT(resultString == INPUT_JSON);
+    ASSERT(resultString == INPUT_JSON);
 //..
         }
         if (verbose)
@@ -754,12 +795,18 @@ int main(int argc, char *argv[])
 // First, let's populate a 'Json' object named 'json' from an input string
 // using 'read', and create an empty 'options' (see 'bdljsn::WriteOptions'):
 //..
-    const bsl::string JSON = R"JSON(
-      {
-        "a" : 1,
-        "b" : []
-      }
-    )JSON";
+//  const bsl::string JSON = R"JSON(
+//        {
+//          "a" : 1,
+//          "b" : []
+//        }
+//      )JSON";
+
+    const bsl::string JSON =
+      "{"            "\n" 
+      "  \"a\" : 1," "\n"
+      "  \"b\" : []" "\n"
+      "}"            "\n" ;
 
     bdljsn::Json         json;
     bdljsn::WriteOptions options;
@@ -859,11 +906,16 @@ int main(int argc, char *argv[])
     ASSERT(0 == rc);
 
     // Using 'e_PRETTY' style:
+//        ASSERT(
+//     R"JSON({
+//        "a": 1,
+//        "b": []
+//    })JSON" == output);
     ASSERT(
- R"JSON({
-    "a": 1,
-    "b": []
-})JSON" == output);
+        "{"             "\n"
+        "    \"a\": 1," "\n"
+        "    \"b\": []" "\n"
+        "}" == output);
 //..
 // Finally, if we set 'initialIndentLevel' to 1, then an extra set of 4 spaces
 // is prepended to each line, where 4 is the value of 'spacesPerLevel':
@@ -875,15 +927,98 @@ int main(int argc, char *argv[])
     ASSERT(0 == rc);
 
     // Using 'e_PRETTY' style (with 'initialIndentLevel' as 1):
+//  ASSERT(
+//  R"JSON(    {
+//          "a": 1,
+//          "b": []
+//      })JSON" == output);
     ASSERT(
-R"JSON(    {
-        "a": 1,
-        "b": []
-    })JSON" == output);
+        "    {"             "\n"
+        "        \"a\": 1," "\n"
+        "        \"b\": []" "\n"
+        "    }" == output);
 //..
 #endif //  BSLS_COMPILERFEATURES_SUPPORT_RAW_STRINGS
         }
+      } break;
+      case 7: {
+        // --------------------------------------------------------------------
+        // TESTING JSON TEST SUITE COMPLIANCE
+        //
+        // Concerns:
+        //: 1 The 'read' function of this utility produces the results expected
+        //:   by the widely used "Json Test Suite" published at:
+        //:   https://github.com/nst/JSONTestSuite/tree/master
+        //
+        // Plan:
+        //: 1 Use the JSON conformance test points provided by
+        //:   'bdljsn_jsontestsuiteutil'.
+        //:
+        //: 2 For each member of the table, create an input string view from
+        //:   the 'd_JSON_p' and 'd_length' members and pass that string view
+        //:   to the 'read' function of the utility under test.
+        //:
+        //: 3 Confirm that the returned value (0 or non-zero) and
+        //:   'errorMessage' (empty or not) match the expectations of the
+        //:   'd_isValid' member.
+        //
+        // Testing:
+        //   CONCERN: JSON TEST SUITE COMPLIANCE
+        // --------------------------------------------------------------------
 
+        if (verbose)
+            cout << endl
+                 << "TESTING JSON TEST SUITE COMPLIANCE" << endl
+                 << "==================================" << endl;
+
+        const bsl::size_t NUM_DATA = JTSU::numData();
+
+        for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+            const int            LINE          = JTSU::data(ti)->d_line;
+            const char *const    TEST_NAME     = JTSU::data(ti)->d_testName_p;
+            const char *const    JSON          = JTSU::data(ti)->d_JSON_p;
+            const bsl::size_t    LENGTH        = JTSU::data(ti)->d_length;
+            const JTSU::Expected EXPECTED_JTSU = JTSU::data(ti)->d_expected;
+
+            JtsuforBdljsnDatum *forBdljsnDatum = findBdljsnDatum(TEST_NAME);
+
+            ASSERTV(
+                  TEST_NAME,
+                 ((JTSU::e_EITHER == EXPECTED_JTSU) && (0 != forBdljsnDatum))
+              || ((JTSU::e_EITHER != EXPECTED_JTSU) && (0 == forBdljsnDatum)));
+
+            const JTSU::Expected EXPECTED = JTSU::e_EITHER == EXPECTED_JTSU
+                                          ? forBdljsnDatum->d_expected
+                                          : EXPECTED_JTSU;
+            ASSERTV(EXPECTED,
+                    JTSU::e_ACCEPT == EXPECTED
+                 || JTSU::e_REJECT == EXPECTED);
+
+            if (veryVerbose) {
+                P_(ti) P_(LINE) P_(LENGTH) P(EXPECTED)
+                P(TEST_NAME);
+                P(JSON)
+            }
+
+            bsl::string_view input(JSON, LENGTH);
+            Json             result;
+            Error            error;
+
+            int rc = Util::read(&result, &error, input);
+
+            ASSERTV(LINE, EXPECTED, rc,
+                          (JTSU::e_ACCEPT == EXPECTED)
+                       == (0              == rc    ));
+
+            ASSERTV(LINE, EXPECTED, rc,
+                          (JTSU::e_ACCEPT == EXPECTED)
+                       == (Error()           == error   ));
+
+            if ((JTSU::e_ACCEPT == EXPECTED) != (Error() == error)
+            ||  (JTSU::e_ACCEPT == EXPECTED) != (0       == rc   ) ) {
+                P(error);
+            }
+        }
       } break;
       case 6: {
         // --------------------------------------------------------------------
@@ -924,8 +1059,8 @@ R"JSON(    {
 
         struct {
             uint64_t    d_location;
-            const char *d_message;
-            const char *d_expected;
+            const char *d_message_p;
+            const char *d_expected_p;
         } DATA[] = {
             {  0, "A", "Error (line 1, col 1): A"},
             {  0, "B", "Error (line 1, col 1): B"},
@@ -938,11 +1073,11 @@ R"JSON(    {
         if (verbose)
             cout << "Table based test" << endl;
         for (int i = 0; i < NUM_DATA; ++i) {
-            Location location(DATA[i].d_location);
-            Error error(location, DATA[i].d_message);
-            const char *EXPECTED = DATA[i].d_expected;
+            Location    location(DATA[i].d_location);
+            Error       error(location, DATA[i].d_message_p);
+            const char *EXPECTED = DATA[i].d_expected_p;
 
-            bsl::stringbuf input(twoLineMesage);
+            bsl::stringbuf     input(twoLineMesage);
             bsl::ostringstream output;
 
             bsl::ostream& result = Util::printError(output, &input, error);
@@ -953,15 +1088,14 @@ R"JSON(    {
         if (verbose)
             cout << "Sanity test on real JSON" << endl;
         {
-            const char *JSON =
-            "{\n"
-            "  \"a\": 1,\n"
-            "  \"b\": 2,\n"
-            "  \"c\": oops,\n"
-            "}\n"
-            ;
-            Json result;
-            Error error;
+            const char *JSON = "{\n"
+                                "  \"a\": 1,\n"
+                                "  \"b\": 2,\n"
+                                "  \"c\": oops,\n"
+                                "}\n"
+                                ;
+            Json        result;
+            Error       error;
 
             int rc = Util::read(&result, &error, JSON);
             ASSERTV(rc, 0 != rc);
@@ -969,7 +1103,7 @@ R"JSON(    {
             const char *EXPECTED =
                                  "Error (line 4, col 12): Invalid JSON Number";
 
-            bsl::stringbuf input(JSON);
+            bsl::stringbuf     input(JSON);
             bsl::ostringstream output;
 
             Util::printError(output, &input, error);
@@ -979,7 +1113,7 @@ R"JSON(    {
         if (verbose)
             cout << "Test overloads" << endl;
         {
-            Error error(Location(0), "A");
+            Error       error(Location(0), "A");
             const char *EXPECTED = "Error (line 1, col 1): A";
 
             {
@@ -1146,7 +1280,7 @@ R"JSON(    {
                     JSON_PRETTY_IIL_1_SPL_2 == outputStr);
         }
 
-#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_PMR)
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
         if (verbose)
             cout << "Testing 'static int write(std::pmr::string*, const "
                     "Json&);'"
@@ -1409,8 +1543,8 @@ R"JSON(    {
               , {L_, "\"ab\"",         0,        0,     "\"ab\"",    "\"ab\"" }
               , {L_, "\"ab\"",         1,        4, "    \"ab\"",
                                                                  "    \"ab\"" }
-                // Complex types are affected by IIL and SPL for all levels
-                // of indentation
+                // Complex types are affected by IIL and SPL for all levels of
+                // indentation
               , {L_, "{\"a\":1, \"b\":2}",
                                        0,        0, "{\"a\": 1, \"b\": 2}",
                                                                   "{\n"
@@ -1579,7 +1713,7 @@ R"JSON(    {
             ASSERTV(0 == rc);
 
             bsl::ostringstream  sorted(&ta), unsorted(&ta);
-            WriteOptions options;
+            WriteOptions        options;
             options.setSortMembers(true);
             rc = Util::write(sorted, json, options);
             ASSERTV(0 == rc);
@@ -1706,6 +1840,7 @@ R"JSON(    {
 
             bdlsb::FixedMemInStreamBuf badStream(badJson.data(),
                                                  badJson.size());
+
             int rc = Util::read(&json, &badStream);
             ASSERTV(rc, badJson, json, 0 != rc);
             ASSERTV(json.isNull(), true == json.isNull());
@@ -1887,11 +2022,12 @@ R"JSON(    {
         {
             bslma::TestAllocator scratch("scratch", veryVeryVeryVerbose);
 
-            Json        json(&scratch);
-            Error       err(&scratch);
+            Json  json(&scratch);
+            Error err( &scratch);
 
             bdlsb::FixedMemInStreamBuf badStream(badJson.data(),
                                                  badJson.size());
+
             int rc = Util::read(&json, &err, &badStream);
             ASSERTV(rc, badJson, json, 0 != rc);
             ASSERTV(json.isNull(), true == json.isNull());
@@ -2049,9 +2185,10 @@ R"JSON(    {
                  << endl;
         {
             const char k_EOF = 0;
+
             static const struct {
                 int         d_line;
-                const char *d_text;
+                const char *d_text_p;
                 char        d_nextChar;
             } DATA[] = {
               // L  TEXT          NEXT CHAR
@@ -2089,7 +2226,7 @@ R"JSON(    {
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int   LINE      = DATA[ti].d_line;
-                const char *TEXT      = DATA[ti].d_text;
+                const char *TEXT      = DATA[ti].d_text_p;
                 const char  NEXT_CHAR = DATA[ti].d_nextChar;
 
                 const int NEXT_CHAR_INT =
@@ -2507,6 +2644,7 @@ R"JSON(    {
             */
 
             const char *ERROR_VALUE = "";
+
             static const struct {
                 int              d_line;
                 bsl::string_view d_string;
@@ -3455,7 +3593,7 @@ R"JSON(    {
         {
             static const struct {
                 int         d_line;
-                const char *d_text;
+                const char *d_text_p;
                 bool        d_isValidAllowTrailingText;
                 bool        d_isValidNoTrailingText;
             } DATA[] = {
@@ -3527,7 +3665,7 @@ R"JSON(    {
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int   LINE        = DATA[ti].d_line;
-                const char *TEXT        = DATA[ti].d_text;
+                const char *TEXT        = DATA[ti].d_text_p;
                 const bool  IS_VALID_TT = DATA[ti].d_isValidAllowTrailingText;
                 const bool  IS_VALID_NO_TT = DATA[ti].d_isValidNoTrailingText;
 
@@ -3576,9 +3714,9 @@ R"JSON(    {
         {
             bsls::AssertTestHandlerGuard hG;
 
-            bdljsn::Json result;
+            bdljsn::Json     result;
             bsl::string_view input("false");
-            Error error;
+            Error            error;
 
             if (veryVerbose) cout << "\tread" << endl;
             {
@@ -3607,8 +3745,6 @@ R"JSON(    {
         if (verbose)
             cout << "\nBREATHING TEST"
                  << "\n==============" << endl;
-
-        ASSERT(areEqual(SIMPLE_JSON, OLD_STYLE_SIMPLE_JSON));
 
         const WriteStyle::Enum C = WriteStyle::e_COMPACT;
         const WriteStyle::Enum O = WriteStyle::e_ONELINE;
@@ -3838,7 +3974,17 @@ R"JSON(    {
                 const int   NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
                 for (int i = 0; i < NUM_DATA; ++i) {
+
+                    if (veryVerbose) {
+                        P(i);
+                    }
+
                     for (int depth = 1; depth < JSON_DEPTH + 2; ++depth) {
+
+                        if (veryVerbose) {
+                            T_ P(i);
+                        }
+
                         const char *J = DATA[i];
 
                         bslma::TestAllocator       ta;
@@ -3878,6 +4024,11 @@ R"JSON(    {
                 const int   NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
                 for (int i = 0; i < NUM_DATA; ++i) {
+
+                    if (veryVerbose) {
+                        P(i);
+                    }
+
                     const char *J = DATA[i];
 
                     // Works with default 'options.maxNestedDepth()'

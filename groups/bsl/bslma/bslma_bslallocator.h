@@ -50,7 +50,7 @@ BSLS_IDENT("$Id: $")
 // allocator.  Importantly, 'bsl::allocator' is a *scoped* *allocator* -- when
 // its 'construct' method is called, the allocator passes itself to the
 // constructor of the object being constructed (if that object is allocator
-// aware (AA) and uses a compatible the allocator type).  Thus, a container
+// aware (AA) and uses a compatible allocator type).  Thus, a container
 // instantiated with a scoped allocator ensures that its elements use the same
 // allocator as the container itself.  The 'bsl::allocator::construct' method
 // will propagate the allocator not only to element types that use
@@ -182,10 +182,10 @@ BSLS_IDENT("$Id: $")
 //
 //      // ACCESSORS
 //      const TYPE& operator[](int index) const { return d_array[index]; }
-//          // Return a reference to the modifiable element at the specified
-//          // 'index' position in this fixed size array.  The behavior is
-//          // undefined unless 'index' is non-negative and less than
-//          // 'length()'.
+//          // Return a reference to the non-modifiable element at the
+//          // specified 'index' position in this fixed size array.  The
+//          // behavior is undefined unless 'index' is non-negative and less
+//          // than 'length()'.
 //
 //      allocator_type get_allocator() const { return d_allocator; }
 //          // Return the allocator used by this fixed size array to supply
@@ -958,10 +958,14 @@ allocator<TYPE>::operator=(const allocator& rhs)
     BSLS_REVIEW_OPT(rhs == *this &&
                     "'bsl::allocator' objects cannot be assigned");
 
-    // As the base class does not support assignment, the only way to change
-    // the mechanism is to destroy and re-create this object
-    this->~allocator();
-    return *::new(this) allocator(rhs);
+    if (this != &rhs) {
+        // As the base class does not support assignment, the only way to
+        // change the mechanism is to destroy and re-create this object
+        this->~allocator();
+        return *::new(this) allocator(rhs);
+    }
+
+    return *this;
 }
 
 template <class TYPE>

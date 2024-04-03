@@ -1,13 +1,4 @@
 // ball_attributecontainerlist.t.cpp                                  -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
-
 #include <ball_attributecontainerlist.h>
 
 #include <ball_attributecontainer.h>
@@ -25,15 +16,15 @@
 
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
-#include <bsl_new.h>         // placement 'new' syntax
 #include <bsl_iostream.h>
+#include <bsl_new.h>         // placement 'new' syntax
 #include <bsl_set.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 
 using namespace BloombergLP;
-using namespace bsl;  // automatically added by script
+using namespace bsl;
 
 //=============================================================================
 //                             TEST PLAN
@@ -217,6 +208,9 @@ bslma::TestAllocator testAllocator;
                   case 8: // const void *
                     return lhs.value().the<const void *>() <
                            rhs.value().the<const void *>();           // RETURN
+                  case 9: // Guid
+                    return lhs.value().the<bdlb::Guid>() <
+                           rhs.value().the<bdlb::Guid>();             // RETURN
                 }
                 BSLS_ASSERT(false);
                 return false;

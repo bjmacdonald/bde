@@ -30,10 +30,6 @@ BSLS_IDENT_RCSID(baljsn_parserutil_cpp,"$Id$ $CSID$")
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
 
-#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_PMR)
-# include <memory_resource>
-#endif
-
 namespace {
 namespace u {
 
@@ -133,13 +129,12 @@ int loadInfOrNan(TYPE *value, const bsl::string_view& data)
     return rc;
 }
 
-static const bsls::Types::Uint64 UINT64_MAX_VALUE =
-                               bsl::numeric_limits<bsls::Types::Uint64>::max();
-static const bsls::Types::Uint64 UINT64_MAX_DIVIDED_BY_10 =
-                                                         UINT64_MAX_VALUE / 10;
-static const bsls::Types::Uint64 UINT64_MAX_DIVIDED_BY_10_TO_THE_10 =
-                                             UINT64_MAX_VALUE / 10000000000ULL;
-static const bsls::Types::Uint64 UINT64_MAX_VALUE_LAST_DIGIT = 5;
+const bsls::Types::Uint64 UINT64_MAX_VALUE = 0xFFFFFFFFFFFFFFFFull;
+const bsls::Types::Uint64 UINT64_MAX_DIVIDED_BY_10 =
+                                                  UINT64_MAX_VALUE / 10;
+const bsls::Types::Uint64 UINT64_MAX_DIVIDED_BY_10_TO_THE_10 =
+                                      UINT64_MAX_VALUE / 10000000000ULL;
+const bsls::Types::Uint64 UINT64_MAX_VALUE_LAST_DIGIT = 5;
 
 }  // close namespace u
 }  // close unnamed namespace
@@ -524,6 +519,17 @@ int ParserUtil::getValue(bsl::vector<char>       *value,
     value->resize(static_cast<bsl::size_t>(base64Decoder.outputLength()));
 
     return 0;
+}
+
+bool ParserUtil::stripQuotes(bsl::string_view *str)
+{
+    BSLS_ASSERT(str);
+    if (str->size() >= 2 && '"' == str->front() && '"' == str->back()) {
+        str->remove_prefix(1);
+        str->remove_suffix(1);
+        return true;                                                  // RETURN
+    }
+    return false;
 }
 
 }  // close package namespace

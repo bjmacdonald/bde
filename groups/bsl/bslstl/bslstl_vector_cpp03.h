@@ -21,7 +21,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Oct 19 18:09:45 2023
+// Generated on Tue Mar 26 07:59:44 2024
 // Command line: sim_cpp11_features.pl bslstl_vector.h
 
 #ifdef COMPILING_BSLSTL_VECTOR_H
@@ -2659,9 +2659,31 @@ class vector_UintPtrConversionIterator {
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
 
-    auto operator<=>(const vector_UintPtrConversionIterator&) const = default;
+    auto
+    operator<=>(const vector_UintPtrConversionIterator& other) const = default;
+        // Perform a three-way comparison with the specified 'other' object and
+        // return the result of that comparison. Where the underlying (wrapped)
+        // iterator of type `ITERATOR` supports 3 way comparison, the default
+        // spaceship operator will defer to `ITERATOR::operator<=>` and have
+        // the same return type as `ITERATOR::operator<=>`; otherwise, this
+        // operator will be deleted.
 
 #else
+
+    // FRIENDS
+    friend
+    bool operator!=(const vector_UintPtrConversionIterator& lhs,
+                    const vector_UintPtrConversionIterator& rhs)
+        // Return 'true' if the specified 'lhs' and 'rhs' iterators do not
+        // refer to the same element in the same underlying sequence and no
+        // more than one refers to the past-the-end element of the sequence,
+        // and 'false' otherwise.  The behavior is undefined if 'lhs' and 'rhs'
+        // do not iterate over the same sequence.
+    {
+        return lhs.d_iter != rhs.d_iter;
+    }
+
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
 
     // FRIENDS
     friend
@@ -2677,18 +2699,6 @@ class vector_UintPtrConversionIterator {
     }
 
     friend
-    bool operator!=(const vector_UintPtrConversionIterator& lhs,
-                    const vector_UintPtrConversionIterator& rhs)
-        // Return 'true' if the specified 'lhs' and 'rhs' iterators do not
-        // refer to the same element in the same underlying sequence and no
-        // more than one refers to the past-the-end element of the sequence,
-        // and 'false' otherwise.  The behavior is undefined if 'lhs' and 'rhs'
-        // do not iterate over the same sequence.
-    {
-        return lhs.d_iter != rhs.d_iter;
-    }
-
-    friend
     bool operator<(const vector_UintPtrConversionIterator& lhs,
                    const vector_UintPtrConversionIterator& rhs)
         // Return 'true' if the specified 'lhs' iterator is earlier in the
@@ -2699,8 +2709,6 @@ class vector_UintPtrConversionIterator {
     {
         return lhs.d_iter < rhs.d_iter;
     }
-
-#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
 
     friend
     difference_type operator-(const vector_UintPtrConversionIterator& lhs,
@@ -4416,6 +4424,11 @@ vector<VALUE_TYPE, ALLOCATOR>::~vector()
 {
     using BloombergLP::bslalg::ArrayDestructionPrimitives;
 
+    // suppress buggy warning in GCC 12 and later (DRQS 174259807)
+#ifdef BSLS_PLATFORM_CMP_GNU
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
     if (this->d_dataBegin_p) {
         ArrayDestructionPrimitives::destroy(this->d_dataBegin_p,
                                             this->d_dataEnd_p,
@@ -4423,6 +4436,9 @@ vector<VALUE_TYPE, ALLOCATOR>::~vector()
         AllocatorUtil::deallocateObject(this->allocatorRef(),
                                         this->d_dataBegin_p, this->d_capacity);
     }
+#ifdef BSLS_PLATFORM_CMP_GNU
+#pragma GCC diagnostic pop
+#endif
 }
 
 // MANIPULATORS
@@ -4636,14 +4652,16 @@ void vector<VALUE_TYPE, ALLOCATOR>::shrink_to_fit()
 {
     if (this->size() < this->d_capacity) {
         vector temp(this->get_allocator());
-        temp.privateReserveEmpty(this->size());
-        ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
-                                         this->d_dataBegin_p,
-                                         this->d_dataEnd_p,
-                                         this->allocatorRef());
+        if (this->size() > 0) {
+            temp.privateReserveEmpty(this->size());
+            ArrayPrimitives::destructiveMove(temp.d_dataBegin_p,
+                                             this->d_dataBegin_p,
+                                             this->d_dataEnd_p,
+                                             this->allocatorRef());
 
-        temp.d_dataEnd_p += this->size();
-        this->d_dataEnd_p = this->d_dataBegin_p;
+            temp.d_dataEnd_p += this->size();
+            this->d_dataEnd_p = this->d_dataBegin_p;
+        }
         Vector_Util::swap(&this->d_dataBegin_p, &temp.d_dataBegin_p);
     }
 }
@@ -6190,7 +6208,7 @@ extern template class bsl::vector<const char *>;
 #endif // ! defined(INCLUDED_BSLSTL_VECTOR_CPP03)
 
 // ----------------------------------------------------------------------------
-// Copyright 2023 Bloomberg Finance L.P.
+// Copyright 2018 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

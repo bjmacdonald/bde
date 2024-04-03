@@ -1,5 +1,114 @@
-bsl-internal (4.0.3.0) unstable; urgency=low
+bsl-internal (4.5.0.0) unstable; urgency=low
 
+  * cd5b1062b Bumped version to 4.5.0.0
+  * cf9479753 Make `bdlb::Guid` a first-class `ball::Attribute` type - {DRQS 174264326} (#4625)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Mon, 11 Mar 2024 11:01:15 -0400
+
+bsl-internal (4.4.1.0) git; urgency=low
+
+  * 432715edb Changelog for version 4.4.1.0
+  * cf3b86eff Bumped version to 4.4.1.0
+  * 439ccf0c9 Remove out-of-date markers from ball (#4658)
+  * 381523644 Remove out-of-date markers from bslmt (#4656)
+  * 3ceb421e8 bdlcc::Cache respects allocator_arg (#4651)
+  * 1fb1fc3fa Revert "Fix for range-v3 spaceshipless iterator support (#4644)" (#4655)
+  * e6ff4a515 drqs-173827946: 'bdljsn_{json,number}util.t.cpp': Fix C++03 warnings. (#4620)
+  * 036a23176 Add hashing support to NullableAllocatedValue {DRQS 174516518} (#4648)
+  * 4e0db5690 disable BSL_INTEGRAL_CONSTANT_ALLOW_BDLAT_LEGACY_SPECIALIZATIONS (#4647)
+  * 987e42372 Fix for range-v3 spaceshipless iterator support (#4644)
+  * 656c7e1c7 No bsl::flush in the example (#4646)
+  * 8a91be56a bdlbb_blobutil.h: improve doc of 'append' and 'copy' (#4640)
+  * 65defaf9e optional<Incomplete> (DRQS 173457570) (#4519)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Fri, 8 Mar 2024 12:48:06 -0500
+
+bsl-internal (4.4.0.0) git; urgency=low
+
+  * 9686d612a Changelog for version 4.4.0.0
+  * e17a0cd6c Bumped version to 4.4.0.0
+  * 204d5a550 Implement owner_equal and owner_hash from C++26 (DRQS 174172604) (#4638)
+  * 495a30526 Remove unused BAEJSN_BEGIN (#4639)
+  * 829d43f9c Remove workaround for cpp20 link coercion (#4629)
+  * c8401406b Logical operator traits (DRQS 174269087) (#4628)
+  * d08cde680 Modify 'shrinkToFit' so it does not call 'allocate(0)' {DRQS 174392169} (#4637)
+  * 9c6d14c09 Add 'emplace' (and variants) to the flat associative containers {DRQS 166844030} (#4601)
+  * c5bf4f1ac Balcl nightly build warnings drqs 174193974 (#4610)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Sun, 3 Mar 2024 17:39:57 -0500
+
+bsl-internal (4.3.0.0) git; urgency=low
+
+  * 8cd1098c8 Changelog for version 4.3.0.0
+  * 08263c4e0 Bumped version to 4.3.0.0
+  * 0a9f434c6 Suppress buggy Wmaybe-uninitialized error in bsl::vector destructor (DRQS 174259807) (#4632)
+  * 1374e2afa bdlbb_blobutil: add new 'append(length, fillChar)' overload (#4612)
+  * 23a3727fe Speed up `GuidUtil::guidToString` by factor of ~47x - {DRQS 174263699} (#4624)
+  * 02c9d3a73 Add 'inline' to monostate comparison operators (#4622)
+  * e5dabea14 balcl_option.t.cpp: quit using bsl::string::allocator (#4627)
+  * 5080b8a91 Remove deprecated 'bsl::basic_string::allocator()' accessor that was added to facilitate release of BDE 4.0 (#4623)
+  * 7f423aa44 'bsls::Types::Uint64' and 'bsl::uint64_t' are different on Linux, breaking overloads for 'bdld::BitUtil' (DRQS 173489775) (#4534)
+  * 14b7003ea Bde baljsn parserutil static extra tests drqs174180775 (#4617)
+  * 6bddfa463 Bslstl pair is_constructible sfinae current behavior (#4513)
+  * b3b4fb4e9 Remove unused Function_NothrowWrapper (#4618)
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Sat, 17 Feb 2024 12:55:24 -0500
+
+bsl-internal (4.2.0.0) git; urgency=low
+
+  * 140552b27 Changelog for version 4.2.0.0
+  * 6e90df550 Bumped version to 4.2.0.0
+  * 6cbcf4475 Re-enabled generic PMR support (#4613)
+  * 9077836bd Augment (Const)NullableValueRef (DRQS 174126010) (#4602)
+  * 0ff4e4f90 Replace numeric_limits with constant in static (#4614)
+  * 1c1a8bc81 Replicate PMR behaviour of GNU for Clang (#4611)
+  * ec1cfc2a1 Adds eraseFirstIf and eraseAllIf for StripedUnorderedMap and StripedUnorderedMultiMap (#4582)
+  * 0460bf8a1 Deprecation warnings in 'bslma_usesbslmaallocator.t' have been disabled by default. DRQS 173799492 (#4584)
+  * 7982f81b1 correct clang warning (#4608)
+  * d95d9ec39 Revert "Revert "balcl_commandline: Add ability to read environment va… (#4580)
+  * c3b9a069f bslstl_stdexceptutil: restore BSLA_NORETURN annotations (#4595)
+  * 0f2137e70 Remove extra '&' in ConstNullableValue's copy ctor (#4604)
+  * 7a1bc1a71 reduce nb warnings (#4605)
+  * 013b9ca84 Temporary disable generic PMR support (#4600)
+  * 7fe0977db Use BSLS_PLATFORM_CMP_VERSION instead of non-existant BSLS_PLATFORM_VERSION (#4597)
+  * ae1a3c509 New PR for map::operator[] and non-copyable types (#4596)
+  * ba008ef14 New PR for unordered_map::operator[] and non copyable/movable types (#4588)
+  * 860a4c7bd add notes indication drqs relevant to the workaround removal (#4587)
+  * 9d67ff32b Revert "Bslstl stdexceptutil drqs 168403170" (#4592)
+
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Fri, 2 Feb 2024 19:53:17 -0500
+
+bsl-internal (4.1.0.0) git; urgency=low
+
+  * 905b005da Changelog for version 4.1.0.0
+  * 4329a42bd Bumped version to 4.1.0.0
+  * 8d494f26e Revert "map::operator[] and non copyable/movable types (#4573)" (#4591)
+  * 4bb69ffee Revert "Add operator[] support for unmovable, uncopyable types (post C++03) {DRQS 173573936} (#4551)" (#4590)
+  * 7e30469de Fix duplication of hashAppend for std::monostate (DRQS 174058836) (#4586)
+  * f65de3066 Merge pull request #4473 from bchapman/bslstl_stdexceptutil-st-attila-drqs-168403170
+  * 002b08677 Revert "Revert json double comma and JSON conformance work" (#4569)
+  * 08fc63602 map::operator[] and non copyable/movable types (#4573)
+  * e0d9d134f bdlcc::ObjectCatalog: deprecate catalog.value(), add Iter(catalog, ha… (#4530)
+  * 002136c2b Enchance PMR related library features detection and usage. (DRQS 174011792) (#4583)
+  * 04ddaf9e9 Add operator[] support for unmovable, uncopyable types (post C++03) {DRQS 173573936} (#4551)
+  * 4da518937 Merge pull request #4572 from bchapman/bdlf_bind-improve-function-doc-drqs-122979742
+  * 8294ca5bc Analogue of the 'bsl::copy_n' with correct return type has been added. DRQS 173678416 (#4529)
+  * d36b207cd Improve confusing #ifdef check in bslmf_isconvertible (DRQS 173879608) (#4575)
+  * a7a3775db Revert "balcl_commandline: Add ability to read environment variables (#4350)" (#4578)
+  * e0c8ac006 Reinstate decoding ints into int enums and vice versa (DRQS 173798542) (#4570)
+  * 5d7d6d109 Known issue doc added (#4576)
+  * a85005a26 ball::LoggerManager creates process-wide static w/o globalAllocator (DRQS 173849905) (#4555)
+  * 45051e198 Unnecessary volatile qualifiers have been removed from 'bslmt threadutilimpl_win32.cpp'. DRQS 173472631 (#4495)
+  * 7e0698346 balcl_commandline: Add ability to read environment variables (#4350)
+  * 260ea95f7 correct timing issue (#4568)
+  * 51329715a Fix self-assignment for `bsl::allocator<T>` - DRQS 173931564 (#4565)
+  * 398488a71 Refine bdl CML (#4552)
+
+ -- Mike Giroux <mgiroux@bloomberg.net>  Sat, 20 Jan 2024 13:19:26 -0500
+
+bsl-internal (4.0.3.0) git; urgency=low
+
+  * 42a41090f Changelog for version 4.0.3.0
   * 83b665f11 Bumped version to 4.0.3.0
   * bfdb9bf4a Update bslma_bslallocator to use BSLS_DEPRECATE_FEATURE (#4561)
   * 03c35565c Add deprecated 'allocator()' method back into 'bsl::basic_string' (#4562)
@@ -9,7 +118,7 @@ bsl-internal (4.0.3.0) unstable; urgency=low
   * 7d60641cd Revert "correct clang build warning (#4553)" (#4557)
   * 9c1e0cc1b Fix generated cpp03 for variant (#4556)
 
- -- Oleg Subbotin <osubbotin@bloomberg.net>  Thu, 28 Dec 2023 14:55:03 -0500
+ -- Oleg Subbotin <osubbotin@bloomberg.net>  Thu, 28 Dec 2023 14:56:19 -0500
 
 bsl-internal (4.0.0.0) git; urgency=low
 

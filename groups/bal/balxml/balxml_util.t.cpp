@@ -1,12 +1,4 @@
 // balxml_util.t.cpp                                                  -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balxml_util.h>
 
 #include <bslim_testutil.h>
@@ -15,10 +7,6 @@
 #include <bsl_cstdlib.h>     // atoi()
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
-
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-# include <memory_resource>
-#endif
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -247,7 +235,7 @@ int main(int argc, char *argv[])
                     }
                 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
                 {
                     std::pmr::string   tnsReal;
                     bsl::istringstream is(xsd);
@@ -320,7 +308,7 @@ int main(int argc, char *argv[])
                     }
                 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
                 {
                     std::pmr::string tnsReal;
 

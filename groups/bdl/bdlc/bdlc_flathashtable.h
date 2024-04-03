@@ -54,11 +54,13 @@ BSLS_IDENT("$Id: $")
 // template parameter types 'HASH' and 'EQUAL' must be default and copy
 // constructible function objects.
 //
-// 'ENTRY_UTIL' must support static methods 'construct' and 'key' compatible
-// with the following statements for objects 'entry' of type 'ENTRY', 'key' of
-// type 'KEY', and 'allocator' of type 'bslma::Allocator':
+// 'ENTRY_UTIL' must support static methods 'constructFromKey', 'construct',
+// and 'key' compatible with the following statements for objects 'entry' of
+// type 'ENTRY', 'key' of type 'KEY', and 'allocator' of type
+// 'bslma::Allocator':
 //..
-//  ENTRY_UTIL::construct(&entry, &allocator, key);
+//  ENTRY_UTIL::constructFromKey(&entry, &allocator, key);
+//  ENTRY_UTIL::construct(&entry, &allocator, args...);
 //  const KEY& keyOfEntry = ENTRY_UTIL::key(entry);
 //..
 //
@@ -154,6 +156,15 @@ BSLS_IDENT("$Id: $")
 #include <bsl_limits.h>
 #include <bsl_type_traits.h>
 #include <bsl_utility.h>
+
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// Include version that can be compiled with C++03
+// Generated on Tue Feb 13 09:14:21 2024
+// Command line: sim_cpp11_features.pl bdlc_flathashtable.h
+# define COMPILING_BDLC_FLATHASHTABLE_H
+# include <bdlc_flathashtable_cpp03.h>
+# undef COMPILING_BDLC_FLATHASHTABLE_H
+#else
 
 namespace BloombergLP {
 namespace bdlc {
@@ -434,6 +445,17 @@ class FlatHashTable
         // since each key in a flat hash table is unique, the returned range
         // contains at most one element.
 
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    template< class... ARGS>
+    bsl::pair<iterator, bool> emplace(ARGS&&... args);
+        // Create an 'ENTRY' object from the specified 'args', and attempt to
+        // add it to this flat hash table.  Return a 'bsl::pair' containing an
+        // iterator to the newly inserted object and 'true' if the element was
+        // added.  If an entry with the same key already exists in this flat
+        // hash table, return an iterator to that entry and 'false'.  This
+        // method requires that the 'ENTRY' be 'copy-constructible'.
+#endif
+
     bsl::size_t erase(const KEY& key);
         // Remove from this table the object having the specified 'key', if it
         // exists, and return 1; otherwise (there is no object with a key equal
@@ -495,7 +517,7 @@ class FlatHashTable
                                            hashValue);
 
         if (notFound) {
-            bslma::ConstructionUtil::construct(
+            ENTRY_UTIL::construct(
                              d_entries_p + index,
                              d_allocator_p,
                              BSLS_COMPILERFEATURES_FORWARD(ENTRY_TYPE, entry));
@@ -550,6 +572,34 @@ class FlatHashTable
     void reset();
         // Remove all entries from this table and release all memory from this
         // table, returning the table to the zero-capacity state.
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    template< class... ARGS>
+    bsl::pair<iterator, bool> try_emplace(const KEY& key, ARGS&&... args);
+        // If a key equivalent to the specified 'key' already exists in this
+        // map, return a pair containing an iterator referring to the existing
+        // item, and 'false'.  Otherwise, insert into this map a newly-created
+        // 'ENTRY' object, constructed from 'key' and the specified 'args', and
+        // return a pair containing an iterator referring to the newly-created
+        // entry and 'true'.  This method requires that the (template
+        // parameter) types 'KEY' and 'VALUE' are 'emplace-constructible' from
+        // 'key' and 'args' respectively.  For C++03, 'VALUE' must also be
+        // 'copy-constructible'.
+
+    template <class... ARGS>
+    bsl::pair<iterator, bool> try_emplace(
+                                     BloombergLP::bslmf::MovableRef<KEY> key,
+                                     ARGS&&...                           args);
+        // If a key equivalent to the specified 'key' already exists in this
+        // map, return a pair containing an iterator referring to the existing
+        // item, and 'false'.  Otherwise, insert into this map a newly-created
+        // 'ENTRY' object, constructed from 'std::forward<KEY>(key)' and the
+        // specified 'args', and return a pair containing an iterator referring
+        // to the newly-created entry and 'true'.  This method requires that
+        // the (template parameter) types 'KEY' and 'VALUE' are
+        // 'emplace-constructible' from 'key' and 'args' respectively.  For
+        // C++03, 'VALUE' must also be 'copy-constructible'.
+#endif
 
                           // Iterators
 
@@ -1445,9 +1495,9 @@ ENTRY& FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::operator[](
     bsl::size_t index     = indexOfKey(&notFound, key, hashValue);
 
     if (notFound) {
-        ENTRY_UTIL::construct(d_entries_p + index,
-                              d_allocator_p,
-                              BSLS_COMPILERFEATURES_FORWARD(KEY_TYPE, key));
+        ENTRY_UTIL::constructFromKey(d_entries_p + index,
+                                 d_allocator_p,
+                                 BSLS_COMPILERFEATURES_FORWARD(KEY_TYPE, key));
 
         d_controls_p[index] = static_cast<bsl::uint8_t>(
                                                    hashValue & k_HASHLET_MASK);
@@ -1486,6 +1536,26 @@ FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::equal_range(const KEY& key)
     ++it2;
     return bsl::make_pair(it1, it2);
 }
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+template <class KEY, class ENTRY, class ENTRY_UTIL, class HASH, class EQUAL>
+template< class... ARGS>
+inline
+bsl::pair<typename
+                  FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::iterator,
+          bool>
+FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::emplace(ARGS&&... args)
+{
+    bsls::ObjectBuffer<entry_type> value;
+    ENTRY_UTIL::construct(value.address(),
+                          d_allocator_p,
+                          BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+
+    bslma::DestructorGuard<entry_type> guard(value.address());
+    return this->insert(bslmf::MovableRefUtil::move(value.object()));
+}
+#endif
+
 
 template <class KEY, class ENTRY, class ENTRY_UTIL, class HASH, class EQUAL>
 inline
@@ -1681,6 +1751,68 @@ void FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::reset()
         d_groupControlShift = 0;
     }
 }
+
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+template <class KEY, class ENTRY, class ENTRY_UTIL, class HASH, class EQUAL>
+template< class... ARGS>
+bsl::pair<typename
+                  FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::iterator,
+          bool>
+FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::try_emplace(
+                                                               const KEY& key,
+                                                               ARGS&&...  args)
+    // Note: 'args' contains 'key'
+{
+    bool        notFound;
+    bsl::size_t hashValue = d_hasher(key);
+    bsl::size_t index     = indexOfKey(&notFound, key, hashValue);
+
+    if (notFound) {
+        ENTRY_UTIL::construct(d_entries_p + index,
+                              d_allocator_p,
+                              BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+
+        d_controls_p[index] = static_cast<bsl::uint8_t>(
+                                                   hashValue & k_HASHLET_MASK);
+        ++d_size;
+    }
+
+    return bsl::pair<iterator, bool>(IteratorImp(d_entries_p  + index,
+                                                 d_controls_p + index,
+                                                 d_capacity   - index - 1),
+                                     notFound);
+}
+
+template <class KEY, class ENTRY, class ENTRY_UTIL, class HASH, class EQUAL>
+template< class... ARGS>
+bsl::pair<typename
+                  FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::iterator,
+          bool>
+FlatHashTable<KEY, ENTRY, ENTRY_UTIL, HASH, EQUAL>::try_emplace(
+                                      BloombergLP::bslmf::MovableRef<KEY> key,
+                                      ARGS&&...                           args)
+    // Note: 'args' contains 'key'
+{
+    const KEY&  k = key;
+    bool        notFound;
+    bsl::size_t hashValue = d_hasher(k);
+    bsl::size_t index     = indexOfKey(&notFound, k, hashValue);
+
+    if (notFound) {
+        ENTRY_UTIL::construct(d_entries_p + index,
+                              d_allocator_p,
+                              BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+
+        d_controls_p[index] = static_cast<bsl::uint8_t>(
+                                                   hashValue & k_HASHLET_MASK);
+        ++d_size;
+    }
+    return bsl::pair<iterator, bool>(IteratorImp(d_entries_p  + index,
+                                                 d_controls_p + index,
+                                                 d_capacity   - index - 1),
+                                     notFound);
+}
+#endif
 
                             // Iterators
 
@@ -2284,6 +2416,8 @@ void FlatHashTable_ImplUtil::DestroyEntryArrayProctor<ENTRY_TYPE>::release()
 
 }  // close package namespace
 }  // close enterprise namespace
+
+#endif // End C++11 code
 
 #endif
 

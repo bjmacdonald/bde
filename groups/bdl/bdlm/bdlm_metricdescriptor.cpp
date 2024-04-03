@@ -4,8 +4,25 @@
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bdlm_metricdescriptor_cpp,"$Id$ $CSID$")
 
+namespace BloombergLP {
+namespace bdlm {
+
+                          // ----------------------
+                          // class MetricDescriptor
+                          // ----------------------
+
+// CONSTANTS
+const char *bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_NAMESPACE_SELECTION =
+                                                                            "";
+
+const char *bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_OBJECT_ID_SELECTION =
+                                                                            "";
+
+}  // close package namespace
+}  // close enterprise namespace
+
 // ----------------------------------------------------------------------------
-// Copyright 2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

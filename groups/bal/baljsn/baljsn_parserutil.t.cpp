@@ -84,6 +84,8 @@ using bsl::endl;
 // [28] static int getValue(DatetimeOrDatetimeTz *v, bsl::string_view s);
 // [20] static int getValue(vector<char>         *v, bsl::string_view s);
 // [21] static int getValue(bdldfp::Decimal64    *v, bsl::string_view s);
+// [29] static bool stripQuotes(bsl::string_view *str);
+// [30] DRQS 174180775 - TEST STATIC CALL
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
 //
@@ -92,7 +94,7 @@ using bsl::endl;
 // [24] NUMBERS ROUND-TRIP
 // [25] DATE AND TIME TYPES ROUND-TRIP
 //
-// [29] USAGE EXAMPLE
+// [31] USAGE EXAMPLE
 
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
@@ -148,6 +150,50 @@ typedef baljsn::PrintUtil  Print;
 
 typedef bsls::Types::Int64  Int64;
 typedef bsls::Types::Uint64 Uint64;
+
+// ============================================================================
+//                    DRQS 174180775 - TEST STATIC CALL
+// ----------------------------------------------------------------------------
+
+// The values are going to be checked in the test case in main for this
+// plan item.  `u_TestValueCount` and `u_TestValueMask` will
+// let us make sure none of the cases were missed.
+
+int    u_TestValueCount = 0;
+Uint64 u_TestValueMask  = 0;
+
+#define DECLARE_STATIC_TEST_CASE(n)                                 \
+    static Uint64 u_static_val         ## n;                        \
+    static int    u_static_test_result ## n =                       \
+           baljsn::ParserUtil::getValue(&u_static_val ## n, #n);    \
+    static int    u_TestValueCount_increment ## n =                 \
+           ++u_TestValueCount;                                      \
+    static Uint64    u_TestValueMask_update ## n =                  \
+        (u_TestValueMask ^= n)
+
+DECLARE_STATIC_TEST_CASE(1234567890);
+DECLARE_STATIC_TEST_CASE(0);
+DECLARE_STATIC_TEST_CASE(1);
+DECLARE_STATIC_TEST_CASE(95);
+DECLARE_STATIC_TEST_CASE(127);
+DECLARE_STATIC_TEST_CASE(128);
+DECLARE_STATIC_TEST_CASE(200);
+DECLARE_STATIC_TEST_CASE(255);
+DECLARE_STATIC_TEST_CASE(256);
+DECLARE_STATIC_TEST_CASE(32766);
+DECLARE_STATIC_TEST_CASE(32767);
+DECLARE_STATIC_TEST_CASE(65534);
+DECLARE_STATIC_TEST_CASE(65535);
+DECLARE_STATIC_TEST_CASE(8388607);
+DECLARE_STATIC_TEST_CASE(8388608);
+DECLARE_STATIC_TEST_CASE(2147483646);
+DECLARE_STATIC_TEST_CASE(2147483647);
+DECLARE_STATIC_TEST_CASE(4294967294);
+DECLARE_STATIC_TEST_CASE(4294967295);
+DECLARE_STATIC_TEST_CASE(9223372036854775806);
+DECLARE_STATIC_TEST_CASE(9223372036854775807);
+
+#undef DECLARE_STATIC_TEST_CASE
 
 // ============================================================================
 //                              TEST MACHINERY
@@ -331,7 +377,7 @@ int main(int argc, char *argv[])
     bslma::Default::setGlobalAllocator(&globalAllocator);
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 29: {
+      case 31: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   Extracted from component header file.
@@ -395,6 +441,135 @@ int main(int argc, char *argv[])
     ASSERT(bdlt::Date(1985, 06, 24) == employee.d_date);
     ASSERT(21                      == employee.d_age);
 //..
+      } break;
+      case 30: {
+        // --------------------------------------------------------------------
+        // DRQS 174180775 - TEST STATIC CALL
+        //   Make sure a static call leading to `getUint64` succeeds.
+        //
+        // Concerns:
+        //: 1 Does a call at static load time returns correct value?
+        //
+        // Plan:
+        //: 1 Test that a call at static load time returns correct value.
+        //
+        // Testing:
+        //   DRQS 174180775 - TEST STATIC CALL
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nDRQS 174180775 - TEST STATIC CALL"
+                          << "\n=================================" << endl;
+
+        Uint64 testedValuesMask = 0;
+#define CHECK_STATIC(n)                             \
+            ASSERTV(u_static_val ## n,              \
+                    u_static_test_result ## n,      \
+                    n == u_static_val ## n);        \
+            --u_TestValueCount;                     \
+            testedValuesMask ^= n
+
+        CHECK_STATIC(1234567890);
+        CHECK_STATIC(0);
+        CHECK_STATIC(1);
+        CHECK_STATIC(95);
+        CHECK_STATIC(127);
+        CHECK_STATIC(128);
+        CHECK_STATIC(200);
+        CHECK_STATIC(255);
+        CHECK_STATIC(256);
+        CHECK_STATIC(32766);
+        CHECK_STATIC(32767);
+        CHECK_STATIC(65534);
+        CHECK_STATIC(65535);
+        CHECK_STATIC(8388607);
+        CHECK_STATIC(8388608);
+        CHECK_STATIC(2147483646);
+        CHECK_STATIC(2147483647);
+        CHECK_STATIC(4294967294);
+        CHECK_STATIC(4294967295);
+        CHECK_STATIC(9223372036854775806);
+        CHECK_STATIC(9223372036854775807);
+
+        ASSERTV(u_TestValueCount, 0 == u_TestValueCount);
+        ASSERTV(u_TestValueMask,
+                testedValuesMask,
+                u_TestValueMask ^ testedValuesMask,
+                u_TestValueMask == testedValuesMask);
+#undef CHECK_STATIC
+      } break;
+      case 29: {
+        // --------------------------------------------------------------------
+        // TESTING 'stripQuotes'
+        //
+        // Concerns:
+        //: 1 'stripQuotes' returns 'true' if the input string is of the form
+        //:   '"' + S + '"', where S is a possibly empty string, and modifies
+        //:   its argument to refer to S.
+        //: 2 'stripQuotes' returns 'false' in all other cases, and doesn't
+        //:   modify its argument.
+        //
+        // Plan:
+        //: 1 Using the table-driven technique, specify a set of distinct
+        //:   rows of input value, expected resulting value, and return value.
+        //:
+        //: 2 For each row in the table of P-1:
+        //:
+        //:   1 Create a 'bsl::string_view' object referring to the input
+        //:     string and pass it to the 'stripQuotes' function.
+        //:
+        //:   2 Verify that the return value of 'stripQuotes', and the value of
+        //:     the 'bsl::string_view' object, are as specified in the table.
+        //
+        // Testing:
+        //   static bool stripQuotes(bsl::string_view *str);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nTESTING 'stripQuotes'"
+                          << "\n=====================" << endl;
+
+        static const struct {
+            int         d_line;
+            const char *d_input_p;
+            const char *d_output_p;
+            bool        d_expectedReturn;
+        } DATA[] = {
+           //line input         output    expected
+           //---- -----         ------    -------
+            { L_, "",           "",       false },
+            { L_, "\"",         "\"",     false },
+            { L_, "a",          "a",      false },
+            { L_, "\"\"",       "",       true  },
+            { L_, "\"a",        "\"a",    false },
+            { L_, "a\"",        "a\"",    false },
+            { L_, "aa",         "aa",     false },
+            { L_, "\"\"\"",     "\"",     true  },
+            { L_, "\"\"a",      "\"\"a",  false },
+            { L_, "\"a\"",      "a",      true  },
+            { L_, "\"aa",       "\"aa",   false },
+            { L_, "a\"\"",      "a\"\"",  false },
+            { L_, "a\"a",       "a\"a",   false },
+            { L_, "aa\"",       "aa\"",   false },
+            { L_, "aaa",        "aaa",    false },
+            { L_, "\"ab\"",     "ab",     true  },
+            { L_, "\"\"a\"\"",  "\"a\"",  true  },
+            { L_, "\"a\"\"b\"", "a\"\"b", true  },
+            { L_, "a\"\"b",     "a\"\"b", false }
+        };
+        const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+
+        for (int i = 0; i < NUM_DATA; ++i) {
+            const int         LINE   = DATA[i].d_line;
+            string_view       INPUT  = DATA[i].d_input_p;
+            const string_view OUTPUT = DATA[i].d_output_p;
+            const bool        R      = DATA[i].d_expectedReturn;
+
+            if (veryVerbose) { P_(LINE) P(INPUT) }
+
+            const bool result = Util::stripQuotes(&INPUT);
+
+            LOOP3_ASSERT(LINE, R, result, R == result);
+            LOOP3_ASSERT(LINE, OUTPUT, INPUT, OUTPUT == INPUT);
+        }
       } break;
       case 28: {
         // --------------------------------------------------------------------

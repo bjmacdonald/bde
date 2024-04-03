@@ -15,6 +15,7 @@
 // For round-trip testing
 #include <baljsn_encoder.h>
 #include <baljsn_encoderoptions.h>
+#include <baljsn_encodingstyle.h>
 
 #include <s_baltst_address.h>
 #include <s_baltst_employee.h>
@@ -24,6 +25,7 @@
 #include <bdlat_attributeinfo.h>
 #include <bdlat_choicefunctions.h>
 #include <bdlat_enumeratorinfo.h>
+#include <bdlat_enumfunctions.h>
 #include <bdlat_selectioninfo.h>
 #include <bdlat_sequencefunctions.h>
 #include <bdlat_typetraits.h>
@@ -35,8 +37,11 @@
 
 #include <bdlde_utf8util.h>
 
+#include <bdlt_datetimetz.h>
+
 #include <bdlsb_fixedmeminstreambuf.h>
 #include <bdlsb_fixedmemoutstreambuf.h>
+
 
 #include <bdlpcre_regex.h>
 
@@ -46,6 +51,8 @@
 #include <bslmt_threadutil.h>
 
 #include <s_baltst_address.h>
+#include <s_baltst_basicrecord.h>
+#include <s_baltst_bigrecord.h>
 #include <s_baltst_employee.h>
 #include <s_baltst_generatetestarray.h>
 #include <s_baltst_generatetestchoice.h>
@@ -56,7 +63,9 @@
 #include <s_baltst_generatetestsequence.h>
 #include <s_baltst_generatetesttaggedvalue.h>
 #include <s_baltst_myenumerationwithfallback.h>
+#include <s_baltst_myintenumeration.h>
 #include <s_baltst_mysequencewithchoice.h>
+#include <s_baltst_mysequencewithnillable.h>
 #include <s_baltst_testchoice.h>
 #include <s_baltst_testcustomizedtype.h>
 #include <s_baltst_testdynamictype.h>
@@ -127,7 +136,9 @@ namespace test = BloombergLP::s_baltst;
 // [11] FLOATING-POINT VALUES ROUND-TRIP
 // [12] REPRODUCE SCENARIO FROM DRQS 169438741
 // [13] FALLBACK ENUMERATORS
-// [14] USAGE EXAMPLE
+// [14] DECODING INTS AS ENUMS AND VICE VERSA              {DRQS 166048981<GO>}
+// [15] ARRAY HAVING NULLABLE COMPLEX ELEMENTS             {DRQS 167908706<GO>}
+// [16] USAGE EXAMPLE
 
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
@@ -36551,6 +36562,54 @@ struct IsEnumeration<test::Enumeration0> : public bsl::true_type {
 };
 
 }  // close bdlat_EnumFunctions namespace
+namespace s_baltst {
+
+                             // ==================
+                             // class Enumeration1
+                             // ==================
+
+class Enumeration1 {
+  private:
+    int d_value;
+
+    friend int bdlat_enumFromInt(Enumeration1 *dest, int val)
+    {
+        if (val == 0 || val == 1) {
+            dest->d_value = val;
+            return 0;                                                 // RETURN
+        }
+        return -1;
+    }
+
+    friend int bdlat_enumFromString(Enumeration1 *, const char *, int)
+    {
+        bsl::cout << "should not be called\n";
+        ASSERT(false);
+        return -1;
+    }
+
+    friend void bdlat_enumToInt(int *result, const Enumeration1& src)
+    {
+        *result = src.d_value;
+    }
+
+    friend void bdlat_enumToString(bsl::string         *result,
+                                   const Enumeration1&  src)
+    {
+        if (src.d_value == 0) {
+            *result = "0";
+        } else {
+            ASSERT(1 == src.d_value);
+            *result = "1";
+        }
+    }
+};
+}  // close namespace s_baltst
+namespace bdlat_EnumFunctions {
+template <>
+struct IsEnumeration<test::Enumeration1> : public bsl::true_type {
+};
+}  // close namespace bdlat_EnumFunctions
 }  // close enterprise namespace
 
 namespace BloombergLP {
@@ -36880,7 +36939,7 @@ int main(int argc, char *argv[])
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 14: {
+      case 16: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   Extracted from component header file.
@@ -36985,6 +37044,454 @@ int main(int argc, char *argv[])
     ASSERT("New York"      == employee.homeAddress().state());
     ASSERT(21              == employee.age());
 //..
+      } break;
+      case 15: {
+        // --------------------------------------------------------------------
+        // ARRAY HAVING NULLABLE COMPLEX ELEMENTS
+        //   Ticket {DRQS 167908706} reports a failure to decode a JSON
+        //   document to an array of nillable types when 'null' appears in the
+        //   document.  This test case reproduces that problem and tests the
+        //   fix.  Note that investigation showed that the failure did occured
+        //   when the nillable type was a 'ComplexType' but not a 'SimpleType'.
+        //
+        // Concerns:
+        //: 1 The fix enables the successful decoding of 'null' for arrays
+        //:   nillable 'ComplexType's.
+        //:
+        //: 2 The successful decoding of 'null' for arrays nillable
+        //:   'SimpleType's continues to work correctly.
+        //:
+        //: 3 The (incorrect) use of 'null' in an array of non-nillalble types
+        //:   continues to fail provide a meaningful error message.
+        //:
+        //: 4 The JSON 'null' token is decoded irrespective of its position in
+        //:   the array.
+        //
+        // Plan:
+        //: 1 Use three test types:
+        //:
+        //:   1 's_baltst::MySequenceWithNillableIntArray', a
+        //:      nillable array of a simple type
+        //:
+        //:   2 's_baltst::MySequenceWithNillableIntSequenceArray', a
+        //:     nillable array of a complex type
+        //:
+        //:   3 's_baltst::BigRecord TestObj': features a non-nillable array
+        //:     of a complex type (and a few other non-relevant fields).
+        //:
+        //: 2 For the first two test types, P1-1 and P1-2:
+        //:   1 Create a test object
+        //:   2 Call 'reset' on one of the elements of the array to generate
+        //:     a 'null' in the corresponding position in the JSON document.
+        //:   3 Encode the object into a JSON document.
+        //:   4 Decode the JSON document into a second object.
+        //:   5 Compare the first and second objects for equality.
+        //:   6 Repeat 1-5 for each position in the array.
+        //:
+        //: 3 The third test type, P1-3, that provides no 'reset' method (it is
+        //:   *not* nillable), create a series of JSON documents with a 'null'
+        //:   successively in each array position.  Check that each of these
+        //:   data points fail and provides an error message that reports the
+        //:   position of the 'null'.
+        //
+        // Testing:
+        //   DRQS 167908706
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "ARRAY HAVING NULLABLE COMPLEX ELEMENTS" << endl
+                          << "======================================" << endl;
+
+        if (verbose) { Q(Nillable array of simple type);}
+        {
+            typedef s_baltst::MySequenceWithNillableIntArray TestObj;
+
+            for (int resetIndex = 0; resetIndex < 4; ++resetIndex) {
+
+                if (veryVerbose) {
+                    P(resetIndex);
+                }
+
+                TestObj mX; const TestObj& X = mX;
+
+                mX.attribute1().push_back(  7);
+                mX.attribute1().push_back( 13);
+                mX.attribute1().push_back( 42);
+                mX.attribute1().push_back(666);
+
+                mX.attribute1()[resetIndex].reset();
+
+                bsl::ostringstream os;
+                baljsn::Encoder    encoder;
+
+                int rcEn = encoder.encode(os, X);
+                ASSERTV(rcEn, 0 == rcEn);
+
+                bsl::string encoding = os.str();
+
+                const char *const INPUT = encoding.c_str();
+                if (veryVerbose) {
+                    P(INPUT);
+                }
+                bsl::istringstream is(INPUT);
+
+                TestObj mY; const TestObj& Y = mY;
+
+                Obj decoder;
+                int rcDe = decoder.decode(is, &mY);                     // TEST
+
+                ASSERTV(rcDe, 0 == rcDe);
+                ASSERTV(decoder.loggedMessages(),
+                        decoder.loggedMessages() == "");
+
+                ASSERTV(X, Y, X == Y);
+            }
+        }
+
+        if (verbose) { Q(Nillable array of complex type);}
+        {
+            typedef s_baltst::MySequenceWithNillableIntSequenceArray
+                                                                 TestObj;
+            typedef s_baltst::MySequenceWithNillableIntSequenceArraySequence
+                                                                 TestObjValue;
+
+            TestObjValue v007; v007.attribute1() =   7;
+            TestObjValue v013; v013.attribute1() =  13;
+            TestObjValue v042; v042.attribute1() =  42;
+            TestObjValue v666; v666.attribute1() = 666;
+
+            for (int resetIndex = 0; resetIndex < 4; ++resetIndex) {
+
+                if (veryVerbose) {
+                    P(resetIndex);
+                }
+
+                TestObj mX; const TestObj& X = mX;
+                mX.attribute1().push_back(v007);
+                mX.attribute1().push_back(v013);
+                mX.attribute1().push_back(v042);
+                mX.attribute1().push_back(v666);
+
+                mX.attribute1()[resetIndex].reset();
+
+                bsl::ostringstream os;
+                baljsn::Encoder    encoder;
+
+                int rcEn = encoder.encode(os, X);
+                ASSERTV(rcEn, 0 == rcEn);
+
+                bsl::string encoding = os.str();
+
+                const char *const INPUT = encoding.c_str();
+
+                if (veryVerbose) {
+                    P(INPUT);
+                }
+
+                bsl::istringstream is(INPUT);
+
+                TestObj mY; const TestObj& Y = mY;
+
+                Obj decoder;
+                int rcDe = decoder.decode(is, &mY);                     // TEST
+                ASSERTV(rcDe, 0 == rcDe);
+                ASSERTV(decoder.loggedMessages(),
+                        decoder.loggedMessages() == "");
+                ASSERTV(X, Y, X == Y);
+            }
+        }
+
+        if (verbose) { Q(non-nillable array of complex type);}
+        {
+            typedef s_baltst::  BigRecord TestObj;
+            typedef s_baltst::BasicRecord TestObjValue;
+
+            TestObjValue mV1; const TestObjValue& V1 = mV1;
+            mV1.i1() = 11;
+            mV1.i2() = 12;
+            mV1.dt() = bdlt::DatetimeTz();
+            mV1. s() = "I am 'BasicRecord' value1.";
+
+            TestObjValue mV2; const TestObjValue& V2 = mV2;
+            mV2.i1() = 21;
+            mV2.i2() = 22;
+            mV2.dt() = bdlt::DatetimeTz();
+            mV2. s() = "I am 'BasicRecord' value2.";
+
+            TestObjValue mV3; const TestObjValue& V3 = mV3;
+            mV3.i1() = 31;
+            mV3.i2() = 32;
+            mV3.dt() = bdlt::DatetimeTz();
+            mV3. s() = "I am 'BasicRecord' value3.";
+
+            if (veryVerbose) {
+                P(V1);
+                P(V2);
+                P(V3);
+            }
+
+            TestObj mX; const TestObj& X = mX;
+            mX.name() = "I am an array of 'BasicRecord's.";
+            mX.array().push_back(V1);
+            mX.array().push_back(V2);
+            mX.array().push_back(V3);
+
+            bsl::ostringstream     os;
+            baljsn::Encoder        encoder;
+            baljsn::EncoderOptions encoderOptions;
+
+            encoderOptions.setEncodingStyle(baljsn::EncodingStyle::e_PRETTY);
+            encoderOptions.setSpacesPerLevel(4);
+
+            int rcEn = encoder.encode(os, X, encoderOptions);
+
+            ASSERTV(rcEn, 0 == rcEn);
+
+            bsl::string encoding = os.str();
+            if (veryVerbose && 0 != rcEn) {
+                P(encoding);
+            }
+
+#define NL "\n"
+            const char *const INPUT_OK =
+            "{"                                                              NL
+            "    \"name\" : \"I am an array of 'BasicRecord's.\","           NL
+            "    \"array\" : ["                                              NL
+            "        {"                                                      NL
+            "            \"i1\" : 11,"                                       NL
+            "            \"i2\" : 12,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value1.\""             NL
+            "        },"                                                     NL
+            "        {"                                                      NL
+            "            \"i1\" : 21,"                                       NL
+            "            \"i2\" : 22,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value2.\""             NL
+            "        },"                                                     NL
+            "        {"                                                      NL
+            "            \"i1\" : 31,"                                       NL
+            "            \"i2\" : 32,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value3.\""             NL
+            "        }"                                                      NL
+            "    ]"                                                          NL
+            "}"                                                              NL
+            ;
+
+            const char *LOG_OK = "";
+
+            ASSERTV(encoding.size(),   bsl::strlen(INPUT_OK),
+                    encoding.size() == bsl::strlen(INPUT_OK));
+
+            ASSERTV(encoding, INPUT_OK, encoding == INPUT_OK);
+
+            const char *const INPUT_NG0 =
+            "{"                                                              NL
+            "    \"name\" : \"I am an array of 'BasicRecord's.\","           NL
+            "    \"array\" : ["                                              NL
+
+            "        null,"                                                  NL
+
+            "        {"                                                      NL
+            "            \"i1\" : 21,"                                       NL
+            "            \"i2\" : 22,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value2.\""             NL
+            "        },"                                                     NL
+            "        {"                                                      NL
+            "            \"i1\" : 31,"                                       NL
+            "            \"i2\" : 32,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value3.\""             NL
+            "        }"                                                      NL
+            "    ]"                                                          NL
+            "}"                                                              NL
+            ;
+
+            const char *LOG_NG0 =
+"Could not decode sequence, missing starting '{'"                            NL
+"Error adding element '0'"                                                   NL
+"Could not decode sequence, error decoding element or bad element name "
+                                                                  "'array' " NL
+;
+            const char *const INPUT_NG1 =
+            "{"                                                              NL
+            "    \"name\" : \"I am an array of 'BasicRecord's.\","           NL
+            "    \"array\" : ["                                              NL
+            "        {"                                                      NL
+            "            \"i1\" : 11,"                                       NL
+            "            \"i2\" : 12,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value1.\""             NL
+            "        },"                                                     NL
+
+            "        null,"                                                  NL
+
+            "        {"                                                      NL
+            "            \"i1\" : 31,"                                       NL
+            "            \"i2\" : 32,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value3.\""             NL
+            "        }"                                                      NL
+            "    ]"                                                          NL
+            "}"                                                              NL
+            ;
+
+            const char *LOG_NG1 =
+"Could not decode sequence, missing starting '{'"                            NL
+"Error adding element '1'"                                                   NL
+"Could not decode sequence, error decoding element or bad element name 's' " NL
+;
+
+            const char *const INPUT_NG2 =
+            "{"                                                              NL
+            "    \"name\" : \"I am an array of 'BasicRecord's.\","           NL
+            "    \"array\" : ["                                              NL
+            "        {"                                                      NL
+            "            \"i1\" : 11,"                                       NL
+            "            \"i2\" : 12,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value1.\""             NL
+            "        },"                                                     NL
+            "        {"                                                      NL
+            "            \"i1\" : 21,"                                       NL
+            "            \"i2\" : 22,"                                       NL
+            "            \"dt\" : \"0001-01-01T24:00:00.000+00:00\","        NL
+            "            \"s\" : \"I am 'BasicRecord' value2.\""             NL
+            "        },"                                                     NL
+
+            "        null"                                                   NL
+
+            "    ]"                                                          NL
+            "}"                                                              NL
+            ;
+
+            const char *LOG_NG2 =
+"Could not decode sequence, missing starting '{'"                            NL
+"Error adding element '2'"                                                   NL
+"Could not decode sequence, error decoding element or bad element name 's' " NL
+;
+
+            const struct {
+                int         d_line;
+                const char *d_input;
+                bool        d_isValid;
+                const char *d_logMessage;
+            } DATA[] = {
+              { L_, INPUT_OK,  true,  LOG_OK  }
+            , { L_, INPUT_NG0, false, LOG_NG0 }
+            , { L_, INPUT_NG1, false, LOG_NG1 }
+            , { L_, INPUT_NG2, false, LOG_NG2 }
+            };
+
+            bsl::size_t NUM_DATA = sizeof DATA / sizeof *DATA;
+
+            for (bsl::size_t ti = 0; ti < NUM_DATA; ++ti) {
+                const int         LINE     = DATA[ti].d_line;
+                const char *const INPUT    = DATA[ti].d_input;
+                const bool        IS_VALID = DATA[ti].d_isValid;
+                const char *const LOG      = DATA[ti].d_logMessage;
+
+                if (veryVerbose) {
+                    T_; P_(LINE); P(IS_VALID);
+                    P(INPUT);
+                    P(LOG);
+                }
+
+                Obj                decoder;
+                bsl::istringstream is(INPUT);
+
+                TestObj mY; const TestObj& Y = mY;
+
+                int rcDe = decoder.decode(is, &mY);                     // TEST
+
+                ASSERTV(IS_VALID, rcDe, IS_VALID == (0 == rcDe));
+
+                if (0 == rcDe) {
+                    ASSERTV(X == Y);
+                } else {
+                    ASSERTV(LOG,   decoder.loggedMessages(),
+                            LOG == decoder.loggedMessages());
+                }
+            }
+        }
+#undef NL
+      } break;
+      case 14: {
+        // --------------------------------------------------------------------
+        // DECODING INTS AS ENUMS AND VICE VERSA
+        //
+        // Concerns:
+        //: 1 The encoding produced by 'baljsn_encoder' when encoding an
+        //:   integer enumeration can be decoded into either a plain integral
+        //:   type or a customized type (as produced by bas_codegen) whose base
+        //:   type is integral.
+        //:
+        //: 2 The encoding produced by 'baljsn_encoder' when encoding either a
+        //:   plain integral type or a customized type (as produced by
+        //:   bas_codegen) whose base type is integral can be decoded into an
+        //:   integer enumeration type.
+        //
+        // Plan:
+        //: 1 Define a type, 'Enumeration1', that is a 'bdlat' enumeration, can
+        //:   hold an integer value of either 0 or 1, and whose string
+        //:   representation is just the decimal form of its value (as with
+        //:   'bcem_Aggregate').
+        //:
+        //: 2 Using 'baljsn_encoder', encode objects of type 'Enumeration1'
+        //:   having values of 0 and 1, and decode them into plain 'int's.
+        //:   Verify that the resulting values are the same as the original
+        //:   values.  Then, repeat using the generated type
+        //:   'test::MyIntEnumeration'.  (C-1)
+        //:
+        //: 3 Using 'baljsn_encoder', encode plain 'int's having values of 0
+        //:   and 1, decode them into 'Enumeration1', and verify that the
+        //:   resulting values are the same as the original values.  Then,
+        //:   repeat using the generated type 'test::MyIntEnumeration'.  (C-2)
+        //
+        // Testing:
+        //   DECODING INTS AS ENUMS AND VICE VERSA
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nDECODING INTS AS ENUMS AND VICE VERSA"
+                          << "\n=====================================" << endl;
+
+        baljsn::Encoder   encoder;
+        baljsn::Decoder   decoder;
+        bsl::stringstream ss;
+
+        bsl::vector<test::Enumeration1>     ve(2);
+        bsl::vector<int>                    vi(2);
+        bsl::vector<test::MyIntEnumeration> vc(2);
+
+        // P-1
+        ASSERT(0 == bdlat_EnumFunctions::fromInt(&ve[0], 0));
+        ASSERT(0 == bdlat_EnumFunctions::fromInt(&ve[1], 1));
+        ASSERT(0 == encoder.encode(ss, ve, baljsn::EncoderOptions()));
+        ASSERT(0 == decoder.decode(ss, &vi, baljsn::DecoderOptions()));
+        ASSERT(0 == vi[0]);
+        ASSERT(1 == vi[1]);
+        ss.seekg(0);
+        ASSERT(0 == decoder.decode(ss, &vc, baljsn::DecoderOptions()));
+        ASSERT(test::MyIntEnumeration(0) == vc[0]);
+        ASSERT(test::MyIntEnumeration(1) == vc[1]);
+
+        // P-2
+        int value;
+        ss.str("");
+        ASSERT(0 == encoder.encode(ss, vi, baljsn::EncoderOptions()));
+        ASSERT(0 == decoder.decode(ss, &ve, baljsn::DecoderOptions()));
+        bdlat_EnumFunctions::toInt(&value, ve[0]);
+        ASSERT(0 == value);
+        bdlat_EnumFunctions::toInt(&value, ve[1]);
+        ASSERT(1 == value);
+        ss.str("");
+        ASSERT(0 == encoder.encode(ss, vc, baljsn::EncoderOptions()));
+        ASSERT(0 == decoder.decode(ss, &ve, baljsn::DecoderOptions()));
+        bdlat_EnumFunctions::toInt(&value, ve[0]);
+        ASSERT(0 == value);
+        bdlat_EnumFunctions::toInt(&value, ve[1]);
+        ASSERT(1 == value);
       } break;
       case 13: {
         // --------------------------------------------------------------------

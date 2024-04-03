@@ -1,34 +1,28 @@
 // ball_scopedattribute.t.cpp                                         -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <ball_scopedattribute.h>
 
-#include <ball_categorymanager.h>
 #include <ball_attributecontext.h>
-#include <ball_rule.h>
+#include <ball_categorymanager.h>
 #include <ball_predicate.h>
+#include <ball_rule.h>
 #include <ball_severity.h>
 #include <ball_thresholdaggregate.h>
+
+#include <bdlb_guidutil.h>
 
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 
 #include <bslim_testutil.h>
 
-#include <bslma_testallocator.h>
 #include <bslma_defaultallocatorguard.h>
+#include <bslma_testallocator.h>
 
 #include <bsls_nameof.h>
 #include <bsls_types.h>
 
-#include <bsltf_templatetestfacility.h>
 #include <bsltf_simpletesttype.h>
+#include <bsltf_templatetestfacility.h>
 
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
@@ -204,6 +198,17 @@ int main(int argc, char *argv[])
                                                    testPointerType,
                                                    bsltf::SimpleTestType
                                                    );
+
+          // Testing Guid separately
+          {
+              bdlb::Guid       value = bdlb::GuidUtil::generateNonSecure();
+              Obj              mX("name", value);
+              ball::Attribute  attribute("name", value);
+
+              ASSERTV(true ==
+                      ball::AttributeContext::getContext()->hasAttribute(
+                          attribute));
+          }
 
           // Testing const char* separately
           {
@@ -417,6 +422,24 @@ int main(int argc, char *argv[])
                 // Test that we do not convert value type when visiting.
                 ASSERTV(result[0],
                         ball::Attribute("name", 15) != result[0]);
+            }
+        }
+        {
+            bdlb::Guid    guid = bdlb::GuidUtil::generateNonSecure();
+            Obj_Container mX("name", guid);
+
+            {
+                bsl::vector<ball::Attribute> result;
+
+                mX.visitAttributes(
+                    bdlf::BindUtil::bind(&testVisitor,
+                                         &result,
+                                         bdlf::PlaceHolders::_1));
+
+                ASSERTV(result.size(), 1 == result.size());
+                ASSERTV(result[0],
+                        ball::Attribute("name", guid)
+                            == result[0]);
             }
         }
       } break;

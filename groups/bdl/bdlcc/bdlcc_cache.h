@@ -325,10 +325,6 @@ BSLS_IDENT("$Id: $")
 #include <bsl_limits.h>
 #include <bsl_cstddef.h>            // 'bsl::size_t'
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
-# include <memory_resource>
-#endif
-
 namespace BloombergLP {
 namespace bdlcc {
 
@@ -472,22 +468,6 @@ class Cache {
         // corresponding to '*key_p' or '*valuePtr_p' are 'false', do not move
         // or modify the arguments.  Return 'true' if '*key_p' was not
         // previously in the cache and 'false' otherwise.
-
-    void populateValuePtrType(ValuePtrType             *dst,
-                              const VALUE&              value,
-                              bsl::true_type);
-    void populateValuePtrType(ValuePtrType             *dst,
-                              const VALUE&              value,
-                              bsl::false_type);
-    void populateValuePtrType(ValuePtrType             *dst,
-                              bslmf::MovableRef<VALUE>  value,
-                              bsl::true_type);
-    void populateValuePtrType(ValuePtrType             *dst,
-                              bslmf::MovableRef<VALUE>  value,
-                              bsl::false_type);
-        // Allocate a footprint for the specified 'value', copy or move 'value'
-        // into the footprint and load the specified '*dst' with a pointer to
-        // the value.
 
   private:
     // NOT IMPLEMENTED
@@ -884,47 +864,6 @@ bool Cache<KEY, VALUE, HASH, EQUAL>::insertValuePtrMoveImp(
     }
 }
 
-template <class KEY, class VALUE, class HASH, class EQUAL>
-inline
-void Cache<KEY, VALUE, HASH, EQUAL>::populateValuePtrType(ValuePtrType *dst,
-                                                          const VALUE&  value,
-                                                          bsl::true_type)
-{
-    dst->createInplace(d_allocator_p, value, d_allocator_p);
-}
-
-template <class KEY, class VALUE, class HASH, class EQUAL>
-inline
-void Cache<KEY, VALUE, HASH, EQUAL>::populateValuePtrType(ValuePtrType *dst,
-                                                          const VALUE&  value,
-                                                          bsl::false_type)
-{
-    dst->createInplace(d_allocator_p, value);
-}
-
-template <class KEY, class VALUE, class HASH, class EQUAL>
-inline
-void Cache<KEY, VALUE, HASH, EQUAL>::populateValuePtrType(
-                                               ValuePtrType             *dst,
-                                               bslmf::MovableRef<VALUE>  value,
-                                               bsl::true_type)
-{
-    dst->createInplace(d_allocator_p,
-                       bslmf::MovableRefUtil::move(value),
-                       d_allocator_p);
-}
-
-template <class KEY, class VALUE, class HASH, class EQUAL>
-inline
-void Cache<KEY, VALUE, HASH, EQUAL>::populateValuePtrType(
-                                               ValuePtrType             *dst,
-                                               bslmf::MovableRef<VALUE>  value,
-                                               bsl::false_type)
-{
-    dst->createInplace(d_allocator_p,
-                       bslmf::MovableRefUtil::move(value));
-}
-
 // MANIPULATORS
 template <class KEY, class VALUE, class HASH, class EQUAL>
 void Cache<KEY, VALUE, HASH, EQUAL>::clear()
@@ -981,10 +920,8 @@ void Cache<KEY, VALUE, HASH, EQUAL>::insert(const KEY& key, const VALUE& value)
 {
     bslmt::WriteLockGuard<LockType> guard(&d_rwlock);
 
-    KEY          *key_p = const_cast<KEY *>(&key);
-    ValuePtrType  valuePtr;
-    populateValuePtrType(&valuePtr, value, bslma::UsesBslmaAllocator<VALUE>());
-                                                                 // might throw
+    KEY          *key_p    = const_cast<KEY *>(&key);
+    ValuePtrType  valuePtr = bsl::allocate_shared<VALUE>(d_allocator_p, value);
 
     insertValuePtrMoveImp(key_p, false, &valuePtr, true);
 }
@@ -995,11 +932,10 @@ void Cache<KEY, VALUE, HASH, EQUAL>::insert(const KEY&               key,
 {
     bslmt::WriteLockGuard<LockType> guard(&d_rwlock);
 
-    KEY          *key_p = const_cast<KEY *>(&key);
-    ValuePtrType  valuePtr;
-    populateValuePtrType(&valuePtr,
-                         bslmf::MovableRefUtil::move(value),
-                         bslma::UsesBslmaAllocator<VALUE>());
+    KEY          *key_p    = const_cast<KEY *>(&key);
+    ValuePtrType  valuePtr = bsl::allocate_shared<VALUE>(
+                                           d_allocator_p,
+                                           bslmf::MovableRefUtil::move(value));
                                     // might throw, but BEFORE 'value' is moved
 
     insertValuePtrMoveImp(key_p, false, &valuePtr, true);
@@ -1011,10 +947,8 @@ void Cache<KEY, VALUE, HASH, EQUAL>::insert(bslmf::MovableRef<KEY> key,
 {
     bslmt::WriteLockGuard<LockType> guard(&d_rwlock);
 
-    KEY& localKey = key;
-
-    ValuePtrType valuePtr;
-    populateValuePtrType(&valuePtr, value, bslma::UsesBslmaAllocator<VALUE>());
+    KEY&          localKey = key;
+    ValuePtrType  valuePtr = bsl::allocate_shared<VALUE>(d_allocator_p, value);
                                                                  // might throw
 
     insertValuePtrMoveImp(&localKey, true, &valuePtr, true);
@@ -1026,12 +960,10 @@ void Cache<KEY, VALUE, HASH, EQUAL>::insert(bslmf::MovableRef<KEY>   key,
 {
     bslmt::WriteLockGuard<LockType> guard(&d_rwlock);
 
-    KEY& localKey = key;
-
-    ValuePtrType valuePtr;
-    populateValuePtrType(&valuePtr,
-                         bslmf::MovableRefUtil::move(value),
-                         bslma::UsesBslmaAllocator<VALUE>());
+    KEY&          localKey = key;
+    ValuePtrType  valuePtr = bsl::allocate_shared<VALUE>(
+                                           d_allocator_p,
+                                           bslmf::MovableRefUtil::move(value));
                                     // might throw, but BEFORE 'value' is moved
 
     insertValuePtrMoveImp(&localKey, true, &valuePtr, true);

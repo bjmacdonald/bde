@@ -39,11 +39,12 @@ BSLS_IDENT("$Id: $")
 //  BSLS_LIBRARYFEATURES_HAS_CPP17_INT_CHARCONV: '<charconv>' for integers only
 //  BSLS_LIBRARYFEATURES_HAS_CPP17_CHARCONV: full '<charconv'> support w floats
 //  BSLS_LIBRARYFEATURES_HAS_CPP17_FILESYSTEM: '<filesystem>'
-//  BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION: '<version>'
 //  BSLS_LIBRARYFEATURES_HAS_CPP17_PARALLEL_ALGORITHMS: '<execution>'
 //  BSLS_LIBRARYFEATURES_HAS_CPP17_PMR: '<memory_resource>'
+//  BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING: 'pmr::string'
 //  BSLS_LIBRARYFEATURES_HAS_CPP17_TIMESPEC_GET: '<ctime>'
 //  BSLS_LIBRARYFEATURES_HAS_CPP17_ALIGNED_ALLOC: '<cstdlib>'
+//  BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION: '<version>'
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY: C++20 base lib provided
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_DEPRECATED_REMOVED: 'result_of' et al. gone
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS: '<concepts>'
@@ -956,6 +957,28 @@ BSLS_IDENT("$Id: $")
 //:   o clang 14, or clang using at least GCC 9 GNU C++ Library
 //:   o Microsoft Visual Studio 2017 15.7 / MSVC 19.14
 //
+///'BSLS_LIBRARYFEATURES_HAS_CPP17_PMR'
+///------------------------------------
+// The 'BSLS_LIBRARYFEATURES_HAS_CPP17_PMR' macro is defined if the
+// native standard library provides the '<memory_resource>' header and
+// implements all required content with no major issues.
+//
+// This macro is defined first for the following stdlib versions:
+//
+//:   o GNU  libstdc++ v 9
+//:   o LLVM libc++    v 16
+//:   o MSVC++ STL     v 15.6 (VS 2017)
+//
+///'BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING'
+///-------------------------------------------
+// The 'BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING' macro is defined if the
+// native standard library provides the 'pmr::basic_string' class template with
+// no major issues.
+//
+// Usually 'pmr::string' is available if the PMR feature is available.  But GNU
+// libstdc++ doesn't provide it for the obsolete pre-C++11 CoW string
+// implemetation ('_GLIBCXX_USE_CXX11_ABI' == 0).
+//
 ///'BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION'
 ///----------------------------------------
 // The 'BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION' macro is defined if the native
@@ -1539,8 +1562,13 @@ BSLS_IDENT("$Id: $")
                 #define BSLS_LIBRARYFEATURES_HAS_CPP17_PARALLEL_ALGORITHMS    1
               #endif
             #endif
-            #if defined(_GLIBCXX_USE_CXX11_ABI) && 1 == _GLIBCXX_USE_CXX11_ABI
-                #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR                    1
+        #endif
+        #if _GLIBCXX_RELEASE >= 9
+            #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR                        1
+            // Using production flag to temporary disable generic PMR support.
+            #if _GLIBCXX_USE_CXX11_ABI
+                // GNU libstdc++: no 'pmr::string' when pre-C++11 ABI is used
+                #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING             1
             #endif
         #endif
         #if BSLS_PLATFORM_CMP_VERSION >= 120000
@@ -1720,7 +1748,6 @@ BSLS_IDENT("$Id: $")
             //  #define BSLS_LIBRARYFEATURES_HAS_CPP17_CHARCONV
             //  #define BSLS_LIBRARYFEATURES_HAS_CPP17_SEARCH_FUNCTORS
             //  #define BSLS_LIBRARYFEATURES_HAS_CPP17_PARALLEL_ALGORITHMS
-            //  #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
             //  #define BSLS_LIBRARYFEATURES_HAS_CPP17_SPECIAL_MATH_FUNCTIONS
         #endif
 
@@ -1819,7 +1846,6 @@ BSLS_IDENT("$Id: $")
             #endif
 
             //  #define BSLS_LIBRARYFEATURES_HAS_CPP17_PARALLEL_ALGORITHMS
-            //  #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
         #endif
 
         #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L
@@ -1836,6 +1862,20 @@ BSLS_IDENT("$Id: $")
                     #define BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY   1
                 #endif
             #endif
+        #endif
+    #endif
+
+    #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201703L &&                         \
+        (_GLIBCXX_RELEASE >= 9 || _LIBCPP_VERSION >= 16)
+        #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR                            1
+        #if defined(_GLIBCXX_RELEASE)
+        // GLIB logic as above for GNU
+            #if _GLIBCXX_USE_CXX11_ABI
+                // GNU libstdc++: no 'pmr::string' when pre-C++11 ABI is used
+                #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING             1
+            #endif
+        #else
+            #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING                 1
         #endif
     #endif
 
@@ -1902,6 +1942,7 @@ BSLS_IDENT("$Id: $")
         // VS 2017 15.6
         #if BSLS_PLATFORM_CMP_VERSION >= 1913
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR                        1
+            #define BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING                 1
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS            1
         #endif
 
@@ -2124,13 +2165,9 @@ BSLS_IDENT("$Id: $")
 
 // Catch attempts to link C++14 objects with C++17 objects (for example).
 
-// NOTE: See 'bsls_buildtarget.h' for documentation of the
-// 'BDE_BLOCK_CPP20_LINK_CHECKS' macro, which must not be used in production.
-
 #if defined(BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY)
 #define BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME bsls_libraryfeatures_CPP23_ABI
-#elif defined(BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY) &&             \
-     !defined(BDE_BLOCK_CPP20_LINK_CHECKS)
+#elif defined(BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY)
 #define BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME bsls_libraryfeatures_CPP20_ABI
 #elif defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
 #define BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME bsls_libraryfeatures_CPP17_ABI

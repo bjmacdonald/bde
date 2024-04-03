@@ -1039,6 +1039,195 @@ class UniqueInt {
 };
 int UniqueInt::s_counter = 0;
 
+                           // ====================
+                           // class TestIteratorSS
+                           // ====================
+
+class TestIteratorSS {
+    // This class provides a minimal iterator whose value_type is a pointer to
+    // an int, with a spaceship operator on C++20 or greater.  Accessors and
+    // manipulators not required for testing have not been included in this
+    // implementation.
+
+  public:
+    // PUBLIC TYPES
+    typedef BloombergLP::bsls::Types::UintPtr UintPtr;
+
+    typedef int                             *value_type;
+    typedef value_type                      *pointer;
+    typedef value_type&                      reference;
+    typedef ptrdiff_t                        difference_type;
+    typedef bsl::random_access_iterator_tag  iterator_category;
+
+  private:
+    // DATA
+    pointer d_iter;
+
+  public:
+    // CREATORS
+    TestIteratorSS(pointer it)                                      // IMPLICIT
+        // Create a proxy iterator adapting the specified 'it'.
+    : d_iter(it)
+    {
+    }
+
+    // MANIPULATORS
+    TestIteratorSS& operator++()
+        // Increment this iterator to refer to the next element in the
+        // underlying sequence, and return a reference to this object.
+    {
+        ++d_iter;
+        return *this;
+    }
+
+    // ACCESSORS
+    value_type operator*() const
+        // Return the value of the pointer this iterator refers to, converted
+        // to an unsigned integer.
+    {
+        return *d_iter;
+    }
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+    auto operator<=>(const TestIteratorSS&) const = default;
+#else
+
+    // FRIENDS
+    friend bool operator==(const TestIteratorSS& lhs,
+                           const TestIteratorSS& rhs)
+        // Return 'true' if the specified 'lhs' and 'rhs' iterators refer to
+        // the same element in the same underlying sequence or both refer to
+        // the past-the-end element of the same sequence, and 'false'
+        // otherwise.  The behavior is undefined if 'lhs' and 'rhs' do not
+        // iterate over the same sequence.
+    {
+        return lhs.d_iter == rhs.d_iter;
+    }
+
+    friend bool operator!=(const TestIteratorSS& lhs,
+                           const TestIteratorSS& rhs)
+        // Return 'true' if the specified 'lhs' and 'rhs' iterators do not
+        // refer to the same element in the same underlying sequence and no
+        // more than one refers to the past-the-end element of the sequence,
+        // and 'false' otherwise.  The behavior is undefined if 'lhs' and 'rhs'
+        // do not iterate over the same sequence.
+    {
+        return lhs.d_iter != rhs.d_iter;
+    }
+
+    friend bool operator<(const TestIteratorSS& lhs, const TestIteratorSS& rhs)
+        // Return 'true' if the specified 'lhs' iterator is earlier in the
+        // underlying sequence than the specified 'rhs' iterator, and 'false'
+        // otherwise.  The behavior is undefined if 'lhs' and 'rhs' do not
+        // iterate over the same sequence.
+    {
+        return lhs.d_iter < rhs.d_iter;
+    }
+
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON
+
+    friend difference_type operator-(const TestIteratorSS& lhs,
+                                     const TestIteratorSS& rhs)
+        // Return the distance between the specified 'lhs' iterator and the
+        // specified 'rhs' iterator.  The behavior is undefined if 'lhs' and
+        // 'rhs' do not iterate over the same sequence.
+    {
+        return lhs.d_iter - rhs.d_iter;
+    }
+};
+
+                           // ======================
+                           // class TestIteratorNoSS
+                           // ======================
+
+class TestIteratorNoSS {
+    // This class provides a minimal iterator whose value_type is a pointer to
+    // an int, but without a spaceship operator.  Accessors and manipulators
+    // not required for testing have not been included in this implementation.
+
+  public:
+    // PUBLIC TYPES
+    typedef BloombergLP::bsls::Types::UintPtr UintPtr;
+
+    typedef int                             *value_type;
+    typedef value_type                      *pointer;
+    typedef value_type&                      reference;
+    typedef ptrdiff_t                        difference_type;
+    typedef bsl::random_access_iterator_tag  iterator_category;
+
+  private:
+    // DATA
+    pointer d_iter;
+
+  public:
+    // CREATORS
+    TestIteratorNoSS(pointer it)                                    // IMPLICIT
+        // Create a proxy iterator adapting the specified 'it'.
+    : d_iter(it)
+    {
+    }
+
+    // MANIPULATORS
+    TestIteratorNoSS& operator++()
+        // Increment this iterator to refer to the next element in the
+        // underlying sequence, and return a reference to this object.
+    {
+        ++d_iter;
+        return *this;
+    }
+
+    // ACCESSORS
+    value_type operator*() const
+        // Return the value of the pointer this iterator refers to, converted
+        // to an unsigned integer.
+    {
+        return *d_iter;
+    }
+
+    // FRIENDS
+    friend bool operator==(const TestIteratorNoSS& lhs,
+                           const TestIteratorNoSS& rhs)
+        // Return 'true' if the specified 'lhs' and 'rhs' iterators refer to
+        // the same element in the same underlying sequence or both refer to
+        // the past-the-end element of the same sequence, and 'false'
+        // otherwise.  The behavior is undefined if 'lhs' and 'rhs' do not
+        // iterate over the same sequence.
+    {
+        return lhs.d_iter == rhs.d_iter;
+    }
+
+    friend bool operator!=(const TestIteratorNoSS& lhs,
+                           const TestIteratorNoSS& rhs)
+        // Return 'true' if the specified 'lhs' and 'rhs' iterators do not
+        // refer to the same element in the same underlying sequence and no
+        // more than one refers to the past-the-end element of the sequence,
+        // and 'false' otherwise.  The behavior is undefined if 'lhs' and 'rhs'
+        // do not iterate over the same sequence.
+    {
+        return lhs.d_iter != rhs.d_iter;
+    }
+
+    friend bool operator<(const TestIteratorNoSS& lhs,
+                          const TestIteratorNoSS& rhs)
+        // Return 'true' if the specified 'lhs' iterator is earlier in the
+        // underlying sequence than the specified 'rhs' iterator, and 'false'
+        // otherwise.  The behavior is undefined if 'lhs' and 'rhs' do not
+        // iterate over the same sequence.
+    {
+        return lhs.d_iter < rhs.d_iter;
+    }
+
+    friend difference_type operator-(const TestIteratorNoSS& lhs,
+                                     const TestIteratorNoSS& rhs)
+        // Return the distance between the specified 'lhs' iterator and the
+        // specified 'rhs' iterator.  The behavior is undefined if 'lhs' and
+        // 'rhs' do not iterate over the same sequence.
+    {
+        return lhs.d_iter - rhs.d_iter;
+    }
+};
+
+
                      // TEST DRIVER PART 3 TINY HELPERS
 
 template <int N>
@@ -2532,7 +2721,7 @@ TestDriver3<TYPE, ALLOC>::testCase28a_RunTest(Obj            *target,
     bslma::TestAllocator *testAlloc = dynamic_cast<bslma::TestAllocator *>(
                                           target->get_allocator().mechanism());
     if (!testAlloc) {
-        ASSERT(!"Allocator in test case 30 is not a test allocator!");
+        ASSERTV("Allocator in test case 30 is not a test allocator!", false);
         return;                                                       // RETURN
     }
     bslma::TestAllocator& oa = *testAlloc;
@@ -2689,7 +2878,7 @@ TestDriver3<TYPE, ALLOC>::testCase28a_RunTest(Obj            *target,
                        testArg(A10, MOVE_10));
           } break;
           default: {
-            ASSERTV(!"Invalid # of args!");
+            ASSERTV("Invalid # of args!", false);
           } break;
         }
         proctor.release();
@@ -3185,7 +3374,7 @@ TestDriver3<TYPE, ALLOC>::testCase26a_RunTest(Obj *target)
     bslma::TestAllocator *testAlloc = dynamic_cast<bslma::TestAllocator *>(
                                           target->get_allocator().mechanism());
     if (!testAlloc) {
-        ASSERT(!"Allocator in test case 30 is not a test allocator!");
+        ASSERTV("Allocator in test case 30 is not a test allocator!", false);
         return;                                                       // RETURN
     }
     bslma::TestAllocator& oa = *testAlloc;
@@ -3332,7 +3521,7 @@ TestDriver3<TYPE, ALLOC>::testCase26a_RunTest(Obj *target)
                             testArg(A10, MOVE_10));
           } break;
           default: {
-            ASSERTV(!"Invalid # of args!");
+            ASSERTV("Invalid # of args!", false);
           } break;
         }
         proctor.release();
@@ -3932,7 +4121,7 @@ void TestDriver3<TYPE, ALLOC>::testCase27()
                     valAllocator = &za;
                   } break;
                   default: {
-                    ASSERTV(CONFIG, !"Bad allocator config.");
+                    ASSERTV(CONFIG, "Bad allocator config.", false);
                   } return;                                           // RETURN
                 }
                 bslma::TestAllocator& sa = *valAllocator;
@@ -4060,7 +4249,7 @@ void TestDriver3<TYPE, ALLOC>::testCase27()
                     valAllocator = &za;
                   } break;
                   default: {
-                    ASSERTV(CONFIG, !"Bad allocator config.");
+                    ASSERTV(CONFIG, "Bad allocator config.", false);
                   } break;
                 }
                 bslma::TestAllocator& sa = *valAllocator;
@@ -4590,7 +4779,7 @@ void TestDriver3<TYPE, ALLOC>::testCase25()
                     valAllocator = &za;
                   } break;
                   default: {
-                    ASSERTV(CONFIG, !"Bad allocator config.");
+                    ASSERTV(CONFIG, "Bad allocator config.", false);
                   } break;
                 }
                 bslma::TestAllocator& sa = *valAllocator;
@@ -4706,7 +4895,7 @@ void TestDriver3<TYPE, ALLOC>::testCase25()
                     valAllocator = &za;
                   } break;
                   default: {
-                    ASSERTV(CONFIG, !"Bad allocator config.");
+                    ASSERTV(CONFIG, "Bad allocator config.", false);
                   } break;
                 }
                 bslma::TestAllocator& sa = *valAllocator;
@@ -5423,10 +5612,75 @@ int main(int argc, char *argv[])
     printf("TEST " __FILE__ " CASE %d\n", test);
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 44: {
+      case 45: {
         if (verbose) printf(
                     "\nUSAGE EXAMPLE TEST CASE IS IN 'bslstl_vector.t.cpp'"
                     "\n===================================================\n");
+      } break;
+      case 44: {
+        // --------------------------------------------------------------------
+        // CONCERN: Vectors of pointers support non-spaceship iterators
+        //
+        // Concerns:
+        //: 1 It is possible to assign to a vector of pointers using iterators
+        //:   that do and do not have spaceship operator support. Such
+        //:   iterators can be found in third party libraries such as range-v3.
+        //:   It was observed in DRQS 174349363 that, in `SAFE` mode
+        //:   compilation errors were observed in this case.
+        //
+        // Plan:
+        //: 1 Create a pair of iterators that have spaceship support, for a
+        //:   pointer value type. Use those iterators to assign to a vector and
+        //:   verify that the resulting vector contains the expected values.
+        //:
+        //: 2 Repeat step 1 using iterators without spaceship support.
+        //
+        // Testing:
+        //   CONCERN: Vectors of pointers support non-spaceship iterators
+        // --------------------------------------------------------------------
+
+        if (verbose)
+            printf("\nCONCERN: Vectors of pointers support non-spaceship "
+                   "iterators"
+                   "\n==================================================="
+                   "=========\n");
+
+        {
+            int  dummy0 = 90;
+            int  dummy1 = 91;
+            int  dummy2 = 92;
+            int *arr[4];
+            arr[0] = &dummy0;
+            arr[1] = &dummy1;
+            arr[2] = &dummy2;
+            arr[3] = 0;
+            TestIteratorSS begin(&arr[0]);
+            TestIteratorSS end(&arr[3]);
+            vector<int *>  va;
+            va.assign(begin, end);
+            ASSERT(3  == va.size());
+            ASSERT(90 == *va.front());
+            ASSERT(92 == *va.back());
+        }
+
+        {
+            int  dummy0 = 90;
+            int  dummy1 = 91;
+            int  dummy2 = 92;
+            int *arr[4];
+            arr[0] = &dummy0;
+            arr[1] = &dummy1;
+            arr[2] = &dummy2;
+            arr[3] = 0;
+            TestIteratorNoSS begin(&arr[0]);
+            TestIteratorNoSS end(&arr[3]);
+            vector<int *>    va;
+            va.assign(begin, end);
+            ASSERT(3  == va.size());
+            ASSERT(90 == *va.front());
+            ASSERT(92 == *va.back());
+        }
+
       } break;
       case 43: {
         // --------------------------------------------------------------------
