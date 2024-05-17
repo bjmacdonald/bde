@@ -4105,7 +4105,8 @@ int BerUtil_IntegerImpUtil::getNumOctetsToStream(TYPE value)
     }
     else {  // 0 > value
         while ((value | NEG_MASK) == value) {
-            value = static_cast<TYPE>(value << 8);
+            value = static_cast<TYPE>(
+                                  static_cast<unsigned long long>(value) << 8);
 
             // shift out redundant high-order 0xFF
 
@@ -4823,8 +4824,8 @@ int BerUtil_DateAndTimeHeaderImpUtil::getValue(Header        *value,
         const unsigned char timezoneOffsetLo = headerByte1;
 
         const int timezoneOffset =
-            (static_cast<int>(signedTimezoneOffsetHi) << 8) |
-            (static_cast<int>(timezoneOffsetLo) << 0);
+            (static_cast<unsigned>(signedTimezoneOffsetHi) << 8) |
+            (static_cast<unsigned>(timezoneOffsetLo) << 0);
 
         if (!TimezoneUtil::isValidTimezoneOffsetInMinutes(timezoneOffset)) {
             return -1;                                                // RETURN
@@ -4835,7 +4836,7 @@ int BerUtil_DateAndTimeHeaderImpUtil::getValue(Header        *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -5077,7 +5078,7 @@ int BerUtil_DateImpUtil::getDateOrDateTzValue(DateOrDateTz   *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -5521,7 +5522,7 @@ int BerUtil_TimeImpUtil::getTimeValue(bdlt::Time     *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -5550,7 +5551,7 @@ int BerUtil_TimeImpUtil::putTimeValue(bsl::streambuf          *streamBuf,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -5594,7 +5595,7 @@ int BerUtil_TimeImpUtil::getTimeTzValue(bdlt::TimeTz   *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -5627,7 +5628,7 @@ int BerUtil_TimeImpUtil::putTimeTzValue(bsl::streambuf          *streamBuf,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -5677,7 +5678,7 @@ int BerUtil_TimeImpUtil::getTimeOrTimeTzValue(TimeOrTimeTz   *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -5977,7 +5978,7 @@ int BerUtil_DatetimeImpUtil::putDatetimeValue(
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -6022,7 +6023,7 @@ int BerUtil_DatetimeImpUtil::getDatetimeValue(bdlt::Datetime *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -6081,7 +6082,7 @@ int BerUtil_DatetimeImpUtil::putDatetimeTzValue(
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -6126,7 +6127,7 @@ int BerUtil_DatetimeImpUtil::getDatetimeTzValue(bdlt::DatetimeTz *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -6179,7 +6180,7 @@ int BerUtil_DatetimeImpUtil::getDatetimeOrDatetimeTzValue(
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else

@@ -37,28 +37,31 @@
 #include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_sstream.h>
+#include <bsl_type_traits.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 
 #include <time.h>
+
 #if defined(_WIN32)
-#include <Windows.h>
-#ifdef ERROR
-#undef ERROR
-#endif
-#elif defined(__unix__) || defined(__unix) || defined(unix) \
-    || (defined(__APPLE__) && defined(__MACH__))
-#include <unistd.h>
-#include <sys/resource.h>
-#include <sys/times.h>
+    #include <Windows.h>
+    #ifdef ERROR
+        #undef ERROR
+    #endif
+#elif defined(__unix__) || defined(__unix) || defined(unix) || \
+      (defined(__APPLE__) && defined(__MACH__))
+    #include <unistd.h>
+    #include <sys/resource.h>
+    #include <sys/times.h>
 #else
-#error "Unable to define getCPUTime( ) for an unknown OS."
+  #error "Unable to define getCPUTime( ) for an unknown OS."
 #endif
 
-using namespace BloombergLP;
 using namespace bsl;
+using namespace BloombergLP;
 using namespace bslstl;
-using namespace BloombergLP::bdld;
+using namespace bdld;
+
 using bdlt::Date;
 using bdlt::Datetime;
 using bdlt::DatetimeInterval;
@@ -158,8 +161,8 @@ using bdldfp::Decimal64;
 //                              // class Datum
 //                              // -----------
 // TYPES
-// [26] enum DataType { ... };
-// [26] enum { k_NUM_TYPES = ... };
+// [27] enum DataType { ... };
+// [27] enum { k_NUM_TYPES = ... };
 //
 // CREATORS
 // [ 3] Datum() = default;
@@ -167,8 +170,8 @@ using bdldfp::Decimal64;
 // [ 5] Datum(const Datum& original) = default;
 //
 // CLASS METHODS
-// [15] Datum createArrayReference(const Datum *, SizeType, Allocator *);
-// [15] Datum createArrayReference(const DatumArrayRef&, Allocator *);
+// [16] Datum createArrayReference(const Datum *, SizeType, Allocator *);
+// [16] Datum createArrayReference(const DatumArrayRef&, Allocator *);
 // [ 3] Datum createBoolean(bool);
 // [ 3] Datum createDate(const bdlt::Date&);
 // [ 3] Datum createDatetime(const bdlt::Datetime&, bslma::Allocator *);
@@ -189,27 +192,27 @@ using bdldfp::Decimal64;
 // [ 3] Datum copyString(const char *, bslma::Allocator *);
 // [ 3] Datum copyString(const char *, SizeType, bslma::Allocator *);
 // [ 3] Datum copyString(const bslstl::StringRef&, bslma::Allocator *);
-// [15] Datum adoptArray(const DatumMutableArrayRef&);
-// [16] Datum adoptIntMap(const DatumMutableIntMapRef& map);
-// [17] Datum adoptMap(const DatumMutableMapRef& map);
-// [17] Datum adoptMap(const DatumMutableMapOwningKeysRef& map);
-// [15] Datum createArrayReference(const Datum *, SizeType, Allocator *);
-// [15] void createUninitializedArray(DatumMutableArrayRef*,SizeType,...);
-// [17] void createUninitializedMap(DatumMutableMapRef*, SizeType, ...);
-// [17] void createUninitializedMap(DatumMutableMapOwningKeysRef *, ...);
-// [18] char *createUninitializedString(Datum&, SizeType, Allocator *);
-// [28] const char *dataTypeToAscii(Datum::DataType);
+// [16] Datum adoptArray(const DatumMutableArrayRef&);
+// [17] Datum adoptIntMap(const DatumMutableIntMapRef& map);
+// [18] Datum adoptMap(const DatumMutableMapRef& map);
+// [18] Datum adoptMap(const DatumMutableMapOwningKeysRef& map);
+// [16] Datum createArrayReference(const Datum *, SizeType, Allocator *);
+// [16] void createUninitializedArray(DatumMutableArrayRef*,SizeType,...);
+// [18] void createUninitializedMap(DatumMutableMapRef*, SizeType, ...);
+// [18] void createUninitializedMap(DatumMutableMapOwningKeysRef *, ...);
+// [19] char *createUninitializedString(Datum&, SizeType, Allocator *);
+// [29] const char *dataTypeToAscii(Datum::DataType);
 // [ 3] void destroy(const Datum&, bslma::Allocator *);
-// [26] void disposeUninitializedArray(Datum *, basicAllocator *);
-// [27] void disposeUninitializedMap(DatumMutableMapRef *, ...);
-// [27] void disposeUninitializedMap(DatumMutableMapOwningKeysRef *, ...);
+// [27] void disposeUninitializedArray(Datum *, basicAllocator *);
+// [28] void disposeUninitializedMap(DatumMutableMapRef *, ...);
+// [28] void disposeUninitializedMap(DatumMutableMapOwningKeysRef *, ...);
 //
 // MANIPULATORS
 // [ 7] Datum& operator=(const Datum& rhs) = default;
 //
 // ACCESSORS
-// [22] Datum clone(bslma::Allocator *basicAllocator) const;
-// [15] bool isArray() const;
+// [23] Datum clone(bslma::Allocator *basicAllocator) const;
+// [16] bool isArray() const;
 // [ 3] bool isBoolean() const;
 // [ 3] bool isBinary() const;
 // [ 3] bool isDate() const;
@@ -218,16 +221,16 @@ using bdldfp::Decimal64;
 // [ 3] bool isDecimal64() const;
 // [ 3] bool isDouble() const;
 // [ 3] bool isError() const;
-// [20] bool isExternalReference() const;
+// [21] bool isExternalReference() const;
 // [ 3] bool isInteger() const;
 // [ 3] bool isInteger64() const;
-// [16] bool isIntMap() const;
-// [17] bool isMap() const;
+// [17] bool isIntMap() const;
+// [18] bool isMap() const;
 // [ 3] bool isNull() const;
 // [ 3] bool isString() const;
 // [ 3] bool isTime() const;
 // [ 3] bool isUdt() const;
-// [15] DatumArrayRef theArray() const;
+// [16] DatumArrayRef theArray() const;
 // [ 3] DatumBinaryRef theBinary() const;
 // [ 3] bool theBoolean() const;
 // [ 3] bdlt::Date theDate() const;
@@ -241,22 +244,22 @@ using bdldfp::Decimal64;
 // [ 3] bslstl::StringRef theString() const;
 // [ 3] bdlt::Time theTime() const;
 // [ 3] DatumUdt theUdt() const;
-// [16] DatumIntMapRef theIntMap() const;
-// [17] DatumMapRef theMap() const;
-// [21] DataType::Enum type() const;
-// [22] template <class BDLD_VISITOR> void apply(BDLD_VISITOR&) const;
+// [17] DatumIntMapRef theIntMap() const;
+// [18] DatumMapRef theMap() const;
+// [22] DataType::Enum type() const;
+// [23] template <class BDLD_VISITOR> void apply(BDLD_VISITOR&) const;
 // [ 4] bsl::ostream& print(ostream&, int, int) const; // non-aggregate
-// [19] bsl::ostream& print(ostream&, int, int) const; // aggregate
+// [20] bsl::ostream& print(ostream&, int, int) const; // aggregate
 //
 // FREE OPERATORS
 // [ 6] bool operator==(const Datum&, const Datum&);  // non-aggregate
 // [ 6] bool operator!=(const Datum&, const Datum&);  // non-aggregate
-// [25] bool operator==(const Datum&, const Datum&);  // aggregate
-// [25] bool operator!=(const Datum&, const Datum&);  // aggregate
+// [26] bool operator==(const Datum&, const Datum&);  // aggregate
+// [26] bool operator!=(const Datum&, const Datum&);  // aggregate
 // [ 4] bsl::ostream& operator<<(ostream&, const Datum&); // non-aggregate
-// [19] bsl::ostream& operator<<(ostream&, const Datum&); // aggregate
-// [29] bsl::ostream& operator<<(ostream&, const Datum::DataType);
-// [33] void hashAppend(hashAlgorithm, datum);
+// [20] bsl::ostream& operator<<(ostream&, const Datum&); // aggregate
+// [30] bsl::ostream& operator<<(ostream&, const Datum::DataType);
+// [34] void hashAppend(hashAlgorithm, datum);
 //
 //                            // -------------------
 //                            // class DatumMapEntry
@@ -283,104 +286,223 @@ using bdldfp::Decimal64;
 //                          // --------------------------
 //                          // class DatumMutableArrayRef
 //                          // --------------------------
+// PUBLIC TYPES
+// [ 9] element_type
+// [ 9] value_type
+// [ 9] size_type
+// [ 9] difference_type
+// [ 9] pointer
+// [ 9] const_pointer
+// [ 9] reference
+// [ 9] const_reference
+// [ 9] iterator
+// [ 9] const_iterator
+// [ 9] reverse_iterator
+// [ 9] const_reverse_iterator
+// [ 9] SizeType
+//
 // CREATORS
 // [ 9] DatumMutableArrayRef();
 // [ 9] DatumMutableArrayRef(Datum *data, SizeType *length);
 //
-// ACCESSORS
-// [ 9] Datum *data() const;
-// [ 9] SizeType *length() const;
+// MANIPULATORS
+// [ 9] iterator begin();
+// [ 9] reverse_iterator rbegin();
+// [ 9] iterator end();
+// [ 9] reverse_iterator rend();
+// [ 9] reference front();
+// [ 9] reference back();
 //
-//                          // ------------------------
-//                          // class DatumMutableMapRef
-//                          // ------------------------
+// ACCESSORS
+// [ 9] pointer data() const;
+// [ 9] size_type *length() const;
+// [ 9] size_type *size() const;
+// [ 9] const_iterator           begin() const;
+// [ 9] const_iterator          cbegin() const;
+// [ 9] const_reverse_iterator  rbegin() const;
+// [ 9] const_reverse_iterator crbegin() const;
+// [ 9] const_reference front() const;
+// [ 9] const_reference back() const;
+// [ 9] bool empty() const;
+//
+//                        // ------------------------
+//                        // class DatumMutableMapRef
+//                        // ------------------------
+// PUBLIC TYPES
+// [10] element_type
+// [10] value_type
+// [10] size_type
+// [10] difference_type
+// [10] pointer
+// [10] const_pointer
+// [10] reference
+// [10] const_reference
+// [10] iterator
+// [10] const_iterator
+// [10] reverse_iterator
+// [10] const_reverse_iterator
+// [10] SizeType
+//
 // CREATORS
 // [10] DatumMutableMapRef();
 // [10] DatumMutableMapRef(DatumMapEntry *, SizeType *, bool *);
 //
+// MANIPULATORS
+// [10] iterator begin();
+// [10] reverse_iterator rbegin();
+// [10] iterator end();
+// [10] reverse_iterator rend();
+// [10] reference front();
+// [10] reference back();
+//
 // ACCESSORS
-// [10] DatumMapEntry *data() const;
-// [10] SizeType *size() const;
+// [10] pointer data() const;
+// [10] size_type *length() const;
+// [10] size_type *size() const;
+// [10] const_iterator           begin() const;
+// [10] const_iterator          cbegin() const;
+// [10] const_reverse_iterator  rbegin() const;
+// [10] const_reverse_iterator crbegin() const;
+// [10] const_reference front() const;
+// [10] const_reference back() const;
+// [10] bool empty() const;
 // [10] bool *sorted() const;
+//
+//                      // ---------------------------
+//                      // class DatumMutableIntMapRef
+//                      // ---------------------------
+// PUBLIC TYPES
+// [11] element_type
+// [11] value_type
+// [11] size_type
+// [11] difference_type
+// [11] pointer
+// [11] const_pointer
+// [11] reference
+// [11] const_reference
+// [11] iterator
+// [11] const_iterator
+// [11] reverse_iterator
+// [11] const_reverse_iterator
+// [11] SizeType
+//
+// CREATORS
+// [11] DatumMutableMapRef();
+// [11] DatumMutableMapRef(DatumMapEntry *, SizeType *, bool *);
+//
+// MANIPULATORS
+// [11] iterator begin();
+// [11] reverse_iterator rbegin();
+// [11] iterator end();
+// [11] reverse_iterator rend();
+// [11] reference front();
+// [11] reference back();
+//
+// ACCESSORS
+// [11] pointer data() const;
+// [11] size_type *length() const;
+// [11] size_type *size() const;
+// [11] const_iterator           begin() const;
+// [11] const_iterator          cbegin() const;
+// [11] const_reverse_iterator  rbegin() const;
+// [11] const_reverse_iterator crbegin() const;
+// [11] const_reference front() const;
+// [11] const_reference back() const;
+// [11] bool empty() const;
+// [11] bool *sorted() const;
 //
 //                      // ----------------------------------
 //                      // class DatumMutableMapOwningKeysRef
 //                      // ----------------------------------
+// PUBLIC TYPES
+// [12] element_type
+// [12] value_type
+// [12] size_type
+// [12] difference_type
+// [12] pointer
+// [12] const_pointer
+// [12] reference
+// [12] const_reference
+// [12] iterator
+// [12] const_iterator
+// [12] reverse_iterator
+// [12] const_reverse_iterator
+// [12] SizeType
+//
 // CREATORS
-// [11] DatumMutableMapOwningKeysRef();
-// [11] DatumMutableMapOwningKeysRef(DatumMapEntry*,SizeType*,char*, ...);
+// [12] DatumMutableMapOwningKeysRef();
+// [12] DatumMutableMapOwningKeysRef(DatumMapEntry*,SizeType*,char*, ...);
 //
 // ACCESSORS
-// [11] DatumMapEntry *data() const;
-// [11] char *keys() const;
-// [11] SizeType *size() const;
-// [11] bool *sorted() const;
+// [12] DatumMapEntry *data() const;
+// [12] char *keys() const;
+// [12] SizeType *size() const;
+// [12] bool *sorted() const;
 //
 //                           // -------------------
 //                           // class DatumArrayRef
 //                           // -------------------
 // CREATORS
-// [12] DatumArrayRef();
-// [12] DatumArrayRef(const Datum *data, SizeType length);
+// [13] DatumArrayRef();
+// [13] DatumArrayRef(const Datum *data, SizeType length);
 //
 // ACCESSORS
-// [12] const Datum& operator[](SizeType index) const;
-// [12] const Datum *data() const;
-// [12] SizeType length() const;
-// [12] bsl::ostream& print(bsl::ostream& stream, int, int) const;
+// [13] const Datum& operator[](SizeType index) const;
+// [13] const Datum *data() const;
+// [13] SizeType length() const;
+// [13] bsl::ostream& print(bsl::ostream& stream, int, int) const;
 //
 // FREE OPERATORS
-// [12] bool operator==(const DatumArrayRef&, const DatumArrayRef&);
-// [12] bool operator!=(const DatumArrayRef&, const DatumArrayRef&);
-// [12] bsl::ostream& operator<<(bsl::ostream&, const DatumArrayRef&);
+// [13] bool operator==(const DatumArrayRef&, const DatumArrayRef&);
+// [13] bool operator!=(const DatumArrayRef&, const DatumArrayRef&);
+// [13] bsl::ostream& operator<<(bsl::ostream&, const DatumArrayRef&);
 //
 //                         // --------------------
 //                         // class DatumIntMapRef
 //                         // --------------------
 // CREATORS
-// [13] DatumIntMapRef(const DatumIntMapEntry *, SizeType, bool);
+// [14] DatumIntMapRef(const DatumIntMapEntry *, SizeType, bool);
 //
 // ACCESSORS
-// [13] const DatumIntMapEntry& operator[](SizeType index) const;
-// [13] const DatumIntMapEntry *data() const;
-// [13] bool isSorted() const;
-// [13] SizeType size() const;
-// [13] const Datum *find(int key) const;
-// [13] bsl::ostream& print(bsl::ostream&, int,int) const;
+// [14] const DatumIntMapEntry& operator[](SizeType index) const;
+// [14] const DatumIntMapEntry *data() const;
+// [14] bool isSorted() const;
+// [14] SizeType size() const;
+// [14] const Datum *find(int key) const;
+// [14] bsl::ostream& print(bsl::ostream&, int,int) const;
 //
 // FREE OPERATORS
-// [13] bool operator==(const DatumIntMapRef&, const DatumIntMapRef&);
-// [13] bool operator!=(const DatumIntMapRef&, const DatumIntMapRef&);
-// [13] bsl::ostream& operator<<(bsl::ostream&, const DatumIntMapRef&);
+// [14] bool operator==(const DatumIntMapRef&, const DatumIntMapRef&);
+// [14] bool operator!=(const DatumIntMapRef&, const DatumIntMapRef&);
+// [14] bsl::ostream& operator<<(bsl::ostream&, const DatumIntMapRef&);
 //
 //                            // -----------------
 //                            // class DatumMapRef
 //                            // -----------------
 // CREATORS
-// [14] DatumMapRef(const DatumMapEntry *, SizeType, bool, bool);
+// [15] DatumMapRef(const DatumMapEntry *, SizeType, bool, bool);
 //
 // ACCESSORS
-// [14] const DatumMapEntry& operator[](SizeType index) const;
-// [14] const DatumMapEntry *data() const;
-// [14] bool isSorted() const;
-// [14] SizeType size() const;
-// [14] const Datum *find(const bslstl::StringRef& key) const;
-// [14] bsl::ostream& print(bsl::ostream&, int,int) const;
+// [15] const DatumMapEntry& operator[](SizeType index) const;
+// [15] const DatumMapEntry *data() const;
+// [15] bool isSorted() const;
+// [15] SizeType size() const;
+// [15] const Datum *find(const bslstl::StringRef& key) const;
+// [15] bsl::ostream& print(bsl::ostream&, int,int) const;
 //
 // FREE OPERATORS
-// [14] bool operator==(const DatumMapRef& lhs, const DatumMapRef& rhs);
-// [14] bool operator!=(const DatumMapRef& lhs, const DatumMapRef& rhs);
-// [14] bsl::ostream& operator<<(bsl::ostream&, const DatumMapRef&);
+// [15] bool operator==(const DatumMapRef& lhs, const DatumMapRef& rhs);
+// [15] bool operator!=(const DatumMapRef& lhs, const DatumMapRef& rhs);
+// [15] bsl::ostream& operator<<(bsl::ostream&, const DatumMapRef&);
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [35] USAGE EXAMPLE
-// [34] VECTOR OF NULLS TEST
-// [24] Datum_ArrayProctor
-// [32] DATETIME ALLOCATION TESTS
-// [31] MISALIGNED MEMORY ACCESS TEST (only on SUN machines)
-// [30] COMPRESSIBILITY OF DECIMAL64
+// [36] USAGE EXAMPLE
+// [35] VECTOR OF NULLS TEST
+// [25] Datum_ArrayProctor
+// [33] DATETIME ALLOCATION TESTS
+// [32] MISALIGNED MEMORY ACCESS TEST (only on SUN machines)
+// [31] COMPRESSIBILITY OF DECIMAL64
 // [-2] EFFICIENCY TEST
-// ----------------------------------------------------------------------------
 
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
@@ -473,9 +595,9 @@ const double k_DOUBLE_LOADED_NAN   = -sqrt(-1.0);  // A NaN with random bits.
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
 const bool k_DOUBLE_NAN_BITS_PRESERVED = false;  // "Some NaN" stored.
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
 const bool k_DOUBLE_NAN_BITS_PRESERVED = true;  // All NaN bits stored.
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
 const Decimal64 k_DECIMAL64_MIN      = numeric_limits<Decimal64>::min();
 const Decimal64 k_DECIMAL64_MAX      = numeric_limits<Decimal64>::max();
@@ -490,20 +612,20 @@ const char *UNKNOWN_FORMAT = "(* UNKNOWN *)";
 //                           TESTING TYPE TRAITS
 //-----------------------------------------------------------------------------
 
-#if defined(BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY)
-# define U_ASSERT_EXPECTED_PROPERTIES_BASIC(TYPE)                             \
-    BSLMF_ASSERT(bslmf::IsTriviallyCopyableCheck<TYPE>::value);               \
-    BSLMF_ASSERT(bslmf::IsBitwiseMoveable<TYPE>::value);                      \
-    BSLMF_ASSERT(!(bslma::UsesBslmaAllocator<TYPE>::value));                  \
-    BSLMF_ASSERT(!(bslmf::IsBitwiseEqualityComparable<TYPE>::value))
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+    #define U_ASSERT_EXPECTED_PROPERTIES_BASIC(TYPE)                          \
+            BSLMF_ASSERT(bslmf::IsTriviallyCopyableCheck<TYPE>::value);       \
+            BSLMF_ASSERT(bslmf::IsBitwiseMoveable<TYPE>::value);              \
+            BSLMF_ASSERT(!(bslma::UsesBslmaAllocator<TYPE>::value));          \
+            BSLMF_ASSERT(!(bslmf::IsBitwiseEqualityComparable<TYPE>::value))
 
-# define U_ASSERT_EXPECTED_PROPERTIES(TYPE)                                   \
-    U_ASSERT_EXPECTED_PROPERTIES_BASIC(TYPE);                                 \
-    BSLMF_ASSERT(bdlb::HasPrintMethod<TYPE>::value)
+    #define U_ASSERT_EXPECTED_PROPERTIES(TYPE)                                \
+            U_ASSERT_EXPECTED_PROPERTIES_BASIC(TYPE);                         \
+            BSLMF_ASSERT(bdlb::HasPrintMethod<TYPE>::value)
 
-# define U_ASSERT_EXPECTED_PROPERTIES_PLUS_DEFAULT(TYPE)                      \
-    U_ASSERT_EXPECTED_PROPERTIES(TYPE);                                       \
-    BSLMF_ASSERT(bsl::is_trivially_default_constructible<TYPE>::value)
+    #define U_ASSERT_EXPECTED_PROPERTIES_PLUS_DEFAULT(TYPE)                   \
+            U_ASSERT_EXPECTED_PROPERTIES(TYPE);                               \
+            BSLMF_ASSERT(bsl::is_trivially_default_constructible<TYPE>::value)
 
     U_ASSERT_EXPECTED_PROPERTIES_PLUS_DEFAULT(bdld::Datum);
     U_ASSERT_EXPECTED_PROPERTIES_BASIC(bdld::DatumMutableArrayRef);
@@ -514,7 +636,7 @@ const char *UNKNOWN_FORMAT = "(* UNKNOWN *)";
     U_ASSERT_EXPECTED_PROPERTIES(bdld::DatumIntMapEntry);
     U_ASSERT_EXPECTED_PROPERTIES(bdld::DatumMapEntry);
     U_ASSERT_EXPECTED_PROPERTIES(bdld::DatumMapRef);
-#endif
+#endif  // end - base C++11 library is present
 
 //=============================================================================
 //                   GLOBAL HELPER FUNCTIONS FOR TESTING
@@ -775,98 +897,98 @@ TestVisitor::TestVisitor()
 
 void TestVisitor::operator()(bslmf::Nil v)
 {
-    (void) v;
+    (void)v;
     d_type        = Datum::e_NIL;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(const bdlt::Date& v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_DATE;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(const bdlt::Datetime& v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_DATETIME;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(const bdlt::DatetimeInterval& v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_DATETIME_INTERVAL;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(const bdlt::Time& v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_TIME;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(bslstl::StringRef v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_STRING;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(bool v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_BOOLEAN;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(bsls::Types::Int64 v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_INTEGER64;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(double v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_DOUBLE;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(DatumError v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_ERROR;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(int v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_INTEGER;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(DatumUdt v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_USERDEFINED;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(DatumArrayRef v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_ARRAY;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(DatumMapRef v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_MAP;
     d_visitedFlag = true;
 }
@@ -880,14 +1002,14 @@ void TestVisitor::operator()(DatumIntMapRef v)
 
 void TestVisitor::operator()(DatumBinaryRef v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_BINARY;
     d_visitedFlag = true;
 }
 
 void TestVisitor::operator()(Decimal64 v)
 {
-    (void) v;
+    (void)v;
     d_type = Datum::e_DECIMAL64;;
     d_visitedFlag = true;
 }
@@ -961,53 +1083,51 @@ class Stopwatch {
 double Stopwatch::getCPUTime()
 {
 #if defined(_WIN32)
-    /* Windows -------------------------------------------------- */
+    // -------------------------------- Windows -------------------------------
     FILETIME createTime;
     FILETIME exitTime;
     FILETIME kernelTime;
     FILETIME userTime;
-    if ( GetProcessTimes(GetCurrentProcess( ),
-                         &createTime,
-                         &exitTime,
-                         &kernelTime,
-                         &userTime) != -1 )
+    if (GetProcessTimes(GetCurrentProcess(),
+                        &createTime,
+                        &exitTime,
+                        &kernelTime,
+                        &userTime) != -1)
     {
         SYSTEMTIME userSystemTime;
-        if ( FileTimeToSystemTime( &userTime, &userSystemTime ) != -1 ) {
-            return (double)userSystemTime.wHour * 3600.0 +
-                (double)userSystemTime.wMinute * 60.0 +
-                (double)userSystemTime.wSecond +
-                (double)userSystemTime.wMilliseconds / 1000.0;
+        if (FileTimeToSystemTime(&userTime, &userSystemTime) != -1) {
+            return (double)userSystemTime.wHour   * 3600.0 +
+                   (double)userSystemTime.wMinute * 60.0 +
+                   (double)userSystemTime.wSecond +
+                   (double)userSystemTime.wMilliseconds / 1000.0;
         }
     }
 
 #elif defined(__unix__) || defined(__unix) || defined(unix) \
     || (defined(__APPLE__) && defined(__MACH__))
-    /* AIX, BSD, Cygwin, Linux, OSX, and Solaris --------- */
+    // --------------- AIX, BSD, Cygwin, Linux, OSX, and Solaris --------------
 
 #if _POSIX_TIMERS > 0
-    /* Prefer high-res POSIX timers, when available. */
+    // Prefer high-res POSIX timers, when available.
     {
         clockid_t       id;
         struct timespec ts;
 #if _POSIX_CPUTIME > 0
-        /* Clock ids vary by OS.  Query the id, if possible. */
-        if ( clock_getcpuclockid( 0, &id ) == -1 )
+        // Clock ids vary by OS.  Query the id, if possible.
+        if (clock_getcpuclockid(0, &id) == -1)
 #endif
 #if defined(CLOCK_PROCESS_CPUTIME_ID)
-            /* Use known clock id for AIX, Linux, or Solaris. */
+            // Use known clock id for AIX, Linux, or Solaris.
             id = CLOCK_PROCESS_CPUTIME_ID;
 #elif defined(CLOCK_VIRTUAL)
-        /* Use known clock id for BSD. */
+        // Use known clock id for BSD.
         id = CLOCK_VIRTUAL;
 #else
         id = (clockid_t)-1;
 #endif
-        if ( id != static_cast<clockid_t>(-1) &&
-             clock_gettime( id, &ts ) != -1 ) {
-            double result = static_cast<double>(ts.tv_sec) +
-                                static_cast<double>(ts.tv_nsec) / 1000000000.0;
-            return result;                                            // RETURN
+        if (id != static_cast<clockid_t>(-1) && clock_gettime(id, &ts) != -1) {
+            return static_cast<double>(ts.tv_sec) +
+                   static_cast<double>(ts.tv_nsec) / 1000000000.0;    // RETURN
         }
     }
 #endif
@@ -1015,19 +1135,18 @@ double Stopwatch::getCPUTime()
 #if defined(RUSAGE_SELF)
     {
         struct rusage rusage;
-        if ( getrusage( RUSAGE_SELF, &rusage ) != -1 ) {
-            double result = static_cast<double>(rusage.ru_utime.tv_sec) +
-                      static_cast<double>(rusage.ru_utime.tv_usec) / 1000000.0;
-            return result;                                            // RETURN
+        if (getrusage(RUSAGE_SELF, &rusage) != -1) {
+            return static_cast<double>(rusage.ru_utime.tv_usec) / 1000000.0 +
+                   static_cast<double>(rusage.ru_utime.tv_sec);       // RETURN
         }
     }
 #endif
 
 #if defined(_SC_CLK_TCK)
     {
-        const double ticks = static_cast<double>(sysconf( _SC_CLK_TCK ));
+        const double ticks = static_cast<double>(sysconf(_SC_CLK_TCK));
         struct tms   tms;
-        if ( times( &tms ) != static_cast<clock_t>(-1) ) {
+        if (times(&tms) != static_cast<clock_t>(-1) ) {
             return static_cast<double>(tms.tms_utime) / ticks;        // RETURN
         }
     }
@@ -1036,18 +1155,14 @@ double Stopwatch::getCPUTime()
 #if defined(CLOCKS_PER_SEC)
     {
         clock_t cl = clock( );
-        if ( cl != static_cast<clock_t>(-1)) {
-            double result = static_cast<double>(cl) /
-                                           static_cast<double>(CLOCKS_PER_SEC);
-            return result;                                            // RETURN
+        if (cl != static_cast<clock_t>(-1)) {
+            return static_cast<double>(cl) /
+                           static_cast<double>(CLOCKS_PER_SEC);       // RETURN
         }
     }
 #endif
-
 #endif
-
-    // Failed.
-    return -1.0;
+    return -1.0;  // Failed.
 }
 
                              // =======================
@@ -1126,7 +1241,7 @@ Benchmark_Visitor::Benchmark_Visitor()
 template<class VISITOR>
 void Benchmark_Visitor::operator()(const VISITOR& v)
 {
-    (void) v;
+    (void)v;
 }
 
 void Benchmark_Visitor::operator()(const bdlt::Date& v)
@@ -1300,19 +1415,16 @@ void BenchmarkSuite::run(int   iterations,
     BSLS_PLATFORM_COMPILER_ERROR;
 #endif
 
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
+#ifdef BSLS_PLATFORM_CPU_32_BIT
     cout << " - 32-bit variant";
-#else
+#else   // end - 32 bit / begin - 64 bit
     cout << " - 64-bit variant";
-#endif
+#endif  // end - 64 bit
 
     cout << " - " << d_iterations << " iterations\n";
 
     Datum datums[k_DATUMS];
-    bool  bools[k_DATUMS];
-
-    // Avoidance of compiler warning.
-    (void) bools;
+    bool  bools[k_DATUMS];   (void)bools;
 
     cout.setf(ios::fixed);
     cout.precision(1);
@@ -1328,29 +1440,30 @@ void BenchmarkSuite::run(int   iterations,
                 datums[i] = Datum::CREATOR;                                   \
             }                                                                 \
             csw.stop();                                                       \
+                                                                              \
             tsw.start(true);                                                  \
             for (int i = 0; i < k_DATUMS; ++i) {                              \
                 bools[i] = datums[i].TESTER;                                  \
             }                                                                 \
             tsw.stop();                                                       \
+                                                                              \
             gsw.start(true);                                                  \
-            static TYPE results[k_DATUMS];                                    \
+            static TYPE results[k_DATUMS];  (void)results;                    \
             for (int i = 0; i < k_DATUMS; ++i) {                              \
                 results[i] = datums[i].GETTER;                                \
             }                                                                 \
-            (void) results;                                                   \
             gsw.stop();                                                       \
+                                                                              \
             dsw.start(true);                                                  \
             for (int i = 0; i < k_DATUMS; ++i) {                              \
                 Datum::destroy(datums[i], &alloc);                            \
             }                                                                 \
             dsw.stop();                                                       \
         }                                                                     \
-        write(d_current, #CREATOR,                                            \
-              csw.accumulatedUserTime() / d_scale);                           \
-        write(#TESTER, tsw.accumulatedUserTime() / d_scale);                  \
-        write(#GETTER, gsw.accumulatedUserTime() / d_scale);                  \
-        write("destroy()", dsw.accumulatedUserTime() / d_scale);              \
+        write(d_current, #CREATOR,    csw.accumulatedUserTime() / d_scale);   \
+        write(           #TESTER,     tsw.accumulatedUserTime() / d_scale);   \
+        write(           #GETTER,     gsw.accumulatedUserTime() / d_scale);   \
+        write(           "destroy()", dsw.accumulatedUserTime() / d_scale);   \
         cout << "\n";                                                         \
     }                                                                         \
 
@@ -1368,10 +1481,10 @@ void BenchmarkSuite::run(int   iterations,
     BENCHMARK(createDouble(1.23), isDouble(), theDouble(), double);
 
     {
-        unsigned char buffer[16]; // big enough fox max encoding size
-        (void)buffer;
+        const size_t k_MAX_ENCODED_SIZE_IN_BYTES = 16;
+        unsigned char buffer[k_MAX_ENCODED_SIZE_IN_BYTES];  (void)buffer;
 
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
+#ifdef BSLS_PLATFORM_CPU_32_BIT
         Decimal64      aSmallDecimal64(BDLDFP_DECIMAL_DD(1.));
         BSLA_MAYBE_UNUSED unsigned char *result =
             bdldfp::DecimalConvertUtil::decimal64ToVariableWidthEncoding(
@@ -1383,16 +1496,14 @@ void BenchmarkSuite::run(int   iterations,
                   isDecimal64(),
                   theDecimal64(),
                   Decimal64);
-#else
+#else   // end - 32 bit / begin - 64 bit
         ++d_current;
-#endif
+#endif  // end - 64 bit
 
-        Decimal64 aDecimal64(
-            BDLDFP_DECIMAL_DD(1.23456789));
+        Decimal64 aDecimal64(BDLDFP_DECIMAL_DD(1.23456789));
         BSLS_ASSERT(bdldfp::DecimalConvertUtil::
                     decimal64ToVariableWidthEncoding(buffer,
-                                                     aDecimal64)
-                    > buffer + 6);
+                                                     aDecimal64) > buffer + 6);
         BENCHMARK(createDecimal64(aDecimal64, &alloc),
                   isDecimal64(),
                   theDecimal64(),
@@ -1419,14 +1530,14 @@ void BenchmarkSuite::run(int   iterations,
               theString(),
               StringRef);
 
-#if defined(BSLS_PLATFORM_CPU_64_BIT)
+#ifdef BSLS_PLATFORM_CPU_64_BIT
     BENCHMARK(copyString("0123456789abcde", &alloc),
               isString(),
               theString(),
               StringRef);
-#else
+#else   // end - 64 bit / begin - 32 bit
     ++d_current;
-#endif
+#endif  // end - 32 bit
     BENCHMARK(copyString("abcdefghijklmnopqrstuvwxyz", &alloc),
               isString(),
               theString(),
@@ -1444,15 +1555,12 @@ void BenchmarkSuite::run(int   iterations,
             bdlma::BufferedSequentialAllocator alloc(d_buf.begin(),
                                                      k_ALLOC_SIZE);
             csw.start(true);
-            static char *p[k_DATUMS];
+            static char *p[k_DATUMS];  (void)p;
             for (int i = 0; i < k_DATUMS; ++i) {
                 p[i] = Datum::createUninitializedString(datums + i,
                                                         80,
                                                         &alloc);
             }
-
-            // Avoidance of compiler warning.
-            (void) p;
 
             csw.stop();
         }
@@ -1501,14 +1609,14 @@ void BenchmarkSuite::run(int   iterations,
 
     {
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#ifndef BSLS_PLATFORM_CMP_CLANG
-#pragma GCC diagnostic ignored "-Wlarger-than="
-#endif
+    #pragma GCC diagnostic push
+    #ifndef BSLS_PLATFORM_CMP_CLANG
+        #pragma GCC diagnostic ignored "-Wlarger-than="
+    #endif
 #endif
         static Datum array[100 * 1000];
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #endif
 
         BENCHMARK(createArrayReference(array,
@@ -1662,9 +1770,8 @@ bool operator==(bslmf::Nil lhs, bslmf::Nil rhs)
     // Return 'true' regardless of the specified 'lhs' and the specified  'rhs'
     // equality.
 {
-    // Avoidance of compiler warnings.
-    (void) lhs;
-    (void) rhs;
+    (void)lhs;
+    (void)rhs;
 
     return true;
 }
@@ -2243,7 +2350,7 @@ int main(int argc, char *argv[])
     srand(static_cast<unsigned int>(time(static_cast<time_t *>(0))));
 
     switch (test) { case 0:
-      case 35: {
+      case 36: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   Extracted from component header file.
@@ -2260,8 +2367,8 @@ int main(int argc, char *argv[])
         // Testing:
         //   USAGE EXAMPLE
         // --------------------------------------------------------------------
-        if (verbose) cout << endl << "USAGE EXAMPLE" << endl
-                                  << "=============" << endl;
+        if (verbose) cout << "\nUSAGE EXAMPLE"
+                             "\n=============\n";
 
 ///Usage
 ///-----
@@ -2466,9 +2573,9 @@ int main(int argc, char *argv[])
         *maggieArray.length() = 2;
         Datum maggie = Datum::adoptArray(maggieArray);
 
-        (void) patty;   // suppress compiler warning
-        (void) selma;   // suppress compiler warning
-        (void) maggie;  // suppress compiler warning
+        (void)patty;
+        (void)selma;
+        (void)maggie;
     } // end of scope
 //..
 // Here all the allocated memory is lodged in the 'arena' allocator. At the end
@@ -2534,7 +2641,7 @@ int main(int argc, char *argv[])
 //..
 // Note, that the bytes have been copied.
       } break;
-      case 34: {
+      case 35: {
         // --------------------------------------------------------------------
         // VECTOR OF NULLS TEST
         //  This test became necessary as of December 2022, when someone
@@ -2567,10 +2674,8 @@ int main(int argc, char *argv[])
         //   VECTOR OF NULLS TEST
         // --------------------------------------------------------------------
 
-        if (verbose)
-            cout << endl
-                 << "VECTOR OF NULLS TEST" << endl
-                 << "====================" << endl;
+        if (verbose) cout << "\nVECTOR OF NULLS TEST"
+                             "\n====================\n";
 
         bsl::vector<bdld::Datum> v1(1, bdld::Datum::createNull());
         ASSERT(v1[0].isNull());
@@ -2585,7 +2690,7 @@ int main(int argc, char *argv[])
         ASSERT(v3[2].isNull());
 
       } break;
-      case 33: {
+      case 34: {
         // --------------------------------------------------------------------
         // BSLH HASHING TESTS
         //
@@ -2609,17 +2714,16 @@ int main(int argc, char *argv[])
         // Testing:
         //   void hashAppend(hashAlgorithm, datum);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "BSLH HASHING TESTS" << endl
-                          << "===================" << endl;
+        if (verbose) cout << "\nBSLH HASHING TESTS"
+                             "\n===================\n";
 
-        if (verbose) cout << "\nTesting 'hashAppend' for Datums having "
-                          << "non-aggregate values.\n";
+        if (verbose) cout << "\nTesting 'hashAppend' for datums having "
+                                                     "non-aggregate values.\n";
         {
             bslma::TestAllocator         da("default", veryVeryVeryVerbose);
             bslma::DefaultAllocatorGuard guard(&da);
 
-            if (verbose) cout << "\nTesting 'hashAppend' for boolean.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for boolean.\n";
             {
                 const static bool  DATA[] = { true, false };
                 const size_t       DATA_LEN = sizeof DATA / sizeof *DATA;
@@ -2657,7 +2761,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'Date'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'Date'.\n";
             {
                 const static struct {
                     int        d_line;    // line number
@@ -2706,7 +2810,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'Datetime'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'Datetime'.\n";
             {
                 const static struct {
                     int            d_line;    // line number
@@ -2762,8 +2866,8 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose)
-                cout << "\nTesting 'hashAppend' for 'DatetimeInterval'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for "
+                                                       "'DatetimeInterval'.\n";
             {
                 const static struct {
                     int                    d_line;    // line number
@@ -2780,7 +2884,7 @@ int main(int argc, char *argv[])
                     { L_,  DatetimeInterval(0, 0, -1)                  },
                     { L_,  DatetimeInterval(0,  1)                     },
                     { L_,  DatetimeInterval(0, -1)                     },
-                    { L_,  DatetimeInterval(1)                        },
+                    { L_,  DatetimeInterval(1)                         },
                     { L_,  DatetimeInterval(-1)                        },
                     { L_,  DatetimeInterval(1, 1, 1, 1, 1)             },
                     { L_,  DatetimeInterval(-1, -1, -1, -1, -1)        },
@@ -2827,7 +2931,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'Decimal64'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'Decimal64'.\n";
             {
                 const static struct {
                     int               d_line;   // line number
@@ -2887,7 +2991,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'double'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'double'.\n";
             {
                 const static struct {
                     int      d_line;          // line number
@@ -2953,7 +3057,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'Error'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'Error'.\n";
             {
                 const static struct {
                     int d_line;   // line number
@@ -3054,7 +3158,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'int'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'int'.\n";
             {
                 const static struct {
                     int d_line;   // line number
@@ -3110,7 +3214,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'int64'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'int64'.\n";
             {
                 const static struct {
                     int   d_line;   // line number
@@ -3171,7 +3275,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'null'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'null'.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
                 bslma::TestAllocator ha("hash", veryVeryVeryVerbose);
@@ -3195,7 +3299,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(D, &oa);
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for strings.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for strings.\n";
             {
                 const static struct {
                     int         d_line;    // line number
@@ -3269,7 +3373,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'Time'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'Time'.\n";
             {
                 const static struct {
                     int        d_line;   // line number
@@ -3318,7 +3422,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'Udt'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'Udt'.\n";
             {
                 static char dummy[]="";
                 const static struct {
@@ -3381,7 +3485,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'hashAppend' for 'Binary'.\n";
+            if (verbose) cout << "\tTesting 'hashAppend' for 'Binary'.\n";
             {
                 const static struct {
                     int         d_line;  // line number
@@ -3463,10 +3567,10 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'hashAppend' for Datums having "
-                          << "aggregate values.\n";
+        if (verbose) cout << "\nTesting 'hashAppend' for datums having "
+                                                         "aggregate values.\n";
 
-        if (verbose) cout << "\nTesting 'hashAppend' for array.\n";
+        if (verbose) cout << "\tTesting 'hashAppend' for array.\n";
         {
             // Testing 'hashAppend' of an empty array
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
@@ -3574,7 +3678,7 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose) cout << "\nTesting 'hashAppend' for map.\n";
+        if (verbose) cout << "\tTesting 'hashAppend' for map.\n";
         {
             // Testing 'hashAppend' of an empty map
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
@@ -3723,7 +3827,7 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose) cout << "\nTesting 'hashAppend' for int-map.\n";
+        if (verbose) cout << "\tTesting 'hashAppend' for int-map.\n";
         {
             // Testing 'hashAppend' of an empty map
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
@@ -3865,7 +3969,7 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
       } break;
-      case 32: {
+      case 33: {
         // --------------------------------------------------------------------
         // DATETIME ALLOCATION TESTS
         //
@@ -3885,11 +3989,10 @@ int main(int argc, char *argv[])
         //   bdlt::Datetime theDatetime();
         // --------------------------------------------------------------------
 
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
-        if (verbose) cout << endl
-                          << "DATETIME ALLOCATION TESTS" << endl
-                          << "=========================" << endl;
+        if (verbose) cout << "\nDATETIME ALLOCATION TESTS"
+                             "\n=========================\n";
 
+#ifdef BSLS_PLATFORM_CPU_32_BIT
         bslma::TestAllocator qa("qa", veryVeryVeryVerbose);
 
         const bdlt::Date threshold(2020, 1, 1);
@@ -3949,14 +4052,11 @@ int main(int argc, char *argv[])
         LOOP_ASSERT(d, d.isDatetime() && d.theDatetime() == mSec);
         Datum::destroy(d, &qa);
         LOOP_ASSERT(qa.numBlocksInUse(), qa.numBlocksInUse() == 0);
-#else
-        if (verbose) cout << endl
-                          << "DATETIME ALLOCATION TESTS ARE 32 BIT ONLY\n "
-                          << "========================================="
-                          << endl;
-#endif
+#else   // end - 32 bit / begin - 64 bit
+        if (verbose) cout << "\nDatetime allocation tests are 32 bit only\n";
+#endif  // end - 64 bit
       } break;
-      case 31: {
+      case 32: {
         // --------------------------------------------------------------------
         // MISALIGNED MEMORY ACCESS TEST
         //
@@ -3975,11 +4075,10 @@ int main(int argc, char *argv[])
         //   MISALIGNED MEMORY ACCESS TEST (only on SUN machines)
         // --------------------------------------------------------------------
 
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
-        if (verbose) cout << endl
-                         << "MISALIGNED MEMORY ACCESS TEST" << endl
-                         << "=============================" << endl;
+        if (verbose) cout << "\nMISALIGNED MEMORY ACCESS TEST"
+                             "\n=============================\n";
 
+#ifdef BSLS_PLATFORM_CPU_32_BIT
         char                               buf[50];
         bslma::TestAllocator               ta("test", veryVeryVeryVerbose);
         bdlma::BufferedSequentialAllocator bufAlloc(buf, sizeof(buf), &ta);
@@ -3990,14 +4089,12 @@ int main(int argc, char *argv[])
         Datum::destroy(obj1, &bufAlloc);
         Datum::destroy(obj2, &bufAlloc);
         ASSERT(0 == ta.status());
-#else
-        if (verbose) cout << endl
-                          << "DATETIME ALLOCATION TESTS ARE 32 BIT ONLY\n "
-                          << "========================================="
-                          << endl;
-#endif
+#else   // end - 32 bit / begin - 64 bit
+          if (verbose)
+              cout << "\nMisaligned memory access test are 32 bit only\n";
+#endif  // end - 64 bit
       } break;
-      case 30: {
+      case 31: {
         // --------------------------------------------------------------------
         // TESTING COMPRESSIBILITY OF DECIMAL64
         //    Check that 'Decimal64' fit in 6 bytes or not (as expected).
@@ -4013,34 +4110,27 @@ int main(int argc, char *argv[])
         // Testing:
         //   COMPRESSIBILITY OF DECIMAL64
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING COMPRESSIBILITY OF DECIMAL64" << endl
-                          << "====================================" << endl;
-        if (verbose)
-            cout << "\nTesting compressibility of Decimal64 values." << endl;
+        if (verbose) cout << "\nTESTING COMPRESSIBILITY OF DECIMAL64"
+                             "\n====================================\n";
 
-        {
-            unsigned char buffer[9];
+        unsigned char buffer[9];
 
-            if (verbose)
-                cout << "\tCheck that '1.2345' fits in 6 bytes." << endl;
-            unsigned char *variable1 =
-                bdldfp::DecimalConvertUtil::decimal64ToVariableWidthEncoding(
+        if (verbose) cout << "\n\tVerify that '1.2345' fits in 6 bytes.\n";
+        const unsigned char *variable1 =
+            bdldfp::DecimalConvertUtil::decimal64ToVariableWidthEncoding(
                                                     buffer,
                                                     BDLDFP_DECIMAL_DD(1.2345));
-            ASSERT(variable1 < buffer + 6);
+        ASSERT(variable1 < buffer + 6);
 
-            if (verbose)
-                cout << "\tCheck that '12.3456789' does not fit in 6 bytes."
-                     << endl;
-            unsigned char *variable2 =
-                bdldfp::DecimalConvertUtil::decimal64ToVariableWidthEncoding(
+        if (verbose) cout << "\tVerify that '12.3456789' won't fit in "
+                                                                  "6 bytes.\n";
+        const unsigned char *variable2 =
+            bdldfp::DecimalConvertUtil::decimal64ToVariableWidthEncoding(
                                                 buffer,
                                                 BDLDFP_DECIMAL_DD(12.3456789));
-            ASSERT(variable2 > buffer + 6);
-        }
+        ASSERT(variable2 > buffer + 6);
       } break;
-      case 29: {
+      case 30: {
         // --------------------------------------------------------------------
         // TESTING OUTPUT ('<<') OPERATOR
         //
@@ -4078,8 +4168,8 @@ int main(int argc, char *argv[])
         //   operator<<(ostream& s, Datum::DataType val);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << endl << "TESTING OUTPUT ('<<') OPERATOR" << endl
-                                  << "==============================" << endl;
+        if (verbose) cout << "\nTESTING OUTPUT ('<<') OPERATOR"
+                             "\n==============================\n";
 
         static const struct {
             int              d_lineNum;  // source line number
@@ -4108,15 +4198,14 @@ int main(int argc, char *argv[])
 
         const size_t NUM_DATA = sizeof DATA / sizeof *DATA;
 
-        if (verbose) cout << "\nTesting '<<' operator for 'Datum::DataType'."
-                          << endl;
+        if (verbose) cout << "\nTesting 'operator<<' for 'Datum::DataType'.\n";
         for (size_t ti = 0; ti < NUM_DATA; ++ti) {
             const int             LINE  = DATA[ti].d_lineNum;
             const Datum::DataType VALUE = DATA[ti].d_value;
             const string          EXP   = DATA[ti].d_exp_p;
 
             if (veryVerbose) { T_; P_(ti); P(VALUE); }
-            if (veryVerbose) cout << "EXPECTED FORMAT: " << EXP << endl;
+            if (veryVerbose) cout << "EXPECTED FORMAT: " << EXP << '\n';
 
             bslma::TestAllocator         sa("stream",  veryVeryVeryVerbose);
             bslma::DefaultAllocatorGuard sag(&sa);
@@ -4125,12 +4214,12 @@ int main(int argc, char *argv[])
 
             ASSERTV(LINE, &os == &(os << VALUE));
 
-            if (veryVerbose) cout << "  ACTUAL FORMAT: " << os.str() << endl;
+            if (veryVerbose) cout << "  ACTUAL FORMAT: " << os.str() << '\n';
 
             ASSERTV(LINE, ti, EXP, os.str(), EXP == os.str());
         }
 
-        if (verbose) cout << "\tNothing is written to a bad stream." << endl;
+        if (verbose) cout << "\tNothing is written to a bad stream.\n";
         for (size_t ti = 0; ti < NUM_DATA; ++ti) {
             const int             LINE  = DATA[ti].d_lineNum;
             const Datum::DataType VALUE = DATA[ti].d_value;
@@ -4149,18 +4238,16 @@ int main(int argc, char *argv[])
             ASSERTV(LINE, ti, os.str(), os.str().empty());
         }
 
-        if (verbose) cout << "\nVerify '<<' operator signature." << endl;
+        if (verbose) cout << "\nVerify '<<' operator signature.\n";
         {
             using namespace bdld;
 
             typedef bsl::ostream& (*FuncPtr)(bsl::ostream&, Datum::DataType);
 
-            const FuncPtr FP = &operator<<;
-
-            (void)FP;   // silence potential compiler warning
+            const FuncPtr FP = &operator<<;  (void)FP;
         }
       } break;
-      case 28: {
+      case 29: {
         // -------------------------------------------------------------------
         // TESTING ENUMERATIONS AND 'dataTypeToAscii'
         //
@@ -4205,10 +4292,8 @@ int main(int argc, char *argv[])
         //   const char *dataTypeToAscii(Datum::DataType val);
         // -------------------------------------------------------------------
 
-        if (verbose)
-            cout << endl
-                 << "TESTING ENUMERATIONS AND 'dataTypeToAscii'" << endl
-                 << "==========================================" << endl;
+        if (verbose) cout << "\nTESTING ENUMERATIONS AND 'dataTypeToAscii'"
+                             "\n==========================================\n";
 
         static const struct {
             int              d_lineNum;  // source line number
@@ -4238,8 +4323,7 @@ int main(int argc, char *argv[])
 
         const size_t NUM_DATA = sizeof DATA / sizeof *DATA;
 
-        if (verbose) cout << "\nVerify 'k_NUM_TYPES' enumerator's value."
-                          << endl;
+        if (verbose) cout << "\nVerify 'k_NUM_TYPES' enumerator's value.\n";
         {
             const int NUM_TYPES = 17;  // expected number of types
 
@@ -4247,8 +4331,7 @@ int main(int argc, char *argv[])
             ASSERT(Datum::k_NUM_TYPES == NUM_DATA);
         }
 
-        if (verbose) cout << "\nVerify enumerator values are sequential."
-                          << endl;
+        if (verbose) cout << "\nVerify enumerator values are sequential.\n";
 
         for (int i = 0; i < Datum::k_NUM_TYPES; ++i) {
             const Datum::DataType VALUE = DATA[i].d_value;
@@ -4258,7 +4341,7 @@ int main(int argc, char *argv[])
             ASSERTV(i, VALUE, i == VALUE);
         }
 
-        if (verbose) cout << "\nTesting 'dataTypeToAscii'." << endl;
+        if (verbose) cout << "\nTesting 'dataTypeToAscii'.\n";
 
         for (size_t ti = 0; ti < NUM_DATA; ++ti) {
             const int              LINE  = DATA[ti].d_lineNum;
@@ -4273,17 +4356,15 @@ int main(int argc, char *argv[])
             ASSERTV(LINE, ti,           0 == strcmp(EXP, result));
         }
 
-        if (verbose) cout << "\nVerify 'dataTypeToAscii' signature." << endl;
+        if (verbose) cout << "\nVerify 'dataTypeToAscii' signature.\n";
 
         {
             typedef const char *(*FuncPtr)(Datum::DataType);
 
-            const FuncPtr FP = &Datum::dataTypeToAscii;
-
-            (void) FP;   // silence potential compiler warning
+            const FuncPtr FP = &Datum::dataTypeToAscii;  (void)FP;
         }
       } break;
-      case 27: {
+      case 28: {
         // --------------------------------------------------------------------
         // TESTING 'disposeUninitializedMap'
         //
@@ -4307,12 +4388,11 @@ int main(int argc, char *argv[])
         //   void disposeUninitializedMap(DatumMutableMapRef *, ...);
         //   void disposeUninitializedMap(DatumMutableMapOwningKeysRef *, ...);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'disposeUninitializedMap'" << endl
-                          << "=================================" << endl;
+        if (verbose) cout << "\nTESTING 'disposeUninitializedMap'"
+                             "\n=================================\n";
 
-        if (verbose) cout << "\nTesting 'dispose' of a 'DatumMutableMapRef'."
-                          << endl;
+        if (verbose) cout << "\nTesting 'dispose' of a "
+                                                     "'DatumMutableMapRef'.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
             DatumMutableMapRef   map;
@@ -4325,9 +4405,8 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.numBytesInUse());
         }
 
-        if (verbose)
-            cout << "\nTesting 'dispose' of a 'DatumMutableMapOwningKeysRef'."
-                 << endl;
+        if (verbose) cout << "\nTesting 'dispose' of a "
+                                           "'DatumMutableMapOwningKeysRef'.\n";
         {
             bslma::TestAllocator         oa("object", veryVeryVeryVerbose);
             DatumMutableMapOwningKeysRef map;
@@ -4341,18 +4420,17 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.numBytesInUse());
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bsls::AssertTestHandlerGuard hG;
 
             bslma::TestAllocator  oa("object", veryVeryVeryVerbose);
             bslma::Allocator     *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
+            (void)nullAllocPtr;
 
-            (void) nullAllocPtr;  // suppress compiler warning
-
-            if (verbose) cout << "\tTesting 'DatumMutableMapRef'."
-                              << endl;
+            if (verbose) cout << "\tTesting 'DatumMutableMapRef'.\n";
             {
                 DatumMutableMapRef map;
                 Datum::createUninitializedMap(&map, 0, &oa);
@@ -4362,8 +4440,7 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(Datum::disposeUninitializedMap(map, &oa));
             }
 
-            if (verbose) cout << "\tTesting 'DatumMutableMapOwningKeysRef'."
-                              << endl;
+            if (verbose) cout << "\tTesting 'DatumMutableMapOwningKeysRef'.\n";
             {
                 DatumMutableMapOwningKeysRef map;
                 Datum::createUninitializedMap(&map, 0, 0, &oa);
@@ -4374,8 +4451,9 @@ int main(int argc, char *argv[])
             }
             ASSERT(0 == oa.status());
          }
+#endif  // Exceptions supported
       } break;
-      case 26: {
+      case 27: {
         // --------------------------------------------------------------------
         // TESTING 'disposeUninitializedArray'
         //
@@ -4398,12 +4476,11 @@ int main(int argc, char *argv[])
         // Testing:
         //   void disposeUninitializedArray(Datum *, basicAllocator *);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'disposeUninitializedArray'" << endl
-                          << "===================================" << endl;
+        if (verbose) cout << "\nTESTING 'disposeUninitializedArray'"
+                             "\n===================================\n";
 
-        if (verbose) cout << "\nTesting 'dispose' of a 'DatumMutableArrayRef'."
-                          << endl;
+        if (verbose) cout << "\nTesting 'dispose' of a "
+                                                   "'DatumMutableArrayRef'.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
             DatumMutableArrayRef array;
@@ -4416,17 +4493,16 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.numBytesInUse());
         }
 
-        if (verbose) cout << "\nNegative testing." << endl;
+        if (verbose) cout << "\nNegative testing.\n";
         {
             bsls::AssertTestHandlerGuard hG;
 
             bslma::TestAllocator  oa("object", veryVeryVeryVerbose);
             bslma::Allocator     *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
-            DatumMutableArrayRef  array;
+            (void)nullAllocPtr;
 
-            (void) nullAllocPtr;  // suppress compiler warning
-
+            DatumMutableArrayRef array;
             Datum::createUninitializedArray(&array, 0, &oa);
 
             ASSERT_SAFE_FAIL(Datum::disposeUninitializedArray(array,
@@ -4436,7 +4512,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
          }
       } break;
-      case 25: {
+      case 26: {
         // --------------------------------------------------------------------
         // EQUALITY-COMPARISON OPERATORS
         //   Ensure that '==' and '!=' are the operational definition of value.
@@ -4507,14 +4583,12 @@ int main(int argc, char *argv[])
         //   bool operator==(const Datum&, const Datum&);  // aggregate
         //   bool operator!=(const Datum&, const Datum&);  // aggregate
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "EQUALITY-COMPARISON OPERATORS" << endl
-                          << "=============================" << endl;
+        if (verbose) cout << "\nEQUALITY-COMPARISON OPERATORS"
+                             "\n=============================\n";
 
         if (verbose)
-            cout << "\nCreate a table of distinct type/value combinations."
-                 << "\nIncluding aggregate data types."
-                 << endl;
+            cout << "\nCreating a table of distinct type/value combinations, "
+                                           "including aggregate data types.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -4646,8 +4720,7 @@ int main(int argc, char *argv[])
 
             ASSERT(vector1.size() == vector2.size());
 
-            if (verbose)
-                cout << "\nCompare every value with every value." << endl;
+            if (verbose) cout << "\tCompare every value with every value.\n";
             {
                 for (size_t i = 0; i < vector1.size(); ++i) {
                     const Datum& X = vector1[i];
@@ -4682,8 +4755,8 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
       } break;
-      case 24: {
-        // ------------------------------------------------------------------
+      case 25: {
+        // --------------------------------------------------------------------
         // TESTING PROCTOR
         //
         // Concerns:
@@ -4723,15 +4796,14 @@ int main(int argc, char *argv[])
         //
         // Testing:
         //   Datum_ArrayProctor
-        // ------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING PROCTOR" << endl
-                          << "===============" << endl;
+        // --------------------------------------------------------------------
+        if (verbose) cout << "\nTESTING PROCTOR"
+                             "\n===============\n";
+
         bslma::TestAllocator ta("test", veryVeryVerbose);
         const SizeType       SIZE = 5;
 
-        if (verbose) cout << "\nTesting 'Datum_ArrayProctor for arrays'."
-                          << endl;
+        if (verbose) cout << "\nTesting 'Datum_ArrayProctor for arrays'.\n";
         {
             // Original array creation.
 
@@ -4739,9 +4811,8 @@ int main(int argc, char *argv[])
             Datum::createUninitializedArray(&origin, SIZE, &ta);
 
             for (size_t i = 0; i < SIZE; ++i) {
-                origin.data()[i] = Datum::copyString(
-                                                    "A long string constant",
-                                                    &ta);
+                origin.data()[i] = Datum::copyString("A long string constant",
+                                                     &ta);
             }
             *(origin.length()) = SIZE;
 
@@ -4775,11 +4846,10 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &ta);
         }
 
-        if (verbose) cout << "\nTesting 'Datum_ArrayProctor for maps'."
-                          << endl;
+        if (verbose) cout << "\nTesting 'Datum_ArrayProctor for maps'.\n";
         {
-            if (verbose) cout <<
-                  "\nTesting cloning of the map with external keys." << endl;
+            if (verbose) cout << "\tTesting cloning of a map with "
+                                                            "external keys.\n";
 
             // Original map creation.
 
@@ -4829,8 +4899,7 @@ int main(int argc, char *argv[])
             Datum::destroy(mD, &ta);
         }
 
-        if (verbose) cout << "\nTesting cloning of the map owning keys."
-                          << endl;
+        if (verbose) cout << "\tTesting cloning of a map with owning keys.\n";
         {
             // Original map creation.
 
@@ -4888,7 +4957,7 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &ta);
         }
       } break;
-      case 23: {
+      case 24: {
         // --------------------------------------------------------------------
         // TESTING 'clone' METHOD
         //
@@ -4915,17 +4984,16 @@ int main(int argc, char *argv[])
         // Testing:
         //   Datum clone(bslma::Allocator *basicAllocator) const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'clone' METHOD" << endl
-                          << "======================" << endl;
+        if (verbose) cout << "\nTESTING 'clone' METHOD"
+                             "\n======================\n";
 
-        if (verbose) cout << "\nTesting 'clone' for Datums having "
-                          << "non-aggregate values." << endl;
+        if (verbose) cout << "\nTesting 'clone' for datums having "
+                                                     "non-aggregate values.\n";
         {
             bslma::TestAllocator         da("default", veryVeryVeryVerbose);
             bslma::DefaultAllocatorGuard guard(&da);
 
-            if (verbose) cout << "\nTesting 'clone' for boolean." << endl;
+            if (verbose) cout << "\tTesting 'clone' for boolean.\n";
             {
                 const static bool DATA[] = { true, false };
                 const size_t      DATA_LEN = sizeof DATA / sizeof *DATA;
@@ -4962,7 +5030,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'Date'." << endl;
+            if (verbose) cout << "\tTesting 'clone' for 'Date'.\n";
             {
                 const static bdlt::Date DATA[] = {
                     Date(),
@@ -5004,7 +5072,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'Datetime'." << endl;
+            if (verbose) cout << "\tTesting 'clone' for 'Datetime'.\n";
             {
                 const static bdlt::Datetime DATA[] = {
                     Datetime(),
@@ -5051,8 +5119,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose)
-                cout << "\nTesting 'clone' for 'DatetimeInterval'." << endl;
+            if (verbose) cout << "\tTesting 'clone' for 'DatetimeInterval'.\n";
             {
                 const static bdlt::DatetimeInterval DATA[] = {
                     DatetimeInterval(),
@@ -5106,7 +5173,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'Decimal64'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'Decimal64'.\n";
             {
                 const static struct {
                     int               d_line;          // line number
@@ -5174,7 +5241,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'double'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'double'.\n";
             {
                 const static struct {
                     int      d_line;          // line number
@@ -5263,7 +5330,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'Error'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'Error'.\n";
             {
                 const static int DATA [] = {
                     0,
@@ -5349,7 +5416,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'int'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'int'.\n";
             {
                 const static int DATA[] = {
                     0,
@@ -5398,7 +5465,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'int64'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'int64'.\n";
             {
                 const static Int64 DATA[] = {
                     0,
@@ -5431,7 +5498,7 @@ int main(int argc, char *argv[])
                     const Int64 bytesInUse = oa.numBytesInUse();
 #ifdef BSLS_PLATFORM_CPU_64_BIT
                     ASSERT(0 == oa.numBlocksInUse()); // non allocating type
-#endif  // BSLS_PLATFORM_CPU_64_BIT
+#endif  // end - 64 bit
 
                     ASSERT(true  == D.isInteger64());
                     ASSERT(VALUE == D.theInteger64());
@@ -5441,7 +5508,7 @@ int main(int argc, char *argv[])
                     ASSERT(bytesInUse == ca.numBytesInUse());
 #ifdef BSLS_PLATFORM_CPU_64_BIT
                     ASSERT(0 == ca.numBlocksInUse()); // non allocating type
-#endif  // BSLS_PLATFORM_CPU_64_BIT
+#endif  // end - 64 bit
 
                     ASSERT(false == DC.isExternalReference());
                     ASSERT(true  == DC.isInteger64());
@@ -5455,7 +5522,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'null'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'null'.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
                 bslma::TestAllocator ca("clone",  veryVeryVeryVerbose);
@@ -5480,7 +5547,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == ca.status());
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'StringRef'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'StringRef'.\n";
             {
                 const static Datum::SizeType DATA[] = {
                     0,
@@ -5533,14 +5600,14 @@ int main(int argc, char *argv[])
                         } else {
                             ASSERT(0 != ca.numBytesInUse());
                         }
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                         // Up to length 13 the strings are stored inline
                         if (SIZE <= 13) {
                             ASSERT(0 == ca.numBytesInUse());
                         } else {
                             ASSERT(0 != ca.numBytesInUse());
                         }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
                         ASSERT(false  == DC.isExternalReference());
                         ASSERT(true   == DC.isString());
@@ -5555,7 +5622,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'Time'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'Time'.\n";
             {
                 const static bdlt::Time DATA[] = {
                     Time(),
@@ -5597,7 +5664,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'Udt'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'Udt'.\n";
             {
                 char           BUFFER[] = "This is UDT placeholder";
                 const DatumUdt VALUE(BUFFER, 0);
@@ -5630,7 +5697,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == ca.status());
             }
 
-            if (verbose) cout << "\nTesting 'clone' for 'Binary'." << endl;
+            if (verbose) cout << "\nTesting 'clone' for 'Binary'.\n";
             {
                 for (size_t i = 0; i < 258; ++i) {
                     bslma::TestAllocator     ba("buffer", veryVeryVeryVerbose);
@@ -5650,13 +5717,13 @@ int main(int argc, char *argv[])
                     const Int64 bytesInUse = oa.numBytesInUse();
 #ifdef BSLS_PLATFORM_CPU_32_BIT
                     ASSERT(0 != bytesInUse);   // always allocate
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                     if (SIZE <= 13) {
                         ASSERT(0 == bytesInUse);
                     } else {
                         ASSERT(0 != bytesInUse);
                     }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
                     ASSERT(true == D.isBinary());
                     ASSERT(REF  == D.theBinary());
@@ -5678,7 +5745,7 @@ int main(int argc, char *argv[])
             }
 
             if (verbose)
-                cout << "\nTesting 'clone' for internal 'String'." << endl;
+                cout << "\nTesting 'clone' for internal 'String'.\n";
             {
                 for (size_t i = 0; i < 258; ++i) {
                     bslma::TestAllocator ba("buffer", veryVeryVeryVerbose);
@@ -5699,10 +5766,10 @@ int main(int argc, char *argv[])
 #ifdef BSLS_PLATFORM_CPU_32_BIT
                     // Up to length 6 inclusive the strings are stored inline
                     if (SIZE <= 6) {
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                     // Up to length 13 inclusive the strings are stored inline
                     if (SIZE <= 13) {
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
                         ASSERT(0 == bytesInUse);
                     } else {
                         ASSERT(0 != bytesInUse);
@@ -5728,9 +5795,9 @@ int main(int argc, char *argv[])
             }
         }
         if (verbose) cout << "\nTesting 'clone' for Datums having "
-                          << "aggregate values." << endl;
+                          << "aggregate values.\n";
 
-        if (verbose) cout << "\nTesting 'clone' for an array." << endl;
+        if (verbose) cout << "\nTesting 'clone' for an array.\n";
         {
             // Testing cloning of an empty array
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
@@ -5801,7 +5868,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == ca.status());
         }
 
-        if (verbose) cout << "\nTesting 'clone' for a map." << endl;
+        if (verbose) cout << "\nTesting 'clone' for a map.\n";
         {
             // Testing cloning of an empty map
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
@@ -5877,7 +5944,7 @@ int main(int argc, char *argv[])
         }
 
         if (verbose)
-            cout << "\nTesting 'clone' for a map owning keys." << endl;
+            cout << "\nTesting 'clone' for a map owning keys.\n";
         {
             // Testing cloning of an empty map
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
@@ -5976,7 +6043,7 @@ int main(int argc, char *argv[])
         }
 
         if (verbose) cout <<
-                  "\nTesting 'clone' for an array having map element." << endl;
+                  "\nTesting 'clone' for an array having map element.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
             bslma::TestAllocator ca("clone",  veryVeryVeryVerbose);
@@ -6029,7 +6096,7 @@ int main(int argc, char *argv[])
         }
 
         if (verbose) cout <<
-                   "\nTesting 'clone' for a map having array element." << endl;
+                   "\nTesting 'clone' for a map having array element.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
             bslma::TestAllocator ca("clone",  veryVeryVeryVerbose);
@@ -6079,15 +6146,14 @@ int main(int argc, char *argv[])
             ASSERT(0 == ca.status());
         }
 
-        if (verbose) cout << "\nNegative testing." << endl;
+        if (verbose) cout << "\nNegative testing.\n";
         {
             bsls::AssertTestHandlerGuard hG;
 
             bslma::TestAllocator  oa("object", veryVeryVeryVerbose);
             bslma::Allocator     *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
-
-            (void) nullAllocPtr;  // suppress compiler warning
+            (void)nullAllocPtr;
 
             const Datum D = Datum::createNull();
 
@@ -6097,7 +6163,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
          }
       } break;
-      case 22: {
+      case 23: {
         // --------------------------------------------------------------------
         // TESTING 'apply' METHOD
         //
@@ -6115,14 +6181,13 @@ int main(int argc, char *argv[])
         // Testing:
         //   template <class BDLD_VISITOR> void apply(BDLD_VISITOR&) const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'apply' METHOD" << endl
-                          << "======================" << endl;
+        if (verbose) cout << "\nTESTING 'apply' METHOD"
+                             "\n======================\n";
 
         bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
         if (verbose) cout << "\nTesting 'apply' for Datums having "
-                          << "non-aggregate values." << endl;
+                                                     "non-aggregate values.\n";
         {
             const static struct {
                 int             d_line;   // line number
@@ -6182,12 +6247,11 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'apply' for Datums having "
-                          << "aggregate values." << endl;
+        if (verbose) cout << "\nTesting 'apply' for datums having "
+                                                         "aggregate values.\n";
 
-        if (verbose) cout << "\nTesting 'apply' with Datum having array ref"
-                          << " value."
-                          << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having "
+                                                       "an array ref value.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6203,12 +6267,11 @@ int main(int argc, char *argv[])
 
             Datum::destroy(D, &oa);
         }
-        if (verbose)
-            cout << "\nTesting 'apply' with Datum having array value." << endl;
+        if (verbose) cout << "\nTesting 'apply' with datums "
+                                                      "having array values.\n";
 
-        if (verbose)
-            cout << "\tTesting 'apply' with Datum having empty array value."
-                 << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having "
+                                                     "an empty array value.\n";
         {
             DatumMutableArrayRef array;
             const Datum          D = Datum::adoptArray(array);
@@ -6222,9 +6285,8 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose) cout <<
-                   "\tTesting 'apply' with Datum having non-empty array value."
-                          << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having "
+                                                  "a non-empty array value.\n";
 
         {
             DatumMutableArrayRef array;
@@ -6242,11 +6304,11 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose) cout <<
-                      "\nTesting 'apply' with Datum having map value." << endl;
+        if (verbose) cout << "\nTesting 'apply' with datums having "
+                                                               "map values.\n";
 
-        if (verbose) cout <<
-                "\tTesting 'apply' with Datum having empty map value." << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having "
+                                                       "an empty map value.\n";
         {
             DatumMutableMapRef map;
             Datum              D = Datum::adoptMap(map);
@@ -6260,9 +6322,8 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
             ASSERT( 0 == oa.status());
         }
-        if (verbose) cout <<
-                     "\tTesting 'apply' with Datum having non-empty map value."
-                          << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having "
+                                                    "a non-empty map value.\n";
         {
             DatumMutableMapRef map;
             Datum::createUninitializedMap(&map, 1, &oa);
@@ -6281,13 +6342,11 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'apply' with Datum having map"
-                          << " (owning keys) value."
-                          << endl;
+        if (verbose) cout << "\nTesting 'apply' with datums having "
+                                                 "map (owning keys) values.\n";
 
-        if (verbose) cout << "\tTesting 'apply' with Datum having empty map"
-                          << " (owning keys) value."
-                          << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having "
+                                            "empty map (owning keys) value.\n";
         {
             DatumMutableMapOwningKeysRef map;
             Datum                        D = Datum::adoptMap(map);
@@ -6302,9 +6361,8 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
 
-        if (verbose) cout << "\tTesting 'apply' with Datum having non-empty"
-                          << " map (owning keys) value."
-                          << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having a "
+                                        "non-empty map (owning keys) value.\n";
         {
             DatumMutableMapOwningKeysRef map;
             Datum::createUninitializedMap(&map, 1, strlen("key"), &oa);
@@ -6326,8 +6384,8 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
 
-        if (verbose) cout <<
-            "\tTesting 'apply' with Datum having empty int-map value." << endl;
+        if (verbose) cout << "\tTesting 'apply' with a Datum having "
+                                                   "an empty int-map value.\n";
         {
             DatumMutableIntMapRef map;
             Datum                 D = Datum::adoptIntMap(map);
@@ -6341,9 +6399,8 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
             ASSERT( 0 == oa.status());
         }
-        if (verbose) cout <<
-                 "\tTesting 'apply' with Datum having non-empty int-map value."
-                 << endl;
+        if (verbose) cout << "\tTesting 'apply' with a 'Datum' having "
+                                                "a non-empty int-map value.\n";
         {
             DatumMutableIntMapRef map;
             Datum::createUninitializedIntMap(&map, 1, &oa);
@@ -6361,7 +6418,7 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
       } break;
-      case 21: {
+      case 22: {
         // --------------------------------------------------------------------
         // TESTING 'type' METHOD
         //
@@ -6376,12 +6433,11 @@ int main(int argc, char *argv[])
         // Testing:
         //   DataType::Enum type() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'type' METHOD" << endl
-                          << "=====================" << endl;
+        if (verbose) cout << "\nTESTING 'type' METHOD"
+                             "\n=====================\n";
 
-        if (verbose) cout << "\nTesting 'type' for Datums having "
-                          << "non-aggregate values." << endl;
+        if (verbose) cout << "\nTesting 'type' for datums having "
+                                                     "non-aggregate values.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6454,11 +6510,11 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'type' for Datums having "
-                          << "aggregate values." << endl;
+        if (verbose) cout << "\nTesting 'type' for datums having "
+                                                         "aggregate values.\n";
 
-        if (verbose) cout << "\nTesting 'type' with Datum having array "
-                          << "reference value." << endl;
+        if (verbose) cout << "\tTesting 'type' with a 'Datum' having "
+                                                 "an array reference value.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6470,8 +6526,8 @@ int main(int argc, char *argv[])
 
             Datum::destroy(D, &oa);
         }
-        if (verbose)
-            cout << "\nTesting 'type' with Datum having array value." << endl;
+        if (verbose) cout << "\tTesting 'type' with a 'Datum' having "
+                                                           "an array value.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6496,8 +6552,8 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose)
-            cout << "\nTesting 'type' with Datum having map value." << endl;
+        if (verbose) cout << "\tTesting 'type' with a 'Datum' having "
+                                                              "a map value.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6525,9 +6581,8 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
 
-        if (verbose) cout <<
-                  "\nTesting 'type' with Datum having map (owning keys) value."
-                         << endl;
+        if (verbose) cout << "\tTesting 'type' with a 'Datum' having "
+                                                "a map (owning keys) value.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6558,7 +6613,7 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
       } break;
-      case 20: {
+      case 21: {
         // --------------------------------------------------------------------
         // TESTING 'isExternalReference' METHOD
         //
@@ -6573,14 +6628,13 @@ int main(int argc, char *argv[])
         // Testing:
         //   bool isExternalReference() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'isExternalReference' METHOD" << endl
-                          << "====================================" << endl;
+        if (verbose) cout << "\nTESTING 'isExternalReference' METHOD"
+                             "\n====================================\n";
 
         bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
-        if (verbose) cout << "\nTesting 'isExternalReference' for Datums "
-                          << "having non-aggregate values." << endl;
+        if (verbose) cout << "\nTesting 'isExternalReference' for datums "
+                                              "having non-aggregate values.\n";
         {
             const static struct {
                 int     d_line;          // line number
@@ -6634,12 +6688,11 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'isExternalReference' for Datums "
-                          << "having aggregate values." << endl;
+        if (verbose) cout << "\nTesting 'isExternalReference' for datums "
+                                                  "having aggregate values.\n";
 
-        if (verbose)
-            cout << "\nTesting with Datum having array reference value."
-                 << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                                 "an array reference value.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6652,11 +6705,11 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose)
-            cout << "\nTesting with Datum having array value." << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                                           "an array value.\n";
 
-        if (verbose)
-            cout << "\tTesting with Datum having empty array value." << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                                     "an empty array value.\n";
         {
             DatumMutableArrayRef array;
             const Datum          D = Datum::adoptArray(array);
@@ -6666,9 +6719,8 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose)
-            cout << "\tTesting with Datum having non-empty array value."
-                 << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                                  "a non-empty array value.\n";
 
         {
             DatumMutableArrayRef array;
@@ -6682,10 +6734,10 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
         }
 
-        if (verbose) cout << "\nTesting with Datum having map value." << endl;
+        if (verbose) cout << "\nTesting with datums having a map values:\n";
 
-        if (verbose)
-            cout << "\tTesting with Datum having empty map value." << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                                       "an empty map value.\n";
         {
             DatumMutableMapRef map;
             Datum              D = Datum::adoptMap(map);
@@ -6695,8 +6747,8 @@ int main(int argc, char *argv[])
             Datum::destroy(D, &oa);
             ASSERT( 0 == oa.status());
         }
-        if (verbose)
-            cout << "\tTesting with Datum having non-empty map value." << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                                    "a non-empty map value.\n";
         {
             DatumMutableMapRef map;
             Datum::createUninitializedMap(&map, 1, &oa);
@@ -6711,12 +6763,11 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
 
-        if (verbose)
-            cout << "\nTesting with Datum having map (owning keys) value."
-                 << endl;
+        if (verbose) cout << "\nTesting with datums having "
+                                                 "maps (owning keys) value.\n";
 
-        if (verbose) cout << "\tTesting with Datum having empty map (owning "
-                          << "keys) value." << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                         "an empty map (owning keys) value.\n";
         {
             DatumMutableMapOwningKeysRef map;
             Datum                        D = Datum::adoptMap(map);
@@ -6727,8 +6778,8 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
 
-        if (verbose) cout << "\tTesting with Datum having non-empty map "
-                          << "(owning keys) value." << endl;
+        if (verbose) cout << "\tTesting with a 'Datum' having "
+                                      "a non-empty map (owning keys) value.\n";
         {
             DatumMutableMapOwningKeysRef map;
             Datum::createUninitializedMap(&map, 1, strlen("key"), &oa);
@@ -6746,7 +6797,7 @@ int main(int argc, char *argv[])
             ASSERT( 0 == oa.status());
         }
       } break;
-      case 19: {
+      case 20: {
         // --------------------------------------------------------------------
         // TESTING PRINT AND OPERATOR<<
         //   Ensure that the value of the 'Datum' holding an aggregate value
@@ -6811,11 +6862,10 @@ int main(int argc, char *argv[])
         //   bsl::ostream& operator<<(ostream&, const Datum&); // aggregate
         // --------------------------------------------------------------------
 
-        if (verbose) cout << endl
-                          << "TESTING PRINT AND OPERATOR<<" << endl
-                          << "============================" << endl;
+        if (verbose) cout << "\nTESTING PRINT AND OPERATOR<<"
+                             "\n============================\n";
 
-        if (verbose) cout << "\nCreating aggregate test values." << endl;
+        if (verbose) cout << "\nCreating aggregate test values.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -6865,9 +6915,8 @@ int main(int argc, char *argv[])
             const Datum DM4 = Datum::adoptMap(map2);
 
 
-            if (verbose) cout <<
-                      "\nCreate a table of distinct value/format combinations."
-                              << endl;
+            if (verbose) cout << "\nCreate a table of distinct "
+                                                "value/format combinations.\n";
 
             static const struct {
                 int         d_line;            // source line number
@@ -7201,8 +7250,8 @@ int main(int argc, char *argv[])
 
             const size_t NUM_DATA = sizeof DATA / sizeof *DATA;
 
-            if (verbose)
-                cout << "\nTesting with various print specifications." << endl;
+            if (verbose) cout << "\nTesting with various "
+                                                     "print specifications.\n";
             {
                 for (size_t i = 0; i < NUM_DATA; ++i) {
                     const int         LINE  = DATA[i].d_line;
@@ -7288,7 +7337,7 @@ int main(int argc, char *argv[])
             Datum::destroy(DM4, &oa);
         }
       } break;
-      case 18: {
+      case 19: {
         // --------------------------------------------------------------------
         // TESTING STRING CONSTRUCTION
         //    Verify that user can construct 'Datum' holding uninitialized
@@ -7314,15 +7363,14 @@ int main(int argc, char *argv[])
         // Testing:
         //   char *createUninitializedString(Datum&, SizeType, Allocator *);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING STRING CONSTRUCTION" << endl
-                          << "===========================" << endl;
+        if (verbose) cout << "\nTESTING STRING CONSTRUCTION"
+                             "\n===========================\n";
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
 
         if (verbose)
-            cout << "\nTesting 'createUninitializedString()'." << endl;
+            cout << "\nTesting 'createUninitializedString()'.\n";
         {
             const char BUFFER[] = "0123456789abcdef";
 
@@ -7344,10 +7392,10 @@ int main(int argc, char *argv[])
 #ifdef BSLS_PLATFORM_CPU_32_BIT
                 // Up to length 6 inclusive the strings are stored inline
                 if (i <= 6) {
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                 // Up to length 13 inclusive the strings are stored inline
                 if (i <= 13) {
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
                     ASSERT(0 == oa.numBlocksInUse());
                 } else {
                     ASSERT(0 != oa.numBlocksInUse());
@@ -7380,20 +7428,18 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bslma::TestAllocator         oa("object", veryVeryVeryVerbose);
             bsls::AssertTestHandlerGuard hG;
 
             bslma::Allocator *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
-
-            (void) nullAllocPtr;  // suppress compiler warning
+            (void)nullAllocPtr;
 
             Datum  mD;
-            Datum *nullDatumPtr = static_cast<Datum *>(0);
-
-            (void) nullDatumPtr;  // suppress compiler warning
+            Datum *nullDatumPtr = static_cast<Datum *>(0);  (void)nullDatumPtr;
 
             ASSERT_FAIL(Datum::createUninitializedString(nullDatumPtr,
                                                          0,
@@ -7405,8 +7451,9 @@ int main(int argc, char *argv[])
 
             Datum::destroy(mD, &oa);
         }
+#endif  // Exceptions supported
       } break;
-      case 17: {
+      case 18: {
         // --------------------------------------------------------------------
         // TESTING MAP CONSTRUCTION
         //
@@ -7444,17 +7491,16 @@ int main(int argc, char *argv[])
         //   bool isMap() const;
         //   DatumMapRef theMap() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING MAP CONSTRUCTION" << endl
-                          << "========================" << endl;
+        if (verbose) cout << "\nTESTING MAP CONSTRUCTION"
+                             "\n========================\n";
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
 
-        if (verbose)
-            cout << "\nTesting creation of a map with external keys." << endl;
+        if (verbose) cout << "\nTesting creation of "
+                                                 "a map with external keys.\n";
         {
-            if (veryVerbose) cout << "\tCreating an empty map." << endl;
+            if (veryVerbose) cout << "\tCreating an empty map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7492,7 +7538,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tCreating Datum holding an unsorted map." << endl;
+                cout << "\tCreating Datum holding an unsorted map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7545,7 +7591,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tCreating Datum holding a sorted map." << endl;
+                cout << "\tCreating Datum holding a sorted map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7600,7 +7646,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tInitial capacity more than length." << endl;
+                cout << "\tInitial capacity more than length.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7666,10 +7712,9 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting creation of a map owning keys'."
-                          << endl;
+        if (verbose) cout << "\nTesting creation of a map owning keys'.\n";
         {
-            if (veryVerbose) cout << "\tCreating an empty map." << endl;
+            if (veryVerbose) cout << "\tCreating an empty map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7707,7 +7752,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tCreating Datum holding an unsorted map." << endl;
+                cout << "\tCreating Datum holding an unsorted map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7782,7 +7827,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tCreating Datum holding sorted map." << endl;
+                cout << "\tCreating Datum holding sorted map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7856,8 +7901,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == oa.status());
             }
 
-            if (veryVerbose)
-                cout << "\tInitial capacity more than length." << endl;
+            if (veryVerbose) cout << "\tInitial capacity more than length.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -7932,25 +7976,23 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bslma::TestAllocator         oa("object", veryVeryVeryVerbose);
             bsls::AssertTestHandlerGuard hG;
 
             bslma::Allocator *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
+            (void)nullAllocPtr;
 
-            (void) nullAllocPtr;  // suppress compiler warning
-
-            if (verbose) cout << "\tTesting 'createUninitializedMap'"
-                              << " for map with external keys"
-                              << endl;
+            if (verbose) cout << "\tTesting 'createUninitializedMap' with a "
+                                                    "map with external keys\n";
             {
                 DatumMutableMapRef  map;
                 DatumMutableMapRef *nullRefPtr =
                                           static_cast<DatumMutableMapRef *>(0);
-
-                (void) nullRefPtr;  // suppress compiler warning
+                (void)nullRefPtr;
 
                 ASSERT_FAIL(Datum::createUninitializedMap(nullRefPtr,
                                                           0,
@@ -7965,15 +8007,13 @@ int main(int argc, char *argv[])
                 Datum::destroy(mD, &oa);
             }
 
-            if (verbose) cout << "\tTesting 'createUninitializedMap'"
-                              << " for map owning keys"
-                              << endl;
+            if (verbose) cout << "\tTesting 'createUninitializedMap' with "
+                                                      "a map (owning keys).\n";
             {
                 DatumMutableMapOwningKeysRef  map;
                 DatumMutableMapOwningKeysRef *nullRefPtr =
                                 static_cast<DatumMutableMapOwningKeysRef *>(0);
-
-                (void) nullRefPtr;  // suppress compiler warning
+                (void)nullRefPtr;
 
                 ASSERT_FAIL(Datum::createUninitializedMap(nullRefPtr,
                                                           0,
@@ -7991,7 +8031,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(mD, &oa);
             }
 
-            if (verbose) cout << "\tTesting 'theMap'" << endl;
+            if (verbose) cout << "\tTesting 'theMap'\n";
             {
                 DatumMutableMapRef map;
 
@@ -8005,8 +8045,9 @@ int main(int argc, char *argv[])
                 Datum::destroy(realMap, &oa);
             }
         }
+#endif  // Exceptions supported
       } break;
-      case 16: {
+      case 17: {
         // --------------------------------------------------------------------
         // TESTING INTEGER MAP CONSTRUCTION
         //
@@ -8042,18 +8083,16 @@ int main(int argc, char *argv[])
         //   bool isIntMap() const;
         //   DatumMapRef theIntMap() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING INTEGER MAP CONSTRUCTION" << endl
-                          << "================================" << endl;
+        if (verbose) cout << "\nTESTING INTEGER MAP CONSTRUCTION"
+                             "\n================================\n";
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
 
-        if (verbose)
-            cout << "\nTesting creation of an integer map with external keys."
-                 << endl;
+        if (verbose) cout << "\nTesting creation of an integer map "
+                                                       "with external keys.\n";
         {
-            if (veryVerbose) cout << "\tCreating an empty map." << endl;
+            if (veryVerbose) cout << "\tCreating an empty map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -8091,7 +8130,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tCreating Datum holding an unsorted map." << endl;
+                cout << "\tCreating Datum holding an unsorted map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -8138,8 +8177,8 @@ int main(int argc, char *argv[])
                 ASSERT(0 == oa.status());
             }
 
-            if (veryVerbose)
-                cout << "\tCreating Datum holding a sorted map." << endl;
+            if (veryVerbose) cout << "\tCreating a 'Datum' holding "
+                                                             "a sorted map.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -8153,11 +8192,11 @@ int main(int argc, char *argv[])
                                       Datum::createDate(bdlt::Date(2010,1,5)));
                 map.data()[3] = DatumIntMapEntry(4, Datum::createNull());
 
-                *(map.size()) = capacity;
+                *(map.size())   = capacity;
                 *(map.sorted()) = true;
 
                 Datum        mD = Datum::adoptIntMap(map);
-                const Datum& D = mD;
+                const Datum& D  = mD;
 
                 ASSERT(!D.isArray());
                 ASSERT(!D.isBoolean());
@@ -8187,8 +8226,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == oa.status());
             }
 
-            if (veryVerbose)
-                cout << "\tInitial capacity more than length." << endl;
+            if (veryVerbose) cout << "\tInitial capacity more than length.\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -8244,25 +8282,23 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bslma::TestAllocator         oa("object", veryVeryVeryVerbose);
             bsls::AssertTestHandlerGuard hG;
 
             bslma::Allocator *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
+            (void)nullAllocPtr;
 
-            (void) nullAllocPtr;  // suppress compiler warning
-
-            if (verbose) cout << "\tTesting 'createUninitializedIntMap'"
-                              << " for map with external keys"
-                              << endl;
+            if (verbose) cout << "\tTesting 'createUninitializedIntMap' with "
+                                                  "a map with external keys\n";
             {
                 DatumMutableIntMapRef  map;
                 DatumMutableIntMapRef *nullRefPtr =
                                        static_cast<DatumMutableIntMapRef *>(0);
-
-                (void) nullRefPtr;  // suppress compiler warning
+                (void)nullRefPtr;
 
                 ASSERT_FAIL(Datum::createUninitializedIntMap(nullRefPtr,
                                                              0,
@@ -8277,7 +8313,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(mD, &oa);
             }
 
-            if (verbose) cout << "\tTesting 'theIntMap'" << endl;
+            if (verbose) cout << "\tTesting 'theIntMap'\n";
             {
                 DatumMutableIntMapRef map;
 
@@ -8291,8 +8327,9 @@ int main(int argc, char *argv[])
                 Datum::destroy(realMap, &oa);
             }
         }
+#endif  // Exceptions supported
       } break;
-      case 15: {
+      case 16: {
         // --------------------------------------------------------------------
         // TESTING ARRAY CONSTRUCTION
         //
@@ -8330,23 +8367,21 @@ int main(int argc, char *argv[])
         //   bool isArray() const;
         //   DatumArrayRef theArray() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING ARRAY CONSTRUCTION" << endl
-                          << "==========================" << endl;
+        if (verbose) cout << "\nTESTING ARRAY CONSTRUCTION"
+                             "\n==========================\n";
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
         bslma::TestAllocator         oa("object", veryVeryVeryVerbose);
 
-        if (verbose) cout << "\nTesting creation of array reference." << endl;
+        if (verbose) cout << "\nTesting creation of array reference.\n";
         {
             // 32-bit implementation uses externalized storage at 2^16.
 
             const size_t DATA[] = { 0, 1, 30, 65535, 65536, 100000 };
             const size_t DATA_LEN = sizeof DATA / sizeof *DATA;
 
-            if (verbose) cout << "\tTaking array and size as a parameters."
-                                  << endl;
+            if (verbose) cout << "\tTaking array and size as a parameters.\n";
             {
                for (size_t i = 0; i < DATA_LEN; ++i) {
                     Datum       dummyDatum;
@@ -8381,8 +8416,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\tTaking 'DatumArrayRef' as a parameter."
-                                  << endl;
+            if (verbose) cout << "\tTaking 'DatumArrayRef' as a parameter.\n";
             {
                 // Testing overload with const DatumArrayRef&
                 for (size_t i = 0; i < DATA_LEN; ++i) {
@@ -8433,10 +8467,10 @@ int main(int argc, char *argv[])
         }
 
         if (verbose) cout << "\nTesting 'createUninitializedArray()' and "
-                          << "'adoptArray()'." << endl;
+                                                           "'adoptArray()'.\n";
 
         {
-            if (veryVerbose) cout << "\tCreating empty array." << endl;
+            if (veryVerbose) cout << "\tCreating empty array.\n";
             {
                 DatumMutableArrayRef array;
 
@@ -8470,8 +8504,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == oa.status());
             }
 
-            if (veryVerbose)
-                cout << "\tInitial capacity more than length." << endl;
+            if (veryVerbose) cout << "\tInitial capacity more than length.\n";
             {
                 const SizeType       capacity = 10;
                 DatumMutableArrayRef array;
@@ -8500,7 +8533,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tCreating array holding another array" << endl;
+                cout << "\tCreating array holding another array\n";
             {
                 bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -8546,23 +8579,22 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bslma::TestAllocator         oa("object", veryVeryVeryVerbose);
             bsls::AssertTestHandlerGuard hG;
 
             bslma::Allocator *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
+            (void)nullAllocPtr;
 
             const Datum  D            = Datum::createNull();
             const Datum *nullDatumPtr = static_cast<Datum *>(0);
+            (void)nullDatumPtr;
 
-            (void) nullAllocPtr;  // suppress compiler warning
-            (void) nullDatumPtr;  // suppress compiler warning
-
-            if (verbose) cout << "\tTesting 'createArrayReference"
-                              << "(const Datum *, SizeType, Allocator *)'."
-                              << endl;
+            if (verbose) cout << "\tTesting 'createArrayReference("
+                                   "const Datum *, SizeType, Allocator *)'.\n";
             {
 
                 ASSERT_SAFE_PASS(Datum::createArrayReference(nullDatumPtr,
@@ -8578,9 +8610,8 @@ int main(int argc, char *argv[])
                                                              nullAllocPtr));
             }
 
-            if (verbose) cout << "\tTesting 'createArrayReference"
-                              << "(const DatumArrayRef&, Allocator *)'."
-                              << endl;
+            if (verbose) cout << "\tTesting 'createArrayReference("
+                                      "const DatumArrayRef&, Allocator *)'.\n";
             {
                 const DatumArrayRef arrayRef(&D, 0);
 
@@ -8589,14 +8620,12 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(Datum::createArrayReference(arrayRef, &oa));
             }
 
-            if (verbose) cout << "\tTesting 'createUninitializedArray'"
-                              << endl;
+            if (verbose) cout << "\tTesting 'createUninitializedArray'\n";
             {
                 DatumMutableArrayRef  array;
                 DatumMutableArrayRef *nullRefPtr =
                                         static_cast<DatumMutableArrayRef *>(0);
-
-                (void) nullRefPtr;  // suppress compiler warning
+                (void)nullRefPtr;
 
                 ASSERT_FAIL(Datum::createUninitializedArray(nullRefPtr,
                                                             0,
@@ -8611,7 +8640,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(mD, &oa);
             }
 
-            if (verbose) cout << "\tTesting 'theArray'" << endl;
+            if (verbose) cout << "\tTesting 'theArray'\n";
             {
                 DatumMutableArrayRef array;
 
@@ -8625,8 +8654,9 @@ int main(int argc, char *argv[])
                 Datum::destroy(realArray, &oa);
             }
         }
+#endif  // Exceptions supported
       } break;
-      case 14: {
+      case 15: {
         // --------------------------------------------------------------------
         // TESTING 'DatumMapRef'
         //
@@ -8644,9 +8674,31 @@ int main(int argc, char *argv[])
         //:   sorted and unsorted maps.
         //
         // Testing:
+        //   element_type
+        //   value_type
+        //   size_type
+        //   difference_type
+        //   pointer
+        //   const_pointer
+        //   reference
+        //   const_reference
+        //   iterator
+        //   const_iterator
+        //   reverse_iterator
+        //   const_reverse_iterator
+        //   SizeType
         //   DatumMapRef(const DatumMapEntry *, SizeType, bool, bool);
-        //   const DatumMapEntry& operator[](SizeType index) const;
-        //   const DatumMapEntry *data() const;
+        //   const_reference operator[](SizeType index) const;
+        //   pointer data()      const;
+        //   size_type *length() const;
+        //   size_type *size()   const;
+        //   const_iterator           begin() const;
+        //   const_iterator          cbegin() const;
+        //   const_reverse_iterator  rbegin() const;
+        //   const_reverse_iterator crbegin() const;
+        //   const_reference front() const;
+        //   const_reference back()  const;
+        //   bool empty() const;
         //   bool isSorted() const;
         //   bool ownsKeys() const;
         //   SizeType size() const;
@@ -8656,9 +8708,114 @@ int main(int argc, char *argv[])
         //   bool operator!=(const DatumMapRef& lhs, const DatumMapRef& rhs);
         //   bsl::ostream& operator<<(bsl::ostream&, const DatumMapRef&);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'DatumMapRef'" << endl
-                          << "=====================" << endl;
+        if (verbose) cout << "\nTESTING 'DatumMapRef'"
+                             "\n=====================\n";
+
+        if (verbose) cout << "\nTesting public types.\n";
+#define ASSERT_SAME_TYPE(T1, T2) ASSERT((bsl::is_same<T1, T2>::value == true))
+
+        ASSERT_SAME_TYPE(DatumMapRef::element_type, const DatumMapEntry);
+        ASSERT_SAME_TYPE(DatumMapRef::value_type, DatumMapEntry);
+
+        ASSERT_SAME_TYPE(DatumMapRef::size_type, Datum::SizeType);
+        ASSERT_SAME_TYPE(DatumMapRef::difference_type, bsl::ptrdiff_t);
+
+        ASSERT_SAME_TYPE(DatumMapRef::pointer,         const DatumMapEntry *);
+        ASSERT_SAME_TYPE(DatumMapRef::const_pointer,   const DatumMapEntry *);
+
+        ASSERT_SAME_TYPE(DatumMapRef::reference,       const DatumMapEntry&);
+        ASSERT_SAME_TYPE(DatumMapRef::const_reference, const DatumMapEntry&);
+
+        ASSERT_SAME_TYPE(DatumMapRef::iterator,        const DatumMapEntry *);
+        ASSERT_SAME_TYPE(DatumMapRef::const_iterator,  const DatumMapEntry *);
+
+        ASSERT_SAME_TYPE(
+            DatumMapRef::reverse_iterator,
+            bsl::reverse_iterator<DatumMapRef::iterator>);
+        ASSERT_SAME_TYPE(
+            DatumMapRef::const_reverse_iterator,
+            bsl::reverse_iterator<DatumMapRef::const_iterator>);
+        ASSERT_SAME_TYPE(DatumMapRef::SizeType, Datum::SizeType);
+#undef ASSERT_SAME_TYPE
+
+        if (verbose) cout << "\nTesting 'size()'.\n";
+        {
+            DatumMapEntry data[3];
+            {
+                DatumMapRef obj(data, 3, false, false);
+                ASSERT(3 == obj.size());
+            }
+            {
+                DatumMapRef obj(data, 2, false, false);
+                ASSERT(2 == obj.size());
+            }
+            {
+                DatumMapRef obj(data, 1, false, false);
+                ASSERT(1 == obj.size());
+            }
+            {
+                DatumMapRef obj(data, 0, false, false);
+                ASSERT(0 == obj.size());
+            }
+        }
+
+        if (verbose) cout << "\nTesting const '[c]rbegin()', '[c]rend()'.\n";
+        {
+            DatumMapEntry data[3];
+            DatumMapRef   obj(data, 3, false, false);
+
+            ASSERT(&data[obj.size() - 1] == obj.rbegin().operator->());
+            ASSERT(data - 1 == obj.rend().operator->());
+
+            ASSERT(&data[2] == obj.crbegin().operator->());
+            ASSERT(data - 1 == obj.crend().operator->());
+        }
+
+        if (verbose) cout << "\nTesting const 'front()', 'back()'.\n";
+        {
+            DatumMapEntry     data[3];
+            const DatumMapRef obj(data, 3, false, false);
+
+            ASSERT(&data[0] == &obj.front());
+            ASSERT(&data[2] == &obj.back());
+        }
+
+        if (verbose) cout << "\nTesting 'empty()'.\n";
+        {
+            DatumMapEntry data[3];
+            {
+                DatumMapRef obj(data, 0, false, false);
+                ASSERT(true == obj.empty());
+            }
+            {
+                DatumMapRef obj(data, 1, false, false);
+                ASSERT(false == obj.empty());
+            }
+            {
+                DatumMapRef obj(data, 2, false, false);
+                ASSERT(false == obj.empty());
+            }
+            {
+                DatumMapRef obj(data, 3, false, false);
+                ASSERT(false == obj.empty());
+            }
+        }
+
+#if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L
+        if (verbose) cout << "\nTesting range-based 'for' loop.\n";
+        {
+            DatumMapEntry     data[3];
+            const DatumMapRef obj(data, 3, false, false);
+
+            const DatumMapEntry* p = data;
+            for (const DatumMapEntry& elem : obj) {
+                if (veryVeryVerbose) {
+                    T_ P_(&elem) P(p);
+                }
+                ASSERT(&elem == p++);
+            }
+        }
+#endif  // C++11 or later
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
@@ -8680,7 +8837,7 @@ int main(int argc, char *argv[])
         // remember how many bytes are allocated by Datums
         const Int64 bytesInUse = oa.numBytesInUse();
 
-        if (verbose) cout << "\nTesting value constructor." << endl;
+        if (verbose) cout << "\nTesting value constructor.\n";
         {
             const DatumMapRef obj(map, size, false, false);
 
@@ -8724,8 +8881,8 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting copy constructor for non-sorted map."
-                          << endl;
+        if (verbose) cout << "\nTesting copy constructor with "
+                                                         "a non-sorted map.\n";
         {
             const DatumMapRef obj(map, size, false, false);
 
@@ -8753,8 +8910,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting copy constructor for sorted map."
-                          << endl;
+        if (verbose) cout << "\nTesting copy constructor for sorted map.\n";
         {
             const DatumMapRef obj(map, size, true, false);
 
@@ -8785,11 +8941,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'print'." << endl;
+        if (verbose) cout << "\nTesting 'print'.\n";
         {
             const DatumMapRef obj(map, size, false, false);
 
-            if (verbose) cout << "\tTesting single-line format." << endl;
+            if (verbose) cout << "\tTesting single-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -8803,7 +8959,7 @@ int main(int argc, char *argv[])
                 ASSERT(expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting multi-line format." << endl;
+            if (verbose) cout << "\tTesting multi-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -8848,7 +9004,7 @@ int main(int argc, char *argv[])
                 ASSERT(expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting level adjustment." << endl;
+            if (verbose) cout << "\tTesting level adjustment.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -8896,7 +9052,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'operator<<'." << endl;
+        if (verbose) cout << "\nTesting 'operator<<'.\n";
         {
             const DatumMapRef obj(map, size, false, false);
 
@@ -8953,23 +9109,20 @@ int main(int argc, char *argv[])
             DatumMapEntry(KEY3, Datum::createError(3, "error", &oa)),
         };
 
-        if (verbose) cout << "\nTesting equality operators." << endl;
+        if (verbose) cout << "\nTesting equality operators.\n";
         {
-            if (verbose) cout << "\tTesting operators format." << endl;
+            if (verbose) cout << "\tTesting operators format.\n";
             {
                 typedef bool (*operatorPtr)(const DatumMapRef&,
                                             const DatumMapRef&);
 
                 // Verify that the signatures and return types are standard.
 
-                operatorPtr operatorEq = bdld::operator==;
-                operatorPtr operatorNe = bdld::operator!=;
-
-                (void)operatorEq;  // quash potential compiler warnings
-                (void)operatorNe;
+                operatorPtr operatorEq = bdld::operator==;  (void)operatorEq;
+                operatorPtr operatorNe = bdld::operator!=;  (void)operatorNe;
             }
 
-            if (verbose) cout << "\nTesting operators correctness." << endl;
+            if (verbose) cout << "\nTesting operators correctness.\n";
             {
                 const static struct {
                     int          d_line;    // line number
@@ -9045,7 +9198,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'find'." << endl;
+        if (verbose) cout << "\nTesting 'find'.\n";
         {
             // 'loadRandomString' does not use special characters
             const bsl::string notInMapLess = "$%;*&^"; // less than alpha-num
@@ -9107,11 +9260,12 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bsls::AssertTestHandlerGuard hG;
 
-            if (verbose) cout << "\tTesting constructor." << endl;
+            if (verbose) cout << "\tTesting constructor.\n";
             {
                 const DatumMapEntry  TEMP(KEY1, Datum::createNull());
                 const DatumMapEntry *NULL_DME_PTR =
@@ -9123,7 +9277,7 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(DatumMapRef(&TEMP,        1, false, false));
             }
 
-            if (verbose) cout << "\tTesting 'operator[]'." << endl;
+            if (verbose) cout << "\tTesting 'operator[]'.\n";
             {
                 const int           SIZE = 3;
                 const DatumMapEntry MAP[SIZE] = {
@@ -9138,9 +9292,26 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(obj[SIZE - 1]);
                 ASSERT_SAFE_PASS(obj[0       ]);
             }
+
+            if (verbose) cout << "\tTesting 'front' & 'back'.\n";
+            {
+                DatumMapEntry data[3];
+                {
+                    const DatumMapRef obj(data, 3, false, false);
+                    ASSERT_PASS(obj.front());
+                    ASSERT_PASS(obj.back());
+                }
+
+                {
+                    const DatumMapRef obj(data, 0, false, false);
+                    ASSERT_FAIL(obj.front());
+                    ASSERT_FAIL(obj.back());
+                }
+            }
         }
+#endif  // Exceptions supported
       } break;
-      case 13: {
+      case 14: {
         // --------------------------------------------------------------------
         // TESTING 'DatumIntMapRef'
         //
@@ -9158,20 +9329,154 @@ int main(int argc, char *argv[])
         //:   sorted and unsorted maps.
         //
         // Testing:
+        //   element_type
+        //   value_type
+        //   size_type
+        //   difference_type
+        //   pointer
+        //   const_pointer
+        //   reference
+        //   const_reference
+        //   iterator
+        //   const_iterator
+        //   reverse_iterator
+        //   const_reverse_iterator
+        //   SizeType
         //   DatumIntMapRef(const DatumIntMapEntry *, SizeType, bool);
-        //   const DatumIntMapEntry& operator[](SizeType index) const;
-        //   const DatumIntMapEntry *data() const;
         //   bool isSorted() const;
-        //   SizeType size() const;
+        //   const_reference operator[](SizeType index) const;
+        //   pointer data()      const;
+        //   size_type *length() const;
+        //   size_type *size()   const;
+        //   const_iterator           begin() const;
+        //   const_iterator          cbegin() const;
+        //   const_reverse_iterator  rbegin() const;
+        //   const_reverse_iterator crbegin() const;
+        //   const_reference front() const;
+        //   const_reference back()  const;
+        //   bool empty() const;
         //   const Datum *find(int key) const;
         //   bsl::ostream& print(bsl::ostream&, int,int) const;
         //   bool operator==(const DatumIntMapRef&, const DatumIntMapRef&);
         //   bool operator!=(const DatumIntMapRef&, const DatumIntMapRef&);
         //   bsl::ostream& operator<<(bsl::ostream&, const DatumIntMapRef&);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'DatumIntMapRef'" << endl
-                          << "========================" << endl;
+        if (verbose) cout << "\nTESTING 'DatumIntMapRef'"
+                             "\n========================\n";
+
+        if (verbose) cout << "\nTesting public types.\n";
+#define ASSERT_SAME_TYPE(T1, T2) ASSERT((bsl::is_same<T1, T2>::value == true))
+
+        ASSERT_SAME_TYPE(DatumIntMapRef::element_type,
+                         const DatumIntMapEntry);
+        ASSERT_SAME_TYPE(DatumIntMapRef::value_type, DatumIntMapEntry);
+
+        ASSERT_SAME_TYPE(DatumIntMapRef::size_type, Datum::SizeType);
+        ASSERT_SAME_TYPE(DatumIntMapRef::difference_type,
+                         bsl::ptrdiff_t);
+
+        ASSERT_SAME_TYPE(DatumIntMapRef::pointer,
+                         const DatumIntMapEntry *);
+        ASSERT_SAME_TYPE(DatumIntMapRef::const_pointer,
+                         const DatumIntMapEntry *);
+
+        ASSERT_SAME_TYPE(DatumIntMapRef::reference,
+                         const DatumIntMapEntry&);
+        ASSERT_SAME_TYPE(DatumIntMapRef::const_reference,
+                         const DatumIntMapEntry&);
+
+        ASSERT_SAME_TYPE(DatumIntMapRef::iterator,
+                         const DatumIntMapEntry *);
+        ASSERT_SAME_TYPE(DatumIntMapRef::const_iterator,
+                         const DatumIntMapEntry *);
+
+        ASSERT_SAME_TYPE(
+            DatumIntMapRef::reverse_iterator,
+            bsl::reverse_iterator<DatumIntMapRef::iterator>);
+        ASSERT_SAME_TYPE(
+            DatumIntMapRef::const_reverse_iterator,
+            bsl::reverse_iterator<DatumIntMapRef::const_iterator>);
+        ASSERT_SAME_TYPE(DatumIntMapRef::SizeType, Datum::SizeType);
+#undef ASSERT_SAME_TYPE
+
+        if (verbose) cout << "\nTesting 'size()'.\n";
+        {
+            DatumIntMapEntry data[3];
+            {
+                DatumIntMapRef obj(data, 3, false);
+                ASSERT(3 == obj.size());
+            }
+            {
+                DatumIntMapRef obj(data, 2, false);
+                ASSERT(2 == obj.size());
+            }
+            {
+                DatumIntMapRef obj(data, 1, false);
+                ASSERT(1 == obj.size());
+            }
+            {
+                DatumIntMapRef obj(data, 0, false);
+                ASSERT(0 == obj.size());
+            }
+        }
+
+        if (verbose) cout << "\nTesting const '[c]rbegin()', '[c]rend()'.\n";
+        {
+            DatumIntMapEntry data[3];
+            DatumIntMapRef   obj(data, 3, false);
+
+            ASSERT(&data[obj.size() - 1] == obj.rbegin().operator->());
+            ASSERT(data - 1 == obj.rend().operator->());
+
+            ASSERT(&data[2] == obj.crbegin().operator->());
+            ASSERT(data - 1 == obj.crend().operator->());
+        }
+
+        if (verbose) cout << "\nTesting const 'front()', 'back()'.\n";
+        {
+            DatumIntMapEntry     data[3];
+            const DatumIntMapRef obj(data, 3, false);
+
+            ASSERT(&data[0] == &obj.front());
+            ASSERT(&data[2] == &obj.back());
+        }
+
+        if (verbose) cout << "\nTesting 'empty()'.\n";
+        {
+            DatumIntMapEntry data[3];
+            {
+                DatumIntMapRef obj(data, 0, false);
+                ASSERT(true == obj.empty());
+            }
+            {
+                DatumIntMapRef obj(data, 1, false);
+                ASSERT(false == obj.empty());
+            }
+            {
+                DatumIntMapRef obj(data, 2, false);
+                ASSERT(false == obj.empty());
+            }
+            {
+                DatumIntMapRef obj(data, 3, false);
+                ASSERT(false == obj.empty());
+            }
+        }
+
+#if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L
+        if (verbose) cout << "\nTesting range-based 'for' loop.\n";
+        {
+            DatumIntMapEntry     data[3];
+            const DatumIntMapRef obj(data, 3, false);
+
+            const DatumIntMapEntry *p = data;
+            for (const DatumIntMapEntry& elem : obj) {
+                if (veryVeryVerbose) {
+                    T_ P_(&elem) P(p);
+                }
+                ASSERT(&elem == p++);
+            }
+        }
+#endif  // C++11 or later
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
@@ -9188,7 +9493,7 @@ int main(int argc, char *argv[])
         // remember how many bytes are allocated by Datums
         const Int64 bytesInUse = oa.numBytesInUse();
 
-        if (verbose) cout << "\nTesting value constructor." << endl;
+        if (verbose) cout << "\nTesting value constructor.\n";
         {
             const DatumIntMapRef obj(map, SIZE, false);
 
@@ -9215,8 +9520,8 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting copy constructor for non-sorted map."
-                          << endl;
+        if (verbose) cout << "\nTesting copy constructor with "
+                                                         "a non-sorted map.\n";
         {
             const DatumIntMapRef obj(map, SIZE, false);
 
@@ -9243,8 +9548,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose)
-            cout << "\nTesting copy constructor for sorted map." << endl;
+        if (verbose) cout << "\nTesting copy constructor for a sorted map.\n";
         {
             const DatumIntMapRef obj(map, SIZE, true);
 
@@ -9273,11 +9577,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'print'." << endl;
+        if (verbose) cout << "\nTesting 'print'.\n";
         {
             const DatumIntMapRef obj(map, SIZE, false);
 
-            if (verbose) cout << "\tTesting single-line format." << endl;
+            if (verbose) cout << "\tTesting single-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -9291,7 +9595,7 @@ int main(int argc, char *argv[])
                 ASSERT(expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting multi-line format." << endl;
+            if (verbose) cout << "\tTesting multi-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -9337,7 +9641,7 @@ int main(int argc, char *argv[])
                 ASSERT(expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting level adjustment." << endl;
+            if (verbose) cout << "\tTesting level adjustment.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -9385,7 +9689,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'operator<<'." << endl;
+        if (verbose) cout << "\nTesting 'operator<<'.\n";
         {
             const DatumIntMapRef obj(map, SIZE, false);
 
@@ -9442,23 +9746,20 @@ int main(int argc, char *argv[])
             DatumIntMapEntry(3, Datum::createError(3, "error", &oa)),
         };
 
-        if (verbose) cout << "\nTesting equality operators." << endl;
+        if (verbose) cout << "\nTesting equality operators.\n";
         {
-            if (verbose) cout << "\tTesting operators format." << endl;
+            if (verbose) cout << "\tTesting operators format.\n";
             {
                 typedef bool (*operatorPtr)(const DatumMapRef&,
                                             const DatumMapRef&);
 
                 // Verify that the signatures and return types are standard.
 
-                operatorPtr operatorEq = bdld::operator==;
-                operatorPtr operatorNe = bdld::operator!=;
-
-                (void)operatorEq;  // quash potential compiler warnings
-                (void)operatorNe;
+                operatorPtr operatorEq = bdld::operator==;  (void)operatorEq;
+                operatorPtr operatorNe = bdld::operator!=;  (void)operatorNe;
             }
 
-            if (verbose) cout << "\nTesting operators correctness." << endl;
+            if (verbose) cout << "\nTesting operators correctness.\n";
             {
                 const static struct {
                     int             d_line;    // line number
@@ -9534,7 +9835,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'find'." << endl;
+        if (verbose) cout << "\nTesting 'find'.\n";
         {
             // Create a unique set of key
 
@@ -9598,11 +9899,12 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bsls::AssertTestHandlerGuard hG;
 
-            if (verbose) cout << "\tTesting constructor." << endl;
+            if (verbose) cout << "\tTesting constructor.\n";
             {
                 const DatumIntMapEntry  TEMP(1, Datum::createNull());
                 const DatumIntMapEntry *NULL_DME_PTR =
@@ -9614,7 +9916,7 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(DatumIntMapRef(&TEMP,        1, false));
             }
 
-            if (verbose) cout << "\tTesting 'operator[]'." << endl;
+            if (verbose) cout << "\tTesting 'operator[]'.\n";
             {
                 const int              SIZE = 3;
                 const DatumIntMapEntry MAP[SIZE] = {
@@ -9629,9 +9931,26 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(obj[SIZE - 1]);
                 ASSERT_SAFE_PASS(obj[0      ]);
             }
+
+            if (verbose) cout << "\tTesting 'front' & 'back'.\n";
+            {
+                DatumIntMapEntry data[3];
+                {
+                    const DatumIntMapRef obj(data, 3, false);
+                    ASSERT_PASS(obj.front());
+                    ASSERT_PASS(obj.back());
+                }
+
+                {
+                    const DatumIntMapRef obj(data, 0, false);
+                    ASSERT_FAIL(obj.front());
+                    ASSERT_FAIL(obj.back());
+                }
+            }
         }
+#endif  // Exceptions supported
       } break;
-      case 12: {
+      case 13: {
         // --------------------------------------------------------------------
         // TESTING 'DatumArrayRef'
         //
@@ -9648,31 +9967,79 @@ int main(int argc, char *argv[])
         //:   accessors return the correct value.
         //
         // Testing:
+        //   element_type
+        //   value_type
+        //   size_type
+        //   difference_type
+        //   pointer
+        //   const_pointer
+        //   reference
+        //   const_reference
+        //   iterator
+        //   const_iterator
+        //   reverse_iterator
+        //   const_reverse_iterator
+        //   SizeType
         //   DatumArrayRef();
         //   DatumArrayRef(const Datum *data, SizeType length);
-        //   const Datum& operator[](SizeType index) const;
-        //   const Datum *data() const;
-        //   SizeType length() const;
+        //   const_reference operator[](SizeType index) const;
+        //   pointer data()      const;
+        //   size_type *length() const;
+        //   size_type *size()   const;
+        //   const_iterator           begin() const;
+        //   const_iterator          cbegin() const;
+        //   const_reverse_iterator  rbegin() const;
+        //   const_reverse_iterator crbegin() const;
+        //   const_reference front() const;
+        //   const_reference back()  const;
+        //   bool empty() const;
         //   bsl::ostream& print(bsl::ostream& stream, int, int) const;
         //   bool operator==(const DatumArrayRef&, const DatumArrayRef&);
         //   bool operator!=(const DatumArrayRef&, const DatumArrayRef&);
         //   bsl::ostream& operator<<(bsl::ostream&, const DatumArrayRef&);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'DatumArrayRef'" << endl
-                          << "=======================" << endl;
+        if (verbose) cout << "\nTESTING 'DatumArrayRef'"
+                             "\n=======================\n";
+
+        if (verbose) cout << "\nTesting public types.\n";
+#define ASSERT_SAME_TYPE(T1, T2) ASSERT((bsl::is_same<T1, T2>::value == true))
+
+        ASSERT_SAME_TYPE(DatumArrayRef::element_type, const Datum);
+        ASSERT_SAME_TYPE(DatumArrayRef::value_type, Datum);
+
+        ASSERT_SAME_TYPE(DatumArrayRef::size_type, Datum::SizeType);
+        ASSERT_SAME_TYPE(DatumArrayRef::difference_type,
+            bsl::ptrdiff_t);
+
+        ASSERT_SAME_TYPE(DatumArrayRef::pointer,       const Datum *);
+        ASSERT_SAME_TYPE(DatumArrayRef::const_pointer, const Datum *);
+
+        ASSERT_SAME_TYPE(DatumArrayRef::reference, const Datum&);
+        ASSERT_SAME_TYPE(DatumArrayRef::const_reference, const Datum&);
+
+        ASSERT_SAME_TYPE(DatumArrayRef::iterator,       const Datum *);
+        ASSERT_SAME_TYPE(DatumArrayRef::const_iterator, const Datum *);
+
+        ASSERT_SAME_TYPE(
+            DatumArrayRef::reverse_iterator,
+            bsl::reverse_iterator<DatumArrayRef::iterator>);
+        ASSERT_SAME_TYPE(
+            DatumArrayRef::const_reverse_iterator,
+            bsl::reverse_iterator<DatumArrayRef::const_iterator>);
+        ASSERT_SAME_TYPE(DatumArrayRef::SizeType, Datum::SizeType);
+#undef ASSERT_SAME_TYPE
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
 
-        if (verbose) cout << "\nTesting default constructor." << endl;
+        if (verbose) cout << "\nTesting default constructor.\n";
         {
             const DatumArrayRef obj;
             ASSERT(0 == obj.length());
             ASSERT(0 == obj.data());
         }
 
-        if (verbose) cout << "\nTesting value constructor." << endl;
+        if (verbose) cout << "\nTesting value constructor.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -9696,24 +10063,101 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting equality operators." << endl;
+        if (verbose) cout << "\nTesting 'size()'.\n";
+        {
+            const DatumArrayRef unfilled;
+            ASSERT(0 == unfilled.size());
+
+            Datum                    data[3];
+            DatumArrayRef            obj(data, 3);
+
+            ASSERT(3 == obj.size());
+        }
+
+        if (verbose) cout << "\nTesting const '[c]begin()', '[c]end()'.\n";
+        {
+            Datum               data[3];
+            const DatumArrayRef obj(data, 3);
+
+            ASSERT(data     == obj.begin());
+            ASSERT(data + 3 == obj.end());
+            ASSERT(data     == obj.cbegin());
+            ASSERT(data + 3 == obj.cend());
+        }
+
+        if (verbose) cout << "\nTesting const '[c]rbegin()', '[c]rend()'.\n";
+        {
+            Datum         data[3];
+            DatumArrayRef obj(data, 3);
+
+            ASSERT(&data[obj.size() - 1] == obj.rbegin().operator->());
+            ASSERT(data - 1 == obj.rend().operator->());
+
+            ASSERT(&data[2] == obj.crbegin().operator->());
+            ASSERT(data - 1 == obj.crend().operator->());
+        }
+
+        if (verbose) cout << "\nTesting const 'front()', 'back()'.\n";
+        {
+            Datum               data[3];
+            const DatumArrayRef obj(data, 3);
+
+            ASSERT(&data[0] == &obj.front());
+            ASSERT(&data[2] == &obj.back());
+        }
+
+        if (verbose) cout << "\nTesting 'empty()'.\n";
+        {
+            Datum data[3];
+            {
+                DatumArrayRef obj(data, 0);
+                ASSERT(true == obj.empty());
+            }
+            {
+                DatumArrayRef obj(data, 1);
+                ASSERT(false == obj.empty());
+            }
+            {
+                DatumArrayRef obj(data, 2);
+                ASSERT(false == obj.empty());
+            }
+            {
+                DatumArrayRef obj(data, 3);
+                ASSERT(false == obj.empty());
+            }
+        }
+
+#if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L
+        if (verbose) cout << "\nTesting range-based 'for' loop.\n";
+        {
+            Datum               data[3];
+            const DatumArrayRef obj(data, 3);
+
+            const Datum *p = data;
+            for (const Datum& elem : obj) {
+                if (veryVeryVerbose) {
+                    T_ P_(&elem) P(p);
+                }
+                ASSERT(&elem == p++);
+            }
+        }
+#endif  // C++11 or later
+
+        if (verbose) cout << "\nTesting equality operators.\n";
 
         if (verbose) cout <<
-                "\nAssign the address of each operator to a variable." << endl;
+                      "\tAssign the address of each operator to a variable.\n";
         {
             typedef bool (*operatorPtr)(const DatumArrayRef&,
                                         const DatumArrayRef&);
 
             // Verify that the signatures and return types are standard.
 
-            operatorPtr operatorEq = bdld::operator==;
-            operatorPtr operatorNe = bdld::operator!=;
-
-            (void)operatorEq;  // quash potential compiler warnings
-            (void)operatorNe;
+            operatorPtr operatorEq = bdld::operator==;  (void)operatorEq;
+            operatorPtr operatorNe = bdld::operator!=;  (void)operatorNe;
         }
 
-        if (verbose) cout << "\nCompare every value with every value." << endl;
+        if (verbose) cout << "\tCompare every value with every value.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -9763,7 +10207,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'print'." << endl;
+        if (verbose) cout << "\nTesting 'print'.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -9774,7 +10218,7 @@ int main(int argc, char *argv[])
 
             const DatumArrayRef obj(ARRAY, SIZE);
 
-            if (verbose) cout << "\tTesting single-line format." << endl;
+            if (verbose) cout << "\tTesting single-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -9786,7 +10230,7 @@ int main(int argc, char *argv[])
                 ASSERT(expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting multi-line format." << endl;
+            if (verbose) cout << "\tTesting multi-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -9821,7 +10265,7 @@ int main(int argc, char *argv[])
                         expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting level adjustment." << endl;
+            if (verbose) cout << "\tTesting level adjustment.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -9862,7 +10306,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting streaming operator." << endl;
+        if (verbose) cout << "\nTesting streaming operator.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -9882,11 +10326,13 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bsls::AssertTestHandlerGuard hG;
 
-            if (verbose) cout << "\tTesting constructor." << endl;
+            if (verbose) cout << "\tTesting constructor.\n";
             {
                 const Datum  TEMP = Datum::createNull();
                 const Datum *NULL_DATUM_PTR = static_cast<Datum *>(0);
@@ -9897,7 +10343,7 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(DatumArrayRef(&TEMP,          1));
             }
 
-            if (verbose) cout << "\tTesting 'operator[]'." << endl;
+            if (verbose) cout << "\tTesting 'operator[]'.\n";
             {
                 const size_t SIZE = 3;
                 const Datum  ARRAY[SIZE] = { Datum::createNull(),
@@ -9910,10 +10356,28 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(obj[SIZE - 1]);
                 ASSERT_SAFE_PASS(obj[0       ]);
             }
+
+            if (verbose) cout << "\tTesting 'front' & 'back'.\n";
+            {
+                Datum data[3];
+                {
+                    const DatumArrayRef obj(data, 3);
+                    ASSERT_PASS(obj.front());
+                    ASSERT_PASS(obj.back());
+                }
+
+                {
+                    const DatumArrayRef obj(data, 0);
+                    ASSERT_FAIL(obj.front());
+                    ASSERT_FAIL(obj.back());
+                }
+            }
         }
+#endif  // Exceptions supported
+
         ASSERT(0 == da.status())
       } break;
-      case 11: {
+      case 12: {
         // --------------------------------------------------------------------
         // TESTING 'DatumMutableMapOwningKeysRef'
         //
@@ -9938,11 +10402,10 @@ int main(int argc, char *argv[])
         //   char *keys() const;
         //   bool *sorted() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'DatumMutableMapOwningKeysRef'" << endl
-                          << "======================================" << endl;
+        if (verbose) cout << "\nTESTING 'DatumMutableMapOwningKeysRef'"
+                             "\n======================================\n";
 
-        if (verbose) cout << "\nTesting default constructor." << endl;
+        if (verbose) cout << "\nTesting default constructor.\n";
         {
             DatumMutableMapOwningKeysRef obj;
             ASSERT(0 == obj.data());
@@ -9951,20 +10414,63 @@ int main(int argc, char *argv[])
             ASSERT(0 == obj.sorted());
         }
 
-        if (verbose) cout << "\nTesting value constructor." << endl;
+        if (verbose) cout << "\nTesting value constructor.\n";
         {
-            DatumMapEntry                          data;
+            DatumMapEntry                           data;
             DatumMutableMapOwningKeysRef::SizeType size;
-            char                                   keys;
-            bool                                   sorted;
-            const DatumMutableMapOwningKeysRef     obj(&data,
-                                                       &size,
-                                                       &keys,
-                                                       &sorted);
+            char                                    keys;
+            bool                                    sorted;
+            const DatumMutableMapOwningKeysRef      obj(&data,
+                                                        &size,
+                                                        &keys,
+                                                        &sorted);
 
             ASSERT(&data   == obj.data());
             ASSERT(&size   == obj.size());
             ASSERT(&keys   == obj.keys());
+            ASSERT(&sorted == obj.sorted());
+        }
+      } break;
+      case 11: {
+        // --------------------------------------------------------------------
+        // TESTING 'DatumMutableIntMapRef'
+        //
+        // Concerns:
+        //: 1 Value constructor can create 'DatumMutableIntMapRef' object.
+        //:
+        //: 2 Values supplied at construction is correctly passed down to the
+        //:   data member and correctly reported by accessors.
+        //
+        // Plan:
+        //: 1 Create a 'DatumMutableIntMapRef' object and verify using
+        //:   accessors that values were correctly passed down to the
+        //:   'd_data_p', 'd_size_p', and 'd_sorted_p' data members.  (C-1,2)
+        //
+        // Testing:
+        //   DatumMutableIntMapRef();
+        //   DatumMutableIntMapRef(DatumMapEntry *, SizeType *, bool *);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nTESTING 'DatumMutableIntMapRef'"
+                             "\n===============================\n";
+
+        if (verbose) cout << "\nTesting default constructor.\n";
+        {
+            DatumMutableIntMapRef obj;
+            ASSERT(0 == obj.data());
+            ASSERT(0 == obj.size());
+            ASSERT(0 == obj.sorted());
+        }
+
+        if (verbose) cout << "\nTesting value constructor.\n";
+        {
+            DatumIntMapEntry                data[1];
+            DatumMutableIntMapRef::SizeType size = 1;
+            bool                            sorted = false;
+            const DatumMutableIntMapRef     obj(data, &size, &sorted);
+
+            ASSERT(data    == obj.data());
+            ASSERT(&size   == obj.size());
             ASSERT(&sorted == obj.sorted());
         }
       } break;
@@ -9986,15 +10492,12 @@ int main(int argc, char *argv[])
         // Testing:
         //   DatumMutableMapRef();
         //   DatumMutableMapRef(DatumMapEntry *, SizeType *, bool *);
-        //   DatumMapEntry *data() const;
-        //   SizeType *size() const;
-        //   bool *sorted() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'DatumMutableMapRef'" << endl
-                          << "============================" << endl;
 
-        if (verbose) cout << "\nTesting default constructor." << endl;
+        if (verbose) cout << "\nTESTING 'DatumMutableMapRef'"
+                             "\n============================\n";
+
+        if (verbose) cout << "\nTesting default constructor.\n";
         {
             DatumMutableMapRef obj;
             ASSERT(0 == obj.data());
@@ -10002,13 +10505,14 @@ int main(int argc, char *argv[])
             ASSERT(0 == obj.sorted());
         }
 
-        if (verbose) cout << "\nTesting value constructor." << endl;
+        if (verbose) cout << "\nTesting value constructor.\n";
         {
-            DatumMapEntry                data;
-            DatumMutableMapRef::SizeType size;
-            bool                         sorted;
-            const DatumMutableMapRef     obj(&data, &size, &sorted);
-            ASSERT(&data   == obj.data());
+            DatumMapEntry                data[1];
+            DatumMutableMapRef::SizeType size = 1;
+            bool                         sorted = false;
+            const DatumMutableMapRef     obj(data, &size, &sorted);
+
+            ASSERT(data    == obj.data());
             ASSERT(&size   == obj.size());
             ASSERT(&sorted == obj.sorted());
         }
@@ -10031,28 +10535,24 @@ int main(int argc, char *argv[])
         // Testing:
         //   DatumMutableArrayRef();
         //   DatumMutableArrayRef(Datum *data, SizeType *length);
-        //   Datum *data() const;
-        //   SizeType *length() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'DatumMutableArrayRef'" << endl
-                          << "==============================" << endl;
+        if (verbose) cout << "\nTESTING 'DatumMutableArrayRef'"
+                             "\n==============================\n";
 
-        if (verbose) cout << "\nTesting default constructor." << endl;
+        if (verbose) cout << "\nTesting default constructor.\n";
         {
             DatumMutableArrayRef obj;
             ASSERT(0 == obj.data());
-            ASSERT(0 == obj.length());
         }
 
-        if (verbose) cout << "\nTesting value constructor." << endl;
+        if (verbose) cout << "\nTesting value constructor.\n";
         {
-            Datum                      data;
-            Datum::SizeType            length;
-            const DatumMutableArrayRef obj(&data, &length);
+            Datum                          data;
+            DatumMutableArrayRef::SizeType size = 1;
+            const DatumMutableArrayRef     obj(&data, &size);
 
-            ASSERT(&data   == obj.data());
-            ASSERT(&length == obj.length());
+            ASSERT(&data == obj.data());
+            ASSERT(&size == obj.length());
         }
       } break;
       case 8: {
@@ -10096,11 +10596,10 @@ int main(int argc, char *argv[])
         //   bsl::ostream& print(bsl::ostream&, int, int) const;
         //   bsl::ostream& operator<<(bsl::ostream&, const DatumMapEntry&);
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING 'DatumMapEntry'" << endl
-                          << "=======================" << endl;
+        if (verbose) cout << "\nTESTING 'DatumMapEntry'"
+                             "\n=======================\n";
 
-        if (verbose) cout << "\nTesting default constructor." << endl;
+        if (verbose) cout << "\nTesting default constructor.\n";
         {
             const DatumMapEntry obj;
             ASSERT(StringRef() == obj.key());
@@ -10109,14 +10608,14 @@ int main(int argc, char *argv[])
             //ASSERT(Datum()     == obj.value());
         }
 
-        if (verbose) cout << "\nTesting value constructor." << endl;
+        if (verbose) cout << "\nTesting value constructor.\n";
         {
             DatumMapEntry obj("key", Datum::createInteger(3));
             ASSERT(StringRef("key")        == obj.key());
             ASSERT(Datum::createInteger(3) == obj.value());
         }
 
-        if (verbose) cout << "\nTesting manipulators." << endl;
+        if (verbose) cout << "\nTesting manipulators.\n";
         {
             DatumMapEntry obj("key", Datum::createInteger(3));
             ASSERT(StringRef("key")        == obj.key());
@@ -10134,13 +10633,13 @@ int main(int argc, char *argv[])
             ASSERT(Datum::createDouble(2.25) == obj.value());
         }
 
-        if (verbose) cout << "\nTesting 'print'." << endl;
+        if (verbose) cout << "\nTesting 'print'.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
             const DatumMapEntry obj("key", Datum::createInteger(3));
 
-            if (verbose) cout << "\tTesting single-line format." << endl;
+            if (verbose) cout << "\tTesting single-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -10152,7 +10651,7 @@ int main(int argc, char *argv[])
                 ASSERT(expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting multi-line format." << endl;
+            if (verbose) cout << "\tTesting multi-line format.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -10181,7 +10680,7 @@ int main(int argc, char *argv[])
                 ASSERT(expObjStr.str() == objStr.str());
             }
 
-            if (verbose) cout << "\tTesting level adjustment." << endl;
+            if (verbose) cout << "\tTesting level adjustment.\n";
             {
                 ostringstream objStr;
                 ostringstream expObjStr;
@@ -10215,9 +10714,9 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'operator<<'" << endl;
+        if (verbose) cout << "\nTesting 'operator<<'\n";
         {
-            if (verbose) cout << "\nTesting operator correctness." << endl;
+            if (verbose) cout << "\nTesting operator correctness.\n";
             {
                 const DatumMapEntry obj("key", Datum::createInteger(3));
                 bsl::ostringstream  os;
@@ -10225,18 +10724,17 @@ int main(int argc, char *argv[])
                 ASSERT(string("[ key = 3 ]") == os.str());
             }
 
-            if (verbose) cout << "\nTesting operator format." << endl;
+            if (verbose) cout << "\nTesting operator format.\n";
             {
                 typedef ostream& (*operatorPtr)(ostream&,const DatumMapEntry&);
 
-                operatorPtr operatorOut = bdld::operator<<;
-                (void) operatorOut;
+                operatorPtr operatorOut = bdld::operator<<;  (void)operatorOut;
             }
         }
 
-        if (verbose) cout << "\nTesting equality operators." << endl;
+        if (verbose) cout << "\nTesting equality operators.\n";
         {
-            if (verbose) cout << "\nTesting operators correctness." << endl;
+            if (verbose) cout << "\nTesting operators correctness.\n";
             {
                 const static struct {
                     int           d_line;   // line number
@@ -10279,20 +10777,15 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) cout << "\nTesting operators format." << endl;
+            if (verbose) cout << "\nTesting operators format.\n";
             {
                 typedef bool (*operatorPtr)(const DatumMapEntry&,
                                             const DatumMapEntry&);
 
                 // Verify that the signatures and return types are standard.
 
-                operatorPtr operatorEq   = bdld::operator==;
-                operatorPtr operatorNe   = bdld::operator!=;
-
-                // Quash potential compiler warnings.
-
-                (void)operatorEq;
-                (void)operatorNe;
+                operatorPtr operatorEq = bdld::operator==;  (void)operatorEq;
+                operatorPtr operatorNe = bdld::operator!=;  (void)operatorNe;
             }
         }
       } break;
@@ -10326,12 +10819,11 @@ int main(int argc, char *argv[])
         // Testing:
         //   Datum& operator=(const Datum& rhs) = default;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING ASSIGNMENT OPERATOR" << endl
-                          << "===========================" << endl;
+        if (verbose) cout << "\nTESTING ASSIGNMENT OPERATOR"
+                             "\n===========================\n";
 
         if (verbose) cout <<
-             "\nCreate a table of distinct type/value combinations." << endl;
+             "\nCreate a table of distinct type/value combinations.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -10344,7 +10836,7 @@ int main(int argc, char *argv[])
             ASSERT(vector1.size() == vector2.size());
 
             if (verbose)
-                cout << "\nAssign every value with every value." << endl;
+                cout << "\nAssign every value with every value.\n";
             {
                 for (size_t i = 0; i < vector1.size(); ++i) {
                     // Copy construct or will loose allocated memory after
@@ -10460,27 +10952,23 @@ int main(int argc, char *argv[])
         //   bool operator!=(const Datum&, const Datum&);  // non-aggregate
         // --------------------------------------------------------------------
 
-        if (verbose) cout << endl
-                          << "EQUALITY-COMPARISON OPERATORS" << endl
-                          << "=============================" << endl;
+        if (verbose) cout << "\nEQUALITY-COMPARISON OPERATORS"
+                             "\n=============================\n";
 
         if (verbose) cout <<
-                "\nAssign the address of each operator to a variable." << endl;
+                "\nAssign the address of each operator to a variable.\n";
         {
             typedef bool (*operatorPtr)(const Datum&, const Datum&);
 
             // Verify that the signatures and return types are standard.
 
-            operatorPtr operatorEq = bdld::operator==;
-            operatorPtr operatorNe = bdld::operator!=;
-
-            (void)operatorEq;  // quash potential compiler warnings
-            (void)operatorNe;
+            operatorPtr operatorEq = bdld::operator==;  (void)operatorEq;
+            operatorPtr operatorNe = bdld::operator!=;  (void)operatorNe;
         }
 
         if (verbose)
             cout << "\nCreate a table of distinct non-aggregate type/value "
-                 << "combinations." << endl;
+                 << "combinations.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -10493,7 +10981,7 @@ int main(int argc, char *argv[])
             ASSERT(vector1.size() == vector2.size());
 
             if (verbose)
-                cout << "\nCompare every value with every value." << endl;
+                cout << "\nCompare every value with every value.\n";
             {
                 for (size_t i = 0; i < vector1.size(); ++i) {
                     const Datum& X = vector1[i];
@@ -10601,14 +11089,13 @@ int main(int argc, char *argv[])
         //   Datum(const Datum& original) = default;;
         //---------------------------------------------------------------------
 
-        if (verbose) cout << endl
-                          << "TESTING COPY CONSTRUCTOR" << endl
-                          << "========================" << endl;
+        if (verbose) cout << "\nTESTING COPY CONSTRUCTOR"
+                             "\n========================\n";
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
 
-        if (verbose) cout << "\nTesting 'boolean' data type" << endl;
+        if (verbose) cout << "\nTesting 'boolean' data type\n";
         {
             const static bool DATA[] = { true, false };
             const size_t      DATA_LEN = sizeof DATA / sizeof *DATA;
@@ -10645,7 +11132,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'Date' data type" << endl;
+        if (verbose) cout << "\nTesting 'Date' data type\n";
         {
             const static bdlt::Date DATA[] = {
                 Date(),
@@ -10689,7 +11176,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'Datetime' data type." << endl;
+        if (verbose) cout << "\nTesting 'Datetime' data type.\n";
         {
             const static bdlt::Datetime DATA[] = {
                 Datetime(),
@@ -10737,7 +11224,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'DatetimeInterval' data type." << endl;
+        if (verbose) cout << "\nTesting 'DatetimeInterval' data type.\n";
         {
             const static bdlt::DatetimeInterval DATA[] = {
                 DatetimeInterval(),
@@ -10792,7 +11279,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'Decimal64' data type." << endl;
+        if (verbose) cout << "\nTesting 'Decimal64' data type.\n";
         {
             const static struct {
                 int                d_line;          // line number
@@ -10865,7 +11352,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'double' data type." << endl;
+        if (verbose) cout << "\nTesting 'double' data type.\n";
         {
             const static struct {
                 int    d_line;          // line number
@@ -10947,7 +11434,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'DatumError' data type." << endl;
+        if (verbose) cout << "\nTesting 'DatumError' data type.\n";
         {
             const static int DATA [] = {
                 0,
@@ -10965,7 +11452,7 @@ int main(int argc, char *argv[])
 
             const size_t DATA_LEN = sizeof DATA / sizeof *DATA;
 
-            if (veryVerbose) cout << "\tTesting 'createError(int)'." << endl;
+            if (veryVerbose) cout << "\tTesting 'createError(int)'.\n";
             for (size_t i = 0; i< DATA_LEN; ++i) {
                 const int  ERROR = DATA[i];
 
@@ -10998,7 +11485,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tTesting 'createError(int, StringRef&)'." << endl;
+                cout << "\tTesting 'createError(int, StringRef&)'.\n";
 
             const char *errorMessage = "This is an error#$%\".";
             for (size_t i = 0; i< DATA_LEN; ++i) {
@@ -11036,7 +11523,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'Integer' data type." << endl;
+        if (verbose) cout << "\nTesting 'Integer' data type.\n";
         {
             const static int DATA[] = {
                 0,
@@ -11085,7 +11572,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'Integer64' data type." << endl;
+        if (verbose) cout << "\nTesting 'Integer64' data type.\n";
         {
             const static Int64 DATA[] = {
                 0,
@@ -11116,9 +11603,9 @@ int main(int argc, char *argv[])
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
                 const Int64 bytesInUse = oa.numBytesInUse();
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                 ASSERT(0 == oa.numBytesInUse()); // non allocating type
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
                 ASSERT(true  == Z.isInteger64());
                 ASSERTV(VALUE, VALUE == Z.theInteger64());
@@ -11127,9 +11614,9 @@ int main(int argc, char *argv[])
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
                 ASSERT(bytesInUse == oa.numBytesInUse());
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                 ASSERT(0 == oa.numBytesInUse()); // non allocating type
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
                 // Verify the type and the value of the object.
                 ASSERT(true == X.isInteger64());
@@ -11145,7 +11632,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'Null' data type." << endl;
+        if (verbose) cout << "\nTesting 'Null' data type.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -11170,7 +11657,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'String' data type." << endl;
+        if (verbose) cout << "\nTesting 'String' data type.\n";
         {
             const static Datum::SizeType DATA[] = {
                 0,
@@ -11186,9 +11673,8 @@ int main(int argc, char *argv[])
 
             const size_t DATA_LEN = sizeof DATA / sizeof *DATA;
 
-            if (veryVerbose)
-                cout << "\tTesting 'createStringRef(const char*, SizeType)'."
-                     << endl;
+            if (veryVerbose) cout << "\tTesting 'createStringRef("
+                                                  "const char*, SizeType)'.\n";
 
             for (size_t i = 0; i< DATA_LEN; ++i) {
                 bslma::TestAllocator  ba("buffer", veryVeryVeryVerbose);
@@ -11228,7 +11714,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'Time' data type." << endl;
+        if (verbose) cout << "\nTesting 'Time' data type.\n";
         {
             const static bdlt::Time DATA[] = {
                 Time(),
@@ -11271,7 +11757,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'DatumUdt' data type." << endl;
+        if (verbose) cout << "\nTesting 'DatumUdt' data type.\n";
         {
             char           BUFFER[] = "This is UDT placeholder";
             const DatumUdt VALUE(BUFFER, 0);
@@ -11304,7 +11790,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'DatumBinaryRef' data type." << endl;
+        if (verbose) cout << "\nTesting 'DatumBinaryRef' data type.\n";
         {
             for (size_t i = 0; i < 258; ++i) {
                 bslma::TestAllocator       ba("buffer", veryVeryVeryVerbose);
@@ -11327,7 +11813,7 @@ int main(int argc, char *argv[])
                 } else {
                     ASSERT(0 != bytesInUse);
                 }
-#endif // BSLS_PLATFORM_CPU_64_BIT
+#endif // end - 64 bit
 
                 ASSERT(true == Z.isBinary());
                 ASSERT(REF  == Z.theBinary());
@@ -11350,7 +11836,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'String' data type." << endl;
+        if (verbose) cout << "\nTesting 'String' data type.\n";
         {
             for (size_t i = 0; i < 258; ++i) {
                 bslma::TestAllocator ba("buffer", veryVeryVeryVerbose);
@@ -11374,14 +11860,14 @@ int main(int argc, char *argv[])
                 } else {
                     ASSERT(0 != bytesInUse);
                 }
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                 // Up to length 13 inclusive the strings are stored inline
                 if (SIZE <= 13) {
                     ASSERT(0 == bytesInUse);
                 } else {
                     ASSERT(0 != bytesInUse);
                 }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
                 ASSERT(true == Z.isString());
                 ASSERT(REF  == Z.theString());
@@ -11475,28 +11961,24 @@ int main(int argc, char *argv[])
         //   bsl::ostream& operator<<(ostream&, const Datum&); // non-aggregate
         // --------------------------------------------------------------------
 
-        if (verbose) cout << endl
-                          << "TESTING PRINT AND OPERATOR<<" << endl
-                          << "============================" << endl;
+        if (verbose) cout << "\nTESTING PRINT AND OPERATOR<<"
+                             "\n============================\n";
 
         if (verbose)
             cout << "\nAssign the addresses of 'print' and "
-                 << "the output 'operator<<' to variables." << endl;
+                 << "the output 'operator<<' to variables.\n";
         {
             typedef ostream& (Datum::*funcPtr)(ostream&, int, int) const;
             typedef ostream& (*operatorPtr)(ostream&, const Datum&);
 
             // Verify that the signatures and return types are standard.
 
-            funcPtr     printMember = &Datum::print;
-            operatorPtr operatorOut = bdld::operator<<;
-
-            (void) printMember;  // quash potential compiler warnings
-            (void) operatorOut;
+            funcPtr     printMember = &Datum::print;     (void)printMember;
+            operatorPtr operatorOut = bdld::operator<<;  (void)operatorOut;
         }
 
-        if (verbose) cout <<
-             "\nCreate a table of distinct value/format combinations." << endl;
+        if (verbose) cout << "\nCreate a table of distinct value/format "
+                                                             "combinations.\n";
 
         bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -11632,7 +12114,7 @@ int main(int argc, char *argv[])
         const size_t NUM_DATA = sizeof DATA / sizeof *DATA;
 
         if (verbose)
-            cout << "\nTesting with various print specifications." << endl;
+            cout << "\nTesting with various print specifications.\n";
         {
             for (size_t i = 0; i < NUM_DATA; ++i) {
                 const int         LINE  = DATA[i].d_line;
@@ -11681,7 +12163,7 @@ int main(int argc, char *argv[])
                     bslma::DefaultAllocatorGuard dag(&da);
 
                     // Verify output is formatted as expected.
-                    if (veryVeryVerbose) { cout << os.str() << endl; }
+                    if (veryVeryVerbose) { cout << os.str() << '\n'; }
 
                     if (EXP) {
                         ASSERTV(LINE, EXP, os.str(), EXP == os.str());
@@ -11725,7 +12207,7 @@ int main(int argc, char *argv[])
         }
 
         if (verbose) cout <<
-                  "\nTesting 'binary' data type print specifications." << endl;
+                  "\nTesting 'binary' data type print specifications.\n";
         {
             const unsigned char buffer[] = "12345";
             const size_t        binarySize = sizeof(buffer);
@@ -11847,16 +12329,15 @@ int main(int argc, char *argv[])
         //   bdlt::Time theTime() const;
         //   DatumUdt theUdt() const;
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "PRIMARY MANIPULATOR AND BASIC ACCESSORS" << endl
-                          << "=======================================" << endl;
+        if (verbose) cout << "\nPRIMARY MANIPULATOR AND BASIC ACCESSORS"
+                             "\n=======================================\n";
 
-        if (verbose) cout << "\nTesting non-aggregate data types.\n" << endl;
+        if (verbose) cout << "\nTesting non-aggregate data types.\n";
 
         bslma::TestAllocator         da("default", veryVeryVeryVerbose);
         bslma::DefaultAllocatorGuard guard(&da);
 
-        if (verbose) cout << "\nTesting 'createBoolean'." << endl;
+        if (verbose) cout << "\nTesting 'createBoolean'.\n";
         {
             const static bool DATA[]   = { true, false };
             const size_t      DATA_LEN = sizeof DATA / sizeof *DATA;
@@ -11898,7 +12379,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createDate'." << endl;
+        if (verbose) cout << "\nTesting 'createDate'.\n";
         {
             const static bdlt::Date DATA[] = {
                 Date(),
@@ -11947,7 +12428,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createDatetime'." << endl;
+        if (verbose) cout << "\nTesting 'createDatetime'.\n";
         {
             const static bdlt::Datetime DATA[] = {
                 Datetime(),
@@ -11998,7 +12479,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createDatetimeInterval'." << endl;
+        if (verbose) cout << "\nTesting 'createDatetimeInterval'.\n";
         {
             const static bdlt::DatetimeInterval DATA[] = {
                 DatetimeInterval(),
@@ -12056,7 +12537,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createDecimal64'." << endl;
+        if (verbose) cout << "\nTesting 'createDecimal64'.\n";
         {
             const static struct {
                 int                d_line;          // line number
@@ -12123,7 +12604,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createDouble'." << endl;
+        if (verbose) cout << "\nTesting 'createDouble'.\n";
         {
             const static struct {
                 int      d_line;          // line number
@@ -12201,7 +12682,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createError'." << endl;
+        if (verbose) cout << "\nTesting 'createError'.\n";
         {
             const static int DATA [] = {
                 0,
@@ -12219,7 +12700,7 @@ int main(int argc, char *argv[])
 
             const size_t DATA_LEN = sizeof DATA / sizeof *DATA;
 
-            if (veryVerbose) cout << "\tTesting 'createError(int)'." << endl;
+            if (veryVerbose) cout << "\tTesting 'createError(int)'.\n";
             for (size_t i = 0; i< DATA_LEN; ++i) {
                 const int  ERROR = DATA[i];
 
@@ -12257,7 +12738,7 @@ int main(int argc, char *argv[])
             }
 
             if (veryVerbose)
-                cout << "\tTesting 'createError(int, StringRef&)'." << endl;
+                cout << "\tTesting 'createError(int, StringRef&)'.\n";
 
             const char *errorMessage = "This is an error#$%\".";
             for (size_t i = 0; i< DATA_LEN; ++i) {
@@ -12298,7 +12779,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createInteger'." << endl;
+        if (verbose) cout << "\nTesting 'createInteger'.\n";
         {
             const static int DATA[] = {
                 0,
@@ -12352,7 +12833,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createInteger64'." << endl;
+        if (verbose) cout << "\nTesting 'createInteger64'.\n";
         {
             const static Int64 DATA[] = {
                 0,
@@ -12384,7 +12865,7 @@ int main(int argc, char *argv[])
 
 #ifdef BSLS_PLATFORM_CPU_64_BIT
                 ASSERT(0 == oa.numBlocksInUse()); // non allocating type
-#endif  // BSLS_PLATFORM_CPU_64_BIT
+#endif  // end - 64 bit
 
                 ASSERT(!D.isArray());
                 ASSERT(!D.isBoolean());
@@ -12411,7 +12892,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createNull'." << endl;
+        if (verbose) cout << "\nTesting 'createNull'.\n";
         {
             bslma::TestAllocator oa("object", veryVeryVeryVerbose);
 
@@ -12443,7 +12924,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'createStringRef'." << endl;
+        if (verbose) cout << "\nTesting 'createStringRef'.\n";
         {
             const static Datum::SizeType DATA[] = {
                 0,
@@ -12459,9 +12940,8 @@ int main(int argc, char *argv[])
 
             const size_t DATA_LEN = sizeof DATA / sizeof *DATA;
 
-            if (veryVerbose)
-                cout << "\tTesting 'createStringRef(const char*, SizeType)'."
-                     << endl;
+            if (veryVerbose) cout << "\tTesting 'createStringRef("
+                                                  "const char*, SizeType)'.\n";
 
             for (size_t i = 0; i< DATA_LEN; ++i) {
                 bslma::TestAllocator  ba("buffer", veryVeryVeryVerbose);
@@ -12505,9 +12985,8 @@ int main(int argc, char *argv[])
             }
 
             // This overload simply forwards to the above method
-            if (veryVerbose)
-                cout << "\tTesting 'createStringRef(const char*)'."
-                     << endl;
+            if (veryVerbose) cout << "\tTesting 'createStringRef("
+                                                            "const char*)'.\n";
 
             {
                 const char BUFFER[] = "This is test string.";
@@ -12544,9 +13023,8 @@ int main(int argc, char *argv[])
             }
 
             // This overload simply forwards to the above method
-            if (veryVerbose)
-                cout << "\tTesting 'createStringRef(const StringRef&)'."
-                     << endl;
+            if (veryVerbose) cout << "\tTesting 'createStringRef("
+                                                       "const StringRef&)'.\n";
             {
                 const char BUFFER[] = "This is test string.";
 
@@ -12583,9 +13061,9 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createTime'." << endl;
+        if (verbose) cout << "\nTesting 'createTime'.\n";
         {
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
+#ifdef BSLS_PLATFORM_CPU_32_BIT
             {
                 // Testing assumption that 'Time' fits into 48 bits
                 bdlt::Time         time(24);
@@ -12612,7 +13090,7 @@ int main(int argc, char *argv[])
                 ll2 = bdld::Datum_Helpers32::loadInt48(s, i);
                 LOOP2_ASSERT(ll, ll2, ll == ll2);
             }
-#endif
+#endif  // end - 32 bit
             const static bdlt::Time DATA[] = {
                 Time(),
                 Time(0, 1, 1, 1, 1),
@@ -12659,7 +13137,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'createUdt'." << endl;
+        if (verbose) cout << "\nTesting 'createUdt'.\n";
         {
             char           BUFFER[] = "This is UDT placeholder";
             const DatumUdt VALUE(BUFFER, 0);
@@ -12697,7 +13175,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == oa.status());
         }
 
-        if (verbose) cout << "\nTesting 'copyBinary'." << endl;
+        if (verbose) cout << "\nTesting 'copyBinary'.\n";
         {
             for (size_t i = 0; i < 258; ++i) {
                 bslma::TestAllocator ba("buffer", veryVeryVeryVerbose);
@@ -12716,13 +13194,13 @@ int main(int argc, char *argv[])
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
                 ASSERT(0 != oa.numBlocksInUse());   // always allocate
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                 if (i<=13) {
                     ASSERT(0 == oa.numBlocksInUse());
                 } else {
                     ASSERT(0 != oa.numBlocksInUse());
                 }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
                 ASSERT(!D.isArray());
                 ASSERT(!D.isBoolean());
@@ -12749,7 +13227,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nTesting 'copyString'." << endl;
+        if (verbose) cout << "\nTesting 'copyString'.\n";
         {
             for (size_t i = 0; i < 258; ++i) {
                 bslma::TestAllocator ba("buffer", veryVeryVeryVerbose);
@@ -12777,14 +13255,14 @@ int main(int argc, char *argv[])
                     } else {
                         ASSERT(0 != bytesInUse);
                     }
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                     // Up to length 13 inclusive the strings are stored inline
                     if (SIZE <= 13) {
                         ASSERT(0 == bytesInUse);
                     } else {
                         ASSERT(0 != bytesInUse);
                     }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
                     ASSERT(!D.isArray());
                     ASSERT(!D.isBoolean());
@@ -12812,17 +13290,17 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\nNegative Testing." << endl;
+#ifdef BDE_BUILD_TARGET_EXC
+        if (verbose) cout << "\nNegative Testing.\n";
         {
             bslma::TestAllocator         ta("test", veryVeryVerbose);
             bsls::AssertTestHandlerGuard hG;
 
             bslma::Allocator *nullAllocPtr =
                                             static_cast<bslma::Allocator *>(0);
+            (void)nullAllocPtr;
 
-            (void) nullAllocPtr;  // suppress compiler warning
-
-            if (verbose) cout << "\tTesting 'createDatetime'." << endl;
+            if (verbose) cout << "\tTesting 'createDatetime'.\n";
             {
                 bdlt::Datetime temp;
 
@@ -12831,7 +13309,7 @@ int main(int argc, char *argv[])
                                        Datum::createDatetime(temp, &ta), &ta));
             }
 
-            if (verbose) cout << "\tTesting 'createDatetimeInterval'." << endl;
+            if (verbose) cout << "\tTesting 'createDatetimeInterval'.\n";
             {
                 bdlt::DatetimeInterval temp;
 
@@ -12841,7 +13319,7 @@ int main(int argc, char *argv[])
                                Datum::createDatetimeInterval(temp, &ta), &ta));
             }
 
-            if (verbose) cout << "\tTesting 'createError'." << endl;
+            if (verbose) cout << "\tTesting 'createError'.\n";
             {
                 const int       CODE = 1;
                 const StringRef MESSAGE("temp");
@@ -12853,7 +13331,7 @@ int main(int argc, char *argv[])
                                  Datum::createError(CODE, MESSAGE, &ta), &ta));
             }
 
-            if (verbose) cout << "\tTesting 'createInteger64'." << endl;
+            if (verbose) cout << "\tTesting 'createInteger64'.\n";
             {
                 bsls::Types::Int64 temp = 1;
 
@@ -12862,9 +13340,8 @@ int main(int argc, char *argv[])
                                       Datum::createInteger64(temp, &ta), &ta));
             }
 
-            if (verbose) cout <<
-            "\tTesting 'createStringRef(const char *, SizeType, Allocator *)'."
-                              << endl;
+            if (verbose) cout << "\tTesting 'createStringRef("
+                                    "const char *, SizeType, Allocator *)'.\n";
             {
                 const char     *temp        = "";
                 const SizeType  LENGTH      = 1;
@@ -12884,23 +13361,20 @@ int main(int argc, char *argv[])
                                                         nullAllocPtr));
             }
 
-            if (verbose) cout <<
-                      "\tTesting 'createStringRef(const char *, Allocator *)'."
-                              << endl;
+            if (verbose) cout << "\tTesting 'createStringRef("
+                                              "const char *, Allocator *)'.\n";
             {
                 const char *temp = "temp";
                 const char *nullCharPtr = static_cast<const char *>(0);
-
-                (void) nullCharPtr;  // suppress compiler warning
+                (void)nullCharPtr;
 
                 ASSERT_SAFE_FAIL(Datum::createStringRef(nullCharPtr, &ta));
                 ASSERT_SAFE_PASS(Datum::createStringRef(temp,        &ta));
                 ASSERT_SAFE_FAIL(Datum::createStringRef(temp, nullAllocPtr));
             }
 
-            if (verbose) cout <<
-                  "\tTesting 'createStringRef(const StringRef&, Allocator *)'."
-                              << endl;
+            if (verbose) cout << "\tTesting 'createStringRef("
+                                          "const StringRef&, Allocator *)'.\n";
             {
                 const bslstl::StringRef temp("temp");
 
@@ -12908,7 +13382,7 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(Datum::createStringRef(temp, &ta));
             }
 
-            if (verbose) cout << "\tTesting 'createUdt'." << endl;
+            if (verbose) cout << "\tTesting 'createUdt'.\n";
             {
                 void *temp = static_cast<void *>(0);
 
@@ -12920,7 +13394,7 @@ int main(int argc, char *argv[])
                 ASSERT_SAFE_PASS(Datum::createUdt(temp, 65535));
             }
 
-            if (verbose) cout << "\tTesting 'copyBinary'." << endl;
+            if (verbose) cout << "\tTesting 'copyBinary'.\n";
             {
                 char            temp;
                 const void     *VALUE   = static_cast<void *>(&temp);
@@ -12942,7 +13416,7 @@ int main(int argc, char *argv[])
                 ASSERT_FAIL(Datum::copyBinary(VALUE, SIZE, nullAllocPtr));
             }
 
-            if (verbose) cout << "\tTesting 'copyString'." << endl;
+            if (verbose) cout << "\tTesting 'copyString'.\n";
             {
                 const char     *temp        = "temp";
                 const SizeType  LEN         = 1;
@@ -12960,7 +13434,7 @@ int main(int argc, char *argv[])
                 ASSERT_FAIL(Datum::copyString(temp, LEN, nullAllocPtr));
             }
 
-            if (verbose) cout << "\tTesting 'destroy'." << endl;
+            if (verbose) cout << "\tTesting 'destroy'.\n";
             {
                 const Datum temp = Datum::createNull();
 
@@ -12968,7 +13442,7 @@ int main(int argc, char *argv[])
                 ASSERT_PASS(Datum::destroy(temp, &ta));
             }
 
-            if (verbose) cout << "\tTesting 'theBinary'." << endl;
+            if (verbose) cout << "\tTesting 'theBinary'.\n";
             {
                 void        *temp = static_cast<void *>(0);
                 const Datum  fakeBinary = Datum::createNull();
@@ -12981,7 +13455,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realBinary, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theBoolean'." << endl;
+            if (verbose) cout << "\tTesting 'theBoolean'.\n";
             {
                 const Datum fakeBoolean = Datum::createNull();
                 const Datum realBoolean = Datum::createBoolean(true);
@@ -12993,7 +13467,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realBoolean, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theDate'." << endl;
+            if (verbose) cout << "\tTesting 'theDate'.\n";
             {
                 const Datum fakeDate = Datum::createNull();
                 const Datum realDate = Datum::createDate(Date());
@@ -13005,7 +13479,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realDate, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theDatetime'." << endl;
+            if (verbose) cout << "\tTesting 'theDatetime'.\n";
             {
                 const Datum fakeDatetime = Datum::createNull();
                 const Datum realDatetime = Datum::createDatetime(Datetime(),
@@ -13018,7 +13492,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realDatetime, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theDatetimInterval'." << endl;
+            if (verbose) cout << "\tTesting 'theDatetimInterval'.\n";
             {
                 const Datum fakeDatetimeInterval = Datum::createNull();
                 const Datum realDatetimeInterval =
@@ -13031,7 +13505,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realDatetimeInterval, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theDecimal64'." << endl;
+            if (verbose) cout << "\tTesting 'theDecimal64'.\n";
             {
                 const Datum fakeDecimal64 = Datum::createNull();
                 const Datum realDecimal64 = Datum::createDecimal64(
@@ -13045,7 +13519,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realDecimal64, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theDouble'." << endl;
+            if (verbose) cout << "\tTesting 'theDouble'.\n";
             {
                 const Datum fakeDouble = Datum::createNull();
                 const Datum realDouble = Datum::createDouble(0.0);
@@ -13057,7 +13531,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realDouble, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theError'." << endl;
+            if (verbose) cout << "\tTesting 'theError'.\n";
             {
                 const Datum fakeError = Datum::createNull();
                 const Datum realError = Datum::createError(0);
@@ -13069,7 +13543,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realError, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theInteger'." << endl;
+            if (verbose) cout << "\tTesting 'theInteger'.\n";
             {
                 const Datum fakeInteger = Datum::createNull();
                 const Datum realInteger = Datum::createInteger(0);
@@ -13081,7 +13555,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realInteger, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theInteger64'." << endl;
+            if (verbose) cout << "\tTesting 'theInteger64'.\n";
             {
                 const Datum fakeInteger64 = Datum::createNull();
                 const Datum realInteger64 = Datum::createInteger64(0, &ta);
@@ -13093,7 +13567,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realInteger64, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theString'." << endl;
+            if (verbose) cout << "\tTesting 'theString'.\n";
             {
                 const Datum fakeStringRef = Datum::createNull();
                 const Datum realStringRef = Datum::createStringRef("temp",
@@ -13107,7 +13581,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realStringRef, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theTime'." << endl;
+            if (verbose) cout << "\tTesting 'theTime'.\n";
             {
                 const Datum fakeTime = Datum::createNull();
                 const Datum realTime = Datum::createTime(Time());
@@ -13119,7 +13593,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(realTime, &ta);
             }
 
-            if (verbose) cout << "\tTesting 'theUdt'." << endl;
+            if (verbose) cout << "\tTesting 'theUdt'.\n";
             {
                 void        *temp = static_cast<void *>(0);
                 const Datum  fakeUdt = Datum::createNull();
@@ -13131,7 +13605,7 @@ int main(int argc, char *argv[])
                 Datum::destroy(fakeUdt, &ta);
                 Datum::destroy(realUdt, &ta);
             }
-            if (verbose) cout << "\tTesting zero-filled 'Datum'." << endl;
+            if (verbose) cout << "\tTesting zero-filled 'Datum'.\n";
             {
                 Datum temp;
 
@@ -13140,14 +13614,14 @@ int main(int argc, char *argv[])
 #ifdef BSLS_PLATFORM_CPU_32_BIT
                 ASSERT_SAFE_PASS(temp.type());
                 ASSERT_SAFE_PASS(temp.isDouble());
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
                 ASSERT_SAFE_FAIL(temp.type());
                 ASSERT_SAFE_FAIL(temp.isDouble());
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
             }
         }
-
+#endif  // Exceptions supported
         ASSERT(0 == da.numAllocations());
       } break;
       case 2: {
@@ -13178,11 +13652,10 @@ int main(int argc, char *argv[])
         //   Int64 loadSmallInt64(short hight16, int low32);
         //   bool storeSmallInt64(Int64 value, short *phigh16, int *plow32);
         // --------------------------------------------------------------------
-#ifdef BSLS_PLATFORM_CPU_32_BIT
-        if (verbose) cout << endl
-                          << "TESTING 'Datum_Helpers32'" << endl
-                          << "=========================" << endl;
+        if (verbose) cout << "\nTESTING 'Datum_Helpers32'"
+                             "\n=========================\n";
 
+#ifdef BSLS_PLATFORM_CPU_32_BIT
         {
             static const struct {
                 int        d_line;     // line number
@@ -13248,12 +13721,9 @@ int main(int argc, char *argv[])
                 }
             }
         }
-#else
-        if (verbose) cout << endl
-                          << "TESTING 'Datum_Helpers32'" << endl
-                          << "=========================" << endl;
-        if (verbose) cout << "\nSkipped on 64-bit platforms" << endl;
-#endif
+#else   // end - 32 bit / begin - 64 bit
+        if (verbose) cout << "\nSkipped on 64-bit platforms\n";
+#endif  // end - 64 bit
       } break;
       case 1: {
         // --------------------------------------------------------------------
@@ -13271,13 +13741,12 @@ int main(int argc, char *argv[])
         //   BREATHING TEST
         // --------------------------------------------------------------------
 
-        if (verbose) cout << endl
-                          << "BREATHING TEST" << endl
-                          << "==============" << endl;
+        if (verbose) cout << "\nBREATHING TEST"
+                             "\n==============\n";
 
         bslma::TestAllocator ta("test", veryVeryVeryVerbose);
 
-        if (verbose) cout << "\n'Datum' with integer value." << endl;
+        if (verbose) cout << "\n'Datum' with integer value.\n";
         {
             // Data type without memory allocation.
             Datum        mD = Datum::createInteger(0);
@@ -13292,7 +13761,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == ta.status());
         }
 
-        if (verbose) cout << "\n'Datum' with string value." << endl;
+        if (verbose) cout << "\n'Datum' with string value.\n";
         {
             // Data type with memory allocation.
             const char   *str = "A long string abcdef";
@@ -13323,14 +13792,13 @@ int main(int argc, char *argv[])
         // Testing:
         //   EFFICIENCY TEST
         // --------------------------------------------------------------------
-        if (verbose) cout << endl
-                          << "TESTING EFFICIENCY" << endl
-                          << "==================" << endl;
+        if (verbose) cout << "\nTESTING EFFICIENCY"
+                             "\n==================\n";
 
         int loops = test;
 
-        if (test == -2) {
-#if defined(BSLS_PLATFORM_OS_AIX)
+        if (-2 == test) {
+#if   defined(BSLS_PLATFORM_OS_AIX)
             loops = -100 * 1000;
 #elif defined(BSLS_PLATFORM_OS_LINUX)
             loops = -100 * 1000;
@@ -13350,14 +13818,14 @@ int main(int argc, char *argv[])
             break;
         }
 
-        cerr << "WARNING: CASE '" << test << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << test << "' NOT FOUND.\n";
         testStatus = -1;
         break;
       }
     }
 
     if (testStatus > 0) {
-        cerr << "Error, non-zero test status = " << testStatus << "." << endl;
+        cerr << "Error, non-zero test status = " << testStatus << ".\n";
     }
     return testStatus;
 }

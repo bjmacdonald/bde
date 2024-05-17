@@ -630,14 +630,14 @@ BSLS_IDENT("$Id$ $CSID$")
 #include <bsl_utility.h>
 
 #if !defined(BSLS_PLATFORM_CPU_32_BIT) && !defined(BSLS_PLATFORM_CPU_64_BIT)
-#error 'bdld::Datum' supports 32- or 64-bit platforms only.
-BSLS_PLATFORM_COMPILER_ERROR;
+    #error 'bdld::Datum' supports 32- or 64-bit platforms only.
+    BSLS_PLATFORM_COMPILER_ERROR;
 #endif
 
 #ifdef BSLS_PLATFORM_CMP_MSVC
-#define BDLD_DATUM_FORCE_INLINE __forceinline
+    #define BDLD_DATUM_FORCE_INLINE __forceinline
 #else
-#define BDLD_DATUM_FORCE_INLINE inline
+    #define BDLD_DATUM_FORCE_INLINE inline
 #endif
 
 namespace BloombergLP {
@@ -741,7 +741,7 @@ class Datum {
         , DLCT_MAP               = e_MAP
         , DLCT_BINARY            = e_BINARY
         , DLCT_DECIMAL64         = e_DECIMAL64
-#endif
+#endif  // end - do not omit internal deprecated
     };
 
     enum {
@@ -751,10 +751,10 @@ class Datum {
           k_NUM_TYPES    = 17           // number of distinct enumerated types
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
         , DLCT_NUM_TYPES = k_NUM_TYPES
-#endif
+#endif  // end - do not omit internal deprecated
     };
 
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
+#ifdef BSLS_PLATFORM_CPU_32_BIT
   private:
     // PRIVATE TYPES
     // 32-bit variation
@@ -904,7 +904,7 @@ class Datum {
 
     static const int k_TIME_OFFSET      = 0;  // offset of the time value in
                                               // the internal storage buffer
-#else  // BSLS_PLATFORM_IS_LITTLE_ENDIAN
+#else  // end - little endian / begin - big endian
     // Check if platform is big endian.
     static const int k_EXPONENT_OFFSET  = 0;  // offset of the exponent part in
                                               // the internal storage buffer
@@ -935,7 +935,7 @@ class Datum {
 
     static const int k_TIME_OFFSET      = 4;  // offset of the time value in
                                               // the internal storage buffer
-#endif
+#endif  // end - big endian
 
     enum {
         // Enumeration used to discriminate between the special incompressible
@@ -955,11 +955,11 @@ class Datum {
         char                d_chars[5]; // the string's characters
         char                d_length;   // the string's length
         unsigned short      d_exponent; // the exponent inside the double
-#else
+#else  // end - little endian / begin - big endian
         unsigned short      d_exponent; // the exponent inside the double
         char                d_chars[5]; // the string's characters
         char                d_length;   // the string's length
-#endif
+#endif  // end - big endian
     };
 
     struct ShortString6 {
@@ -967,10 +967,10 @@ class Datum {
 #ifdef BSLS_PLATFORM_IS_LITTLE_ENDIAN
         char                d_chars[6]; // the string's characters
         unsigned short      d_exponent; // the exponent inside the double
-#else
+#else  // end - little endian / begin - big endian
         unsigned short      d_exponent; // the exponent inside the double
         char                d_chars[6]; // the string's characters
-#endif
+#endif  // end - big endian
     };
 
     struct TypedAccess {
@@ -1054,7 +1054,7 @@ class Datum {
             unsigned short  d_ushort;   // as unsigned short value
         };
         unsigned short      d_exponent; // the exponent inside the double
-#else
+#else  // end - little endian / begin - big endian
         unsigned short      d_exponent; // the exponent inside the double
         union {
             short           d_short;    // as signed short value
@@ -1064,7 +1064,7 @@ class Datum {
             int             d_int;      // as integer value
             const void     *d_cvp;      // as const void* value
         };
-#endif
+#endif  // end - big endian
     };
 
     struct ExponentAccess {
@@ -1072,10 +1072,10 @@ class Datum {
 #ifdef BSLS_PLATFORM_IS_LITTLE_ENDIAN
         unsigned int        d_dummy;
         unsigned int        d_value;  // the exponent as a 32 bit word
-#else
+#else  // end - little endian / begin - big endian
         unsigned int        d_value;  // the exponent as a 32 bit word
         unsigned int        d_dummy;
-#endif
+#endif  // end - big endian
     };
 
     // Internal Datum representation
@@ -1141,7 +1141,7 @@ class Datum {
     bsls::Types::Int64 theSmallInteger64() const;
         // Return the 64-bit integer value stored inline in this object.
 
-#else // defined(BSLS_PLATFORM_CPU_32_BIT)
+#else // end - 32 bit / begin - 64 bit
   private:
     // PRIVATE TYPES
     enum InternalDataType {
@@ -1276,7 +1276,7 @@ class Datum {
     const void* theInlineStorage() const;
         // Return a non-modifiable pointer to the internal storage buffer.
 
-#endif // defined(BSLS_PLATFORM_CPU_32_BIT)
+#endif // end - 64 bit
 
   private:
     // FRIENDS
@@ -1893,7 +1893,7 @@ class Datum {
                           const DatumMutableMapOwningKeysRef&  mapping,
                           bslma::Allocator                    *basicAllocator);
         // [!DEPRECATED!] Use 'disposeUninitializedMap' instead.
-#endif
+#endif  // end - do not omit deprecated symbols
 };
 
 // FREE OPERATORS
@@ -2005,8 +2005,8 @@ class DatumMutableArrayRef {
   public:
     // TYPES
     typedef Datum::SizeType SizeType;
-        // 'SizeType' is an alias for an unsigned integral value, representing
-        // the capacity of a datum array.
+      // 'SizeType' is an alias for an unsigned integral value, representing
+      // the capacity of a datum array.
 
   private:
     // DATA
@@ -2280,6 +2280,25 @@ class DatumArrayRef {
     // of datums.  Note that zero-length arrays are valid.
 
   public:
+    // PUBLIC TYPES
+    typedef const bdld::Datum element_type;
+    typedef       bdld::Datum value_type;
+
+    typedef bsl::size_t     size_type;
+    typedef bsl::ptrdiff_t  difference_type;
+
+    typedef       element_type       *pointer;
+    typedef const element_type *const_pointer;
+
+    typedef       element_type&       reference;
+    typedef const element_type& const_reference;
+
+    typedef       pointer       iterator;
+    typedef const_pointer const_iterator;
+
+    typedef bsl::reverse_iterator<iterator>             reverse_iterator;
+    typedef bsl::reverse_iterator<const_iterator> const_reverse_iterator;
+
     typedef Datum::SizeType SizeType;
         // 'SizeType' is an alias for an unsigned integral value, representing
         // the length of a datum array.
@@ -2319,15 +2338,57 @@ class DatumArrayRef {
         // that this method's definition is compiler generated.
 
     // ACCESSORS
-    const Datum& operator[](SizeType index) const;
-        // Return the element stored at the specified 'index' position in this
-        // array.
+    const_reference operator[](size_type position) const;
+        // Return a reference providing non-modifiable access to the element at
+        // the specified 'position' in the array this reference object
+        // represents.  The behavior is undefined unless 'position < size()'.
 
-    const Datum *data() const;
-        // Return pointer to the first array element.
+    const_iterator begin() const BSLS_KEYWORD_NOEXCEPT;
+    const_iterator cbegin() const BSLS_KEYWORD_NOEXCEPT;
+        // Return an iterator providing non-modifiable access to the first
+        // element of the array this reference object represents; return a
+        // past-the-end iterator if 'size() == 0'.
 
-    SizeType length() const;
-        // Return the length of the array.
+    const_iterator end() const BSLS_KEYWORD_NOEXCEPT;
+    const_iterator cend() const BSLS_KEYWORD_NOEXCEPT;
+        // Return an iterator providing non-modifiable access pointing
+        // past-the-end of the array this reference object represents.
+
+    const_reverse_iterator rbegin() const BSLS_KEYWORD_NOEXCEPT;
+    const_reverse_iterator crbegin() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a reverse iterator providing non-modifiable access to the
+        // last element of the array this reference object represents, and the
+        // past-the-end reverse iterator if 'size() == 0'.
+
+    const_reverse_iterator rend() const BSLS_KEYWORD_NOEXCEPT;
+    const_reverse_iterator crend() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a reverse iterator providing non-modifiable access pointing
+        // past-the-end of the array this reference object represents.
+
+    bool empty() const BSLS_KEYWORD_NOEXCEPT;
+        // Return 'size() == 0'.
+
+    size_type size() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a const-pointer to the number of elements of the array this
+        // reference object represents.
+
+    const_reference front() const;
+        // Return a reference providing non-modifiable access to the first
+        // element of the array this reference object represents.  The behavior
+        // is undefined unless 'size() > 0'.
+
+    const_reference back() const;
+        // Return a reference providing non-modifiable access to the last
+        // element of the array this reference object represents.  The behavior
+        // is undefined unless 'size() > 0'.
+
+    pointer data() const BSLS_KEYWORD_NOEXCEPT;
+        // Return the address providing non-modifiable access to the first
+        // element of the array this reference object represents.  Return a
+        // valid pointer which cannot be dereferenced if the 'size() == 0'.
+
+    size_type length() const;
+        // Return a const pointer to the length of the array.
 
     bsl::ostream& print(bsl::ostream& stream,
                         int           level          = 0,
@@ -2467,6 +2528,25 @@ class DatumIntMapRef {
     // that zero-size maps are valid.
 
   public:
+    // PUBLIC TYPES
+    typedef const bdld::DatumIntMapEntry element_type;
+    typedef       bdld::DatumIntMapEntry value_type;
+
+    typedef bsl::size_t     size_type;
+    typedef bsl::ptrdiff_t  difference_type;
+
+    typedef       element_type       *pointer;
+    typedef const element_type *const_pointer;
+
+    typedef       element_type&       reference;
+    typedef const element_type& const_reference;
+
+    typedef       pointer       iterator;
+    typedef const_pointer const_iterator;
+
+    typedef bsl::reverse_iterator<iterator>             reverse_iterator;
+    typedef bsl::reverse_iterator<const_iterator> const_reverse_iterator;
+
     typedef Datum::SizeType SizeType;
         // 'SizeType' is an alias for an unsigned integral value, representing
         // the capacity of a datum array, the capacity of a datum map, the
@@ -2475,24 +2555,19 @@ class DatumIntMapRef {
 
   private:
     // DATA
-    const DatumIntMapEntry *d_data_p;  // pointer to the array of
-                                       // 'DatumIntMapEntry' objects (not
-                                       // owned)
-
-    SizeType                d_size;    // length of the array
-
+    const DatumIntMapEntry *d_data_p;  // entry-array pointer (not owned)
+    SizeType                d_size;    // length of the map
     bool                    d_sorted;  // flag indicating whether the array is
                                        // sorted or not
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DatumIntMapRef, bsl::is_trivially_copyable);
     BSLMF_NESTED_TRAIT_DECLARATION(DatumIntMapRef, bdlb::HasPrintMethod);
 
     // CREATORS
-      DatumIntMapRef(const DatumIntMapEntry *data,
-                    SizeType                 size,
-                    bool                     sorted);
+    DatumIntMapRef(const DatumIntMapEntry *data,
+                  SizeType                 size,
+                  bool                     sorted);
         // Create a 'DatumIntMapRef' object having the specified 'data' of the
         // specified 'size' and the specified 'sorted' flag.  The behavior is
         // undefined unless '0 != data' or '0 == size'.  Note that the pointer
@@ -2501,18 +2576,58 @@ class DatumIntMapRef {
     //!~DatumIntMapRef() = default;
 
     // ACCESSORS
-    const DatumIntMapEntry& operator[](SizeType index) const;
-        // Return the element stored at the specified 'index' position in this
-        // map.  The behavior is undefined unless 'index < size()'.
+    const_reference operator[](size_type position) const;
+        // Return a reference providing non-modifiable access to the element at
+        // the specified 'position' in the array of map entries this reference
+        // object represents.  The behavior is undefined unless
+        // 'position < size()'.
 
-    const DatumIntMapEntry *data() const;
-        // Return pointer to the first element in the map.
+    const_iterator begin() const BSLS_KEYWORD_NOEXCEPT;
+    const_iterator cbegin() const BSLS_KEYWORD_NOEXCEPT;
+        // Return an iterator providing non-modifiable access to the first
+        // element of the array of map entries this reference object
+        // represents; return a past-the-end iterator if 'size() == 0'.
+
+    const_iterator end() const BSLS_KEYWORD_NOEXCEPT;
+    const_iterator cend() const BSLS_KEYWORD_NOEXCEPT;
+        // Return an iterator providing non-modifiable access pointing
+        // past-the-end of the array this reference object represents.
+
+    const_reverse_iterator rbegin() const BSLS_KEYWORD_NOEXCEPT;
+    const_reverse_iterator crbegin() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a reverse iterator providing non-modifiable access to the
+        // last element of the array this reference object represents, and the
+        // past-the-end reverse iterator if 'size() == 0'.
+
+    const_reverse_iterator rend() const BSLS_KEYWORD_NOEXCEPT;
+    const_reverse_iterator crend() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a reverse iterator providing non-modifiable access pointing
+        // past-the-end of the array this reference object represents.
+
+    bool empty() const BSLS_KEYWORD_NOEXCEPT;
+        // Return 'size() == 0'.
+
+    size_type size() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a const-pointer to the number of elements of the array this
+        // reference object represents.
+
+    const_reference front() const;
+        // Return a reference providing non-modifiable access to the first
+        // element of the array this reference object represents.  The behavior
+        // is undefined unless 'size() > 0'.
+
+    const_reference back() const;
+        // Return a reference providing non-modifiable access to the last
+        // element of the array this reference object represents.  The behavior
+        // is undefined unless 'size() > 0'.
+
+    pointer data() const BSLS_KEYWORD_NOEXCEPT;
+        // Return the address providing non-modifiable access to the first
+        // element of the array this reference object represents.  Return a
+        // valid pointer which cannot be dereferenced if the 'size() == 0'.
 
     bool isSorted() const;
         // Return 'true' if underlying map is sorted and 'false' otherwise.
-
-    SizeType size() const;
-        // Return the size of the map.
 
     const Datum *find(int key) const;
         // Return a const pointer to the datum having the specified 'key', if
@@ -2656,6 +2771,25 @@ class DatumMapRef {
     // zero-size maps are valid.
 
   public:
+    // PUBLIC TYPES
+    typedef const bdld::DatumMapEntry element_type;
+    typedef       bdld::DatumMapEntry value_type;
+
+    typedef bsl::size_t     size_type;
+    typedef bsl::ptrdiff_t  difference_type;
+
+    typedef       element_type       *pointer;
+    typedef const element_type *const_pointer;
+
+    typedef       element_type&       reference;
+    typedef const element_type& const_reference;
+
+    typedef       pointer       iterator;
+    typedef const_pointer const_iterator;
+
+    typedef bsl::reverse_iterator<iterator>             reverse_iterator;
+    typedef bsl::reverse_iterator<const_iterator> const_reverse_iterator;
+
     typedef Datum::SizeType SizeType;
         // 'SizeType' is an alias for an unsigned integral value, representing
         // the capacity of a datum array, the capacity of a datum map, the
@@ -2664,17 +2798,12 @@ class DatumMapRef {
 
   private:
     // DATA
-    const DatumMapEntry *d_data_p;   // pointer to the array of 'DatumMapEntry'
-                                     // objects (not owned)
-
-    SizeType             d_size;     // length of the array
-
+    const DatumMapEntry *d_data_p;   // pointer to the entry-array (not owned)
+    SizeType             d_size;     // length of the map
     bool                 d_sorted;   // flag indicating whether the array is
                                      // sorted or not
-
     bool                 d_ownsKeys; // flag indicating whether the map owns
                                      // the keys or not
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DatumMapRef, bsl::is_trivially_copyable);
@@ -2693,12 +2822,55 @@ class DatumMapRef {
     //!~DatumMapRef() = default;
 
     // ACCESSORS
-    const DatumMapEntry& operator[](SizeType index) const;
-        // Return the element stored at the specified 'index' position in this
-        // map.  The behavior is undefined unless 'index < size()'.
+    const_reference operator[](size_type position) const;
+        // Return a reference providing non-modifiable access to the element at
+        // the specified 'position' in the array of map entries this reference
+        // object represents.  The behavior is undefined unless
+        // 'position < size()'.
 
-    const DatumMapEntry *data() const;
-        // Return pointer to the first element in the map.
+    const_iterator begin() const BSLS_KEYWORD_NOEXCEPT;
+    const_iterator cbegin() const BSLS_KEYWORD_NOEXCEPT;
+        // Return an iterator providing non-modifiable access to the first
+        // element of the array of map entries this reference object
+        // represents; return a past-the-end iterator if 'size() == 0'.
+
+    const_iterator end() const BSLS_KEYWORD_NOEXCEPT;
+    const_iterator cend() const BSLS_KEYWORD_NOEXCEPT;
+        // Return an iterator providing non-modifiable access pointing
+        // past-the-end of the array this reference object represents.
+
+    const_reverse_iterator rbegin() const BSLS_KEYWORD_NOEXCEPT;
+    const_reverse_iterator crbegin() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a reverse iterator providing non-modifiable access to the
+        // last element of the array this reference object represents, and the
+        // past-the-end reverse iterator if 'size() == 0'.
+
+    const_reverse_iterator rend() const BSLS_KEYWORD_NOEXCEPT;
+    const_reverse_iterator crend() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a reverse iterator providing non-modifiable access pointing
+        // past-the-end of the array this reference object represents.
+
+    bool empty() const BSLS_KEYWORD_NOEXCEPT;
+        // Return 'size() == 0'.
+
+    size_type size() const BSLS_KEYWORD_NOEXCEPT;
+        // Return a const-pointer to the number of elements of the array this
+        // reference object represents.
+
+    const_reference front() const;
+        // Return a reference providing non-modifiable access to the first
+        // element of the array this reference object represents.  The behavior
+        // is undefined unless 'size() > 0'.
+
+    const_reference back() const;
+        // Return a reference providing non-modifiable access to the last
+        // element of the array this reference object represents.  The behavior
+        // is undefined unless 'size() > 0'.
+
+    pointer data() const BSLS_KEYWORD_NOEXCEPT;
+        // Return the address providing non-modifiable access to the first
+        // element of the array this reference object represents.  Return a
+        // valid pointer which cannot be dereferenced if the 'size() == 0'.
 
     bool isSorted() const;
         // Return 'true' if underlying map is sorted and 'false' otherwise.
@@ -2706,9 +2878,6 @@ class DatumMapRef {
     bool ownsKeys() const;
         // Return 'true' if underlying map owns the keys and 'false' otherwise.
         // Note that 'false' is always returned for zero-sized 'DatumMapRef'.
-
-    SizeType size() const;
-        // Return the size of the map.
 
     const Datum *find(const bslstl::StringRef& key) const;
         // Return a const pointer to the datum having the specified 'key', if
@@ -2781,7 +2950,7 @@ struct Datum_Helpers {
         // the specified 'destination' and return 'value'.
 };
 
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
+#ifdef BSLS_PLATFORM_CPU_32_BIT
 
                         // ======================
                         // struct Datum_Helpers32
@@ -2797,11 +2966,11 @@ struct Datum_Helpers32 : Datum_Helpers {
     static const int b00          = 0; // Bits 0 to 32.
     static const int b32          = 4; // Bits 32 to 48.
     static const int b48          = 6; // Bits 48 to 64.
-#else
+#else  // end - little endian / begin - big endian
     static const int b00          = 4;
     static const int b32          = 2;
     static const int b48          = 0;
-#endif
+#endif  // end - big endian
 
     // CLASS METHODS
     static bsls::Types::Int64 loadInt48(short high16, int low32);
@@ -2830,7 +2999,7 @@ struct Datum_Helpers32 : Datum_Helpers {
         // It may change or be removed without notice.
 };
 
-#endif
+#endif  // end - 32 bit
 
 // ============================================================================
 //                               INLINE DEFINITIONS
@@ -2863,7 +3032,7 @@ t_TYPE Datum_Helpers::store(void *destination, int offset, t_TYPE value)
             static_cast<char *>(destination) + offset)) = value;
 }
 
-#if defined(BSLS_PLATFORM_CPU_32_BIT)
+#ifdef BSLS_PLATFORM_CPU_32_BIT
 
                         // ----------------------
                         // struct Datum32_Helpers
@@ -2925,7 +3094,7 @@ bool Datum_Helpers32::storeInt48(bsls::Types::Int64  value,
     }
     return false;
 }
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 32 bit
 
                                 // -----------
                                 // class Datum
@@ -3041,8 +3210,7 @@ bsls::Types::Int64 Datum::theSmallInteger64() const
     BSLS_ASSERT_SAFE(internalType() == e_INTERNAL_INTEGER64);
     return Datum_Helpers32::loadSmallInt64(d_as.d_short, d_as.d_int);
 }
-
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
 // PRIVATE CLASS METHODS
 
 // 64-bit only
@@ -3078,8 +3246,7 @@ const void* Datum::theInlineStorage() const
 {
     return d_data.buffer();
 }
-
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif // end - 64 bit
 
 // This section contains all methods that are common for all platforms, but may
 // have platform-specific implementation.
@@ -3091,9 +3258,9 @@ void Datum::destroyMemory(const Datum&      value,
 {
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     basicAllocator->deallocate(const_cast<void*>(value.d_as.d_cvp));
-#else    // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     basicAllocator->deallocate(value.d_as.d_ptr);
-#endif   // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 // PRIVATE ACCESSORS
@@ -3106,9 +3273,9 @@ Datum::InternalDataType Datum::internalType() const
         return static_cast<InternalDataType>(d_data[k_EXPONENT_LSB] & 0x0f);
     }
     return e_INTERNAL_DOUBLE;
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return static_cast<InternalDataType>(d_as.d_type);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3117,10 +3284,10 @@ DatumArrayRef Datum::theArrayReference() const
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return DatumArrayRef(static_cast<const Datum *>(d_as.d_cvp),
                          d_as.d_ushort);
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return DatumArrayRef(static_cast<const Datum *>(d_as.d_ptr),
                          d_as.d_int32);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3128,9 +3295,9 @@ DatumArrayRef Datum::theInternalArray() const
 {
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     const Datum *data = static_cast<const Datum *>(d_as.d_cvp);
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     const Datum *data = reinterpret_cast<const Datum *>(d_as.d_ptr);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     if (data) {
         const SizeType size = *reinterpret_cast<const SizeType *>(data);
         return DatumArrayRef(data + 1, size);                         // RETURN
@@ -3145,10 +3312,10 @@ bslstl::StringRef Datum::theInternalString() const
     const char *data = static_cast<const char *>(d_as.d_cvp);
     return bslstl::StringRef(data + sizeof(SizeType),
                              Datum_Helpers::load<SizeType>(data, 0));
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return bslstl::StringRef(static_cast<const char *>(d_as.d_ptr),
                              d_as.d_int32);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 BDLD_DATUM_FORCE_INLINE
@@ -3156,11 +3323,11 @@ bslstl::StringRef Datum::theShortString() const
 {
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return bslstl::StringRef(d_string5.d_chars, d_string5.d_length);
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     const char     *str = reinterpret_cast<const char *>(theInlineStorage());
     const SizeType  len = *str++;
     return bslstl::StringRef(str, static_cast<int>(len));
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3169,7 +3336,7 @@ bslstl::StringRef Datum::theStringReference() const
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return bslstl::StringRef(static_cast<const char *>(d_as.d_cvp),
                              d_as.d_ushort);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return bslstl::StringRef(static_cast<const char *>(d_as.d_ptr),
                              d_as.d_int32);
 #endif // BSLS_PLATFORM_CPU_32_BIT
@@ -3201,7 +3368,7 @@ Datum Datum::createArrayReference(const Datum      *array,
     Datum_Helpers::store<SizeType>     (mem, sizeof(array), length);
 
     return createExtendedDataObject(e_EXTENDED_INTERNAL_AREF_ALLOC, mem);
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     (void)basicAllocator;
 
     BSLS_ASSERT(length <= bsl::numeric_limits<unsigned int>::max());
@@ -3211,7 +3378,7 @@ Datum Datum::createArrayReference(const Datum      *array,
     result.d_as.d_int32 = static_cast<int>(length);
     result.d_as.d_ptr   = reinterpret_cast<void*>(const_cast<Datum*>(array));
     return result;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3230,11 +3397,10 @@ Datum Datum::createBoolean(bool value)
     result.d_exp.d_value = (k_DOUBLE_MASK | e_INTERNAL_BOOLEAN)
                             << k_TYPE_MASK_BITS;
     result.d_as.d_int    = value;
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type   = e_INTERNAL_BOOLEAN;
     result.d_as.d_int32  = value;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
-
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3249,10 +3415,10 @@ Datum Datum::createDate(const bdlt::Date& value)
     result.d_exp.d_value = (k_DOUBLE_MASK | e_INTERNAL_DATE)
                             << k_TYPE_MASK_BITS;
     *reinterpret_cast<bdlt::Date*>(&result.d_as.d_int) = value;
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type = e_INTERNAL_DATE;
     new (result.theInlineStorage()) bdlt::Date(value);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3264,7 +3430,6 @@ Datum Datum::createDatetime(const bdlt::Datetime&  value,
     (void)basicAllocator;
 
     Datum result;
-
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     // Check if number of days from now fits in two bytes.
 
@@ -3284,11 +3449,10 @@ Datum Datum::createDatetime(const bdlt::Datetime&  value,
         result = createExtendedDataObject(e_EXTENDED_INTERNAL_DATETIME_ALLOC,
                                           mem);
     }
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type = e_INTERNAL_DATETIME;
     new (result.theInlineStorage()) bdlt::Datetime(value);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
-
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3301,7 +3465,6 @@ Datum Datum::createDatetimeInterval(
     (void)basicAllocator;
 
     Datum result;
-
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     const int                usValue = value.microseconds();
     const bsls::Types::Int64 msValue = value.totalMilliseconds();
@@ -3318,11 +3481,11 @@ Datum Datum::createDatetimeInterval(
                                 e_EXTENDED_INTERNAL_DATETIME_INTERVAL_ALLOC,
                                 mem);
     }
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
         result.d_as.d_type = e_INTERNAL_DATETIME_INTERVAL;
         result.d_as.d_int32 = value.days();
         result.d_as.d_int64 = value.fractionalDayInMicroseconds();
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3330,7 +3493,6 @@ inline
 Datum Datum::createDouble(double value)
 {
     Datum result;
-
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!(value == value))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -3338,10 +3500,10 @@ Datum Datum::createDouble(double value)
     } else {
         result.d_double = value;
     }
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type   = e_INTERNAL_DOUBLE;
     result.d_as.d_double = value;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3350,25 +3512,23 @@ Datum Datum::createError(int code)
 {
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return createExtendedDataObject(e_EXTENDED_INTERNAL_ERROR, code);
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return createDatum(e_INTERNAL_ERROR, code);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
 Datum Datum::createInteger(int value)
 {
     Datum result;
-
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     result.d_exp.d_value = (k_DOUBLE_MASK | e_INTERNAL_INTEGER)
                             << k_TYPE_MASK_BITS;
     result.d_as.d_int    = value;
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type   = e_INTERNAL_INTEGER;
     result.d_as.d_int32  = value;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
-
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3379,7 +3539,6 @@ Datum Datum::createInteger64(bsls::Types::Int64  value,
     BSLS_ASSERT(basicAllocator);
 
     Datum result;
-
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     if (Datum_Helpers32::storeSmallInt64(value,
                                          &result.d_as.d_short,
@@ -3390,13 +3549,12 @@ Datum Datum::createInteger64(bsls::Types::Int64  value,
         result = createExtendedDataObject(e_EXTENDED_INTERNAL_INTEGER64_ALLOC,
                                           mem);
     }
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     (void)basicAllocator;
 
     result.d_as.d_type  = e_INTERNAL_INTEGER64;
     result.d_as.d_int64 = value;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
-
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3410,10 +3568,9 @@ Datum Datum::createNull()
 
     result.d_as.d_exponent = k_DOUBLE_MASK | Datum::e_INTERNAL_EXTENDED;
     result.d_as.d_ushort   = e_EXTENDED_INTERNAL_NIL;
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type     = e_INTERNAL_NIL;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
-
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3424,7 +3581,6 @@ Datum Datum::createStringRef(const char       *string,
 {
     BSLS_ASSERT(string || 0 == length);
     BSLS_ASSERT(basicAllocator);
-
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     // If the length will fit in the 'k_SHORT_OFFSET' area, store everything
@@ -3443,7 +3599,7 @@ Datum Datum::createStringRef(const char       *string,
     Datum_Helpers::store<SizeType>    (mem, sizeof(string), length);
 
     return createExtendedDataObject(e_EXTENDED_INTERNAL_SREF_ALLOC, mem);
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     (void)basicAllocator;
 
     BSLS_ASSERT(length <= bsl::numeric_limits<unsigned int>::max());
@@ -3453,7 +3609,7 @@ Datum Datum::createStringRef(const char       *string,
     result.d_as.d_int32 = static_cast<int>(length);
     result.d_as.d_ptr   = const_cast<char*>(string);
     return result;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3488,10 +3644,10 @@ Datum Datum::createTime(const bdlt::Time& value)
                                                 &result.d_as.d_short,
                                                 &result.d_as.d_int);
     BSLS_ASSERT(rc);  (void)rc;
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type = e_INTERNAL_TIME;
     new (result.theInlineStorage()) bdlt::Time(value);
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3505,11 +3661,11 @@ Datum Datum::createUdt(void *data, int type)
     result.d_as.d_exponent = k_DOUBLE_MASK | e_INTERNAL_USERDEFINED;
     result.d_as.d_ushort = static_cast<unsigned short>(type);
     result.d_as.d_cvp = data;
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type  = e_INTERNAL_USERDEFINED;
     result.d_as.d_int32 = type;
     result.d_as.d_ptr   = data;
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3521,15 +3677,13 @@ Datum Datum::adoptArray(const DatumMutableArrayRef& array)
     // contiguously allocated block (see 'DatumMutableArrayRef').
 
     Datum result;
-
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     result.d_as.d_exponent = k_DOUBLE_MASK | e_INTERNAL_ARRAY;
     result.d_as.d_cvp = array.length();
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     result.d_as.d_type = e_INTERNAL_ARRAY;
     result.d_as.d_ptr  = array.length();
-#endif  // BSLS_PLATFORM_CPU_32_BIT
-
+#endif  // end - 64 bit
     return result;
 }
 
@@ -3542,9 +3696,9 @@ Datum Datum::adoptMap(const DatumMutableMapRef& map)
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return createExtendedDataObject(e_EXTENDED_INTERNAL_MAP, map.size());
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return createDatum(e_INTERNAL_MAP, map.size());
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3556,9 +3710,9 @@ Datum Datum::adoptIntMap(const DatumMutableIntMapRef& map)
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return createExtendedDataObject(e_EXTENDED_INTERNAL_INT_MAP, map.size());
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return createDatum(e_INTERNAL_INT_MAP, map.size());
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3571,9 +3725,9 @@ Datum Datum::adoptMap(const DatumMutableMapOwningKeysRef& map)
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return createExtendedDataObject(e_EXTENDED_INTERNAL_OWNED_MAP,
                                     map.size());
-#else   // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return createDatum(e_INTERNAL_OWNED_MAP, map.size());
-#endif  // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3693,19 +3847,19 @@ bool Datum::isExternalReference() const
       default:
           break;
     }
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     switch (internalType()) {
       case e_INTERNAL_STRING_REFERENCE:
       case e_INTERNAL_ARRAY_REFERENCE:
       case e_INTERNAL_USERDEFINED:
         return true;                                                  // RETURN
       case e_INTERNAL_UNINITIALIZED:
-        BSLS_ASSERT(!"Uninitialized Datum!!");
+        BSLS_ASSERT(0 == "Uninitialized Datum");
         break;
       default:
         break;
     }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     return false;
 }
 
@@ -3771,7 +3925,7 @@ DatumArrayRef Datum::theArray() const
     if (e_INTERNAL_EXTENDED == type) {
         return theLongArrayReference();                               // RETURN
     }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif // end - 32 bit
 
     return theArrayReference();
 }
@@ -3784,7 +3938,7 @@ DatumBinaryRef Datum::theBinary() const
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return DatumBinaryRef(static_cast<const double *>(d_as.d_cvp) + 1,// RETURN
                           *static_cast<const SizeType *>(d_as.d_cvp));
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     const InternalDataType type = internalType();
     switch(type) {
       case e_INTERNAL_BINARY:
@@ -3793,10 +3947,10 @@ DatumBinaryRef Datum::theBinary() const
       case e_INTERNAL_BINARY_ALLOC:
         return DatumBinaryRef(d_as.d_ptr, d_as.d_int32);              // RETURN
       default:
-        BSLS_ASSERT(!"NOT A BINARY");
+        BSLS_ASSERT(0 == "Bad binary internal-type (memory corruption?)");
     }
     return DatumBinaryRef();
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3806,9 +3960,9 @@ bool Datum::theBoolean() const
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return static_cast<bool>(d_as.d_int);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return d_as.d_int32;
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3818,9 +3972,9 @@ bdlt::Date Datum::theDate() const
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return *reinterpret_cast<const bdlt::Date *>(&d_as.d_int);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return *reinterpret_cast<const bdlt::Date *>(theInlineStorage());
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3844,9 +3998,9 @@ bdlt::Datetime Datum::theDatetime() const
     BSLS_ASSERT_SAFE(
             extendedInternalType() == e_EXTENDED_INTERNAL_DATETIME_ALLOC);
     return *static_cast<const bdlt::Datetime*>(d_as.d_cvp);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return *reinterpret_cast<const bdlt::Datetime *>(theInlineStorage());
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline // BDLD_DATUM_FORCE_INLINE
@@ -3868,14 +4022,14 @@ bdlt::DatetimeInterval Datum::theDatetimeInterval() const
     BSLS_ASSERT_SAFE(
         extendedInternalType() == e_EXTENDED_INTERNAL_DATETIME_INTERVAL_ALLOC);
     return *static_cast<const bdlt::DatetimeInterval *>(d_as.d_cvp);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return bdlt::DatetimeInterval(d_as.d_int32,   // days
                                   0,              // hours
                                   0,              // minutes
                                   0,              // seconds
                                   0,              // milliseconds
                                   d_as.d_int64);  // microseconds
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3892,9 +4046,9 @@ double Datum::theDouble() const
     }
     BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
     return bsl::numeric_limits<double>::quiet_NaN();                  // RETURN
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return d_as.d_double;
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3912,13 +4066,13 @@ DatumError Datum::theError() const
     }
 
     const char *data = static_cast<const char *>(d_as.d_cvp);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     if (e_INTERNAL_ERROR == internalType()) {
         return DatumError(static_cast<int>(d_as.d_int64));            // RETURN
     }
 
     const char *data = reinterpret_cast<const char*>(d_as.d_ptr);
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
     return DatumError(
         Datum_Helpers::load<int>(data, 0),
@@ -3933,9 +4087,9 @@ int Datum::theInteger() const
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return d_as.d_int;
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return d_as.d_int32;
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3953,9 +4107,9 @@ bsls::Types::Int64 Datum::theInteger64() const
     BSLS_ASSERT_SAFE(
             e_EXTENDED_INTERNAL_INTEGER64_ALLOC == extendedInternalType());
     return theLargeInteger64();                                       // RETURN
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return d_as.d_int64;
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -3965,9 +4119,9 @@ DatumMapRef Datum::theMap() const
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     const DatumMapEntry *map = static_cast<const DatumMapEntry *>(d_as.d_cvp);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     const DatumMapEntry *map = static_cast<const DatumMapEntry *>(d_as.d_ptr);
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
     if (map) {
         // Map header takes first DatumMapEntry
@@ -3990,10 +4144,10 @@ DatumIntMapRef Datum::theIntMap() const
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     const DatumIntMapEntry *map =
                              static_cast<const DatumIntMapEntry *>(d_as.d_cvp);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     const DatumIntMapEntry *map =
                              static_cast<const DatumIntMapEntry *>(d_as.d_ptr);
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 
     if (map) {
         // Map header takes first DatumMapEntry
@@ -4025,12 +4179,12 @@ bslstl::StringRef Datum::theString() const
         return theLongestShortString();                               // RETURN
       default:
         return theLongStringReference();                              // RETURN
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
       default: {
-        BSLS_ASSERT(false);
+        BSLS_ASSERT(0 == "Bad string internal-type (memory corruption?)");
         return bslstl::StringRef();                                   // RETURN
       }
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
     }
 }
 
@@ -4044,9 +4198,9 @@ bdlt::Time Datum::theTime() const
     bsls::Types::Int64 rawTime;
     rawTime = Datum_Helpers32::loadInt48(d_as.d_short, d_as.d_int);
     return *reinterpret_cast<bdlt::Time*>(&rawTime);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return *reinterpret_cast<const bdlt::Time *>(theInlineStorage());
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -4055,9 +4209,9 @@ DatumUdt Datum::theUdt() const
     BSLS_ASSERT_SAFE(isUdt());
 #ifdef BSLS_PLATFORM_CPU_32_BIT
     return DatumUdt(const_cast<void*>(d_as.d_cvp), d_as.d_ushort);
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     return DatumUdt(d_as.d_ptr, d_as.d_int32);
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
 inline
@@ -4089,7 +4243,7 @@ Datum::DataType Datum::type() const
         return typeFromExtendedInternalType();                        // RETURN
     }
     return convert[type];
-#else  // BSLS_PLATFORM_CPU_32_BIT
+#else   // end - 32 bit / begin - 64 bit
     static const DataType convert[] = {
         e_ERROR                            // e_INTERNAL_UNINITIALIZED; invalid
       , e_DOUBLE                           // e_INTERNAL_INF               = 1
@@ -4123,13 +4277,13 @@ Datum::DataType Datum::type() const
     BSLS_ASSERT_SAFE(e_INTERNAL_UNINITIALIZED != type);
 
     return convert[type];
-#endif // BSLS_PLATFORM_CPU_32_BIT
+#endif  // end - 64 bit
 }
 
-#ifdef BSLS_PLATFORM_CPU_32_BIT
 template <class t_VISITOR>
 void Datum::apply(t_VISITOR& visitor) const
 {
+#ifdef BSLS_PLATFORM_CPU_32_BIT
     switch (internalType()) {
       case e_INTERNAL_INF:
         visitor(bsl::numeric_limits<double>::infinity());
@@ -4232,22 +4386,17 @@ void Datum::apply(t_VISITOR& visitor) const
             visitor(bslmf::Nil());
             break;
           default:
-            BSLS_ASSERT_SAFE(!"UNKNOWN TYPE");
+            BSLS_ASSERT_SAFE(
+                            0 == "Unknown extended-type (memory corruption?)");
         }
         break;
       case e_INTERNAL_DOUBLE:
         visitor(d_double);
         break;
       default:
-        BSLS_ASSERT_SAFE(!"Unknown type!!");
+        BSLS_ASSERT_SAFE(0 == "Unknown type (memory corruption?)");
     }
-}
-
-#else  // BSLS_PLATFORM_CPU_32_BIT
-
-template <class t_VISITOR>
-void Datum::apply(t_VISITOR& visitor) const
-{
+#else   // end - 32 bit / begin - 64 bit
     switch (internalType()) {
       case e_INTERNAL_INF:
         visitor(bsl::numeric_limits<double>::infinity());
@@ -4330,13 +4479,13 @@ void Datum::apply(t_VISITOR& visitor) const
           visitor(theIntMap());
           break;
       case e_INTERNAL_UNINITIALIZED:
-        BSLS_ASSERT(!"Uninitialized Datum!!");
+        BSLS_ASSERT(0 == "Uninitialized Datum");
         break;
       default:
-        BSLS_ASSERT_SAFE(!"Unknown type!!");
+        BSLS_ASSERT_SAFE(0 == "Unknown type (memory corruption?)");
     }
+#endif // end - 64 bit
 }
-#endif // BSLS_PLATFORM_CPU_32_BIT
 
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
 inline
@@ -4362,7 +4511,7 @@ void Datum::disposeUninitializedMapOwningKeys(
 {
     return disposeUninitializedMap(mapping, basicAllocator);
 }
-#endif
+#endif  // end - do not omit internal deprecated
 
                          // -------------------
                          // class DatumArrayRef
@@ -4387,22 +4536,110 @@ DatumArrayRef::DatumArrayRef(const Datum *data,
 
 // ACCESSORS
 inline
-const Datum& DatumArrayRef::operator[](SizeType index) const
+DatumArrayRef::const_reference DatumArrayRef::operator[](SizeType index) const
 {
     BSLS_ASSERT_SAFE(index < d_length);
     return d_data_p[index];
 }
 
 inline
-const Datum *DatumArrayRef::data() const
+DatumArrayRef::pointer
+DatumArrayRef::data() const BSLS_KEYWORD_NOEXCEPT
 {
     return d_data_p;
 }
 
 inline
-DatumArrayRef::SizeType DatumArrayRef::length() const
+DatumArrayRef::size_type
+DatumArrayRef::length() const
 {
     return d_length;
+}
+
+inline
+DatumArrayRef::size_type
+DatumArrayRef::size() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_length;
+}
+
+inline
+DatumArrayRef::const_iterator
+DatumArrayRef::begin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p;
+}
+
+inline
+DatumArrayRef::const_iterator
+DatumArrayRef::cbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p;
+}
+
+inline
+DatumArrayRef::const_reverse_iterator
+DatumArrayRef::rbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(end());
+}
+
+inline
+DatumArrayRef::const_reverse_iterator
+DatumArrayRef::crbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(cend());
+}
+
+inline
+DatumArrayRef::const_iterator
+DatumArrayRef::end() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p + d_length;
+}
+
+inline
+DatumArrayRef::const_iterator
+DatumArrayRef::cend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return end();
+}
+
+inline
+DatumArrayRef::const_reverse_iterator
+DatumArrayRef::rend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(begin());
+}
+
+inline
+DatumArrayRef::const_reverse_iterator
+DatumArrayRef::crend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(cbegin());
+}
+
+
+inline
+DatumArrayRef::const_reference
+DatumArrayRef::front() const
+{
+    BSLS_ASSERT(!empty());
+    return *begin();
+}
+
+inline
+DatumArrayRef::const_reference
+DatumArrayRef::back()  const
+{
+    BSLS_ASSERT(!empty());
+    return *(end() - 1);
+}
+
+inline
+bool DatumArrayRef::empty() const BSLS_KEYWORD_NOEXCEPT
+{
+    return 0 == d_length;
 }
 
                           // ----------------------
@@ -4472,21 +4709,102 @@ const DatumIntMapEntry& DatumIntMapRef::operator[](SizeType index) const
 }
 
 inline
-const DatumIntMapEntry *DatumIntMapRef::data() const
+DatumIntMapRef::pointer
+DatumIntMapRef::data() const BSLS_KEYWORD_NOEXCEPT
 {
     return d_data_p;
+}
+
+inline
+DatumIntMapRef::size_type DatumIntMapRef::size() const
+BSLS_KEYWORD_NOEXCEPT
+{
+    return d_size;
+}
+
+inline
+DatumIntMapRef::const_iterator
+DatumIntMapRef::begin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p;
+}
+
+inline
+DatumIntMapRef::const_iterator
+DatumIntMapRef::cbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p;
+}
+
+inline
+DatumIntMapRef::const_reverse_iterator
+DatumIntMapRef::rbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(end());
+}
+
+inline
+DatumIntMapRef::const_reverse_iterator
+DatumIntMapRef::crbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(cend());
+}
+
+inline
+DatumIntMapRef::const_iterator
+DatumIntMapRef::end() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p + d_size;
+}
+
+inline
+DatumIntMapRef::const_iterator
+DatumIntMapRef::cend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return end();
+}
+
+inline
+DatumIntMapRef::const_reverse_iterator
+DatumIntMapRef::rend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(begin());
+}
+
+inline
+DatumIntMapRef::const_reverse_iterator
+DatumIntMapRef::crend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(cbegin());
+}
+
+
+inline
+DatumIntMapRef::const_reference
+DatumIntMapRef::front() const
+{
+    BSLS_ASSERT(!empty());
+    return *begin();
+}
+
+inline
+DatumIntMapRef::const_reference
+DatumIntMapRef::back()  const
+{
+    BSLS_ASSERT(!empty());
+    return *(end() - 1);
+}
+
+inline
+bool DatumIntMapRef::empty() const BSLS_KEYWORD_NOEXCEPT
+{
+    return 0 == d_size;
 }
 
 inline
 bool DatumIntMapRef::isSorted() const
 {
     return d_sorted;
-}
-
-inline
-DatumIntMapRef::SizeType DatumIntMapRef::size() const
-{
-    return d_size;
 }
 
                             // -------------------
@@ -4554,16 +4872,103 @@ DatumMapRef::DatumMapRef(const DatumMapEntry *data,
 
 // ACCESSORS
 inline
-const DatumMapEntry& DatumMapRef::operator[](SizeType index) const
+DatumMapRef::const_reference DatumMapRef::operator[](SizeType index) const
 {
     BSLS_ASSERT_SAFE(index < d_size);
     return d_data_p[index];
 }
 
 inline
-const DatumMapEntry *DatumMapRef::data() const
+DatumMapRef::pointer
+DatumMapRef::data() const BSLS_KEYWORD_NOEXCEPT
 {
     return d_data_p;
+}
+
+inline
+DatumMapRef::size_type DatumMapRef::size() const
+BSLS_KEYWORD_NOEXCEPT
+{
+    return d_size;
+}
+
+inline
+DatumMapRef::const_iterator
+DatumMapRef::begin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p;
+}
+
+inline
+DatumMapRef::const_iterator
+DatumMapRef::cbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p;
+}
+
+inline
+DatumMapRef::const_reverse_iterator
+DatumMapRef::rbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(end());
+}
+
+inline
+DatumMapRef::const_reverse_iterator
+DatumMapRef::crbegin() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(cend());
+}
+
+inline
+DatumMapRef::const_iterator
+DatumMapRef::end() const BSLS_KEYWORD_NOEXCEPT
+{
+    return d_data_p + d_size;
+}
+
+inline
+DatumMapRef::const_iterator
+DatumMapRef::cend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return end();
+}
+
+inline
+DatumMapRef::const_reverse_iterator
+DatumMapRef::rend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(begin());
+}
+
+inline
+DatumMapRef::const_reverse_iterator
+DatumMapRef::crend() const BSLS_KEYWORD_NOEXCEPT
+{
+    return const_reverse_iterator(cbegin());
+}
+
+
+inline
+DatumMapRef::const_reference
+DatumMapRef::front() const
+{
+    BSLS_ASSERT(!empty());
+    return *begin();
+}
+
+inline
+DatumMapRef::const_reference
+DatumMapRef::back()  const
+{
+    BSLS_ASSERT(!empty());
+    return *(end() - 1);
+}
+
+inline
+bool DatumMapRef::empty() const BSLS_KEYWORD_NOEXCEPT
+{
+    return 0 == d_size;
 }
 
 inline
@@ -4576,12 +4981,6 @@ inline
 bool DatumMapRef::ownsKeys() const
 {
     return d_ownsKeys;
-}
-
-inline
-DatumMapRef::SizeType DatumMapRef::size() const
-{
-    return d_size;
 }
 
                          // --------------------------
@@ -4753,7 +5152,6 @@ bool *DatumMutableMapOwningKeysRef::sorted() const
     return d_sorted_p;
 }
 
-
 }  // close package namespace
 
 // FREE OPERATORS
@@ -4886,9 +5284,9 @@ void bdld::hashAppend(t_HASH_ALGORITHM& hashAlg, const bdld::Datum& input)
           // '<bdldfp_decimal.h>' is included after this header.  See the test
           // driver for more information.
           typedef bdldfp::Decimal64 (Datum::*Dec64MemFunPtr)() const;
-          const typename Datum_MakeDependent<
-                   Dec64MemFunPtr,
-                   t_HASH_ALGORITHM>::type dec64MemFunPtr = &Datum::theDecimal64;
+          const typename Datum_MakeDependent<Dec64MemFunPtr,
+                                             t_HASH_ALGORITHM>::type
+                                         dec64MemFunPtr = &Datum::theDecimal64;
           hashAppend(hashAlg, (input.*dec64MemFunPtr)());
         } break;
         case bdld::Datum::e_INT_MAP: {
@@ -4899,7 +5297,7 @@ void bdld::hashAppend(t_HASH_ALGORITHM& hashAlg, const bdld::Datum& input)
             }
         } break;
         default: {
-            BSLS_ASSERT(!"unknown 'bdld::Datum' type");
+            BSLS_ASSERT(0 == "Unknown type (memory corruption?)");
         }
     }
 }

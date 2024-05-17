@@ -240,7 +240,7 @@ int BerUtil_IdentifierImpUtil::putIdentifierOctets(
     // Put all octets except the last one.
 
     int shift = (numOctetsRequired - 1) * k_NUM_VALUE_BITS_IN_TAG_OCTET;
-    unsigned int mask = k_SEVEN_BITS_MASK << shift;
+    unsigned int mask = static_cast<unsigned>(k_SEVEN_BITS_MASK) << shift;
 
     for (int i = 0; i < numOctetsRequired - 1; ++i) {
         unsigned char nextOctet = static_cast<unsigned char>(
@@ -1460,7 +1460,7 @@ int BerUtil_DateImpUtil::getDateValue(bdlt::Date     *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -1495,7 +1495,7 @@ int BerUtil_DateImpUtil::putDateValue(bsl::streambuf          *streamBuf,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -1534,7 +1534,7 @@ int BerUtil_DateImpUtil::getDateTzValue(bdlt::DateTz   *value,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -1574,7 +1574,7 @@ int BerUtil_DateImpUtil::putDateTzValue(bsl::streambuf          *streamBuf,
       } break;
     }
 
-    BSLS_ASSERT_OPT(!"Reachable");
+    BSLS_ASSERT_OPT(0 == "Unreachable");
 #if BSLA_UNREACHABLE_IS_ACTIVE
     BSLA_UNREACHABLE;
 #else
@@ -2001,6 +2001,11 @@ int BerUtil_DatetimeImpUtil::getExtendedBinaryDatetimeValue(
     bdlt::ProlepticDateImpUtil::serialToYmd(
         &year, &month, &day, daysSince0001Jan01);
 
+    // Make sure that the date actually exists before trying to create it
+    if (!bdlt::SerialDateImpUtil::isValidYearMonthDay(year, month, day)) {
+        return -1;                                                    // RETURN
+    }
+
     const bdlt::Date date(year, month, day);
 
     bsls::Types::Int64 microsecondsSinceMidnight;
@@ -2201,6 +2206,11 @@ int BerUtil_DatetimeImpUtil::getExtendedBinaryDatetimeTzValue(
     int day;
     bdlt::ProlepticDateImpUtil::serialToYmd(
         &year, &month, &day, daysSince0001Jan01);
+
+    // Make sure that Date think it's actually valid before trying to create it
+    if (!bdlt::SerialDateImpUtil::isValidYearMonthDay(year, month, day)) {
+        return -1;                                                    // RETURN
+    }
 
     const bdlt::Date date(year, month, day);
 
