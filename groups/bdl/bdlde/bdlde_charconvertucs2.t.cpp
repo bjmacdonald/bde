@@ -1,12 +1,4 @@
 // bdlde_charconvertucs2.t.cpp                                        -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlde_charconvertucs2.h>
 
 #include <bslalg_constructorproxy.h>
@@ -26,7 +18,7 @@
 #include <bsl_iostream.h>
 
 using namespace BloombergLP;
-using namespace bsl;  // automatically added by script
+using namespace bsl;
 
 //=============================================================================
 //                                TEST PLAN
@@ -2848,13 +2840,14 @@ int runPlainTextPerformanceTest(void)
 struct TestDriver
 {
     // TEST CASES
+
+    /// Test `ucs-2 -> utf-8` conversion.
     template <class STRING>
     static void testCase4();
-        // Test 'ucs-2 -> utf-8' conversion.
 
+    /// Test `utf-8 -> ucs-2` conversion.
     template <class VECTOR>
     static void testCase3();
-        // Test 'utf-8 -> ucs-2' conversion.
 };
 
 template <class STRING>

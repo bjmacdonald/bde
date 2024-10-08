@@ -1,16 +1,9 @@
 // bdlb_nullableallocatedvalue.t.cpp                                  -*-C++-*-
 
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bsls_platform.h>
 
-// the following suppresses warnings from '#include' inlined functions
-#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+// the following suppresses warnings from `#include` inlined functions
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
@@ -35,9 +28,9 @@
 #include <bslx_testinstream.h>
 #include <bslx_testoutstream.h>
 
-#include <bsl_algorithm.h>  // 'swap'
+#include <bsl_algorithm.h>  // `swap`
 #include <bsl_climits.h>
-#include <bsl_cstdlib.h>    // 'atoi', 'abs'
+#include <bsl_cstdlib.h>    // `atoi`, `abs`
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
@@ -253,22 +246,23 @@ BSLMF_ASSERT(true == bdlb::HasPrintMethod<NullableString>::value);
 // The following snippets of code illustrate use of this component.
 //
 // Suppose we want to create a linked list of nodes that contain integers:
-//..
+// ```
     struct LinkedListNode {
         int                                          d_value;
         bdlb::NullableAllocatedValue<LinkedListNode> d_next;
     };
-//..
-// Note that 'bdlb::NullableValue<LinkedListNode>' cannot be used for 'd_next'
-// because 'bdlb::NullableValue' requires that the template parameter 'TYPE' be
+// ```
+// Note that `bdlb::NullableValue<LinkedListNode>` cannot be used for `d_next`
+// because `bdlb::NullableValue` requires that the template parameter `TYPE` be
 // a complete type when the class is instantiated.
 //
 // We can now traverse a linked list and add a new value at the end using the
 // following code:
-//..
+// ```
+
+    /// Add the specified `value` to the end of the list that contains the
+    /// specified `node`.
     void addValueAtEnd(LinkedListNode *node, int value)
-        // Add the specified 'value' to the end of the list that contains the
-        // specified 'node'.
     {
         while (!node->d_next.isNull()) {
             node = &node->d_next.value();
@@ -278,14 +272,14 @@ BSLMF_ASSERT(true == bdlb::HasPrintMethod<NullableString>::value);
         node = &node->d_next.value();
         node->d_value = value;
     }
-//..
+// ```
 
 //=============================================================================
 //              GLOBAL HELPER FUNCTIONS AND CLASSES FOR TESTING
 //-----------------------------------------------------------------------------
 
+/// `SwappableSmall`, used for testing `swap`, does not take an allocator.
 class SwappableSmall {
-    // 'SwappableSmall', used for testing 'swap', does not take an allocator.
   public:
     typedef int DataType;
     BSLMF_NESTED_TRAIT_DECLARATION(SwappableSmall, bslmf::IsBitwiseMoveable);
@@ -293,10 +287,10 @@ class SwappableSmall {
   private:
 
     // CLASS DATA
-    static bool s_swapCalledFlag;     // 'true' if 'swap' free function called
-                                      // since last reset; 'false' otherwise
+    static bool s_swapCalledFlag;     // `true` if `swap` free function called
+                                      // since last reset; `false` otherwise
 
-    static int  s_numObjectsCreated;  // number of 'Swappable' objects created
+    static int  s_numObjectsCreated;  // number of `Swappable` objects created
                                       // since last reset
 
     // DATA
@@ -307,41 +301,44 @@ class SwappableSmall {
 
   private:
     // NOT IMPLEMENTED
+
+    /// Not implemented.
     void swap(SwappableSmall&);
-        // Not implemented.
 
   public:
     // CLASS METHODS
+
+    /// Return the number of objects created since the last call to `reset`.
     static int numObjectsCreated()
-        // Return the number of objects created since the last call to 'reset'.
     {
         return s_numObjectsCreated;
     }
 
+    /// Reset the counters to zero.
     static void reset()
-        // Reset the counters to zero.
     {
         s_swapCalledFlag    = false;
         s_numObjectsCreated = 0;
     }
 
+    /// Return `true` if `swap` has been called since the last call to
+    /// `reset`, and `false` otherwise.
     static bool swapCalled()
-        // Return 'true' if 'swap' has been called since the last call to
-        // 'reset', and 'false' otherwise.
     {
         return s_swapCalledFlag;
     }
 
     // CREATORS
+
+    /// Construct an object with the specified `v`
     explicit SwappableSmall(DataType v)
-        // Construct an object with the specified 'v'
     : d_value(v)
     {
         ++SwappableSmall::s_numObjectsCreated;
     }
 
+    /// Construct an object with the specified `original`
     SwappableSmall(const SwappableSmall& original)
-        // Construct an object with the specified 'original'
     : d_value(original.d_value)
     {
         ++SwappableSmall::s_numObjectsCreated;
@@ -349,30 +346,33 @@ class SwappableSmall {
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_DEFAULTED_FUNCTIONS
     // MANIPULATORS
+
+    /// Assign to this object the value of the specified `rhs`, and return
+    /// a reference providing modifiable access to this object.
     SwappableSmall& operator=(const SwappableSmall& rhs) = default;
-        // Assign to this object the value of the specified 'rhs', and return
-        // a reference providing modifiable access to this object.
 #endif
 
     // ACCESSORS
+
+    /// Return the value held by this object
     DataType value() const
-        // Return the value held by this object
     {
         return d_value;
     }
 };
 
 // FREE OPERATORS
+
+/// Return `true` if the specified `lhs` and `rhs` contain the same value,
+/// and `false` otherwise.
 bool operator==(const SwappableSmall& lhs, const SwappableSmall& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' contain the same value,
-    // and 'false' otherwise.
 {
     return lhs.value() == rhs.value();
 }
 
+/// Return `true` if the specified `lhs` and `rhs` do not contain the same
+/// value, and `false` otherwise.
 bool operator!=(const SwappableSmall& lhs, const SwappableSmall& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' do not contain the same
-    // value, and 'false' otherwise.
 {
     return !(lhs == rhs);
 }
@@ -381,18 +381,18 @@ bool operator!=(const SwappableSmall& lhs, const SwappableSmall& rhs)
 bool SwappableSmall::s_swapCalledFlag    = false;
 int  SwappableSmall::s_numObjectsCreated = 0;
 
+/// Swap the values of the specified `a` and `b`.
 void swap(SwappableSmall& a, SwappableSmall& b)
-    // Swap the values of the specified 'a' and 'b'.
 {
     SwappableSmall::s_swapCalledFlag = true;
 
     bslalg::SwapUtil::swap(&a.d_value, &b.d_value);
 }
 
+/// `SwappableLarge`, used for testing `swap`, does not take an allocator.
+/// This class is large enough so that it does't take advantage of the
+/// small-object optimization in NullableAllocatedValue.
 class SwappableLarge {
-    // 'SwappableLarge', used for testing 'swap', does not take an allocator.
-    // This class is large enough so that it does't take advantage of the
-    // small-object optimization in NullableAllocatedValue.
   public:
     typedef bsl::pair<uintptr_t, uintptr_t> DataType;
     BSLMF_NESTED_TRAIT_DECLARATION(SwappableLarge, bslmf::IsBitwiseMoveable);
@@ -400,10 +400,10 @@ class SwappableLarge {
   private:
 
     // CLASS DATA
-    static bool s_swapCalledFlag;     // 'true' if 'swap' free function called
-                                      // since last reset; 'false' otherwise
+    static bool s_swapCalledFlag;     // `true` if `swap` free function called
+                                      // since last reset; `false` otherwise
 
-    static int  s_numObjectsCreated;  // number of 'Swappable' objects created
+    static int  s_numObjectsCreated;  // number of `Swappable` objects created
                                       // since last reset
 
     // DATA
@@ -414,41 +414,44 @@ class SwappableLarge {
 
   private:
     // NOT IMPLEMENTED
+
+    /// Not implemented.
     void swap(SwappableLarge&);
-        // Not implemented.
 
   public:
     // CLASS METHODS
+
+    /// Return the number of objects created since the last call to `reset`.
     static int numObjectsCreated()
-        // Return the number of objects created since the last call to 'reset'.
     {
         return s_numObjectsCreated;
     }
 
+    /// Reset the counters to zero.
     static void reset()
-        // Reset the counters to zero.
     {
         s_swapCalledFlag    = false;
         s_numObjectsCreated = 0;
     }
 
+    /// Return `true` if `swap` has been called since the last call to
+    /// `reset`, and `false` otherwise.
     static bool swapCalled()
-        // Return 'true' if 'swap' has been called since the last call to
-        // 'reset', and 'false' otherwise.
     {
         return s_swapCalledFlag;
     }
 
     // CREATORS
+
+    /// Construct an object with the specified `v`
     explicit SwappableLarge(DataType v)
-        // Construct an object with the specified 'v'
     : d_value(v)
     {
         ++SwappableLarge::s_numObjectsCreated;
     }
 
+    /// Construct an object with the specified `original`
     SwappableLarge(const SwappableLarge& original)
-        // Construct an object with the specified 'original'
     : d_value(original.d_value)
     {
         ++SwappableLarge::s_numObjectsCreated;
@@ -456,14 +459,16 @@ class SwappableLarge {
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_DEFAULTED_FUNCTIONS
     // MANIPULATORS
+
+    /// Assign to this object the value of the specified `rhs`, and return
+    /// a reference providing modifiable access to this object.
     SwappableLarge& operator=(const SwappableLarge& rhs) = default;
-        // Assign to this object the value of the specified 'rhs', and return
-        // a reference providing modifiable access to this object.
 #endif
 
     // ACCESSORS
+
+    /// Return the value held by this object
     DataType value() const
-        // Return the value held by this object
     {
         return d_value;
     }
@@ -492,14 +497,14 @@ void swap(SwappableLarge& a, SwappableLarge& b)
 }
 
 
+/// `SwappableWithAllocator`, used for testing `swap`, takes an allocator.
 class SwappableWithAllocator {
-    // 'SwappableWithAllocator', used for testing 'swap', takes an allocator.
 
     // CLASS DATA
-    static bool s_swapCalledFlag;     // 'true' if 'swap' free function called
-                                      // since last reset; 'false' otherwise
+    static bool s_swapCalledFlag;     // `true` if `swap` free function called
+                                      // since last reset; `false` otherwise
 
-    static int  s_numObjectsCreated;  // number of 'SwappableWithAllocator'
+    static int  s_numObjectsCreated;  // number of `SwappableWithAllocator`
                                       // objects created since last reset
 
     // DATA
@@ -512,8 +517,9 @@ class SwappableWithAllocator {
 
   private:
     // NOT IMPLEMENTED
+
+    /// Not implemented.
     void swap(SwappableWithAllocator&);
-        // Not implemented.
 
   public:
     // TRAITS
@@ -521,31 +527,33 @@ class SwappableWithAllocator {
                                    bslma::UsesBslmaAllocator);
 
     // CLASS METHODS
+
+    /// Return the number of objects created since the last call to `reset`.
     static int numObjectsCreated()
-        // Return the number of objects created since the last call to 'reset'.
     {
         return s_numObjectsCreated;
     }
 
+    /// Reset the counters to zero.
     static void reset()
-        // Reset the counters to zero.
     {
         s_swapCalledFlag    = false;
         s_numObjectsCreated = 0;
     }
 
+    /// Return `true` if `swap` has been called since the last call to
+    /// `reset`, and `false` otherwise.
     static bool swapCalled()
-        // Return 'true' if 'swap' has been called since the last call to
-        // 'reset', and 'false' otherwise.
     {
         return s_swapCalledFlag;
     }
 
     // CREATORS
+
+    /// Construct an object with the specified `v` and the optionally
+    /// specified `basicAllocator`.
     explicit
     SwappableWithAllocator(int v, bslma::Allocator *basicAllocator = 0)
-        // Construct an object with the specified 'v' and the optionally
-        // specified 'basicAllocator'.
     : d_allocator_p(bslma::Default::allocator(basicAllocator))
     , d_value(v)
     , d_string(bsl::abs(v), 'x', d_allocator_p)
@@ -553,10 +561,10 @@ class SwappableWithAllocator {
         ++SwappableWithAllocator::s_numObjectsCreated;
     }
 
+    /// Construct an object with the specified `original` and the optionally
+    /// specified `basicAllocator`.
     SwappableWithAllocator(const SwappableWithAllocator&  original,
                            bslma::Allocator              *basicAllocator = 0)
-        // Construct an object with the specified 'original' and the optionally
-        // specified 'basicAllocator'.
     : d_allocator_p(bslma::Default::allocator(basicAllocator))
     , d_value(original.d_value)
     , d_string(original.d_string, d_allocator_p)
@@ -564,15 +572,16 @@ class SwappableWithAllocator {
         ++SwappableWithAllocator::s_numObjectsCreated;
     }
 
+    /// Destroy the object.
     ~SwappableWithAllocator()
-        // Destroy the object.
     {
         BSLS_ASSERT_OPT(allocator() == d_string.get_allocator().mechanism());
     }
 
     // MANIPULATORS
+
+    /// Exchange the contents of the object with the specified `rhs`
     SwappableWithAllocator& operator=(const SwappableWithAllocator& rhs)
-        // Exchange the contents of the object with the specified 'rhs'
     {
         d_value  = rhs.d_value;
         d_string = rhs.d_string;
@@ -581,36 +590,37 @@ class SwappableWithAllocator {
     }
 
     // ACCESSORS
+
+    /// Return the pointer used to construct this object
     bslma::Allocator *allocator() const
-        // Return the pointer used to construct this object
     {
         return d_allocator_p;
     }
 
+    /// Return a reference offering non-modifiable access to the string
+    /// managed by this object.
     const bsl::string& string() const
-        // Return a reference offering non-modifiable access to the string
-        // managed by this object.
     {
         return d_string;
     }
 
+    /// Return the value held by this object
     int value() const
-        // Return the value held by this object
     {
         return d_value;
     }
 };
 
+/// Construct an object with default values.
 struct ConstructorThatThrows {
     ConstructorThatThrows()
-        // Construct an object with default values.
     : d_i(1), d_l(2), d_d(3.0)
     {
     }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS)
+    /// Construct an object with the values from the specified `il`.
     explicit ConstructorThatThrows(std::initializer_list<int> il)
-        // Construct an object with the values from the specified 'il'.
     {
         std::initializer_list<int>::const_iterator it = il.begin();
         d_i = *it++;
@@ -618,8 +628,8 @@ struct ConstructorThatThrows {
         d_d = *it++;
     }
 
+    /// Construct an object with the values from the specified `il` and `d`.
     ConstructorThatThrows(std::initializer_list<int> il, double d)
-        // Construct an object with the values from the specified 'il' and 'd'.
     {
         std::initializer_list<int>::const_iterator it = il.begin();
         d_i = *it++;
@@ -628,8 +638,8 @@ struct ConstructorThatThrows {
     }
 #endif
 
+    /// Throw an exception upon construction.
     ConstructorThatThrows(int, long, double)
-        // Throw an exception upon construction.
     {
         throw std::runtime_error("ConstructorThatThrows");
     }
@@ -690,16 +700,18 @@ struct SimpleHash {
     typedef size_t result_type;
 
     // CREATORS
+
+    /// Construct a SimpleHash object
     SimpleHash();
-        // Construct a SimpleHash object
 
     // MANIPULATORS
-    void operator()(const void *input, size_t numBytes);
-        // Add the bytes specified by ['input', 'input' + 'numBytes') to the
-        // hash.
 
+    /// Add the bytes specified by [`input`, `input` + `numBytes`) to the
+    /// hash.
+    void operator()(const void *input, size_t numBytes);
+
+    /// Compute the result of the hash.
     result_type computeHash();
-        // Compute the result of the hash.
 };
 
 SimpleHash::SimpleHash()
@@ -723,14 +735,14 @@ SimpleHash::result_type SimpleHash::computeHash()
     return d_value;
 }
 
+/// Test the swap functionality for an object that does not fit into the
+/// small-object optimization.  Use the specified `verbose`, `veryVerbose`,
+/// `veryVeryVerbose` and `veryVeryVeryVerbose` to control the amount of
+/// information that is output.
 void testSwappableLarge (bool verbose,
                          bool veryVerbose,
                          bool veryVeryVerbose,
                          bool veryVeryVeryVerbose)
-    // Test the swap functionality for an object that does not fit into the
-    // small-object optimization.  Use the specified 'verbose', 'veryVerbose',
-    // 'veryVeryVerbose' and 'veryVeryVeryVerbose' to control the amount of
-    // information that is output.
 {
     typedef SwappableLarge   Swap_t;
     typedef Swap_t::DataType Data_t;
@@ -741,7 +753,7 @@ void testSwappableLarge (bool verbose,
     bslma::TestAllocator         da("default", veryVeryVeryVerbose);
     bslma::DefaultAllocatorGuard dag(&da);
 
-    if (veryVerbose) cout << "\tSanity test 'SwappableLarge' type." << endl;
+    if (veryVerbose) cout << "\tSanity test `SwappableLarge` type." << endl;
     {
         ASSERT(0 == Swap_t::numObjectsCreated());
         ASSERT(!Swap_t::swapCalled());
@@ -781,7 +793,7 @@ void testSwappableLarge (bool verbose,
         ASSERT(X.isNull());
         ASSERT(Y.isNull());
 
-        // member 'swap'
+        // member `swap`
 
         Swap_t::reset();
 
@@ -791,7 +803,7 @@ void testSwappableLarge (bool verbose,
         ASSERT(X.isNull());
         ASSERT(Y.isNull());
 
-        // free 'swap'
+        // free `swap`
 
         Swap_t::reset();
 
@@ -811,7 +823,7 @@ void testSwappableLarge (bool verbose,
 
         const Swap_t VV(Data_t(10, 20));
 
-        // 'swap' member called on non-null object.
+        // `swap` member called on non-null object.
         {
             Obj mX(VV);  const Obj& X = mX;
             Obj mY;      const Obj& Y = mY;
@@ -819,7 +831,7 @@ void testSwappableLarge (bool verbose,
             ASSERT( Y.isNull());
             ASSERT( VV == X.value());
 
-            // member 'swap'
+            // member `swap`
 
             Swap_t::reset();
 
@@ -830,7 +842,7 @@ void testSwappableLarge (bool verbose,
             ASSERT(!Y.isNull());
             ASSERT( VV == Y.value());
 
-            // free 'swap'
+            // free `swap`
 
             Swap_t::reset();
 
@@ -842,7 +854,7 @@ void testSwappableLarge (bool verbose,
             ASSERT( VV == X.value());
         }
 
-        // 'swap' member called on null object.
+        // `swap` member called on null object.
         {
             Obj mX;      const Obj& X = mX;
             Obj mY(VV);  const Obj& Y = mY;
@@ -850,7 +862,7 @@ void testSwappableLarge (bool verbose,
             ASSERT(!Y.isNull());
             ASSERT( VV == Y.value());
 
-            // member 'swap'
+            // member `swap`
 
             Swap_t::reset();
 
@@ -861,7 +873,7 @@ void testSwappableLarge (bool verbose,
             ASSERT( Y.isNull());
             ASSERT( VV == X.value());
 
-            // free 'swap'
+            // free `swap`
 
             Swap_t::reset();
 
@@ -890,7 +902,7 @@ void testSwappableLarge (bool verbose,
         ASSERT( UU == X.value());
         ASSERT( VV == Y.value());
 
-        // member 'swap'
+        // member `swap`
 
         Swap_t::reset();
 
@@ -902,7 +914,7 @@ void testSwappableLarge (bool verbose,
         ASSERT( VV == X.value());
         ASSERT( UU == Y.value());
 
-        // free 'swap'
+        // free `swap`
 
         Swap_t::reset();
 
@@ -916,14 +928,14 @@ void testSwappableLarge (bool verbose,
     }
 }
 
+/// Test the swap functionality for an object that fits into the
+/// small-object optimization.  Use the specified `verbose`, `veryVerbose`,
+/// `veryVeryVerbose` and `veryVeryVeryVerbose` to control the amount of
+/// information that is output.
 void testSwappableSmall (bool verbose,
                          bool veryVerbose,
                          bool veryVeryVerbose,
                          bool veryVeryVeryVerbose)
-    // Test the swap functionality for an object that fits into the
-    // small-object optimization.  Use the specified 'verbose', 'veryVerbose',
-    // 'veryVeryVerbose' and 'veryVeryVeryVerbose' to control the amount of
-    // information that is output.
 {
     typedef SwappableSmall  Swap_t;
     (void) veryVeryVerbose;
@@ -933,7 +945,7 @@ void testSwappableSmall (bool verbose,
     bslma::TestAllocator         da("default", veryVeryVeryVerbose);
     bslma::DefaultAllocatorGuard dag(&da);
 
-    if (veryVerbose) cout << "\tSanity test 'SwappableSmall' type." << endl;
+    if (veryVerbose) cout << "\tSanity test `SwappableSmall` type." << endl;
     {
         ASSERT(0 == Swap_t::numObjectsCreated());
         ASSERT(!Swap_t::swapCalled());
@@ -978,7 +990,7 @@ void testSwappableSmall (bool verbose,
         ASSERT(Y.isNull());
         ASSERT(0 == da.numAllocations());
 
-        // member 'swap'
+        // member `swap`
 
         Swap_t::reset();
 
@@ -989,7 +1001,7 @@ void testSwappableSmall (bool verbose,
         ASSERT(X.isNull());
         ASSERT(Y.isNull());
 
-        // free 'swap'
+        // free `swap`
 
         Swap_t::reset();
 
@@ -1007,11 +1019,11 @@ void testSwappableSmall (bool verbose,
         // other without calling swap for the value type.  For objects that
         // can take advantage of the small-object optimization, this means that
         // a new value is created, and the old value is destroyed; no calls to
-        // 'swap' are made.
+        // `swap` are made.
 
         const Swap_t VV(10);
 
-        // 'swap' member called on non-null object.
+        // `swap` member called on non-null object.
         {
             Obj mX(VV);  const Obj& X = mX;
             Obj mY;      const Obj& Y = mY;
@@ -1020,7 +1032,7 @@ void testSwappableSmall (bool verbose,
             ASSERT( VV == X.value());
             ASSERT(0 == da.numAllocations());
 
-            // member 'swap'
+            // member `swap`
 
             Swap_t::reset();
 
@@ -1032,7 +1044,7 @@ void testSwappableSmall (bool verbose,
             ASSERT(!Y.isNull());
             ASSERT( VV == Y.value());
 
-            // free 'swap'
+            // free `swap`
 
             Swap_t::reset();
 
@@ -1045,7 +1057,7 @@ void testSwappableSmall (bool verbose,
             ASSERT( VV == X.value());
         }
 
-        // 'swap' member called on null object.
+        // `swap` member called on null object.
         {
             Obj mX;      const Obj& X = mX;
             Obj mY(VV);  const Obj& Y = mY;
@@ -1054,7 +1066,7 @@ void testSwappableSmall (bool verbose,
             ASSERT( VV == Y.value());
             ASSERT(0 == da.numAllocations());
 
-            // member 'swap'
+            // member `swap`
 
             Swap_t::reset();
 
@@ -1066,7 +1078,7 @@ void testSwappableSmall (bool verbose,
             ASSERT( Y.isNull());
             ASSERT( VV == X.value());
 
-            // free 'swap'
+            // free `swap`
 
             Swap_t::reset();
 
@@ -1095,7 +1107,7 @@ void testSwappableSmall (bool verbose,
         ASSERT( VV == Y.value());
         ASSERT(0 == da.numAllocations());
 
-        // member 'swap'
+        // member `swap`
 
         Swap_t::reset();
 
@@ -1108,7 +1120,7 @@ void testSwappableSmall (bool verbose,
         ASSERT( VV == X.value());
         ASSERT( UU == Y.value());
 
-        // free 'swap'
+        // free `swap`
 
         Swap_t::reset();
 
@@ -1123,14 +1135,14 @@ void testSwappableSmall (bool verbose,
     }
 }
 
+/// Test the swap functionality for an object that uses an allocator.  Use
+/// the specified `verbose`, `veryVerbose`, `veryVeryVerbose` and
+/// `veryVeryVeryVerbose` to control the amount of information that is
+/// output.
 void testSwappableWithAllocator (bool verbose,
                                  bool veryVerbose,
                                  bool veryVeryVerbose,
                                  bool veryVeryVeryVerbose)
-    // Test the swap functionality for an object that uses an allocator.  Use
-    // the specified 'verbose', 'veryVerbose', 'veryVeryVerbose' and
-    // 'veryVeryVeryVerbose' to control the amount of information that is
-    // output.
 {
     (void) veryVeryVerbose;
 
@@ -1145,7 +1157,7 @@ void testSwappableWithAllocator (bool verbose,
         bslma::TestAllocator scratch("scratch", veryVeryVeryVerbose);
 
         if (veryVerbose) cout
-            << "\tSanity test 'SwappableWithAllocator' type." << endl;
+            << "\tSanity test `SwappableWithAllocator` type." << endl;
         {
             ASSERT(0 == SwappableWithAllocator::numObjectsCreated());
             ASSERT(!SwappableWithAllocator::swapCalled());
@@ -1185,7 +1197,7 @@ void testSwappableWithAllocator (bool verbose,
             ASSERT(X.isNull());
             ASSERT(Y.isNull());
 
-            // member 'swap'
+            // member `swap`
 
             SwappableWithAllocator::reset();
 
@@ -1195,7 +1207,7 @@ void testSwappableWithAllocator (bool verbose,
             ASSERT(X.isNull());
             ASSERT(Y.isNull());
 
-            // free 'swap'
+            // free `swap`
 
             SwappableWithAllocator::reset();
 
@@ -1213,7 +1225,7 @@ void testSwappableWithAllocator (bool verbose,
 
             const SwappableWithAllocator VV(88, &scratch);
 
-            // 'swap' member called on non-null object.
+            // `swap` member called on non-null object.
             {
                 Obj mX(VV, &oa);  const Obj& X = mX;
                 Obj mY(&oa);      const Obj& Y = mY;
@@ -1221,7 +1233,7 @@ void testSwappableWithAllocator (bool verbose,
                 ASSERT( Y.isNull());
                 ASSERT( VV == X.value());
 
-                // member 'swap'
+                // member `swap`
 
                 SwappableWithAllocator::reset();
 
@@ -1232,7 +1244,7 @@ void testSwappableWithAllocator (bool verbose,
                 ASSERT(!Y.isNull());
                 ASSERT( VV == Y.value());
 
-                // free 'swap'
+                // free `swap`
 
                 SwappableWithAllocator::reset();
 
@@ -1244,7 +1256,7 @@ void testSwappableWithAllocator (bool verbose,
                 ASSERT( VV == X.value());
             }
 
-            // 'swap' member called on null object.
+            // `swap` member called on null object.
             {
                 Obj mX(&oa);      const Obj& X = mX;
                 Obj mY(VV, &oa);  const Obj& Y = mY;
@@ -1252,7 +1264,7 @@ void testSwappableWithAllocator (bool verbose,
                 ASSERT(!Y.isNull());
                 ASSERT( VV == Y.value());
 
-                // member 'swap'
+                // member `swap`
 
                 SwappableWithAllocator::reset();
 
@@ -1263,7 +1275,7 @@ void testSwappableWithAllocator (bool verbose,
                 ASSERT( Y.isNull());
                 ASSERT( VV == X.value());
 
-                // free 'swap'
+                // free `swap`
 
                 SwappableWithAllocator::reset();
 
@@ -1290,7 +1302,7 @@ void testSwappableWithAllocator (bool verbose,
             ASSERT( UU == X.value());
             ASSERT( VV == Y.value());
 
-            // member 'swap'
+            // member `swap`
 
             SwappableWithAllocator::reset();
 
@@ -1302,7 +1314,7 @@ void testSwappableWithAllocator (bool verbose,
             ASSERT( VV == X.value());
             ASSERT( UU == Y.value());
 
-            // free 'swap'
+            // free `swap`
 
             SwappableWithAllocator::reset();
 
@@ -1316,7 +1328,7 @@ void testSwappableWithAllocator (bool verbose,
         }
     }
 
-    if (verbose) cout << "Testing free 'swap' w/different allocators."
+    if (verbose) cout << "Testing free `swap` w/different allocators."
                       << endl;
     {
         bslma::TestAllocator da("default",   veryVeryVeryVerbose);
@@ -1338,7 +1350,7 @@ void testSwappableWithAllocator (bool verbose,
             ASSERT(X.isNull());
             ASSERT(Y.isNull());
 
-            // free 'swap'
+            // free `swap`
 
             SwappableWithAllocator::reset();
 
@@ -1364,7 +1376,7 @@ void testSwappableWithAllocator (bool verbose,
                 ASSERT( Y.isNull());
                 ASSERT( VV == X.value());
 
-                // free 'swap'
+                // free `swap`
 
                 SwappableWithAllocator::reset();
 
@@ -1384,7 +1396,7 @@ void testSwappableWithAllocator (bool verbose,
                 ASSERT(!Y.isNull());
                 ASSERT( VV == Y.value());
 
-                // free 'swap'
+                // free `swap`
 
                 SwappableWithAllocator::reset();
 
@@ -1411,7 +1423,7 @@ void testSwappableWithAllocator (bool verbose,
             ASSERT( UU == X.value());
             ASSERT( VV == Y.value());
 
-            // free 'swap'
+            // free `swap`
 
             SwappableWithAllocator::reset();
 
@@ -1426,14 +1438,14 @@ void testSwappableWithAllocator (bool verbose,
     }
 }
 
+/// Test the comparison operators for NullableAllocatedValue<TYPE>.  Uses
+/// the specified `values` as test cases.  Uses the specified `verbose`,
+/// `veryVerbose`, and `veryVeryVerbose` flags to control the output.
 template <class TYPE, size_t SIZE>
 void comparisonTest(bsl::span<TYPE, SIZE> values,
                     bool                  verbose,
                     bool                  veryVerbose,
                     bool                  veryVeryVerbose)
-    // Test the comparison operators for NullableAllocatedValue<TYPE>.  Uses
-    // the specified 'values' as test cases.  Uses the specified 'verbose',
-    // 'veryVerbose', and 'veryVeryVerbose' flags to control the output.
 {
     typedef typename bsl::remove_const<TYPE>::type ValueType;
     typedef bdlb::NullableAllocatedValue<ValueType> Obj;
@@ -1570,14 +1582,14 @@ void comparisonTest(bsl::span<TYPE, SIZE> values,
 }
 
 
+/// Verifies that the hash function for NullableAllocatedValues behaves as
+/// expected.  Uses the specified `verbose`, `veryVerbose`,
+/// `veryVeryVerbose` and `veryVeryVeryVerbose` flags to control the output.
 template <class TEST_TYPE>
 void hashTest(bool,
               bool veryVerbose,
               bool,
               bool veryVeryVeryVerbose)
-    // Verifies that the hash function for NullableAllocatedValues behaves as
-    // expected.  Uses the specified 'verbose', 'veryVerbose',
-    // 'veryVeryVerbose' and 'veryVeryVeryVerbose' flags to control the output.
 {
     typedef bdlb::NullableAllocatedValue<TEST_TYPE> Obj;
 
@@ -1592,7 +1604,7 @@ void hashTest(bool,
 
     if (veryVerbose) {
         cout << "\tVerify hashing null nullable values is equivalent to\n"
-                "\tappending 'false' to the hash.\n";
+                "\tappending `false` to the hash.\n";
     }
     {
         Obj    object(&oa);
@@ -1613,7 +1625,7 @@ void hashTest(bool,
 
     if (veryVerbose) {
         cout << "\tVerify hashing non-null nullable values is equivalent to\n"
-                "\tappending 'true' to the hash followed by the value.\n";
+                "\tappending `true` to the hash followed by the value.\n";
     }
     {
         Obj  object(&oa);
@@ -1654,15 +1666,15 @@ void hashTest(bool,
 }
 
 
+/// Exercises basic functionality, but tests nothing.  Uses the specified
+/// `VA`, `VB`, and `VC` as test values.  Uses the specified `verbose` and
+/// `veryVerbose` flags to control the output.
 template <class TYPE>
 void breathingTest(const TYPE& VA,
                    const TYPE& VB,
                    const TYPE& VC,
                    bool        verbose,
                    bool        veryVerbose)
-    // Exercises basic functionality, but tests nothing.  Uses the specified
-    // 'VA', 'VB', and 'VC' as test values.  Uses the specified 'verbose' and
-    // 'veryVerbose' flags to control the output.
 {
     typedef TYPE                                    ValueType;
     typedef bdlb::NullableAllocatedValue<ValueType> Obj;
@@ -1745,7 +1757,7 @@ void breathingTest(const TYPE& VA,
     ASSERT(0 == (X3 == X4));        ASSERT(1 == (X3 != X4));
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if (verbose) cout << "\n 6. Change x1 using 'reset'."
+    if (verbose) cout << "\n 6. Change x1 using `reset`."
                          "\t\t\t{ x1:U x2:VA x3:VB x4:U }" << endl;
     mX1.reset();
     if (veryVerbose) { cout << '\t'; P(X1); }
@@ -1761,7 +1773,7 @@ void breathingTest(const TYPE& VA,
     ASSERT(1 == (X1 == X4));        ASSERT(0 == (X1 != X4));
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if (verbose) cout << "\n 7. Change x1 ('makeValue', set to VC)."
+    if (verbose) cout << "\n 7. Change x1 (`makeValue`, set to VC)."
                          "\t\t{ x1:VC x2:VA x3:VB x4:U }" << endl;
     mX1.makeValue(VC);
     if (veryVerbose) { cout << '\t'; P(X1); }
@@ -1843,7 +1855,7 @@ int main(int argc, char *argv[])
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
-    // CONCERN: 'BSLS_REVIEW' failures should lead to test failures.
+    // CONCERN: `BSLS_REVIEW` failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
     bslma::TestAllocator  testAllocator(veryVeryVeryVerbose);
@@ -1856,13 +1868,13 @@ int main(int argc, char *argv[])
         //   Extracted from component header file.
         //
         // Concerns:
-        //: 1 The usage example provided in the component header file compiles,
-        //:   links, and runs as shown.
+        // 1. The usage example provided in the component header file compiles,
+        //    links, and runs as shown.
         //
         // Plan:
-        //: 1 Incorporate usage example from header into test driver, remove
-        //:   leading comment characters, and replace 'assert' with 'ASSERT'.
-        //:   (C-1)
+        // 1. Incorporate usage example from header into test driver, remove
+        //    leading comment characters, and replace `assert` with `ASSERT`.
+        //    (C-1)
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -1896,19 +1908,19 @@ int main(int argc, char *argv[])
         // TESTING: HASHING
         //
         // Concerns:
-        //: 1 Hashing a value with a null value is equivalent to appending
-        //:   'false' to the hash.
-        //:
-        //: 2 Hashing a value with a nullable value is equivalent to appending
-        //:   'true' to the hash followed by the value.
+        // 1. Hashing a value with a null value is equivalent to appending
+        //    `false` to the hash.
+        //
+        // 2. Hashing a value with a nullable value is equivalent to appending
+        //    `true` to the hash followed by the value.
         //
         // Plan:
-        //: 1 Create a null nullable value and verify that hashing it yields
-        //:   the same value as hashing 'false'.
-        //:
-        //: 2 Create a non-null nullable value for a series of test values and
-        //:   verify that hashing it produces the same result as hashing 'true'
-        //:   and then the test values themselves.
+        // 1. Create a null nullable value and verify that hashing it yields
+        //    the same value as hashing `false`.
+        //
+        // 2. Create a non-null nullable value for a series of test values and
+        //    verify that hashing it produces the same result as hashing `true`
+        //    and then the test values themselves.
         //
         // Testing:
         //   hashAppend(HASHALG& hashAlg, NullableAllocatedValue<TYPE>& input);
@@ -1926,17 +1938,17 @@ int main(int argc, char *argv[])
       } break;
       case 14: {
         // --------------------------------------------------------------------
-        // DEPRECATED FUNCTIONS BROUGHT OVER FROM 'NullableValue'
+        // DEPRECATED FUNCTIONS BROUGHT OVER FROM `NullableValue`
         //   Extracted from component header file.
         //
         // Concerns:
-        //: 1 The usage example provided in the component header file compiles,
-        //:   links, and runs as shown.
+        // 1. The usage example provided in the component header file compiles,
+        //    links, and runs as shown.
         //
         // Plan:
-        //: 1 Incorporate usage example from header into test driver, remove
-        //:   leading comment characters, and replace 'assert' with 'ASSERT'.
-        //:   (C-1)
+        // 1. Incorporate usage example from header into test driver, remove
+        //    leading comment characters, and replace `assert` with `ASSERT`.
+        //    (C-1)
         //
         // Testing:
         //   const TYPE *addressOr(const TYPE *address) const;
@@ -1946,7 +1958,7 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
 
         if (verbose) cout << endl
-           << "DEPRECATED FUNCTIONS BROUGHT OVER FROM 'NullableValue'" << endl
+           << "DEPRECATED FUNCTIONS BROUGHT OVER FROM `NullableValue`" << endl
            << "======================================================" << endl;
 
         bslma::TestAllocator         da("default",   veryVeryVeryVerbose);
@@ -2026,17 +2038,17 @@ int main(int argc, char *argv[])
       } break;
       case 13: {
         // --------------------------------------------------------------------
-        // TESTING 'emplace'
+        // TESTING `emplace`
         //   Extracted from component header file.
         //
         // Concerns:
-        //: 1 The usage example provided in the component header file compiles,
-        //:   links, and runs as shown.
+        // 1. The usage example provided in the component header file compiles,
+        //    links, and runs as shown.
         //
         // Plan:
-        //: 1 Incorporate usage example from header into test driver, remove
-        //:   leading comment characters, and replace 'assert' with 'ASSERT'.
-        //:   (C-1)
+        // 1. Incorporate usage example from header into test driver, remove
+        //    leading comment characters, and replace `assert` with `ASSERT`.
+        //    (C-1)
         //
         // Testing:
         //   emplace(ARGS args...);
@@ -2044,7 +2056,7 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
 
         if (verbose) cout << endl
-                          << "TESTING 'emplace'" << endl
+                          << "TESTING `emplace`" << endl
                           << "=================" << endl;
 
         bslma::TestAllocator         da("default",   veryVeryVeryVerbose);
@@ -2113,25 +2125,25 @@ int main(int argc, char *argv[])
       } break;
       case 12: {
         // --------------------------------------------------------------------
-        // TESTING 'bsl::optional' COMPARISONS
-        //  Compare a 'bsl::optional' and a 'NullableAllocatedValue', either
+        // TESTING `bsl::optional` COMPARISONS
+        //  Compare a `bsl::optional` and a `NullableAllocatedValue`, either
         //  of which can be empty,
         //
         // Concerns:
-        //: 1 That an empty 'bsl::optional' orders as a non-empty
-        //:   'NullableAllocatedValue'
-        //: o That an empty 'bsl::optional' orders as before a non-empty
-        //:   'NullableAllocatedValue'
-        //: o That an empty 'NullableAllocatedValue' orders as before a
-        //:   non-empty 'bsl::optional'
-        //: o That an non-empty 'NullableAllocatedValue' orders as with a
-        //:   non-empty 'bsl::optional' according to the contained values.
-        //:
-        //: 2 If the compiler supports 'noexcept', then none of the comparisons
-        //:   with 'bsl::nullopt' can throw an exception.
+        // 1. That an empty `bsl::optional` orders as a non-empty
+        //    `NullableAllocatedValue`
+        //  - That an empty `bsl::optional` orders as before a non-empty
+        //    `NullableAllocatedValue`
+        //  - That an empty `NullableAllocatedValue` orders as before a
+        //    non-empty `bsl::optional`
+        //  - That an non-empty `NullableAllocatedValue` orders as with a
+        //    non-empty `bsl::optional` according to the contained values.
+        //
+        // 2. If the compiler supports `noexcept`, then none of the comparisons
+        //    with `bsl::nullopt` can throw an exception.
         //
         // Plan:
-        //: 1  Conduct the regular test using 'int'.
+        // 1.  Conduct the regular test using `int`.
         //
         // Testing:
         //   bool operator==(const NullableAllocatedValue&, const optional&);
@@ -2148,7 +2160,7 @@ int main(int argc, char *argv[])
         //   bool operator> (const optional&, const NullableAllocatedValue&);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING 'bsl::optional' COMPARISONS"
+        if (verbose) cout << "\nTESTING `bsl::optional` COMPARISONS"
                              "\n===================================" << endl;
 
         if (verbose) cout << "\tfor 'NullableAllocatedValue<int>" << endl;
@@ -2264,23 +2276,23 @@ int main(int argc, char *argv[])
       } break;
       case 11: {
         // --------------------------------------------------------------------
-        // TESTING 'bsl::nullopt_t' COMPARISONS
-        //  The type 'bsl::nullopt_t' is not a type suitable for arbitrary
+        // TESTING `bsl::nullopt_t` COMPARISONS
+        //  The type `bsl::nullopt_t` is not a type suitable for arbitrary
         //  user-created objects, but a proxy for conversion from the literal
-        //  value 'bsl::nullopt'.  As such, all testing concerns will be
-        //  phrased in terms of the 'bsl::nullopt' literal, rather than
-        //  'bsl::nullopt_t'.
+        //  value `bsl::nullopt`.  As such, all testing concerns will be
+        //  phrased in terms of the `bsl::nullopt` literal, rather than
+        //  `bsl::nullopt_t`.
         //
         // Concerns:
-        //: 1 That 'bsl::nullopt' orders as a null NullableAllocatedValue
-        //: o 'bsl::nullopt' orders before any non-null 'NullableAllocatedValue
-        //: o 'bsl::nullopt' compares equal to a null NullableAllocatedValue
-        //:
-        //: 2 If the compiler supports 'noexcept', then none of the comparisons
-        //:   with 'bsl::nullopt' can throw an exception.
+        // 1. That `bsl::nullopt` orders as a null NullableAllocatedValue
+        //  - `bsl::nullopt` orders before any non-null 'NullableAllocatedValue
+        //  - `bsl::nullopt` compares equal to a null NullableAllocatedValue
+        //
+        // 2. If the compiler supports `noexcept`, then none of the comparisons
+        //    with `bsl::nullopt` can throw an exception.
         //
         // Plan:
-        //: 1  Conduct the regular test using 'int' and 'bsl::string'.
+        // 1.  Conduct the regular test using `int` and `bsl::string`.
         //
         // Testing:
         //   bool operator==(const NullableAllocatedValue&, bsl::nullopt_t);
@@ -2297,7 +2309,7 @@ int main(int argc, char *argv[])
         //   bool operator> (bsl::nullopt_t, const NullableAllocatedValue&);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING 'bsl::nullopt_t' COMPARISONS"
+        if (verbose) cout << "\nTESTING `bsl::nullopt_t` COMPARISONS"
                              "\n====================================" << endl;
 
         if (verbose) cout << "\tfor 'NullableAllocatedValue<int>" << endl;
@@ -2407,13 +2419,13 @@ int main(int argc, char *argv[])
         //   Extracted from component header file.
         //
         // Concerns:
-        //: 1 NullableAllocatedValue can be instantiated with an incomplete
-        //:   class, and the resulting class is not incomplete.
+        // 1. NullableAllocatedValue can be instantiated with an incomplete
+        //    class, and the resulting class is not incomplete.
         //
         // Plan:
-        //: 1 Define a specialization of NullableAllocatedValue containing an
-        //:   incomplete type, and check to see that it is a complete type.
-        //:   (C-1)
+        // 1. Define a specialization of NullableAllocatedValue containing an
+        //    incomplete type, and check to see that it is a complete type.
+        //    (C-1)
         //
         // Testing:
         //   INCOMPLETE CLASS SUPPORT
@@ -2426,7 +2438,7 @@ int main(int argc, char *argv[])
         typedef bdlb::NullableAllocatedValue<Incomplete> NAV_Incomplete;
         typedef bdlb::NullableAllocatedValue<int>        NAV_Int;
 
-        // this will fail, because 'Incomplete' has no size
+        // this will fail, because `Incomplete` has no size
         // ASSERT(sizeof(Incomplete) > 0);
 
         ASSERT(sizeof(NAV_Incomplete) == sizeof(NAV_Int));
@@ -2439,19 +2451,19 @@ int main(int argc, char *argv[])
         // SWAP MEMBER AND FREE FUNCTIONS
         //
         // Concerns:
-        //: 1 Swap of two null objects leaves both objects null.
-        //:
-        //: 2 Swap of a null object and a non-null object, or of two non-null
-        //:   objects, swaps the underlying pointers to the out-of-place
-        //:   objects (i.e., no temporary objects are incurred to effect the
-        //:   swap).
+        // 1. Swap of two null objects leaves both objects null.
+        //
+        // 2. Swap of a null object and a non-null object, or of two non-null
+        //    objects, swaps the underlying pointers to the out-of-place
+        //    objects (i.e., no temporary objects are incurred to effect the
+        //    swap).
         //
         // Plan:
-        //: 1 Create a class, 'Swappable', with a 'swap' free function
-        //:   instrumented to track swap calls and creators instrumented to
-        //:   track the number of 'Swappable' objects created.  Instantiate
-        //:   'bdlb::NullableAllocatedValue' with 'Swappable' and execute
-        //:   operations needed to verify the concerns.  (C-1..2)
+        // 1. Create a class, `Swappable`, with a `swap` free function
+        //    instrumented to track swap calls and creators instrumented to
+        //    track the number of `Swappable` objects created.  Instantiate
+        //    `bdlb::NullableAllocatedValue` with `Swappable` and execute
+        //    operations needed to verify the concerns.  (C-1..2)
         //
         // Testing:
         //   void swap(bdlb::NullableAllocatedValue<TYPE>& other);
@@ -2499,14 +2511,14 @@ int main(int argc, char *argv[])
         // STREAMING
         //
         // Concerns:
-        //: 1 An object that has been streamed out can be streamed back in, and
-        //:   results in the same value.
+        // 1. An object that has been streamed out can be streamed back in, and
+        //    results in the same value.
         //
         // Plan:
-        //: 1 Create an object, stream it out, and stream back into a new
-        //:   object. Ensure that the new object is equal to the original, and
-        //:   that the streaming operation consumed all the data in the stream.
-        //:   (C-1)
+        // 1. Create an object, stream it out, and stream back into a new
+        //    object. Ensure that the new object is equal to the original, and
+        //    that the streaming operation consumed all the data in the stream.
+        //    (C-1)
         //
         // Testing:
         //   STREAM& bdexStreamIn(STREAM& stream, int version);
@@ -2609,18 +2621,18 @@ int main(int argc, char *argv[])
         // TESTING ASSIGNMENT OPERATOR
         //
         // Concerns:
-        //: 1 Any value must be assignable to an object having any initial
-        //:   value without affecting the rhs operand value.  Also, any object
-        //:   must be assignable to itself.
+        // 1. Any value must be assignable to an object having any initial
+        //    value without affecting the rhs operand value.  Also, any object
+        //    must be assignable to itself.
         //
         // Plan:
-        //: 1  Use 'bsl::string' and 'int' for 'TYPE'.
-        //:
-        //: 2 Specify a set of unique values.  Construct and initialize all
-        //:   combinations (u, v) in the cross product.  Copy construct a
-        //:   control w from v, assign v to u, and assert that w == u and
-        //:   w == v.  Then test aliasing by copy constructing a control w from
-        //:   each u, assigning u to itself, and verifying that w == u.
+        // 1.  Use `bsl::string` and `int` for `TYPE`.
+        //
+        // 2. Specify a set of unique values.  Construct and initialize all
+        //    combinations (u, v) in the cross product.  Copy construct a
+        //    control w from v, assign v to u, and assert that w == u and
+        //    w == v.  Then test aliasing by copy constructing a control w from
+        //    each u, assigning u to itself, and verifying that w == u.
         //
         // Testing:
         //   operator=(const b_NV<TYPE>&);
@@ -2808,13 +2820,13 @@ int main(int argc, char *argv[])
         // TESTING OTHER CONSTRUCTORS
         //
         // Concerns:
-        //: 1 NullableAllocateValue should be constructible from a 'nullopt_t'
-        //:   and a 'TYPE' argument, both with and without an allocator.
+        // 1. NullableAllocateValue should be constructible from a `nullopt_t`
+        //    and a `TYPE` argument, both with and without an allocator.
         //
         // Plan:
-        //: 1 Conduct the test using 'int' (does not use allocator) and
-        //:   'bsl::string' (uses allocator) for 'TYPE'. Verify that the memory
-        //:   for the objects is allocated as expected.
+        // 1. Conduct the test using `int` (does not use allocator) and
+        //    `bsl::string` (uses allocator) for `TYPE`. Verify that the memory
+        //    for the objects is allocated as expected.
         //
         // Testing:
         //   NullableAllocatedValue(const nullopt_t&);
@@ -2923,8 +2935,8 @@ int main(int argc, char *argv[])
                 ASSERT(value == Y.value());
             }
 
-            // 1 allocation for the creation of 'value' - uses 'da'
-            // 2 allocations for the creation of the 'NullableAllocatedValue';
+            // 1 allocation for the creation of `value` - uses `da`
+            // 2 allocations for the creation of the `NullableAllocatedValue`;
             // one for the string object, and one for the string data.
             ASSERT(4 == da.numAllocations());
             ASSERT(3 == oa.numAllocations());
@@ -2938,18 +2950,18 @@ int main(int argc, char *argv[])
         // TESTING COPY CONSTRUCTOR
         //
         // Concerns:
-        //: 1 Any value must be copy constructible without affecting the
-        //:   argument.
+        // 1. Any value must be copy constructible without affecting the
+        //    argument.
         //
         // Plan:
-        //: 1 Conduct the test using 'int' (does not use allocator) and
-        //:   'bsl::string' (uses allocator) for 'TYPE'.
-        //:
-        //: 2 Specify a set whose elements have substantial and varied
-        //:   differences in value.  For each element in S, construct and
-        //:   initialize identical objects W and X using tested methods.  Then
-        //:   copy construct Y from X and use the equality operator to assert
-        //:   that both X and Y have the same value as W.
+        // 1. Conduct the test using `int` (does not use allocator) and
+        //    `bsl::string` (uses allocator) for `TYPE`.
+        //
+        // 2. Specify a set whose elements have substantial and varied
+        //    differences in value.  For each element in S, construct and
+        //    initialize identical objects W and X using tested methods.  Then
+        //    copy construct Y from X and use the equality operator to assert
+        //    that both X and Y have the same value as W.
         //
         // Testing:
         //   NullableAllocatedValue(const NAV&);
@@ -3035,62 +3047,62 @@ int main(int argc, char *argv[])
         // TESTING COMPARISON OPERATORS
         //
         // Concerns:
-        //: 1 That all 6 comparison operators work properly.  A null values is
-        //:   always not equal to, and less than, any non-null value.  Two null
-        //:   values are equal.
+        // 1. That all 6 comparison operators work properly.  A null values is
+        //    always not equal to, and less than, any non-null value.  Two null
+        //    values are equal.
         //
         // Plan:
-        //: 1 Use 'int' for 'TYPE'.
-        //:
-        //: 2 Create an array 'values' of 7 non-null nullable objects, none
-        //:   equal to each other, sorted in value from lowest to highest.
-        //:
-        //: 3 Try comparisons of two non-null nullable objects.
-        //:   o Iterate 'ii' through the indexes of 'values', and in that loop
-        //:     create 'const int UR = values[ii]' and non-null
-        //:     'const Obj U(UV)'.
-        //:
-        //:   o Within that loop, iterate 'jj' through the indexes of 'values',
-        //:     and in that loop create 'const int VR = values[jj]' and
-        //:     non-null 'const Obj V(VR)'.
-        //:
-        //:   o Try every possible comparison of 'UR' and 'V', with 'UR' on the
-        //:     lhs and 'V' on the rhs, whose results should match the boolean
-        //:     results of comparing 'ii' and 'jj'.
-        //:
-        //:   o Try every possible comparison of 'U' and 'VR', with 'U' on the
-        //:     lhs and 'VR' on the rhs, whose results should match the boolean
-        //:     results of comparing 'ii' and 'jj'.
-        //:
-        //:   o Try every possible comparison of 'U' and 'V', whose results
-        //:     should match the boolean results of comparing 'ii' and 'jj'.
-        //:
-        //: 4 Try comparisons between a null nullable value and non-nullable
-        //:   'int'.
-        //:   o Create a null nullable value 'N'.
-        //:
-        //:   o Iterate 'ii' through the indexes of 'values', and in that loop
-        //:     create 'const int RV(values[ii])'.
-        //:
-        //:   o In the loop, do all possible comparisons of 'N' and 'RV', and
-        //:     'N' should always be less than 'RV', regardless of the value of
-        //:     'RV'.
-        //:
-        //: 5 Try comparisons of one null object and one non-null object.
-        //:   o Create a null nullable value 'N'.
-        //:
-        //:   o Iterate 'ii' through the indexes of 'values', and in that loop
-        //:     create non-null 'const Obj NV(values[ii])'.
-        //:
-        //:   o In the loop, do all possible comparisons of 'N' and 'NV', and
-        //:     'N' should always be less than 'NV', regardless of the value of
-        //:     'NV'.
-        //:
-        //: 6 Try comparisons of two null nullable objects.
-        //:   o Create two null nullable objects 'LN' and 'RN'
-        //:
-        //:   o Try every possible comparison between them, they are always
-        //:     equal, not greater, not less.
+        // 1. Use `int` for `TYPE`.
+        //
+        // 2. Create an array `values` of 7 non-null nullable objects, none
+        //    equal to each other, sorted in value from lowest to highest.
+        //
+        // 3. Try comparisons of two non-null nullable objects.
+        //    - Iterate `ii` through the indexes of `values`, and in that loop
+        //      create `const int UR = values[ii]` and non-null
+        //      `const Obj U(UV)`.
+        //
+        //    - Within that loop, iterate `jj` through the indexes of `values`,
+        //      and in that loop create `const int VR = values[jj]` and
+        //      non-null `const Obj V(VR)`.
+        //
+        //    - Try every possible comparison of `UR` and `V`, with `UR` on the
+        //      lhs and `V` on the rhs, whose results should match the boolean
+        //      results of comparing `ii` and `jj`.
+        //
+        //    - Try every possible comparison of `U` and `VR`, with `U` on the
+        //      lhs and `VR` on the rhs, whose results should match the boolean
+        //      results of comparing `ii` and `jj`.
+        //
+        //    - Try every possible comparison of `U` and `V`, whose results
+        //      should match the boolean results of comparing `ii` and `jj`.
+        //
+        // 4. Try comparisons between a null nullable value and non-nullable
+        //    `int`.
+        //    - Create a null nullable value `N`.
+        //
+        //    - Iterate `ii` through the indexes of `values`, and in that loop
+        //      create `const int RV(values[ii])`.
+        //
+        //    - In the loop, do all possible comparisons of `N` and `RV`, and
+        //      `N` should always be less than `RV`, regardless of the value of
+        //      `RV`.
+        //
+        // 5. Try comparisons of one null object and one non-null object.
+        //    - Create a null nullable value `N`.
+        //
+        //    - Iterate `ii` through the indexes of `values`, and in that loop
+        //      create non-null `const Obj NV(values[ii])`.
+        //
+        //    - In the loop, do all possible comparisons of `N` and `NV`, and
+        //      `N` should always be less than `NV`, regardless of the value of
+        //      `NV`.
+        //
+        // 6. Try comparisons of two null nullable objects.
+        //    - Create two null nullable objects `LN` and `RN`
+        //
+        //    - Try every possible comparison between them, they are always
+        //      equal, not greater, not less.
         //
         // TESTING:
         //   bool operator==(const b_NV<TYPE>&, const b_NV<TYPE>&);
@@ -3145,13 +3157,13 @@ int main(int argc, char *argv[])
         // TESTING PRINT METHOD AND OUTPUT (<<) OPERATOR
         //
         // Concerns:
-        //: 1 The print method and output (<<) operator work as expected.
+        // 1. The print method and output (<<) operator work as expected.
         //
         // Plan:
-        //: 1 Conduct the test using 'int' for 'TYPE'.
-        //:
-        //:  For a set of values, check that the 'print' function and the
-        //:  output (<<) operator work as expected. (C-1)
+        // 1. Conduct the test using `int` for `TYPE`.
+        //
+        //   For a set of values, check that the `print` function and the
+        //   output (<<) operator work as expected. (C-1)
         //
         // Testing:
         //   bsl::ostream& print(bsl::ostream&, int, int) const;
@@ -3169,7 +3181,7 @@ int main(int argc, char *argv[])
         const char      NULL_RESULT[]   = "NULL";
         const char      VALUE1_RESULT[] = "123";
 
-        if (verbose) cout << "\nTesting 'print' Method." << endl;
+        if (verbose) cout << "\nTesting `print` Method." << endl;
         {
             {
                 Obj               mX;  const Obj& X = mX;
@@ -3211,21 +3223,21 @@ int main(int argc, char *argv[])
         //   expected.
         //
         // Concerns:
-        //: 1 The default constructor creates a null object.
-        //:
-        //: 2 'makeValue()' sets the value to the default value for 'TYPE'.
-        //:
-        //: 3 'makeValue(const TYPE&)' sets the value appropriately.
+        // 1. The default constructor creates a null object.
+        //
+        // 2. `makeValue()` sets the value to the default value for `TYPE`.
+        //
+        // 3. `makeValue(const TYPE&)` sets the value appropriately.
         //
         // Plan:
-        //: 1 Conduct the test using 'int' (does not use allocator) and
-        //:   'bsl::string' (uses allocator) for 'TYPE'.
-        //:
-        //: 2 First, verify the default constructor by testing that the
-        //:   resulting object is null.
-        //:
-        //: 3 Next, verify that the 'makeValue' function works by making a
-        //:   value equal to the value passed into 'makeValue'.
+        // 1. Conduct the test using `int` (does not use allocator) and
+        //    `bsl::string` (uses allocator) for `TYPE`.
+        //
+        // 2. First, verify the default constructor by testing that the
+        //    resulting object is null.
+        //
+        // 3. Next, verify that the `makeValue` function works by making a
+        //    value equal to the value passed into `makeValue`.
         //
         //   Note that the destructor is exercised on each configuration as the
         //   object being tested leaves scope.
@@ -3255,7 +3267,7 @@ int main(int argc, char *argv[])
                           << "\n=============================================="
                           << endl;
 
-        if (verbose) cout << "\nUsing 'bdlb::NullableAllocatedValue<int>'."
+        if (verbose) cout << "\nUsing `bdlb::NullableAllocatedValue<int>`."
                           << endl;
         {
             typedef int                                     ValueType;
@@ -3269,7 +3281,7 @@ int main(int argc, char *argv[])
                 ASSERT(!X.has_value());
             }
 
-            if (veryVerbose) cout << "\tTesting 'makeValue'." << endl;
+            if (veryVerbose) cout << "\tTesting `makeValue`." << endl;
 
             {
                 Obj mX;  const Obj& X = mX;
@@ -3318,7 +3330,7 @@ int main(int argc, char *argv[])
                 ASSERTV(X.value(), VALUE2 == X.value());
             }
 
-            if (veryVerbose) cout << "\tTesting 'reset'." << endl;
+            if (veryVerbose) cout << "\tTesting `reset`." << endl;
             {
                 Obj mX0;
                 Obj mX1(ValueType(123));
@@ -3398,7 +3410,7 @@ int main(int argc, char *argv[])
                 ASSERT(X.get_allocator().mechanism() == ALLOC);
             }
 
-            if (veryVerbose) cout << "\tTesting 'makeValue'." << endl;
+            if (veryVerbose) cout << "\tTesting `makeValue`." << endl;
 
             {
                 Obj mX;  const Obj& X = mX;
@@ -3445,7 +3457,7 @@ int main(int argc, char *argv[])
                 ASSERTV(X.value(), VALUE2 == X.value());
             }
 
-            if (veryVerbose) cout << "\tTesting 'reset'." << endl;
+            if (veryVerbose) cout << "\tTesting `reset`." << endl;
             {
                 Obj mX0;
                 Obj mX1(ValueType("123"));
@@ -3516,30 +3528,30 @@ int main(int argc, char *argv[])
         //   This test exercises basic functionality, but tests nothing.
         //
         // Concerns:
-        //: 1 The class is sufficiently functional to enable comprehensive
-        //:   testing in subsequent test cases.
-        //:
+        // 1. The class is sufficiently functional to enable comprehensive
+        //    testing in subsequent test cases.
+        //
         // Plan:
-        //:  1 Create four test objects using the default, value, and copy
-        //:  constructors.  Exercise the basic value-semantic methods and the
-        //:  equality operators using the test objects.  Invoke the primary
-        //:  manipulator [5, 6, 7], copy constructor [2, 4], assignment
-        //:  operator without [9] and with [10] aliasing.  Use the basic
-        //:  accessors to verify the expected results.  Display object values
-        //:  frequently in verbose mode.  Note that 'VA', 'VB', and 'VC' denote
-        //:  unique, but otherwise arbitrary, object values, while 'U' denotes
-        //:  the valid, but "unknown", default object value.
-        //:
-        //:  2 Create an object x1 (init. to VA)    { x1:VA                  }
-        //:  3 Create an object x2 (copy of x1)     { x1:VA x2:VA            }
-        //:  4 Create an object x3 (default ctor)   { x1:VA x2:VA x3:U       }
-        //:  5 Create an object x4 (copy of x3)     { x1:VA x2:VA x3:U  x4:U }
-        //:  6 Set x3 using 'makeValue' (set to VB) { x1:VA x2:VA x3:VB x4:U }
-        //:  7 Change x1 using 'reset'              { x1:U  x2:VA x3:VB x4:U }
-        //:  8 Change x1 ('makeValue', set to VC)   { x1:VC x2:VA x3:VB x4:U }
-        //:  9 Assign x2 = x1                       { x1:VC x2:VC x3:VB x4:U }
-        //: 10 Assign x2 = x3                       { x1:VC x2:VB x3:VB x4:U }
-        //: 11 Assign x1 = x1 (aliasing)            { x1:VC x2:VB x3:VB x4:U }
+        //  1. Create four test objects using the default, value, and copy
+        //   constructors.  Exercise the basic value-semantic methods and the
+        //   equality operators using the test objects.  Invoke the primary
+        //   manipulator [5, 6, 7], copy constructor [2, 4], assignment
+        //   operator without [9] and with [10] aliasing.  Use the basic
+        //   accessors to verify the expected results.  Display object values
+        //   frequently in verbose mode.  Note that `VA`, `VB`, and `VC` denote
+        //   unique, but otherwise arbitrary, object values, while `U` denotes
+        //   the valid, but "unknown", default object value.
+        //
+        //  2. Create an object x1 (init. to VA)    { x1:VA                  }
+        //  3. Create an object x2 (copy of x1)     { x1:VA x2:VA            }
+        //  4. Create an object x3 (default ctor)   { x1:VA x2:VA x3:U       }
+        //  5. Create an object x4 (copy of x3)     { x1:VA x2:VA x3:U  x4:U }
+        //  6. Set x3 using `makeValue` (set to VB) { x1:VA x2:VA x3:VB x4:U }
+        //  7. Change x1 using `reset`              { x1:U  x2:VA x3:VB x4:U }
+        //  8. Change x1 (`makeValue`, set to VC)   { x1:VC x2:VA x3:VB x4:U }
+        //  9. Assign x2 = x1                       { x1:VC x2:VC x3:VB x4:U }
+        // 10. Assign x2 = x3                       { x1:VC x2:VB x3:VB x4:U }
+        // 11. Assign x1 = x1 (aliasing)            { x1:VC x2:VB x3:VB x4:U }
         //
         // Testing:
         //   BREATHING TEST

@@ -1,30 +1,15 @@
 // bdlcc_sharedobjectpool.t.cpp                                       -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
-
 #include <bdlcc_sharedobjectpool.h>
 
 #include <bdlcc_objectpool.h>
 
+#include <bdlf_bind.h>
 #include <bdlf_memfn.h>
-
-#include <bslim_testutil.h>
+#include <bdlf_placeholder.h>
 
 #include <bdlma_concurrentpoolallocator.h>
 
-#include <bslmt_mutex.h>
-#include <bslmt_threadutil.h>
-#include <bslmt_threadattributes.h>
-#include <bslmt_threadgroup.h>
-
-#include <bdlf_bind.h>
-#include <bdlf_placeholder.h>
+#include <bslim_testutil.h>
 
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>
@@ -32,6 +17,11 @@
 #include <bslma_usesbslmaallocator.h>
 
 #include <bslmf_nestedtraitdeclaration.h>
+
+#include <bslmt_mutex.h>
+#include <bslmt_threadattributes.h>
+#include <bslmt_threadgroup.h>
+#include <bslmt_threadutil.h>
 
 #include <bsls_spinlock.h>
 #include <bsls_stopwatch.h>
@@ -230,9 +220,9 @@ class SlowerCharArrayPool {
 ///-----
 // This component is intended to improve the efficiency of code which provides
 // shared pointers to pooled objects.  As an example, consider a class which
-// maintains a pool of 'vector<char>' objects and provides shared pointers to
-// them.  Using 'bdlcc::ObjectPool', the class might be implemented like this:
-//..
+// maintains a pool of `vector<char>` objects and provides shared pointers to
+// them.  Using `bdlcc::ObjectPool`, the class might be implemented like this:
+// ```
     typedef vector<char> CharArray;
 
     class SlowCharArrayPool {
@@ -278,16 +268,16 @@ class SlowerCharArrayPool {
                                 &d_spAllocator);
         }
     };
-//..
-// Note that 'SlowCharArrayPool' must allocate the shared pointer itself from
-// its 'd_spAllocator' in addition to allocating the charArray from its pool.
+// ```
+// Note that `SlowCharArrayPool` must allocate the shared pointer itself from
+// its `d_spAllocator` in addition to allocating the charArray from its pool.
 // Moreover, note that since the same function will handle resetting the object
 // and returning it to the pool, we must define a special function for that
 // purpose and bind its arguments.
 //
-// We can solve both of these issues by using 'bdlcc::SharedObjectPool'
+// We can solve both of these issues by using `bdlcc::SharedObjectPool`
 // instead:
-//..
+// ```
     class FastCharArrayPool {
         typedef bdlcc::SharedObjectPool<
                 CharArray,
@@ -321,7 +311,7 @@ class SlowerCharArrayPool {
             *charArray_sp = d_charArrayPool.getObject();
         }
     };
-//..
+// ```
 
 struct SpLink
 {
@@ -623,29 +613,8 @@ void ConstructorTestHelp1b::resetWithCount(ConstructorTestHelp1b *self,
 // ============================================================================
 //         GLOBAL TYPEDEFS/CONSTANTS/VARIABLES/FUNCTIONS FOR TESTING
 // ----------------------------------------------------------------------------
+
 bslmt::ThreadAttributes attributes;
-void executeInParallel(int                               numThreads,
-                       bslmt::ThreadUtil::ThreadFunction function)
-    // Create the specified 'numThreads', each executing the specified
-    // 'function'.  Number each thread (sequentially from 0 to 'numThreads-1')
-    // by passing i to i'th thread.  Finally join all the threads.
-{
-    bslmt::ThreadUtil::Handle *threads =
-                               new bslmt::ThreadUtil::Handle[numThreads];
-    ASSERT(threads);
-
-    for (int i = 0; i < numThreads; ++i) {
-        bslmt::ThreadUtil::create(&threads[i],
-                                  attributes,
-                                  function,
-                                  static_cast<char *>(0) + i);
-    }
-    for (int i = 0; i < numThreads; ++i) {
-        bslmt::ThreadUtil::join(threads[i]);
-    }
-
-    delete [] threads;
-}
 
 // ============================================================================
 //                 HELPER CLASSES AND FUNCTIONS FOR TESTING
@@ -952,9 +921,9 @@ int main(int argc, char *argv[])
 // Now the shared pointer and the object are allocated as one unit from the
 // same allocator.  In addition, the resetter method is a fully-inlined class
 // that is only responsible for resetting the object, improving efficiency and
-// simplifying the design.  We can verify that use of 'bdlcc::SharedObjectPool'
+// simplifying the design.  We can verify that use of `bdlcc::SharedObjectPool`
 // reduces the number of allocation requests:
-//..
+// ```
     bslma::TestAllocator slowAllocator, fastAllocator;
     {
         SlowCharArrayPool slowPool(&slowAllocator);
@@ -970,7 +939,7 @@ int main(int argc, char *argv[])
     ASSERT(1 == fastAllocator.numAllocations());
     ASSERT(0 == slowAllocator.numBytesInUse());
     ASSERT(0 == fastAllocator.numBytesInUse());
-//..
+// ```
       } break;
 
       case 5: { // resetter test 2

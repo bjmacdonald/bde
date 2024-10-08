@@ -1,16 +1,10 @@
 // bdlde_charconvertutf16.t.cpp                                       -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlde_charconvertutf16.h>
 
 #include <bdlde_charconvertstatus.h>
 #include <bdlde_utf8util.h>
+
+#include <bsla_maybeunused.h>
 
 #include <bslalg_constructorproxy.h>
 
@@ -1562,12 +1556,6 @@ enum {
     #define U8_10fffe "\xf7\xbf\xbf\xbe"
     #define U8_10ffff "\xf7\xbf\xbf\xbf"
 
-// We will try all combinations of the 'PRECOMPUTED_DATA' code points up to
-// 'exhaustiveSearchDepth' in length.
-
-const int exhaustiveSearchDepth = 4; // 5 works fine on AIX, but our Sun boxes
-                                     // are slower
-
 // Precomputed conversions for state space enumeration.  These will be
 // enumerated by 'buildUpAndTestStringsU8ToU2' and
 // 'buildUpAndTestStringsU2ToU8'.
@@ -2408,6 +2396,7 @@ unsigned char u8FourByteHdrCases[] ={ '\x0', '\x1', '\x2', '\x3', '\x4' };
     // value is four, and at that maximum the first continuation octet's
     // content must be less than 0x10.
 
+BSLA_MAYBE_UNUSED
 const
 unsigned char u8InvalidFourByteHdrCases[] ={ '\x5', '\x6', '\x7', };
 
@@ -2419,19 +2408,23 @@ enum { FOUR_BYTE_FOUR_MAX = 0xf };
     // If the first continuation is no greater than this, the content part of
     // the four-byte header may be two.
 
+BSLA_MAYBE_UNUSED
 const
 unsigned char u8ContinByteCases[] ={ '\x0',  '\x1',  '\x3',
                                      '\x7',  '\xf',  '\x1e',
                                      '\x3a', '\x3c', '\x3f', };
 
+BSLA_MAYBE_UNUSED
 const
 unsigned char u8ContinValidFourByteMaxCases[] ={ '\x0',  '\x1',  '\x3',
                                                  '\x7',  '\xf', };
 
+BSLA_MAYBE_UNUSED
 const
 unsigned char u8ContinInvalidFourByteMaxCases[] ={ '\x10', '\x1e', '\x3c',
                                                    '\x3a', '\x3f', };
 
+BSLA_MAYBE_UNUSED
 const
 unsigned char u8ReservedRangeLowerContin[] ={ '\x20', '\x21', '\x22', '\x23',
                                               '\x24', '\x25', '\x26', '\x27',
@@ -2442,6 +2435,7 @@ unsigned char u8ReservedRangeLowerContin[] ={ '\x20', '\x21', '\x22', '\x23',
     // octet header, these will produce code points in the (forbidden) lower
     // reserved range.
 
+BSLA_MAYBE_UNUSED
 const
 unsigned char u8ReservedRangeUpperContin[] ={ '\x30', '\x31', '\x32', '\x33',
                                               '\x34', '\x35', '\x36', '\x37',
@@ -2452,6 +2446,7 @@ unsigned char u8ReservedRangeUpperContin[] ={ '\x30', '\x31', '\x32', '\x33',
     // octet header, these will produce code points in the (forbidden) upper
     // reserved range.
 
+BSLA_MAYBE_UNUSED
 const
 unsigned short u16UpperAndLower[] ={ 0x00, 0x01, 0x02, 0x03, 0x04, 0x06,
                                      0x07, 0x08, 0x0c, 0x0d, 0x10, 0x18,
@@ -5499,7 +5494,7 @@ void TestDriver::randomUtf8String(bsl::string *result,
                 // incorrect strings are accurate.
 
                 int  prevErrorIdx   = -1;
-                bool adjacentErrors = false;
+                bool adjacentErrors = false;  (void)adjacentErrors;
 
                 for (unsigned uu = 0; uu < numSequences; ++uu) {
                     if (s_randGen.bits(1)) {
@@ -10160,10 +10155,12 @@ int main(int argc, char**argv)
                           } break;
                           case 'b': {
                             // Two-byte code point:
-                            *genp++ = static_cast<unsigned short>(
-                                                      0xc0 | twoHdr);
-                            *genp++ = static_cast<unsigned short>(
-                                                      0x80 | twoContin);
+                            *genp++ = static_cast<char>(
+                                      static_cast<unsigned short>(
+                                                      0xc0 | twoHdr));
+                            *genp++ = static_cast<char>(
+                                      static_cast<unsigned short>(
+                                                      0x80 | twoContin));
                             *imgp++ = static_cast<unsigned short>(
                                                       twoHdr << 6 | twoContin);
 
@@ -10173,12 +10170,15 @@ int main(int argc, char**argv)
                           case 'c': {
 
                             // Three-byte code point:
-                            *genp++ = static_cast<unsigned short>(
-                                                          0xe0 | threeHdr);
-                            *genp++ = static_cast<unsigned short>(
-                                                          0x80 | threeContin1);
-                            *genp++ = static_cast<unsigned short>(
-                                                          0x80 | threeContin2);
+                            *genp++ = static_cast<char>(
+                                      static_cast<unsigned short>(
+                                                         0xe0 | threeHdr));
+                            *genp++ = static_cast<char>(
+                                      static_cast<unsigned short>(
+                                                         0x80 | threeContin1));
+                            *genp++ = static_cast<char>(
+                                      static_cast<unsigned short>(
+                                                         0x80 | threeContin2));
                             *imgp++ = static_cast<unsigned short>(
                                             threeHdr << 12 | threeContin1 << 6
                                                                | threeContin2);

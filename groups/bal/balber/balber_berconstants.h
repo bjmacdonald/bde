@@ -1,12 +1,4 @@
 // balber_berconstants.h                                              -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #ifndef INCLUDED_BALBER_BERCONSTANTS
 #define INCLUDED_BALBER_BERCONSTANTS
 
@@ -20,13 +12,17 @@ BSLS_IDENT("$Id: $")
 //
 //@SEE_ALSO: BER Specification (ITU-T X.690)
 //
-//@DESCRIPTION: The 'balber::BerConstants' 'struct' defined in this component
-// defines two enumerations, 'balber::TagClass' and 'balber::TagType', that
+//@DESCRIPTION: The `balber::BerConstants` `struct` defined in this component
+// defines two enumerations, `balber::TagClass` and `balber::TagType`, that
 // contain symbolic constants for the corresponding tag classes and tag types,
 // as defined in the BER specification (X.690).
 //
 ///Usage
 ///-----
+// This section illustrates intended use of this component.
+//
+///Example 1: Basic Usage
+/// - - - - - - - - - - -
 // TBD
 
 #include <balscm_version.h>
@@ -49,9 +45,9 @@ namespace balber {
                             // struct BerConstants
                             // ===================
 
+/// This `struct` contains enumerations of the constants used by the BER
+/// encoder and decoder.
 struct BerConstants {
-    // This 'struct' contains enumerations of the constants used by the BER
-    // encoder and decoder.
 
     enum TagClass {
         // Enumeration of the four possible BER tag classes.
@@ -91,15 +87,16 @@ struct BerConstants {
 };
 
 // FREE OPERATORS
+
+/// Format the specified `tagClass` to the specified output `stream` and
+/// return a reference providing modifiable access to `stream`.
 bsl::ostream& operator<<(bsl::ostream&          stream,
                          BerConstants::TagClass tagClass);
-    // Format the specified 'tagClass' to the specified output 'stream' and
-    // return a reference providing modifiable access to 'stream'.
 
+/// Format the specified `tagType` to the specified output `stream` and
+/// return a reference providing modifiable access to `stream`.
 bsl::ostream& operator<<(bsl::ostream&         stream,
                          BerConstants::TagType tagType);
-    // Format the specified 'tagType' to the specified output 'stream' and
-    // return a reference providing modifiable access to 'stream'.
 
 }  // close package namespace
 }  // close enterprise namespace

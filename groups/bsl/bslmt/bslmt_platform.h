@@ -8,23 +8,23 @@ BSLS_IDENT("$Id: $")
 //@PURPOSE: Provide platform-dependent thread-related trait definitions.
 //
 //@CLASSES:
-//   Platform: namespace for platform-dependent thread-related traits
+//   bslmt::Platform: namespace for platform-dependent thread-related traits
 //
 //@SEE_ALSO:
 //
 //@DESCRIPTION: This component defines a set of traits that identify and
 // describe a platform's concurrency properties.  For example, the
-// 'ThreadPolicy' trait is ascribed a "value" (i.e., POSIX or Win32)
+// `ThreadPolicy` trait is ascribed a "value" (i.e., POSIX or Win32)
 // appropriate for each supported platform.  The various concurrency traits are
-// actually types declared in the 'Platform' 'struct'.  These types are
+// actually types declared in the `Platform` `struct`.  These types are
 // intended to be used in specializing template implementations or to enable
 // function overloading based on the prevalent system's characteristics.
 //
-// This component also defines a 'SemaphorePolicy' trait used for selecting a
+// This component also defines a `SemaphorePolicy` trait used for selecting a
 // semaphore implementation.  Differences among POSIX implementations lead to
-// different semaphore policies for the same 'ThreadPolicy'.
+// different semaphore policies for the same `ThreadPolicy`.
 //
-// Finally, this component defines a 'TimedSemaphorePolicy' trait used for
+// Finally, this component defines a `TimedSemaphorePolicy` trait used for
 // selecting a timed-semaphore implementation.  POSIX platforms that do not
 // have a native timed-wait for semaphores require a custom (pthread-based)
 // implementation.
@@ -41,8 +41,8 @@ namespace bslmt {
                               // class Platform
                               // ==============
 
+/// This `struct` provides a namespace for concurrency trait definitions.
 struct Platform {
-    // This 'struct' provides a namespace for concurrency trait definitions.
 
                        // 'ThreadPolicy' trait
 
@@ -145,19 +145,20 @@ struct Platform {
       // Current Power cpus have 128-byte cache lines.
       //
       // On Solaris, to determine the cache line size on the local cpu, run:
-      // ..
+      // ```
       //   prtconf -pv | grep -i l1-dcache-line-size | sort -u
-      // .. Older sparc cpus have 32-byte cache lines, newer 64-byte cache
+      // ```
+      // Older sparc cpus have 32-byte cache lines, newer 64-byte cache
       // lines.  We'll assume 64-byte cache lines here.
       //
       // On Linux with 'sysfs' support,
-      //..
+      // ```
       //  cat /sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size
-      //..
+      // ```
       // or
-      //..
+      // ```
       //  cat /proc/cpuinfo | grep cache
-      //..
+      // ```
       // Post SSE2 cpus have the clflush instruction which can be used to write
       // a program similar to the one mentioned above for POWER cpus.  Current
       // x86/x86_64 have 64-byte cache lines.

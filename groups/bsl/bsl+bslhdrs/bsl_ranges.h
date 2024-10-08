@@ -9,16 +9,20 @@ BSLS_IDENT("$Id: $")
 //
 //@SEE_ALSO: bsls_libraryfeatures
 //
-//@DESCRIPTION: Provide types, in the 'bsl' namespace, equivalent to those
+//@DESCRIPTION: Provide types, in the `bsl` namespace, equivalent to those
 // defined in the corresponding C++ standard header.  Include the native
 // compiler-provided standard header, and also directly include Bloomberg's
 // implementation of the C++ standard type (if one exists).  Finally, place the
-// included symbols from the 'std' namespace (if any) into the 'bsl' namespace.
+// included symbols from the `std` namespace (if any) into the `bsl` namespace.
 
 #include <bsls_libraryfeatures.h>
 #include <bsls_nativestd.h>
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
+
+#if !defined(BSLS_LIBRARYFEATURES_STDCPP_LLVM) || _LIBCPP_VERSION > 179999
+    #define BSL_RANGES_HAS_JOIN_VIEW                                         1
+#endif
 
 #include <ranges>
 
@@ -108,7 +112,9 @@ namespace views {
     using std::ranges::take_while_view;
     using std::ranges::drop_view;
     using std::ranges::drop_while_view;
+#if BSL_RANGES_HAS_JOIN_VIEW
     using std::ranges::join_view;
+#endif
     using std::ranges::lazy_split_view;
     using std::ranges::split_view;
     using std::ranges::common_view;
@@ -128,7 +134,9 @@ namespace views {
     using std::ranges::views::take_while;
     using std::ranges::views::drop;
     using std::ranges::views::drop_while;
+#if BSL_RANGES_HAS_JOIN_VIEW
     using std::ranges::views::join;
+#endif
     using std::ranges::views::lazy_split;
     using std::ranges::views::split;
     using std::ranges::views::common;

@@ -7,141 +7,144 @@ BSLS_IDENT("$Id: $")
 
 //@PURPOSE: Provide a polymorphic adaptor for STL-style allocators
 //
-//@CLASSES: AllocatorAdaptor<ALLOC>
-//
-//@SEE_ALSO:
+//@CLASSES:
+//  bslma::AllocatorAdaptor<ALLOC>: polymorphic adaptor for STL allocators
 //
 //@DESCRIPTION: Within the BDE libraries, the prefered way to handle memory
 // allocation is through a pointer to the polymorphic base class,
-// 'bslma::Allocator'.  The use of a run-time polymorphism for the allocator
+// `bslma::Allocator`.  The use of a run-time polymorphism for the allocator
 // has numerous advantages over the compile-time polymorphism used by the STL
 // components.  However, there are times when client code may have an
 // STL-style allocator available and needs to use it with a BDE component.
 //
-// This component provides a class template, 'AllocatorAdaptor' that wraps the
-// STL-style allocator in an object of class derived from 'bslma::Allocator'.
+// This component provides a class template, `AllocatorAdaptor` that wraps the
+// STL-style allocator in an object of class derived from `bslma::Allocator`.
 // A pointer to the object can thus be used with any component that uses
 // BDE-style memory allocation.
 //
 ///Usage
 ///-----
-// Let's start with a simple class, 'my::FilePath', which allocates storage
-// using a 'bslma::Allocator':
-//..
-//  #include <bslma_allocator.h>
-//  #include <bslma_default.h>
-//  #include <bsls_nullptr.h>
+// This section illustrates intended use of this component.
 //
-//  #include <cstring>
-//  #include <cstdlib>
+///Example 1: Basic Usage
+/// - - - - - - - - - - -
+// Let's start with a simple class, `my::FilePath`, which allocates storage
+// using a `bslma::Allocator`:
+// ```
+// #include <bslma_allocator.h>
+// #include <bslma_default.h>
+// #include <bsls_nullptr.h>
 //
-//  namespace my {
+// #include <cstring>
+// #include <cstdlib>
 //
-//  class FilePath {
-//      // Store the path of a file or directory
-//      bslma::Allocator *d_allocator;
-//      char             *d_data;
+// namespace my {
 //
-//  public:
-//      FilePath(bslma::Allocator* basicAllocator = 0 /* nullptr */)
-//          : d_allocator(bslma::Default::allocator(basicAllocator))
-//          , d_data(0 /* nullptr */) { }
+// /// Store the path of a file or directory.
+// class FilePath {
+//     bslma::Allocator *d_allocator;
+//     char             *d_data;
 //
-//      FilePath(const char* s, bslma::Allocator* basicAllocator = 0)
-//          : d_allocator(bslma::Default::allocator(basicAllocator))
-//      {
-//          d_data =
-//               static_cast<char*>(d_allocator->allocate(std::strlen(s) + 1));
-//          std::strcpy(d_data, s);
-//      }
+// public:
+//     FilePath(bslma::Allocator* basicAllocator = 0 /* nullptr */)
+//         : d_allocator(bslma::Default::allocator(basicAllocator))
+//         , d_data(0 /* nullptr */) { }
 //
-//      bslma::Allocator *getAllocator() const { return d_allocator; }
+//     FilePath(const char* s, bslma::Allocator* basicAllocator = 0)
+//         : d_allocator(bslma::Default::allocator(basicAllocator))
+//     {
+//         d_data =
+//              static_cast<char*>(d_allocator->allocate(std::strlen(s) + 1));
+//         std::strcpy(d_data, s);
+//     }
 //
-//      //...
-//  };
+//     bslma::Allocator *getAllocator() const { return d_allocator; }
 //
-//  } // close namespace my
-//..
+//     //...
+// };
+//
+// } // close namespace my
+// ```
 // Next, assume that an STL-allocator exists that uses memory exactly the way
 // you need:
-//..
-//  template <class TYPE>
-//  class MagicAllocator {
-//      bool d_useMalloc;
-//  public:
-//      typedef TYPE        value_type;
-//      typedef TYPE       *pointer;
-//      typedef const TYPE *const_pointer;
-//      typedef unsigned    size_type;
-//      typedef int         difference_type;
+// ```
+// template <class TYPE>
+// class MagicAllocator {
+//     bool d_useMalloc;
+// public:
+//     typedef TYPE        value_type;
+//     typedef TYPE       *pointer;
+//     typedef const TYPE *const_pointer;
+//     typedef unsigned    size_type;
+//     typedef int         difference_type;
 //
-//      template <class U>
-//      struct rebind {
-//          typedef MagicAllocator<U> other;
-//      };
+//     template <class U>
+//     struct rebind {
+//         typedef MagicAllocator<U> other;
+//     };
 //
-//      explicit MagicAllocator(bool useMalloc = false)
-//          : d_useMalloc(useMalloc) { }
+//     explicit MagicAllocator(bool useMalloc = false)
+//         : d_useMalloc(useMalloc) { }
 //
-//      template <class U>
-//      MagicAllocator(const MagicAllocator<U>& other)
-//          : d_useMalloc(other.getUseMalloc()) { }
+//     template <class U>
+//     MagicAllocator(const MagicAllocator<U>& other)
+//         : d_useMalloc(other.getUseMalloc()) { }
 //
-//      value_type *allocate(std::size_t n, void* = 0 /* nullptr */) {
-//          if (d_useMalloc)
-//              return (value_type*) std::malloc(n * sizeof(value_type));
-//          else
-//              return (value_type*) ::operator new(n * sizeof(value_type));
-//      }
+//     value_type *allocate(std::size_t n, void* = 0 /* nullptr */) {
+//         if (d_useMalloc)
+//             return (value_type*) std::malloc(n * sizeof(value_type));
+//         else
+//             return (value_type*) ::operator new(n * sizeof(value_type));
+//     }
 //
-//      void deallocate(value_type *p, std::size_t) {
-//          if (d_useMalloc)
-//              std::free(p);
-//          else
-//              ::operator delete(p);
-//      }
+//     void deallocate(value_type *p, std::size_t) {
+//         if (d_useMalloc)
+//             std::free(p);
+//         else
+//             ::operator delete(p);
+//     }
 //
-//      static size_type max_size() { return UINT_MAX / sizeof(TYPE); }
+//     static size_type max_size() { return UINT_MAX / sizeof(TYPE); }
 //
-//      void construct(pointer p, const TYPE& value)
-//          { new((void *)p) TYPE(value); }
+//     void construct(pointer p, const TYPE& value)
+//         { new((void *)p) TYPE(value); }
 //
-//      void destroy(pointer p) { p->~TYPE(); }
+//     void destroy(pointer p) { p->~TYPE(); }
 //
-//      int getUseMalloc() const { return d_useMalloc; }
-//  };
+//     int getUseMalloc() const { return d_useMalloc; }
+// };
 //
-//  template <class T, class U>
-//  inline
-//  bool operator==(const MagicAllocator<T>& a, const MagicAllocator<U>& b)
-//  {
-//      return a.getUseMalloc() == b.getUseMalloc();
-//  }
+// template <class T, class U>
+// inline
+// bool operator==(const MagicAllocator<T>& a, const MagicAllocator<U>& b)
+// {
+//     return a.getUseMalloc() == b.getUseMalloc();
+// }
 //
-//  template <class T, class U>
-//  inline
-//  bool operator!=(const MagicAllocator<T>& a, const MagicAllocator<U>& b)
-//  {
-//      return a.getUseMalloc() != b.getUseMalloc();
-//  }
-//..
-// Now, if we want to create a 'FilePath' using a 'MagicAllocator', we
-// need to adapt the 'MagicAllocator' to the 'bslma::Allocator' protocol.
-// This is where 'bslma::AllocatorAdaptor' comes in:
-//..
-//  int main()
-//  {
-//      MagicAllocator<char> ma(true);
-//      bslma::AllocatorAdaptor<MagicAllocator<char> >::Type maa(ma);
+// template <class T, class U>
+// inline
+// bool operator!=(const MagicAllocator<T>& a, const MagicAllocator<U>& b)
+// {
+//     return a.getUseMalloc() != b.getUseMalloc();
+// }
+// ```
+// Now, if we want to create a `FilePath` using a `MagicAllocator`, we
+// need to adapt the `MagicAllocator` to the `bslma::Allocator` protocol.
+// This is where `bslma::AllocatorAdaptor` comes in:
+// ```
+// int main()
+// {
+//     MagicAllocator<char> ma(true);
+//     bslma::AllocatorAdaptor<MagicAllocator<char> >::Type maa(ma);
 //
-//      my::FilePath usrbin("/usr/local/bin", &maa);
+//     my::FilePath usrbin("/usr/local/bin", &maa);
 //
-//      assert(&maa == usrbin.getAllocator());
-//      assert(ma == maa.adaptedAllocator());
+//     assert(&maa == usrbin.getAllocator());
+//     assert(ma == maa.adaptedAllocator());
 //
-//      return 0;
-//  }
-//..
+//     return 0;
+// }
+// ```
 
 #include <bslscm_version.h>
 
@@ -152,6 +155,7 @@ BSLS_IDENT("$Id: $")
 
 #include <bsls_alignmentutil.h>
 #include <bsls_compilerfeatures.h>
+#include <bsls_keyword.h>
 
 namespace BloombergLP {
 
@@ -161,14 +165,14 @@ namespace bslma {
                         // class template AllocatorAdaptor_Imp
                         // ===================================
 
+/// Component-private class. Do not use.  This class provides the actual
+/// interface and implementaiton for `AllocatorAdaptor`, which inherits
+/// from it.  The indirection is necessary so that
+/// `AllocatorAdaptor<Alloc<T>>` and `AllocatorAdaptor<Alloc<U>>` produce
+/// only one instantiation of this template:
+/// `AllocatorAdaptor_imp<Alloc<char>>`.
 template <class STL_ALLOC>
 class AllocatorAdaptor_Imp : public Allocator {
-    // Component-private class. Do not use.  This class provides the actual
-    // interface and implementaiton for 'AllocatorAdaptor', which inherits
-    // from it.  The indirection is necessary so that
-    // 'AllocatorAdaptor<Alloc<T>>' and 'AllocatorAdaptor<Alloc<U>>' produce
-    // only one instantiation of this template:
-    // 'AllocatorAdaptor_imp<Alloc<char>>'.
 
     BSLMF_ASSERT((bsl::is_same<typename STL_ALLOC::value_type, char>::value));
 
@@ -187,40 +191,43 @@ class AllocatorAdaptor_Imp : public Allocator {
     typedef STL_ALLOC            StlAllocatorType;
 
     // CREATORS
-    AllocatorAdaptor_Imp(); // = default
-        // Construct a polymorphic wrapper around a default-constructed
-        // STL-style allocator.
 
+    /// Construct a polymorphic wrapper around a default-constructed
+    /// STL-style allocator.
+    AllocatorAdaptor_Imp(); // = default
+
+    /// Construct a polymorphic wrapper around a copy of the specified
+    /// `stla` STL-style allocator.
     AllocatorAdaptor_Imp(const StlAllocatorType& stla);
-        // Construct a polymorphic wrapper around a copy of the specified
-        // 'stla' STL-style allocator.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_DEFAULTED_FUNCTIONS)
+    /// Create an `AllocatorAdaptor_Imp` object that can allocate and
+    /// deallocate memory as if it were the specified `original` object.
     AllocatorAdaptor_Imp(const AllocatorAdaptor_Imp& original) = default;
-        // Create an 'AllocatorAdaptor_Imp' object that can allocate and
-        // deallocate memory as if it were the specified 'original' object.
 #endif
 
 
-    virtual ~AllocatorAdaptor_Imp();
-        // Destroy this object and the STL-style allocator that it wraps.
+    /// Destroy this object and the STL-style allocator that it wraps.
+    ~AllocatorAdaptor_Imp() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    virtual void *allocate(size_type size);
-        // Return a maximally-aligned block of memory no smaller than 'size'
-        // bytes allocated from the STL-style allocator that was supplied to
-        // this object's constructor.  Any exceptions thrown by the underlying
-        // STL-style allocator are propagated out from this member.
 
-    virtual void deallocate(void *address);
-        // Return the memory block at the specified 'address' back to the
-        // STL-allocator.  If 'address' is null, this funciton has no effect.
-        // The behavior is undefined unless 'address' was allocated using this
-        // allocator object and has not already been deallocated.
+    /// Return a maximally-aligned block of memory no smaller than `size` bytes
+    /// allocated from the STL-style allocator that was supplied to this
+    /// object's constructor.  Any exceptions thrown by the underlying
+    /// STL-style allocator are propagated out from this member.
+    void *allocate(size_type size) BSLS_KEYWORD_OVERRIDE;
+
+    /// Return the memory block at the specified `address` back to the
+    /// STL-allocator.  If `address` is null, this funciton has no effect.  The
+    /// behavior is undefined unless `address` was allocated using this
+    /// allocator object and has not already been deallocated.
+    void deallocate(void *address) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return a copy of the STL allocator stored within this object.
     STL_ALLOC adaptedAllocator() const;
-        // Return a copy of the STL allocator stored within this object.
 };
 
                         // ===============================
@@ -228,26 +235,24 @@ class AllocatorAdaptor_Imp : public Allocator {
                         // ===============================
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
+/// Polymorphic wrapper around an STL-style allocator.  Note that
+/// `AllocatorAdaptor<A>::Type` is the same type regardless of whether or not
+/// the compiler supports alias templates.  It should be used, therefore,
+/// whenever the exact type of the adaptor is important.
 template <class STL_ALLOC>
 using AllocatorAdaptor =
     AllocatorAdaptor_Imp<typename STL_ALLOC::template rebind<char>::other>;
-    // Polymorphic wrapper around an STL-style allocator.  Note that
-    // 'AllocatorAdaptor<A>::Type' is the same type regardless of whether or
-    // not the compiler supports alias templates.  It should be used,
-    // therefore, whenever the exact type of the adaptor is important.
 #else
+/// Polymorphic wrapper around an object of the specified `STL_ALLOC` STL-style
+/// allocator template parameter.  A pointer to an object of this class can
+/// thus be used with any component that uses BDE-style memory allocation.
+/// Note that `AllocatorAdaptor<A>::Type` is the same type regardless of
+/// whether or not the compiler supports alias templates.  It should be used,
+/// therefore, whenever the exact type of the adaptor is important.
 template <class STL_ALLOC>
 class AllocatorAdaptor : public
   AllocatorAdaptor_Imp<typename STL_ALLOC::template rebind<char>::other>
 {
-    // Polymorphic wrapper around an object of the specified 'STL_ALLOC'
-    // STL-style allocator template parameter.  A pointer to an object of this
-    // class can thus be used with any component that uses BDE-style memory
-    // allocation.  Note that 'AllocatorAdaptor<A>::Type' is the same type
-    // regardless of whether or not the compiler supports alias templates.  It
-    // should be used, therefore, whenever the exact type of the adaptor is
-    // important.
-
     typedef typename STL_ALLOC::template rebind<char>::other ReboundSTLAlloc;
 
     // Not assignable
@@ -255,16 +260,17 @@ class AllocatorAdaptor : public
 
 public:
     // CREATORS
+
+    /// Constructs a polymorphic wrapper around a default-constructed
+    /// STL-style allocator.
     AllocatorAdaptor(); // = default
-        // Constructs a polymorphic wrapper around a default-constructed
-        // STL-style allocator.
 
+    /// Constructs a polymorphic wrapper around a copy of the specified 'stla'
+    /// STL-style allocator.
     AllocatorAdaptor(const STL_ALLOC& stla);
-        // Constructs a polymorphic wrapper around a copy of the specified
-        // 'stla' STL-style allocator.
 
-    //! AllocatorAdaptor(const AllocatorAdaptor&);
-    //! ~AllocatorAdaptor();
+    //! AllocatorAdaptor(const AllocatorAdaptor&) = default;
+    //! ~AllocatorAdaptor() = default;
 };
 #endif //  BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
 

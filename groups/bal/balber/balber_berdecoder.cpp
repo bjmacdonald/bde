@@ -1,12 +1,4 @@
 // balber_berdecoder.cpp                                              -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balber_berdecoder.h>
 
 #include <bsls_ident.h>
@@ -198,6 +190,7 @@ int BerDecoder_Node::logError(const char *msg)
 int BerDecoder_Node::decode(bsl::vector<char>         *variable,
                             bdlat_TypeCategory::Array  )
 {
+    typedef bdlat_FormattingMode FMode;
     switch (d_tagType) {
       case BerConstants::e_PRIMITIVE:
           // 'BerEncoder' will encode 'vector<char>' this way if and only if
@@ -206,7 +199,13 @@ int BerDecoder_Node::decode(bsl::vector<char>         *variable,
           // or 'e_TEXT'
         return this->readVectorChar(variable); // RETURN
       case BerConstants::e_CONSTRUCTED:
-        return this->decodeArray(variable); // RETURN
+        switch (d_formattingMode & FMode::e_TYPE_MASK) {
+          case FMode::e_DEFAULT:
+          case FMode::e_DEC:
+            return this->decodeArray(variable);                       // RETURN
+          default:
+            return logError("Unexpected CONSTRUCTED encoding");       // RETURN
+        }
       default:
         return logError("Expected PRIMITIVE or CONSTRUCTED tag class"
                         " for vector<char>");                         // RETURN
@@ -389,7 +388,8 @@ int BerDecoder_Node::readVectorUnsignedChar(
                                                                       // RETURN
     }
 
-    if (d_expectedLength < 0) {
+    const int length = d_expectedLength;
+    if (length < 0) {
         return logError("'vector<unsigned char>' with indefinite "
                         "length is not supported at this time");      // RETURN
 
@@ -399,22 +399,22 @@ int BerDecoder_Node::readVectorUnsignedChar(
     }
 
     int maxSize = d_decoder->decoderOptions()->maxSequenceSize();
-    if (d_expectedLength > maxSize) {
+    if (length > maxSize) {
         return logError("'vector<unsigned char>' length more then limit");
                                                                       // RETURN
     }
 
-    variable->resize(d_expectedLength);
+    variable->resize(length);
 
-    char *variabledata = reinterpret_cast<char *>(&(*variable)[0]);
-    if (0 != d_expectedLength &&
-        d_expectedLength !=
-            d_decoder->d_streamBuf->sgetn(variabledata, d_expectedLength)) {
-        return logError("Stream error while reading 'vector<unsigned char>'");
-                                                                      // RETURN
+    if (length != 0) {
+        char *data = reinterpret_cast<char *>(variable->data());
+        if (length != d_decoder->d_streamBuf->sgetn(data, length)) {
+            return logError(
+              "Stream error while reading 'vector<unsigned char>'");  // RETURN
+        }
     }
 
-    d_consumedBodyBytes += d_expectedLength;
+    d_consumedBodyBytes += length;
 
     return BerDecoder::e_BER_SUCCESS;
 }

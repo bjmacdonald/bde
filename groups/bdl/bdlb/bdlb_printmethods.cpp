@@ -1,12 +1,4 @@
 // bdlb_printmethods.cpp                                              -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlb_printmethods.h>
 
 #include <bslim_formatguard.h>
@@ -23,10 +15,10 @@ namespace u {
 
 using namespace BloombergLP;
 
+/// Print the specified `object` in 2 digit hex, preceded by "0x", to the
+/// specified `stream`.
 inline
 void printHexChar(bsl::ostream& stream, unsigned char object)
-    // Print the specified 'object' in 2 digit hex, preceded by "0x", to the
-    // specified 'stream'.
 {
     bslim::FormatGuard guard(&stream);
 

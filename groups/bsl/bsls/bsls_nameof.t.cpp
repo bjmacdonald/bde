@@ -3,9 +3,18 @@
 #include <bsls_nameof.h>
 
 #include <bsls_bsltestutil.h>
+#include <bsls_libraryfeatures.h>
 
 #include <cstring>
 #include <string>
+
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
+# include <string_view>
+#endif
+
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_PMR)
+# include <memory_resource>
+#endif
 
 #include <stdio.h>       // sprintf()
 #include <stdlib.h>      // atoi()
@@ -100,17 +109,17 @@ struct Stopwatch {
 }
 }
 
-// First, your test driver must have the following 'using' statements so that
-// the template class 'NameOf' and the template function 'nameOfType' can be
+// First, your test driver must have the following `using` statements so that
+// the template class `NameOf` and the template function `nameOfType` can be
 // referred to concisely, without having to qualify them with namespaces on
-// each call.  Note that if you've already said 'using namespace BloombergLP'
-// you don't have to give the 'BloombergLP::' qualifiers here:
-//..
+// each call.  Note that if you've already said `using namespace BloombergLP`
+// you don't have to give the `BloombergLP::` qualifiers here:
+// ```
     using BloombergLP::bsls::NameOf;
     using BloombergLP::bsls::nameOfType;
-//..
+// ```
 // Next, we define some types in the unnamed namespace:
-//..
+// ```
     namespace {
 //
     struct MyType {
@@ -124,7 +133,7 @@ struct Stopwatch {
     };
 //
     }  // close unnamed namespace
-//..
+// ```
 
 static int array[100];
 
@@ -142,8 +151,9 @@ struct Pretty {
     const char *d_funcName;
 
     // CREATOR
+
+    /// Initialize this object with the function name of the c'tor.
     Pretty()
-        // Initialize this object with the function name of the c'tor.
     {
 #if   defined(BSLS_PLATFORM_CMP_GNU) || defined(BSLS_PLATFORM_CMP_CLANG)
         d_funcName = __PRETTY_FUNCTION__;
@@ -163,8 +173,9 @@ struct Pretty {
     }
 
     // ACCESSOR
+
+    /// Return the function name of the c'tor.
     operator const char *() const
-        // Return the function name of the c'tor.
     {
         return d_funcName;
     }
@@ -209,31 +220,31 @@ int main(int argc, char *argv[])
         break;
 #endif
 
-// Next, we see that the 'NameOf' template class, when created with a type, can
-// be implicitly cast to a 'const char *' which points to a description of the
+// Next, we see that the `NameOf` template class, when created with a type, can
+// be implicitly cast to a `const char *` which points to a description of the
 // type.
-//..
+// ```
     ASSERT(!std::strcmp("double", NameOf<double>()));
     ASSERT(!std::strcmp("int",    NameOf<int>()));
-//..
-// Then, we see that when 'NameOf' is passed a 'typedef' or template parameter,
+// ```
+// Then, we see that when `NameOf` is passed a `typedef` or template parameter,
 // it resolves it to the original type:
-//..
+// ```
     typedef int Woof;
 //
     ASSERT(!std::strcmp("int",    NameOf<Woof>()));
-//..
-// Next, we introduce the 'nameOfType' template function, which takes as any
-// variable as an argument, and returns a 'const char *' pointing to a
+// ```
+// Next, we introduce the `nameOfType` template function, which takes as any
+// variable as an argument, and returns a `const char *` pointing to a
 // description of the type of the variable.
-//..
+// ```
     int ii = 2;
 //
     ASSERT(!std::strcmp("int",    nameOfType(ii)));
-//..
-// Then, we see that 'NameOf' and 'nameOfType' will strip 'BloombergLP::'
+// ```
+// Then, we see that `NameOf` and `nameOfType` will strip `BloombergLP::`
 // namespace qualifiers, as well as anonymous namespace qualifiers.
-//..
+// ```
     typedef BloombergLP::bsls::Stopwatch SW;
 //
     const SW      sw;
@@ -251,12 +262,12 @@ int main(int argc, char *argv[])
 //
     ASSERT(!std::strcmp("MyUnion",         NameOf<MyUnion>()));
     ASSERT(!std::strcmp("MyUnion",         nameOfType(mu)));
-//..
+// ```
 // There is a problem with template code not knowing how to implicitly cast the
-// 'NameOf' type to 'const char *' for initializing or comparing with
-// 'std::string's.  To facilitate, 'NameOf' provides a 'const char *' 'name'
-// accessor, to avoid the user having to do a more verbose 'static cast'.
-//..
+// `NameOf` type to `const char *` for initializing or comparing with
+// `std::string`s.  To facilitate, `NameOf` provides a `const char *` `name`
+// accessor, to avoid the user having to do a more verbose `static cast`.
+// ```
     const std::string swName = "bsls::Stopwatch";
     ASSERT(swName == static_cast<const char *>(NameOf<SW>()));
     ASSERT(swName == NameOf<SW>().name());
@@ -267,14 +278,14 @@ if (verbose) {
     printf("NameOf<SW>() = \"%s\"\n", NameOf<SW>().name());
     printf("NameOfType(4 + 3) = \"%s\"\n", nameOfType(4 + 3));
 }
-//..
-// Note that 'nameOfType' naturally returns a 'const char *' and needs no help
-// casting.  Note also that 'bsls::debugprint' is able to figure out how to
-// cast 'NameOf' directly to 'const char *' with no problems, as can iostreams,
-// so there is no problem with putting a 'NameOf' in a 'LOOP_ASSERT' or
-// 'ASSERTV'.  It is anticipated that displaying by the BDE 'ASSERTV',
-// 'LOOP_ASSERT, and 'P' macros will be the primary use of this component.
-//..
+// ```
+// Note that `nameOfType` naturally returns a `const char *` and needs no help
+// casting.  Note also that `bsls::debugprint` is able to figure out how to
+// cast `NameOf` directly to `const char *` with no problems, as can iostreams,
+// so there is no problem with putting a `NameOf` in a `LOOP_ASSERT` or
+// `ASSERTV`.  It is anticipated that displaying by the BDE `ASSERTV`,
+// `LOOP_ASSERT, and `P' macros will be the primary use of this component.
+// ```
 if (verbose) {
     printf("NameOf<double>() = ");
     BloombergLP::bsls::debugprint(NameOf<double>());
@@ -287,16 +298,16 @@ if (verbose) {
     LOOP_ASSERT(NameOf<DTYPE>(), x > 7);
 //
     std::string myStr;              // Assign, not init, of string doesn't need
-    myStr = NameOf<DTYPE>();        // '.name()'.
+    myStr = NameOf<DTYPE>();        // `.name()`.
     ASSERT("double" == myStr);
-//..
+// ```
 // Which produces:
-//..
+// ```
 //  NameOf<SW>() = "bsls::Stopwatch"
-//..
-// Finally, we see that 'NameOf' and 'nameOfType' will simplifiy
-// 'std::basic_string<...>' declarations to 'std::string'.
-//..
+// ```
+// Finally, we see that `NameOf` and `nameOfType` will simplifiy
+// `std::basic_string<...>` declarations to `std::string`.
+// ```
     const std::string s = "std::string";
 //
     ASSERT(s == NameOf<std::basic_string<char> >().name());
@@ -311,7 +322,7 @@ if (verbose) {
     ASSERT(s2 == NameOf<NameOf<std::string> >().name());
     ASSERT(s2 == NameOf<Nos>().name());
     ASSERT(s2 == nameOfType(Nos()));
-//..
+// ```
       } break;
       case 1: {
         // --------------------------------------------------------------------
@@ -321,7 +332,7 @@ if (verbose) {
         //   Exercise each method lightly.
         //
         // Plan:
-        //   Call the 'NameOf' c'tor and the local 'nameOfType' function on
+        //   Call the `NameOf` c'tor and the local `nameOfType` function on
         //   various types and observe the results.
         //
         // Testing:
@@ -335,7 +346,7 @@ if (verbose) {
         using BloombergLP::bsls::nameOfType;
         using BloombergLP::bsls::Pretty;
 
-        int             ii;
+        int             ii = 0;
         MyType          mt;
         MyUnion         mu;
         bsls::Stopwatch sw;
@@ -344,6 +355,12 @@ if (verbose) {
             P(Pretty<int>());
             P(Pretty<std::string>());
             P(Pretty<MyType>());
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+            P(Pretty<std::pmr::string>());
+#endif
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
+            P(Pretty<std::string_view>());
+#endif
             P(Pretty<NameOf<std::string> >());
             P(Pretty<NameOf<bsls::Stopwatch> >());
 
@@ -355,7 +372,12 @@ if (verbose) {
             P(NameOf<bsls::Stopwatch>());
             P(NameOf<NameOf<std::string> >());
             P(NameOf<NameOf<bsls::Stopwatch> >());
-
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+            P(NameOf<std::pmr::string>());
+#endif
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
+            P(NameOf<std::string_view>());
+#endif
             P(nameOfType(ii));
             P(nameOfType(mt));
             P(nameOfType(mu));
@@ -366,6 +388,12 @@ if (verbose) {
             P(nameOfType(NameOf<int>()));
             P(nameOfType(sw));
             P(nameOfType(&NameOf<std::string>::name));
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+            P(nameOfType(std::pmr::string()));
+#endif
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
+            P(nameOfType(std::string_view()));
+#endif
 
 #if   defined(BSLS_PLATFORM_CMP_GNU) || defined(BSLS_PLATFORM_CMP_CLANG)
             P(nameOfType(__PRETTY_FUNCTION__));
@@ -422,6 +450,14 @@ if (verbose) {
         ASSERTV(NameOf<MyType>(),     eq("MyType",     NameOf<MyType>()));
         ASSERTV(NameOf<MyUnion>(),    eq("MyUnion",    NameOf<MyUnion>()));
         ASSERTV(NameOf<std::string>(),eq("std::string",NameOf<std::string>()));
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+        ASSERTV(NameOf<std::pmr::string>(),
+                           eq("std::pmr::string", NameOf<std::pmr::string>()));
+#endif
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
+        ASSERTV(NameOf<std::string_view>(),
+                           eq("std::string_view", NameOf<std::string_view>()));
+#endif
         ASSERTV(NameOf<bsls::Stopwatch>(),
                              eq("bsls::Stopwatch", NameOf<bsls::Stopwatch>()));
         ASSERTV(NameOf<NameOf<int> >(),

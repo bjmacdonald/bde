@@ -1,38 +1,23 @@
 // balber_berutil.cpp                                                 -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balber_berutil.h>
 
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(balber_berutil_cpp, "$Id$ $CSID$")
 
-#include <bdlf_memfn.h>
-
-#include <bdlt_prolepticdateimputil.h>
-
-#include <bdlt_iso8601util.h>
-
 #include <bdlb_bitutil.h>
-
+#include <bdldfp_decimalconvertutil.h>
+#include <bdlf_memfn.h>
 #include <bdlsb_fixedmemoutstreambuf.h>
-
 #include <bdlt_date.h>
 #include <bdlt_datetime.h>
 #include <bdlt_datetimetz.h>
 #include <bdlt_datetz.h>
+#include <bdlt_iso8601util.h>
+#include <bdlt_prolepticdateimputil.h>
 #include <bdlt_time.h>
 #include <bdlt_timetz.h>
 
-#include <bdldfp_decimalconvertutil.h>
-
 #include <bslmt_once.h>
-
 #include <bsls_assert.h>
 #include <bsls_log.h>
 #include <bsls_platform.h>
@@ -51,13 +36,13 @@ typedef BloombergLP::balber::BerDecoderOptions     BerDecoderOptions;
                    // struct BerUtil_64BitFloatingPointMasks
                    // ======================================
 
+/// This internal-linkage, component-private utility `struct` provides a
+/// namespace for a suite of 64-bit mask constants used in the construction
+/// of floating-point values.
+///
+/// Note that the constants in this component have integral values that are
+/// too large to be used as enumerators on some platforms.
 struct BerUtil_64BitFloatingPointMasks {
-    // This internal-linkage, component-private utility 'struct' provides a
-    // namespace for a suite of 64-bit mask constants used in the construction
-    // of floating-point values.
-    //
-    // Note that the constants in this component have integral values that are
-    // too large to be used as enumerators on some platforms.
 
     // CLASS DATA
     static const u::Uint64 k_DOUBLE_EXPONENT_MASK;
@@ -84,9 +69,49 @@ const u::Uint64 BerUtil_64BitFloatingPointMasks::
 const u::Uint64 BerUtil_64BitFloatingPointMasks::k_DOUBLE_SIGN_MASK =
                                                          0x8000000000000000ULL;
 
+                   // =====================
+                   // class ReadRestFunctor
+                   // =====================
+
+/// A functor for `string::resize_and_overwrite`.  Appends read bytes to the
+/// buffer.
+class ReadRestFunctor {
+
+    // DATA
+    bsl::streambuf  *d_streamBuf;
+    int              d_oldSize;
+  public:
+    // CREATORS
+    ReadRestFunctor(bsl::streambuf *streamBuf, int oldSize);
+
+    // MODIFIERS
+    size_t operator()(char *buf, size_t newSize);
+};
+
+                   // ---------------------
+                   // class ReadRestFunctor
+                   // ---------------------
+
+// CREATORS
+ReadRestFunctor::ReadRestFunctor(bsl::streambuf *streamBuf, int oldSize)
+: d_streamBuf(streamBuf)
+, d_oldSize(oldSize)
+{
+}
+
+// MODIFIERS
+size_t ReadRestFunctor::operator()(char *buf, size_t newSize)
+{
+    bsl::streamsize nRead = d_streamBuf->sgetn(
+                                        buf + d_oldSize,
+                                        static_cast<int>(newSize) - d_oldSize);
+    return static_cast<size_t>(d_oldSize + nRead);
+}
+
 // FREE FUNCTIONS
+
+/// The first time this is called, issue an explanatory warning.
 void warnOnce()
-    // The first time this is called, issue an explanatory warning.
 {
     BSLMT_ONCE_DO {
         BSLS_LOG_WARN(
@@ -183,12 +208,12 @@ int BerUtil_IdentifierImpUtil::getIdentifierOctets(
     return FAILURE;
 }
 
+/// Write the specified `tag*` to the specified `streamBuf`.
 int BerUtil_IdentifierImpUtil::putIdentifierOctets(
                                              bsl::streambuf         *streamBuf,
                                              BerConstants::TagClass  tagClass,
                                              BerConstants::TagType   tagType,
                                              int                     tagNumber)
-    // Write the specified 'tag*' to the specified 'streamBuf'.
 {
     enum { SUCCESS = 0, FAILURE = -1 };
 
@@ -1084,12 +1109,29 @@ int BerUtil_StringImpUtil::getStringValue(bsl::string              *value,
         return -1;                                                    // RETURN
     }
 
-    value->resize_and_overwrite(
-        length,
-        bdlf::MemFnUtil::memFn(&bsl::streambuf::sgetn, streamBuf));
+    static const int maxInitialAllocation = 16 * 1024 * 1024;  // 16 MB
 
-    if (static_cast<bsl::string::size_type>(length) != value->size()) {
+    // 'length' could be corrupt or invalid, so we limit the initial buffer.
+    // On success the remaining bytes are read via a second pass.
+    int initialLength = length < maxInitialAllocation ? length
+                                                      : maxInitialAllocation;
+
+    // Read no more than 'maxInitialAllocation'
+    value->resize_and_overwrite(initialLength,
+                                bdlf::MemFnUtil::memFn(&bsl::streambuf::sgetn,
+                                                       streamBuf));
+    if (static_cast<size_t>(initialLength) != value->size()) {
         return -1;                                                    // RETURN
+    }
+
+    if (length > initialLength) {
+        // 'length' > 'maxInitialAllocation'.  Read the rest.
+        value->resize_and_overwrite(length,
+                                    u::ReadRestFunctor(streamBuf,
+                                                       initialLength));
+        if (static_cast<size_t>(length) != value->size()) {
+            return -1;                                                // RETURN
+        }
     }
 
     return 0;

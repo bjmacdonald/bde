@@ -9,7 +9,7 @@ BSLS_IDENT("$Id: $")
 //
 //@CLASSES:
 //  bsl::iterator_traits: information about iterator associated types
-//  bsl::reverse_iterator: bring in 'std::reverse_iterator'
+//  bsl::reverse_iterator: bring in `std::reverse_iterator`
 //  bsl::distance: global function to calculate iterator distance
 //
 //@CANONICAL_HEADER: bsl_iterator.h
@@ -18,7 +18,7 @@ BSLS_IDENT("$Id: $")
 //           bslstl_randomaccessiterator, C++ Standard
 //
 //@DESCRIPTION: This component is for internal use only.  Please include
-// '<bsl_iterator.h>' directly.  This component provides the facilities of the
+// `<bsl_iterator.h>` directly.  This component provides the facilities of the
 // iterators library from the C++ Standard, including iterator primitives
 // (24.4), iterator adaptors (24.5), and stream iterators (24.6).
 //
@@ -28,150 +28,150 @@ BSLS_IDENT("$Id: $")
 //
 ///Example 1: Using Iterators to Traverse a Container
 /// - - - - - - - - - - - - - - - - - - - - - - - - -
-// In this example, we will use the 'bsl::iterator' and 'bsl::reverse_iterator'
+// In this example, we will use the `bsl::iterator` and `bsl::reverse_iterator`
 // to traverse an iterable container type.
 //
-// Suppose that we have an iterable container template type 'MyFixedSizeArray'.
-// An instantiation of 'MyFixedSizeArray' represents an array having fixed
+// Suppose that we have an iterable container template type `MyFixedSizeArray`.
+// An instantiation of `MyFixedSizeArray` represents an array having fixed
 // number of elements, which is a parameter passed to the class constructor
-// during construction.  A traversal of 'MyFixedSizeArray' can be accomplished
+// during construction.  A traversal of `MyFixedSizeArray` can be accomplished
 // using basic iterators (pointers) as well as reverse iterators.
 //
 // First, we create a elided definition of the template container class,
-// 'MyFixedSizeArray', which provides mutable and constant iterators of
-// template type 'bsl::iterator' and 'reverse_iterator':
-//..
-//  template <class VALUE, int SIZE>
-//  class MyFixedSizeArray
-//      // This is a container that contains a fixed number of elements.  The
-//      // number of elements is specified upon construction and can not be
-//      // changed afterwards.
-//  {
-//      // DATA
-//      VALUE d_array[SIZE];  // storage of the container
+// `MyFixedSizeArray`, which provides mutable and constant iterators of
+// template type `bsl::iterator` and `reverse_iterator`:
+// ```
+// /// This is a container that contains a fixed number of elements.  The
+// /// number of elements is specified upon construction and can not be
+// /// changed afterwards.
+// template <class VALUE, int SIZE>
+// class MyFixedSizeArray
+// {
+//     // DATA
+//     VALUE d_array[SIZE];  // storage of the container
 //
-//    public:
-//      // PUBLIC TYPES
-//      typedef VALUE value_type;
-//..
+//   public:
+//     // PUBLIC TYPES
+//     typedef VALUE value_type;
+// ```
 // Here, we define mutable and constant iterators and reverse iterators:
-//..
-//      typedef VALUE                                 *iterator;
-//      typedef VALUE const                           *const_iterator;
-//      typedef bsl::reverse_iterator<iterator>        reverse_iterator;
-//      typedef bsl::reverse_iterator<const_iterator>  const_reverse_iterator;
+// ```
+//     typedef VALUE                                 *iterator;
+//     typedef VALUE const                           *const_iterator;
+//     typedef bsl::reverse_iterator<iterator>        reverse_iterator;
+//     typedef bsl::reverse_iterator<const_iterator>  const_reverse_iterator;
 //
-//      // CREATORS
-//      //! MyFixedSizeArray() = default;
-//          // Create a 'MyFixedSizeArray' object having the parameterized
-//          // 'SIZE' elements of the parameterized type 'VALUE'.
+//     // CREATORS
+//     //! MyFixedSizeArray() = default;
+//         // Create a `MyFixedSizeArray` object having the parameterized
+//         // `SIZE` elements of the parameterized type `VALUE`.
 //
-//      //! MyFixedSizeArray(const MyFixedSizeArray& original) = default;
-//          // Create a 'MyFixedSizeArray' object having same number of
-//          // elements as that of the specified 'rhs', and the same value of
-//          // each element as that of corresponding element in 'rhs'.
+//     //! MyFixedSizeArray(const MyFixedSizeArray& original) = default;
+//         // Create a `MyFixedSizeArray` object having same number of
+//         // elements as that of the specified `rhs`, and the same value of
+//         // each element as that of corresponding element in `rhs`.
 //
-//      //! ~MyFixedSizeArray() = default;
-//          // Destroy this object.
-//..
-// Now, we define the 'begin' and 'end' methods to return basic iterators
-// ('VALUE*' and 'const VALUE*'), and the 'rbegin' and 'rend' methods to return
-// reverse iterators ('bsl::reverse_iterator<VALUE*>' and
-// 'bsl::reverse_iterator<const VALUE*>) type:
-//..
-//      // MANIPULATORS
-//      iterator begin();
-//          // Return the basic iterator providing modifiable access to the
-//          // first valid element of this object.
+//     //! ~MyFixedSizeArray() = default;
+//         // Destroy this object.
+// ```
+// Now, we define the `begin` and `end` methods to return basic iterators
+// (`VALUE*` and `const VALUE*`), and the `rbegin` and `rend` methods to return
+// reverse iterators (`bsl::reverse_iterator<VALUE*>` and
+// `bsl::reverse_iterator<const VALUE*>)` type:
+// ```
+//     // MANIPULATORS
+//     iterator begin();
+//         // Return the basic iterator providing modifiable access to the
+//         // first valid element of this object.
 //
-//      iterator end();
-//          // Return the basic iterator providing modifiable access to the
-//          // position one after the last valid element of this object.
+//     iterator end();
+//         // Return the basic iterator providing modifiable access to the
+//         // position one after the last valid element of this object.
 //
-//      reverse_iterator rbegin();
-//          // Return the reverse iterator providing modifiable access to the
-//          // last valid element of this object.
+//     reverse_iterator rbegin();
+//         // Return the reverse iterator providing modifiable access to the
+//         // last valid element of this object.
 //
-//      reverse_iterator rend();
-//          // Return the reverse iterator providing modifiable access to the
-//          // position one before the first valid element of this object.
+//     reverse_iterator rend();
+//         // Return the reverse iterator providing modifiable access to the
+//         // position one before the first valid element of this object.
 //
-//      VALUE& operator[](int i);
-//          // Return the reference providing modifiable access of the
-//          // specified 'i'th element of this object.
+//     VALUE& operator[](int i);
+//         // Return the reference providing modifiable access of the
+//         // specified `i`th element of this object.
 //
-//      // ACCESSORS
-//      const_iterator begin() const;
-//          // Return the basic iterator providing non-modifiable access to the
-//          // first valid element of this object.
+//     // ACCESSORS
+//     const_iterator begin() const;
+//         // Return the basic iterator providing non-modifiable access to the
+//         // first valid element of this object.
 //
-//      const_iterator end() const;
-//          // Return the basic iterator providing non-modifiable access to the
-//          // position one after the last valid element of this object.
+//     const_iterator end() const;
+//         // Return the basic iterator providing non-modifiable access to the
+//         // position one after the last valid element of this object.
 //
-//      const_reverse_iterator rbegin() const;
-//          // Return the reverse iterator providing non-modifiable access to
-//          // the last valid element of this object.
+//     const_reverse_iterator rbegin() const;
+//         // Return the reverse iterator providing non-modifiable access to
+//         // the last valid element of this object.
 //
-//      const_reverse_iterator rend() const;
-//          // Return the reverse iterator providing non-modifiable access to
-//          // the position one before the first valid element of this object.
+//     const_reverse_iterator rend() const;
+//         // Return the reverse iterator providing non-modifiable access to
+//         // the position one before the first valid element of this object.
 //
-//      int size() const;
-//          // Return the number of elements contained in this object.
+//     int size() const;
+//         // Return the number of elements contained in this object.
 //
-//      const VALUE& operator[](int i) const;
-//          // Return the reference providing non-modifiable access of the
-//          // specified 'i'th element of this object.
-//  };
+//     const VALUE& operator[](int i) const;
+//         // Return the reference providing non-modifiable access of the
+//         // specified `i`th element of this object.
+// };
 //
-//  // ...
-//..
-// Then, we create a 'MyFixedSizeArray' and initialize its elements:
-//..
-//  // Create a fixed array having five elements.
+// // ...
+// ```
+// Then, we create a `MyFixedSizeArray` and initialize its elements:
+// ```
+// // Create a fixed array having five elements.
 //
-//  MyFixedSizeArray<int, 5> fixedArray;
+// MyFixedSizeArray<int, 5> fixedArray;
 //
-//  // Initialize the values of each element in the fixed array.
+// // Initialize the values of each element in the fixed array.
 //
-//  for (int i = 0; i < fixedArray.size(); ++i) {
-//      fixedArray[i] = i + 1;
-//  }
-//..
-// Next, we generate reverse iterators using the 'rbegin' and 'rend' methods of
+// for (int i = 0; i < fixedArray.size(); ++i) {
+//     fixedArray[i] = i + 1;
+// }
+// ```
+// Next, we generate reverse iterators using the `rbegin` and `rend` methods of
 // the fixed array object:
-//..
-//  MyFixedSizeArray<int, 5>::reverse_iterator rstart  = fixedArray.rbegin();
-//  MyFixedSizeArray<int, 5>::reverse_iterator rfinish = fixedArray.rend();
-//..
+// ```
+// MyFixedSizeArray<int, 5>::reverse_iterator rstart  = fixedArray.rbegin();
+// MyFixedSizeArray<int, 5>::reverse_iterator rfinish = fixedArray.rend();
+// ```
 // Now, we note that we could have acquired the iterators and container size by
 // calling the appropriate free functions:
-//..
-//  assert(rstart  == bsl::rbegin(fixedArray));
-//  assert(rfinish == bsl::rend(  fixedArray));
+// ```
+// assert(rstart  == bsl::rbegin(fixedArray));
+// assert(rfinish == bsl::rend(  fixedArray));
 //
-//  assert(fixedArray.size() == bsl::size(fixedArray));
-//  assert(rfinish - rstart  == bsl::ssize(fixedArray));
-//..
+// assert(fixedArray.size() == bsl::size(fixedArray));
+// assert(rfinish - rstart  == bsl::ssize(fixedArray));
+// ```
 // Finally, we traverse the fixed array again in reverse order using the two
 // generated reverse iterators:
-//..
-//  printf("Traverse array using reverse iterator:\n");
-//  while (rstart != rfinish) {
-//      printf("\tElement: %d\n", *rstart);
-//      ++rstart;
-//  }
-//..
-// The preceding loop produces the following output on 'stdout':
-//..
-//  Traverse array using reverse iterator:
-//       Element: 5
-//       Element: 4
-//       Element: 3
-//       Element: 2
-//       Element: 1
-//..
+// ```
+// printf("Traverse array using reverse iterator:\n");
+// while (rstart != rfinish) {
+//     printf("\tElement: %d\n", *rstart);
+//     ++rstart;
+// }
+// ```
+// The preceding loop produces the following output on `stdout`:
+// ```
+// Traverse array using reverse iterator:
+//      Element: 5
+//      Element: 4
+//      Element: 3
+//      Element: 2
+//      Element: 1
+// ```
 
 #include <bslscm_version.h>
 
@@ -778,45 +778,46 @@ using std::distance;
 using std::begin;
 using std::end;
 #else   // BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
+
+/// Return an iterator providing modifiable access to the first valid
+/// element of the specified `container`.
 template <class T>
 typename T::iterator begin(T& container);
-    // Return an iterator providing modifiable access to the first valid
-    // element of the specified 'container'.
 
+/// Return an iterator providing non-modifiable access to the first valid
+/// element of the specified `container`.
 template <class T>
 typename T::const_iterator begin(const T& container);
-    // Return an iterator providing non-modifiable access to the first valid
-    // element of the specified 'container'.
 
+/// Return the address of the modifiable first element in the specified
+/// `array`.
 template<class T, size_t N>
 T *begin(T (&array)[N]);
-    // Return the address of the modifiable first element in the specified
-    // 'array'.
 
+/// Return the address of the non-modifiable first element in the specified
+/// `array`.
 template<class T, size_t N>
 const T *begin(const T (&array)[N]);
-    // Return the address of the non-modifiable first element in the specified
-    // 'array'.
 
+/// Return the iterator providing modifiable access to the position one
+/// after the last valid element in the specified `container`.
 template <class T>
 typename T::iterator end(T& container);
-    // Return the iterator providing modifiable access to the position one
-    // after the last valid element in the specified 'container'.
 
+/// Return the iterator providing non-modifiable access to the position one
+/// after the last valid element in the specified `container`.
 template <class T>
 typename T::const_iterator end(const T& container);
-    // Return the iterator providing non-modifiable access to the position one
-    // after the last valid element in the specified 'container'.
 
+/// Return the address of the modifiable element after the last element
+/// in the specified `array`.
 template<class T, size_t N>
 T *end(T (&array)[N]);
-    // Return the address of the modifiable element after the last element
-    // in the specified 'array'.
 
+/// Return the address of the non-modifiable element after the last element
+/// in the specified `array`.
 template<class T, size_t N>
 const T *end(const T (&array)[N]);
-    // Return the address of the non-modifiable element after the last element
-    // in the specified 'array'.
 
 #endif  // else-of BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS
 
@@ -828,30 +829,31 @@ using std::rend;
 using std::crbegin;
 using std::crend;
 #else   // BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
+
+/// Return an iterator providing non-modifiable access to the first valid
+/// element of the specified `container`.
 template <class T>
 typename T::const_iterator cbegin(const T& container);
-    // Return an iterator providing non-modifiable access to the first valid
-    // element of the specified 'container'.
 
+/// Return the address of the non-modifiable first element in the specified
+/// `array`.
 template<class T, size_t N>
 const T *cbegin(const T (&array)[N]);
-    // Return the address of the non-modifiable first element in the specified
-    // 'array'.
 
+/// Return the reverse iterator providing modifiable access to the last
+/// valid element of the specified `container`.
 template <class T>
 typename T::reverse_iterator rbegin(T& container);
-    // Return the reverse iterator providing modifiable access to the last
-    // valid element of the specified 'container'.
 
+/// Return the reverse iterator providing non-modifiable access to the last
+/// valid element of the specified `container`.
 template <class T>
 typename T::const_reverse_iterator rbegin(const T& container);
-    // Return the reverse iterator providing non-modifiable access to the last
-    // valid element of the specified 'container'.
 
+/// Return the reverse iterator providing modifiable access to the last
+/// element of the specified `array`.
 template <class T, size_t N>
 reverse_iterator<T *> rbegin(T (&array)[N]);
-    // Return the reverse iterator providing modifiable access to the last
-    // element of the specified 'array'.
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
 template <class T>
@@ -860,41 +862,41 @@ reverse_iterator<const T *> rbegin(std::initializer_list<T> initializerList);
     // element of the specified 'initializerList'.
 #endif  // BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
 
+/// Return the reverse iterator providing non-modifiable access to the last
+/// valid element of the specified `container`.
 template <class T>
 typename T::const_reverse_iterator crbegin(const T& container);
-    // Return the reverse iterator providing non-modifiable access to the last
-    // valid element of the specified 'container'.
 
+/// Return the reverse iterator providing non-modifiable access to the last
+/// element of the specified `array`.
 template <class T, size_t N>
 reverse_iterator<const T *> crbegin(const T (&array)[N]);
-    // Return the reverse iterator providing non-modifiable access to the last
-    // element of the specified 'array'.
 
+/// Return the iterator providing non-modifiable access to the position one
+/// after the last valid element in the specified `container`.
 template <class T>
 typename T::const_iterator cend(const T& container);
-    // Return the iterator providing non-modifiable access to the position one
-    // after the last valid element in the specified 'container'.
 
+/// Return the address of the non-modifiable element after the last element
+/// in the specified `array`.
 template<class T, size_t N>
 const T *cend(const T (&array)[N]);
-    // Return the address of the non-modifiable element after the last element
-    // in the specified 'array'.
 
+/// Return the reverse iterator providing modifiable access to the position
+/// one before the first valid element in the specified `container`.
 template <class T>
 typename T::reverse_iterator rend(T& container);
-    // Return the reverse iterator providing modifiable access to the position
-    // one before the first valid element in the specified 'container'.
 
+/// Return the reverse iterator providing non-modifiable access to the
+/// position one before the first valid element in the specified
+/// `container`.
 template <class T>
 typename T::const_reverse_iterator rend(const T& container);
-    // Return the reverse iterator providing non-modifiable access to the
-    // position one before the first valid element in the specified
-    // 'container'.
 
+/// Return the reverse iterator providing modifiable access to the position
+/// one before the first element in the specified `array`.
 template <class T, size_t N>
 reverse_iterator<T *> rend(T (&array)[N]);
-    // Return the reverse iterator providing modifiable access to the position
-    // one before the first element in the specified 'array'.
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
 template <class T>
@@ -904,15 +906,15 @@ reverse_iterator<const T *> rend(std::initializer_list<T> initializerList);
     // 'initializerList'.
 #endif  // BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
 
+/// Return the reverse iterator providing non-modifiable access to the
+/// position one before the first element in the specified `container`.
 template <class T>
 typename T::const_reverse_iterator crend(const T& container);
-    // Return the reverse iterator providing non-modifiable access to the
-    // position one before the first element in the specified 'container'.
 
+/// Return the reverse iterator providing non-modifiable access to the
+/// position one before the first element in the specified `array`.
 template <class T, size_t N>
 reverse_iterator<const T *> crend(const T (&array)[N]);
-    // Return the reverse iterator providing non-modifiable access to the
-    // position one before the first element in the specified 'array'.
 #endif  // else-of BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
@@ -1196,6 +1198,9 @@ typename CONTAINER::value_type *data(CONTAINER& container)
     return container.data();
 }
 
+/// Return a pointer providing non-modifiable access to the first valid
+/// element of the specified `container`.  The `CONTAINER` template
+/// parameter type must provide a `data` accessor.
 template <class CONTAINER>
 inline BSLS_KEYWORD_CONSTEXPR
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
@@ -1203,9 +1208,6 @@ auto data(const CONTAINER& container) -> decltype(container.data())
 #else   // BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 typename CONTAINER::value_type const *data(const CONTAINER& container)
 #endif  // else-of BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
-    // Return a pointer providing non-modifiable access to the first valid
-    // element of the specified 'container'.  The 'CONTAINER' template
-    // parameter type must provide a 'data' accessor.
 {
     return container.data();
 }
@@ -1229,20 +1231,21 @@ BSLS_KEYWORD_CONSTEXPR auto empty(const CONTAINER& container)->
     return container.empty();
 }
 # else   // BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
+
+/// Return whether or not the specified `container` contains zero elements.
+/// The `CONTAINER` template parameter type must provide a `empty` accessor.
 template <class CONTAINER>
 inline
 BSLS_KEYWORD_CONSTEXPR bool empty(const CONTAINER& container)
-    // Return whether or not the specified 'container' contains zero elements.
-    // The 'CONTAINER' template parameter type must provide a 'empty' accessor.
 {
     return container.empty();
 }
 # endif // else-of BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
 
+/// Return false (Zero-length arrays are not allowed).
 template <class TYPE, size_t DIMENSION>
 inline
 BSLS_KEYWORD_CONSTEXPR bool empty(const TYPE (&)[DIMENSION])
-    // Return false (Zero-length arrays are not allowed).
 {
     return false;
 }
@@ -1282,11 +1285,11 @@ using std::size;
 
                     // 'bsl::size' Overload for Arrays
 
+/// Return the dimension of the specified array argument.
 template <class TYPE, size_t DIMENSION>
 inline
 BSLS_KEYWORD_CONSTEXPR size_t size(
                                const TYPE (&)[DIMENSION]) BSLS_KEYWORD_NOEXCEPT
-    // Return the dimension of the specified array argument.
 {
     return DIMENSION;
 }
@@ -1313,11 +1316,11 @@ BSLS_KEYWORD_CONSTEXPR auto size(const CONTAINER& container) ->
 // The language features to deduce the return type of the 'size()' method of
 // containers are not present, we fall back to using 'bsl::size_t'.
 
+/// Return the size of the specified `container`.  The `CONTAINER` template
+/// parameter type must provide a `size` accessor.
 template <class CONTAINER>
 inline
 BSLS_KEYWORD_CONSTEXPR size_t size(const CONTAINER& container)
-    // Return the size of the specified 'container'.  The 'CONTAINER' template
-    // parameter type must provide a 'size' accessor.
 {
     return container.size();
 }
@@ -1345,11 +1348,11 @@ using std::ssize;
 
                     // 'bsl::ssize' Overload for Arrays
 
+/// Return the dimension of the specified array argument.
 template <class TYPE, std::ptrdiff_t DIMENSION>
 inline
 BSLS_KEYWORD_CONSTEXPR std::ptrdiff_t ssize(
                                const TYPE (&)[DIMENSION]) BSLS_KEYWORD_NOEXCEPT
-    // Return the dimension of the specified array argument.
 {
     return DIMENSION;
 }
@@ -1378,11 +1381,11 @@ BSLS_KEYWORD_CONSTEXPR auto ssize(const CONTAINER& container) ->
 // The language features to deduce the return type of the 'size()' method of
 // containers are not present, we fall back to using 'bsl::ptrdiff_t'.
 
+/// Return the size of the specified `container`.  The `CONTAINER` template
+/// parameter type must provide a `size` accessor.
 template <class CONTAINER>
 inline
 BSLS_KEYWORD_CONSTEXPR std::ptrdiff_t ssize(const CONTAINER& container)
-    // Return the size of the specified 'container'.  The 'CONTAINER' template
-    // parameter type must provide a 'size' accessor.
 {
     return container.size();
 }

@@ -5,39 +5,39 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a win32 implementation of 'bslmt::Condition'.
+//@PURPOSE: Provide a win32 implementation of `bslmt::Condition`.
 //
 //@CLASSES:
 //  bslmt::ConditionImpl<Win32Threads>: win32 specialization
 //
 //@SEE_ALSO: bslmt_condition
 //
-//@DESCRIPTION: This component provides an implementation of 'bslmt::Condition'
-// for Windows (win32), 'bslmt::ConditionImpl<Win32Threads>', via the template
+//@DESCRIPTION: This component provides an implementation of `bslmt::Condition`
+// for Windows (win32), `bslmt::ConditionImpl<Win32Threads>`, via the template
 // specialization:
-//..
-//  bslmt::ConditionImpl<Platform::Win32Threads>
-//..
+// ```
+// bslmt::ConditionImpl<Platform::Win32Threads>
+// ```
 // This template class should not be used (directly) by client code.  Clients
-// should instead use 'bslmt::Condition'.
+// should instead use `bslmt::Condition`.
 //
 ///Supported Clock-Types
 ///---------------------
-// 'bsls::SystemClockType' supplies the enumeration indicating the system clock
+// `bsls::SystemClockType` supplies the enumeration indicating the system clock
 // on which timeouts supplied to other methods should be based.  If the clock
-// type indicated at construction is 'bsls::SystemClockType::e_REALTIME', the
-// 'absTime' argument passed to the 'timedWait' method should be expressed as
+// type indicated at construction is `bsls::SystemClockType::e_REALTIME`, the
+// `absTime` argument passed to the `timedWait` method should be expressed as
 // an *absolute* offset since 00:00:00 UTC, January 1, 1970 (which matches the
-// epoch used in 'bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME)'.
+// epoch used in `bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME)`.
 // If the clock type indicated at construction is
-// 'bsls::SystemClockType::e_MONOTONIC', the 'absTime' argument passed to the
-// 'timedWait' method should be expressed as an *absolute* offset since the
+// `bsls::SystemClockType::e_MONOTONIC`, the `absTime` argument passed to the
+// `timedWait` method should be expressed as an *absolute* offset since the
 // epoch of this clock (which matches the epoch used in
-// 'bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC)'.
+// `bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC)`.
 //
 ///Usage
 ///-----
-// This component is an implementation detail of 'bslmt' and is *not* intended
+// This component is an implementation detail of `bslmt` and is *not* intended
 // for direct client use.  It is subject to change without notice.  As such, a
 // usage example is not provided.
 
@@ -184,8 +184,6 @@ class ConditionImpl<Platform::Win32Threads> {
         // Return the clock type used for timeouts.
 };
 
-}  // close package namespace
-
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -196,7 +194,7 @@ class ConditionImpl<Platform::Win32Threads> {
 
 // CREATORS
 inline
-bslmt::ConditionImpl<bslmt::Platform::Win32Threads>::ConditionImpl(
+ConditionImpl<bslmt::Platform::Win32Threads>::ConditionImpl(
                                          bsls::SystemClockType::Enum clockType)
 : d_clockType(clockType)
 {
@@ -205,20 +203,20 @@ bslmt::ConditionImpl<bslmt::Platform::Win32Threads>::ConditionImpl(
 }
 
 inline
-bslmt::ConditionImpl<bslmt::Platform::Win32Threads>::~ConditionImpl()
+ConditionImpl<bslmt::Platform::Win32Threads>::~ConditionImpl()
 {
 }
 
 // MANIPULATORS
 inline
-void bslmt::ConditionImpl<bslmt::Platform::Win32Threads>::broadcast()
+void ConditionImpl<bslmt::Platform::Win32Threads>::broadcast()
 {
     WakeAllConditionVariable(
                          reinterpret_cast<_RTL_CONDITION_VARIABLE *>(&d_cond));
 }
 
 inline
-void bslmt::ConditionImpl<bslmt::Platform::Win32Threads>::signal()
+void ConditionImpl<bslmt::Platform::Win32Threads>::signal()
 {
     WakeConditionVariable(
                          reinterpret_cast<_RTL_CONDITION_VARIABLE *>(&d_cond));
@@ -227,11 +225,12 @@ void bslmt::ConditionImpl<bslmt::Platform::Win32Threads>::signal()
 // ACCESSORS
 inline
 bsls::SystemClockType::Enum
-bslmt::ConditionImpl<bslmt::Platform::Win32Threads>::clockType() const
+ConditionImpl<bslmt::Platform::Win32Threads>::clockType() const
 {
     return d_clockType;
 }
 
+}  // close package namespace
 }  // close enterprise namespace
 
 #endif  // BSLMT_PLATFORM_WIN32_THREADS

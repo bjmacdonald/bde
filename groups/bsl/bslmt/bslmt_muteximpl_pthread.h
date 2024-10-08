@@ -5,25 +5,25 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a POSIX implementation of 'bslmt::Mutex'.
+//@PURPOSE: Provide a POSIX implementation of `bslmt::Mutex`.
 //
 //@CLASSES:
 //  bslmt::MutexImpl<Platform::PosixThreads>: POSIX specialization
 //
 //@SEE_ALSO: bslmt_mutex
 //
-//@DESCRIPTION: This component provides an implementation of 'bslmt::Mutex' for
-// POSIX threads ("pthreads"), 'bslmt::MutexImpl<Platform::PosixThreads>', via
+//@DESCRIPTION: This component provides an implementation of `bslmt::Mutex` for
+// POSIX threads ("pthreads"), `bslmt::MutexImpl<Platform::PosixThreads>`, via
 // the template specialization:
-//..
-//  bslmt::MutexImpl<Platform::PosixThreads>
-//..
+// ```
+// bslmt::MutexImpl<Platform::PosixThreads>
+// ```
 // This template class should not be used (directly) by client code.  Clients
-// should instead use 'bslmt::Mutex'.
+// should instead use `bslmt::Mutex`.
 //
 ///Usage
 ///-----
-// This component is an implementation detail of 'bslmt' and is *not* intended
+// This component is an implementation detail of `bslmt` and is *not* intended
 // for direct client use.  It is subject to change without notice.  As such, a
 // usage example is not provided.
 
@@ -51,12 +51,12 @@ class MutexImpl;
                  // class MutexImpl<Platform::PosixThreads>
                  // =======================================
 
+/// This class provides a full specialization of `MutexImpl` for pthreads.
+/// It provides a efficient proxy for the `pthread_mutex_t` pthreads type,
+/// and related operations.  Note that the mutex implemented in this class
+/// is *not* error checking, and is non-recursive.
 template <>
 class MutexImpl<Platform::PosixThreads> {
-    // This class provides a full specialization of 'MutexImpl' for pthreads.
-    // It provides a efficient proxy for the 'pthread_mutex_t' pthreads type,
-    // and related operations.  Note that the mutex implemented in this class
-    // is *not* error checking, and is non-recursive.
 
     // DATA
     pthread_mutex_t d_lock;  // TBD doc
@@ -67,45 +67,46 @@ class MutexImpl<Platform::PosixThreads> {
 
   public:
     // PUBLIC TYPES
+
+    /// The underlying OS-level type.  Exposed so that other `bslmt`
+    /// components can operate directly on this mutex.
     typedef pthread_mutex_t NativeType;
-       // The underlying OS-level type.  Exposed so that other 'bslmt'
-       // components can operate directly on this mutex.
 
     // CREATORS
-    MutexImpl();
-        // Create a mutex initialized to an unlocked state.  This method does
-        // not return normally unless there are sufficient system resources to
-        // construct the object.
 
+    /// Create a mutex initialized to an unlocked state.  This method does
+    /// not return normally unless there are sufficient system resources to
+    /// construct the object.
+    MutexImpl();
+
+    /// Destroy this mutex object.  The behavior is undefined if the mutex
+    /// is in a locked state.
     ~MutexImpl();
-        // Destroy this mutex object.  The behavior is undefined if the mutex
-        // is in a locked state.
 
     // MANIPULATORS
+
+    /// Acquire a lock on this mutex object.  If this object is currently
+    /// locked, then suspend execution of the current thread until a lock
+    /// can be acquired.  Note that the behavior is undefined if the calling
+    /// thread already owns the lock on this mutex, and will likely result
+    /// in a deadlock.
     void lock();
-        // Acquire a lock on this mutex object.  If this object is currently
-        // locked, then suspend execution of the current thread until a lock
-        // can be acquired.  Note that the behavior is undefined if the calling
-        // thread already owns the lock on this mutex, and will likely result
-        // in a deadlock.
 
+    /// Return a reference to the modifiable OS-level mutex underlying this
+    /// object.  This method is intended only to support other `bslmt`
+    /// components that must operate directly on this mutex.
     NativeType& nativeMutex();
-        // Return a reference to the modifiable OS-level mutex underlying this
-        // object.  This method is intended only to support other 'bslmt'
-        // components that must operate directly on this mutex.
 
+    /// Attempt to acquire a lock on this mutex object.  Return 0 on
+    /// success, and a non-zero value of this object is already locked, or
+    /// if an error occurs.
     int tryLock();
-        // Attempt to acquire a lock on this mutex object.  Return 0 on
-        // success, and a non-zero value of this object is already locked, or
-        // if an error occurs.
 
+    /// Release a lock on this mutex that was previously acquired through a
+    /// successful call to `lock`, or `tryLock`.  The behavior is undefined,
+    /// unless the calling thread currently owns the lock on this mutex.
     void unlock();
-        // Release a lock on this mutex that was previously acquired through a
-        // successful call to 'lock', or 'tryLock'.  The behavior is undefined,
-        // unless the calling thread currently owns the lock on this mutex.
 };
-
-}  // close package namespace
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -117,16 +118,17 @@ class MutexImpl<Platform::PosixThreads> {
 
 // CREATORS
 inline
-bslmt::MutexImpl<bslmt::Platform::PosixThreads>::MutexImpl()
+MutexImpl<bslmt::Platform::PosixThreads>::MutexImpl()
 {
     const int status = pthread_mutex_init(&d_lock, 0);
-    (void) status;
-    BSLS_ASSERT_OPT(0 == status);
+    if (status) {
+        BSLS_ASSERT_INVOKE_NORETURN("'pthread_mutex_init' failed");
+    }
 }
 
 // MANIPULATORS
 inline
-void bslmt::MutexImpl<bslmt::Platform::PosixThreads>::lock()
+void MutexImpl<bslmt::Platform::PosixThreads>::lock()
 {
     BSLS_ASSERT_SAFE(0xdeadbeef !=
                                  *reinterpret_cast<const unsigned *>(&d_lock));
@@ -137,7 +139,7 @@ void bslmt::MutexImpl<bslmt::Platform::PosixThreads>::lock()
 }
 
 inline
-int bslmt::MutexImpl<bslmt::Platform::PosixThreads>::tryLock()
+int MutexImpl<bslmt::Platform::PosixThreads>::tryLock()
 {
     BSLS_ASSERT_SAFE(0xdeadbeef !=
                                  *reinterpret_cast<const unsigned *>(&d_lock));
@@ -146,7 +148,7 @@ int bslmt::MutexImpl<bslmt::Platform::PosixThreads>::tryLock()
 }
 
 inline
-void bslmt::MutexImpl<bslmt::Platform::PosixThreads>::unlock()
+void MutexImpl<bslmt::Platform::PosixThreads>::unlock()
 {
     BSLS_ASSERT_SAFE(0xdeadbeef !=
                                  *reinterpret_cast<const unsigned *>(&d_lock));
@@ -157,12 +159,13 @@ void bslmt::MutexImpl<bslmt::Platform::PosixThreads>::unlock()
 }
 
 inline
-bslmt::MutexImpl<bslmt::Platform::PosixThreads>::NativeType&
-bslmt::MutexImpl<bslmt::Platform::PosixThreads>::nativeMutex()
+MutexImpl<bslmt::Platform::PosixThreads>::NativeType&
+MutexImpl<bslmt::Platform::PosixThreads>::nativeMutex()
 {
     return d_lock;
 }
 
+}  // close package namespace
 }  // close enterprise namespace
 
 #endif  // BSLMT_PLATFORM_POSIX_THREADS

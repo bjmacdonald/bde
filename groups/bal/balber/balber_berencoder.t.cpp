@@ -1,13 +1,5 @@
 // balber_berencoder.t.cpp                                            -*-C++-*-
-
 #include <balber_berencoder.h>
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
 
 #include <balber_berconstants.h>
 #include <balber_berutil.h>
@@ -79,8 +71,28 @@ using bsl::flush;
 // ============================================================================
 //                                 TEST PLAN
 // ----------------------------------------------------------------------------
-
+//                                 Overview
+//                                 --------
+// TBD...
 // ----------------------------------------------------------------------------
+// [  ] TBD
+// ----------------------------------------------------------------------------
+// [ 1] FUNDAMENTALS TEST
+// [ 2] REAL/FLOATING-POINT
+// [ 3] VOCABULARY TYPES
+// [ 4] CUSTOMIZED TYPES
+// [ 5] ENUMERATIONS
+// [ 6] SEQUENCES
+// [ 7] CHOICES
+// [ 8] NULLABLE VALUES
+// [ 9] ARRAYS
+// [10] ANONYMOUS CHOICES
+// [11] NILLABLE VALUES
+// [12] ARRAYS WITH `encodeEmptyArrays` OPTION {DRQS 29114951 <GO>}
+// [13] DATE/TIME COMPONENTS
+// [14] USAGE EXAMPLE
+//
+// [-1] PERFORMANCE TEST
 
 // ============================================================================
 //                      STANDARD BDE ASSERT TEST MACRO
@@ -121,9 +133,9 @@ static void aSsErT(int c, const char *s, int i) {
 //                   GLOBAL TYPEDEFS/CONSTANTS FOR TESTING
 // ----------------------------------------------------------------------------
 
+/// Return the number of octets contained in the specified `s`.  Note that
+/// it is assumed that each octet in `s` is specified in hex format.
 int numOctets(const char *s)
-    // Return the number of octets contained in the specified 's'.  Note that
-    // it is assumed that each octet in 's' is specified in hex format.
 {
     int length = 0;
     for (; *s; ++s) {
@@ -160,9 +172,9 @@ int getIntValue(char c)
     return -1;
 }
 
+/// Compare the data written to the  specified `stream` with the data in the
+/// specified `buffer`.  Return 0 on success, and -1 otherwise.
 int compareBuffers(const char *stream, const char *buffer)
-    // Compare the data written to the  specified 'stream' with the data in the
-    // specified 'buffer'.  Return 0 on success, and -1 otherwise.
 {
     while (*buffer) {
         if (' ' == *buffer) {
@@ -181,8 +193,8 @@ int compareBuffers(const char *stream, const char *buffer)
     return 0;
 }
 
+/// Print the specified `buffer` of the specified `length` in hex form.
 void printBuffer(const char *buffer, std::size_t length)
-    // Print the specified 'buffer' of the specified 'length' in hex form.
 {
     bsl::cout << bsl::hex;
     int numOutput = 0;
@@ -199,8 +211,8 @@ void printBuffer(const char *buffer, std::size_t length)
     bsl::cout << bsl::dec << bsl::endl;
 }
 
-#define DOUBLE_MANTISSA_MASK   0xfffffffffffffLL
-#define DOUBLE_SIGN_MASK       ((long long) ((long long) 1                   \
+#define DOUBLE_MANTISSA_MASK 0xfffffffffffffLL
+#define DOUBLE_SIGN_MASK     ((long long) ((long long) 1                      \
                                                << (sizeof(long long) * 8 - 1)))
 
 void assembleDouble(double *value, int sign, int exponent, long long mantissa)
@@ -259,10 +271,10 @@ namespace s_baltst {
                                // class Messages
                                // ==============
 
+/// This class serves as a place holder to reserve a type having the same
+/// name as this component.  Doing so ensures that such a type cannot be
+/// defined outside of this component in the current namespace.
 struct Messages {
-    // This class serves as a place holder to reserve a type having the same
-    // name as this component.  Doing so ensures that such a type cannot be
-    // defined outside of this component in the current namespace.
 };
 
 }  // close namespace s_baltst
@@ -272,13 +284,13 @@ struct Messages {
 // ============================================================================
 //                               USAGE EXAMPLE
 // ----------------------------------------------------------------------------
-//..
+// ```
     namespace BloombergLP {
     namespace usage {
 
+    /// This struct represents a sequence containing a `string` member, an
+    /// `int` member, and a `float` member.
     struct EmployeeRecord {
-        // This struct represents a sequence containing a 'string' member, an
-        // 'int' member, and a 'float' member.
 
         // CONSTANTS
         enum {
@@ -293,16 +305,18 @@ struct Messages {
         float       d_salary;
 
         // CREATORS
+
+        /// Create an `EmployeeRecord` having the attributes:
+        /// ```
+        /// d_name   == ""
+        /// d_age    == 0
+        /// d_salary = 0.0
+        /// ```
         EmployeeRecord();
-            // Create an 'EmployeeRecord' having the attributes:
-            //..
-            //  d_name   == ""
-            //  d_age    == 0
-            //  d_salary = 0.0
-            //..
+
+        /// Create an `EmployeeRecord` object having the specified
+        /// `name`, `age`, and `salary` attributes.
         EmployeeRecord(const bsl::string& name, int age, float salary);
-            // Create an 'EmployeeRecord' object having the specified
-            // 'name', 'age', and 'salary' attributes.
 
         // ACCESSORS
         const bsl::string& name()   const;
@@ -343,7 +357,7 @@ struct Messages {
         return d_salary;
     }
 
-    }  // close namespace 'usage'
+    }  // close namespace usage
 
     namespace usage {
 
@@ -379,7 +393,7 @@ struct Messages {
     bool bdlat_sequenceHasAttribute(const EmployeeRecord& object,
                                     int                   attributeId);
 
-    }  // close namespace 'usage'
+    }  // close namespace usage
 
     template <typename MANIPULATOR>
     int usage::bdlat_sequenceManipulateAttribute(
@@ -404,7 +418,7 @@ struct Messages {
                                            attributeName,
                                            attributeNameLength)) {
 
-            return bdlat_sequenceManipulateAttribute(
+            return bdlat_sequenceManipulateAttribute(                 // RETURN
                                              object,
                                              manipulator,
                                              EmployeeRecord::AGE_ATTRIBUTE_ID);
@@ -414,7 +428,7 @@ struct Messages {
                                            attributeName,
                                            attributeNameLength)) {
 
-            return bdlat_sequenceManipulateAttribute(
+            return bdlat_sequenceManipulateAttribute(                 // RETURN
                                           object,
                                           manipulator,
                                           EmployeeRecord::SALARY_ATTRIBUTE_ID);
@@ -440,7 +454,7 @@ struct Messages {
             info.name()           = "name";
             info.nameLength()     = 4;
 
-            return manipulator(&object->d_name, info);
+            return manipulator(&object->d_name, info);                // RETURN
           }
           case EmployeeRecord::AGE_ATTRIBUTE_ID: {
             bdlat_AttributeInfo info;
@@ -451,7 +465,7 @@ struct Messages {
             info.name()           = "age";
             info.nameLength()     = 3;
 
-            return manipulator(&object->d_age, info);
+            return manipulator(&object->d_age, info);                 // RETURN
           }
           case EmployeeRecord::SALARY_ATTRIBUTE_ID: {
             bdlat_AttributeInfo info;
@@ -462,10 +476,10 @@ struct Messages {
             info.name()           = "salary";
             info.nameLength()     = 6;
 
-            return manipulator(&object->d_salary, info);
+            return manipulator(&object->d_salary, info);              // RETURN
           }
           default: {
-              return k_NOT_FOUND;
+              return k_NOT_FOUND;                                     // RETURN
           }
         }
     }
@@ -483,7 +497,7 @@ struct Messages {
                                             EmployeeRecord::NAME_ATTRIBUTE_ID);
 
         if (0 != retVal) {
-            return retVal;
+            return retVal;                                            // RETURN
         }
 
         retVal = bdlat_sequenceManipulateAttribute(
@@ -492,7 +506,7 @@ struct Messages {
                                              EmployeeRecord::AGE_ATTRIBUTE_ID);
 
         if (0 != retVal) {
-            return retVal;
+            return retVal;                                            // RETURN
         }
 
         retVal = bdlat_sequenceManipulateAttribute(
@@ -500,7 +514,7 @@ struct Messages {
                                           manipulator,
                                           EmployeeRecord::SALARY_ATTRIBUTE_ID);
 
-        return retVal;
+        return retVal;                                                // RETURN
     }
 
     // ACCESSORS
@@ -516,7 +530,7 @@ struct Messages {
         if (bdlb::String::areEqualCaseless("name",
                                            attributeName,
                                            attributeNameLength)) {
-            return bdlat_sequenceAccessAttribute(
+            return bdlat_sequenceAccessAttribute(                     // RETURN
                                             object,
                                             accessor,
                                             EmployeeRecord::NAME_ATTRIBUTE_ID);
@@ -525,7 +539,7 @@ struct Messages {
         if (bdlb::String::areEqualCaseless("age",
                                            attributeName,
                                            attributeNameLength)) {
-            return bdlat_sequenceAccessAttribute(
+            return bdlat_sequenceAccessAttribute(                     // RETURN
                                              object,
                                              accessor,
                                              EmployeeRecord::AGE_ATTRIBUTE_ID);
@@ -535,7 +549,7 @@ struct Messages {
                                            attributeName,
                                            attributeNameLength)) {
 
-            return bdlat_sequenceAccessAttribute(
+            return bdlat_sequenceAccessAttribute(                     // RETURN
                                           object,
                                           accessor,
                                           EmployeeRecord::SALARY_ATTRIBUTE_ID);
@@ -561,7 +575,7 @@ struct Messages {
             info.name()           = "name";
             info.nameLength()     = 4;
 
-            return accessor(object.d_name, info);
+            return accessor(object.d_name, info);                     // RETURN
           }
           case EmployeeRecord::AGE_ATTRIBUTE_ID: {
             bdlat_AttributeInfo info;
@@ -572,7 +586,7 @@ struct Messages {
             info.name()           = "age";
             info.nameLength()     = 3;
 
-            return accessor(object.d_age, info);
+            return accessor(object.d_age, info);                      // RETURN
           }
           case EmployeeRecord::SALARY_ATTRIBUTE_ID: {
             bdlat_AttributeInfo info;
@@ -583,10 +597,10 @@ struct Messages {
             info.name()           = "salary";
             info.nameLength()     = 6;
 
-            return accessor(object.d_salary, info);
+            return accessor(object.d_salary, info);                   // RETURN
           }
           default: {
-              return k_NOT_FOUND;
+              return k_NOT_FOUND;                                     // RETURN
           }
         }
     }
@@ -603,7 +617,7 @@ struct Messages {
                                             EmployeeRecord::NAME_ATTRIBUTE_ID);
 
         if (0 != retVal) {
-            return retVal;
+            return retVal;                                            // RETURN
         }
 
         retVal = bdlat_sequenceAccessAttribute(
@@ -612,7 +626,7 @@ struct Messages {
                                              EmployeeRecord::AGE_ATTRIBUTE_ID);
 
         if (0 != retVal) {
-            return retVal;
+            return retVal;                                            // RETURN
         }
 
         retVal = bdlat_sequenceAccessAttribute(
@@ -620,7 +634,7 @@ struct Messages {
                                           accessor,
                                           EmployeeRecord::SALARY_ATTRIBUTE_ID);
 
-        return retVal;
+        return retVal;                                                // RETURN
     }
 
     bool usage::bdlat_sequenceHasAttribute(
@@ -653,7 +667,7 @@ struct Messages {
         struct IsSequence<usage::EmployeeRecord> : public bsl::true_type {
         };
 
-    }  // close namespace 'bdlat_SequenceFunctions'
+    }  // close namespace bdlat_SequenceFunctions
     }  // close enterprise namespace
 
 static void usageExample()
@@ -666,44 +680,44 @@ static void usageExample()
 ///Example 1: Encoding an Employee Record
 /// - - - - - - - - - - - - - - - - - - -
 // Suppose that an "employee record" consists of a sequence of attributes --
-// 'name', 'age', and 'salary' -- that are of types 'bsl::string', 'int', and
-// 'float', respectively.  Furthermore, we have a need to BER encode employee
+// `name`, `age`, and `salary` -- that are of types `bsl::string`, `int`, and
+// `float`, respectively.  Furthermore, we have a need to BER encode employee
 // records as a sequence of values (for out-of-process consumption).
 //
-// Assume that we have defined a 'usage::EmployeeRecord' class to represent
-// employee record values, and assume that we have provided the 'bdlat'
-// specializations that allow the 'balber' codec components to represent class
+// Assume that we have defined a `usage::EmployeeRecord` class to represent
+// employee record values, and assume that we have provided the `bdlat`
+// specializations that allow the `balber` codec components to represent class
 // values as a sequence of BER primitive values.  See
-// {'bdlat_sequencefunctions'|Usage} for details of creating specializations
+// {`bdlat_sequencefunctions`|Usage} for details of creating specializations
 // for a sequence type.
 //
 // First, we create an employee record object having typical values:
-//..
+// ```
     usage::EmployeeRecord bob("Bob", 56, 1234.00);
     ASSERT("Bob"   == bob.name());
     ASSERT(  56    == bob.age());
     ASSERT(1234.00 == bob.salary());
-//..
-// Now, we create a 'balber::Encoder' object and use it to encode our 'bob'
+// ```
+// Now, we create a `balber::Encoder` object and use it to encode our `bob`
 // object.  Here, to facilitate the examination of our results, the BER
-// encoding data is delivered to a 'bslsb::MemOutStreamBuf' object:
-//..
+// encoding data is delivered to a `bslsb::MemOutStreamBuf` object:
+// ```
     bdlsb::MemOutStreamBuf osb;
     balber::BerEncoder     encoder;
     int                    rc = encoder.encode(&osb, bob);
     ASSERT( 0 == rc);
     ASSERT(18 == osb.length());
-//..
+// ```
 // Finally, we confirm that the generated BER encoding has the expected layout
-// and values.  We create an 'bdlsb::FixedMemInStreamBuf' to manage our access
-// to the data portion of the 'bdlsb::MemOutStreamBuf' where our BER encoding
+// and values.  We create an `bdlsb::FixedMemInStreamBuf` to manage our access
+// to the data portion of the `bdlsb::MemOutStreamBuf` where our BER encoding
 // resides:
-//..
+// ```
     bdlsb::FixedMemInStreamBuf isb(osb.data(), osb.length());
-//..
-// The 'balber_berutil' component provides functions that allow us to decode
+// ```
+// The `balber_berutil` component provides functions that allow us to decode
 // the descriptive fields and values of the BER encoded sequence:
-//..
+// ```
     balber::BerConstants::TagClass tagClass;
     balber::BerConstants::TagType  tagType;
     int                            tagNumber;
@@ -723,23 +737,23 @@ static void usageExample()
     rc = balber::BerUtil::getLength(&isb, &length, &accumNumBytesConsumed);
     ASSERT(0                                    == rc);
     ASSERT(balber::BerUtil::k_INDEFINITE_LENGTH == length);
-//..
-// The 'UNIVERSAL' value in 'tagClass' indicates that the 'tagNumber' value
-// represents a type in the BER standard, a 'BER_SEQUENCE', as we requested of
-// the infrastructure (see the 'IsSequence' specialization above).  The
-// 'tagType' value of 'CONSTRUCTED' indicates that this is a non-primitive
-// type.  The 'INDEFINITE' value for length is typical for sequence encodings.
+// ```
+// The `UNIVERSAL` value in `tagClass` indicates that the `tagNumber` value
+// represents a type in the BER standard, a `BER_SEQUENCE`, as we requested of
+// the infrastructure (see the `IsSequence` specialization above).  The
+// `tagType` value of `CONSTRUCTED` indicates that this is a non-primitive
+// type.  The `INDEFINITE` value for length is typical for sequence encodings.
 // In these cases, the end-of-data is indicated by a sequence to two null
 // bytes.
 //
 // We now examine the tags and values corresponding to each of the data members
-// of 'usage::EmployeeRecord' class.  For each of these the 'tagClass' is
-// 'CONTEXT_SPECIFIC' (i.e., member of a larger construct) and the 'tagType' is
-// 'PRIMITIVE' ('bsl::string', 'int', and 'float' each correspond to a
-// primitive BER type.  The 'tagNumber' for each field was defined (in the
-// elided definiton) to correspond the position of the field in the
-// 'usage::EmployeeRecord' class.
-//..
+// of `usage::EmployeeRecord` class.  For each of these the `tagClass` is
+// `CONTEXT_SPECIFIC` (i.e., member of a larger construct) and the `tagType` is
+// `PRIMITIVE` (`bsl::string`, `int`, and `float` each correspond to a
+// primitive BER type.  The `tagNumber` for each field was defined (in the
+// elided definition) to correspond the position of the field in the
+// `usage::EmployeeRecord` class.
+// ```
     rc = balber::BerUtil::getIdentifierOctets(&isb,
                                               &tagClass,
                                               &tagType,
@@ -784,15 +798,15 @@ static void usageExample()
     rc = balber::BerUtil::getValue(&isb, &salary, &accumNumBytesConsumed);
     ASSERT(0       == rc);
     ASSERT(1234.00 == salary);
-//..
+// ```
 // Lastly, we confirm that end-of-data sequence (two null bytes) are found we
 // expect them and that we have entirely consumed the data that we generated by
 // our encoding.
-//..
+// ```
     rc = balber::BerUtil::getEndOfContentOctets(&isb, &accumNumBytesConsumed);
     ASSERT(0            == rc);
     ASSERT(osb.length() == static_cast<bsl::size_t>(accumNumBytesConsumed));
-//..
+// ```
 }
 
 // ============================================================================
@@ -817,27 +831,25 @@ int main(int argc, char *argv[])
         //   Extracted from component header file.
         //
         // Concerns:
-        //: 1 The usage example provided in the component header file compiles,
-        //:   links, and runs as shown.
+        // 1. The usage example provided in the component header file compiles,
+        //    links, and runs as shown.
         //
         // Plan:
-        //: 1 Incorporate usage example from header into test driver, remove
-        //:   leading comment characters, and replace 'assert' with 'ASSERT'.
-        //:   (C-1)
+        // 1. Incorporate usage example from header into test driver, remove
+        //    leading comment characters, and replace `assert` with `ASSERT`.
+        //    (C-1)
         //
         // Testing:
         //   USAGE EXAMPLE
         // --------------------------------------------------------------------
 
-        if (verbose) cout << endl
-                          << "USAGE EXAMPLE" << endl
-                          << "=============" << endl;
+        if (verbose) cout << "\nUSAGE EXAMPLE"
+                             "\n=============\n";
         usageExample();
-
       } break;
       case 13: {
         // --------------------------------------------------------------------
-        // TESTING 'encode' for date/time components
+        // DATE/TIME COMPONENTS
         //
         // Concerns:
         //
@@ -846,11 +858,10 @@ int main(int argc, char *argv[])
         // Testing:
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTESTING 'encode' for date/time"
-                               << "\n=============================="
-                               << bsl::endl;
+        if (verbose) cout << "\nDATE/TIME COMPONENTS"
+                             "\n====================\n";
 
-        if (verbose) bsl::cout << "\nTesting Date." << bsl::endl;
+        if (verbose) cout << "\t'bdlt::Date'\n";
         {
             static const struct {
                 int         d_lineNum;   // source line number
@@ -1235,7 +1246,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting Time." << bsl::endl;
+        if (verbose) cout << "\t'bdlt::Time'\n";
         {
             static const struct {
                 int         d_lineNum;   // source line number
@@ -1283,7 +1294,7 @@ int main(int argc, char *argv[])
   {   L_,    23,  59,  59, 999,   0, "1A 0C 32333A35 393A3539 2E393939"      },
 
   {   L_,    24,   0,   0,   0,   1, "04 01 00"                              },
-// TBD: Current doesnt work
+// TBD: Doesn't work currently
 // {  L_,    24,   0,   0,   0,   0, "1A 0C 30303A30 303A3030 2E303030"      },
   //------------v
             };
@@ -1322,7 +1333,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting TimeTz." << bsl::endl;
+        if (verbose) cout << "\t'bdlt::TimeTz'\n";
         {
             static const struct {
                 int         d_lineNum;   // source line number
@@ -1446,8 +1457,8 @@ int main(int argc, char *argv[])
                             "1A 12 32333A35 393A3539 2E393939 2D32333A 3539" },
 
   {   L_,    24,   0,   0,   0,     0,  1, "04 01 00"                        },
-// TBD: Current doesnt work
-// {  L_,    24,   0,   0,   0,   0, "04 0C 30303A30 303A3030 2E303030"      },
+  // TBD: Doesn't work currently
+  // {  L_,    24,   0,   0,   0,   0, "04 0C 30303A30 303A3030 2E303030"      },
   //------------v
             };
             const int NUM_DATA = sizeof DATA / sizeof *DATA;
@@ -1470,7 +1481,7 @@ int main(int argc, char *argv[])
                 options.setEncodeDateAndTimeTypesAsBinary(BIN);
 
                 const bdlt::TimeTz VALUE(bdlt::Time(HOUR, MIN, SECS, MSEC),
-                                        OFF);
+                                         OFF);
 
                 bdlsb::MemOutStreamBuf osb;
                 balber::BerEncoder encoder(&options);
@@ -1487,7 +1498,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting Datetime." << bsl::endl;
+        if (verbose) cout << "\t'bdlt::Datetime'\n";
         {
             static const struct {
                 int         d_lineNum;   // source line number
@@ -1870,8 +1881,8 @@ int main(int argc, char *argv[])
                                                                   DAY));
 
                 if (veryVerbose) { P_(YEAR) P_(MONTH) P_(DAY)
-                                   P_(HOUR) P_(MIN) P_(SECS)
-                                   P(MSEC) P(USEC) P(EXP) }
+                                   P_(HOUR) P_(MIN)   P_(SECS)
+                                   P(MSEC)  P(USEC)   P(EXP)  }
 
                 balber::BerEncoderOptions options;
                 options.setEncodeDateAndTimeTypesAsBinary(BIN);
@@ -1894,7 +1905,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting DatetimeTz." << bsl::endl;
+        if (verbose) cout << "\t'bdlt::DatetimeTz'\n";
         {
             static const struct {
                 int         d_lineNum;   // source line number
@@ -2405,9 +2416,9 @@ int main(int argc, char *argv[])
                                                                   MONTH,
                                                                   DAY));
 
-                if (veryVerbose) { P_(YEAR) P_(MONTH) P_(DAY) P_(OFF) P(BIN)
-                                   P_(HOUR) P_(MIN) P_(SECS) P(MSEC)
-                                   P(USEC) P(EXP) }
+                if (veryVerbose) { P_(YEAR) P_(MONTH) P_(DAY)  P_(OFF) P(BIN)
+                                   P_(HOUR) P_(MIN)   P_(SECS) P_(MSEC)
+                                                      P_(USEC) P(EXP)        }
 
                 balber::BerEncoderOptions options;
                 options.setEncodeDateAndTimeTypesAsBinary(BIN);
@@ -2434,60 +2445,59 @@ int main(int argc, char *argv[])
       } break;
       case 12: {
         // --------------------------------------------------------------------
-        // TESTING ARRAYS WITH the 'encodeEmptyArrays' option (DRQS 29114951)
+        // ARRAYS WITH `encodeEmptyArrays` OPTION {DRQS 29114951 <GO>}
         //
         // Concerns:
-        //: 1 If 'balber::BerEncoderOptions' is not specified then empty arrays
-        //:   are encoded.
-        //:
-        //: 2 If 'balber::BerEncoderOptions' is specified but the
-        //:   'encodeEmptyArrays' is set to 'false' then empty arrays
-        //:   are not encoded.
-        //:
-        //: 3 If 'balber::BerEncoderOptions' is specified and the
-        //:   'encodeEmptyArrays' option is not set or set to 'true' then
-        //:   empty arrays are encoded.
-        //:
-        //: 4 Non-empty arrays are always encoded.
+        // 1. If `balber::BerEncoderOptions` is not specified then empty arrays
+        //    are encoded.
+        //
+        // 2. If `balber::BerEncoderOptions` is specified but the
+        //    `encodeEmptyArrays` is set to `false` then empty arrays
+        //    are not encoded.
+        //
+        // 3. If `balber::BerEncoderOptions` is specified and the
+        //    `encodeEmptyArrays` option is not set or set to `true` then
+        //    empty arrays are encoded.
+        //
+        // 4. Non-empty arrays are always encoded.
         //
         // Plan:
-        //: 1 Create three 'balber::BerEncoderOptions' objects.  Set the
-        //:   'encodeEmptyArrays' option in one encoder options object to
-        //:   'true' and to 'false' in the another object.  Leave the third
-        //:   encoder options object unmodified.
-        //:
-        //: 2 Create four 'balber::BerEncoder' objects passing the three
-        //:   'balber::BerEncoderOptions' objects created in step 1 to the
-        //:   first three encoder objects.  The fourth encoder object is not
-        //:   passed any encoder options.
-        //:
-        //: 3 Create four 'bdlsb::MemOutStreamBuf' objects.
-        //:
-        //: 4 Populate a 'MySequenceWithArray' object ensuring that its
-        //:   underlying vector data member is empty.
-        //:
-        //: 5 Encode the 'MySequenceWithArray' object onto a
-        //:   'bdlsb::MemOutStreamBuf' using one of the created
-        //:   'balber::BerEncoder' objects.
-        //:
-        //: 6 Ensure that the empty vector is encoded in all cases except when
-        //:   the encoder options are explicitly provided and the
-        //:   'encodeEmptyArrays' option on that object is set to 'false'.
-        //:
-        //: 7 Repeat steps 1 - 6 for a 'MySequenceWithArray' object that has a
-        //:   non-empty vector.
-        //:
-        //: 8 Ensure that the non-empty vector is encoded in all cases.
+        // 1. Create three `balber::BerEncoderOptions` objects.  Set the
+        //    `encodeEmptyArrays` option in one encoder options object to
+        //    `true` and to `false` in the another object.  Leave the third
+        //    encoder options object unmodified.
+        //
+        // 2. Create four `balber::BerEncoder` objects passing the three
+        //    `balber::BerEncoderOptions` objects created in step 1 to the
+        //    first three encoder objects.  The fourth encoder object is not
+        //    passed any encoder options.
+        //
+        // 3. Create four `bdlsb::MemOutStreamBuf` objects.
+        //
+        // 4. Populate a `MySequenceWithArray` object ensuring that its
+        //    underlying vector data member is empty.
+        //
+        // 5. Encode the `MySequenceWithArray` object onto a
+        //    `bdlsb::MemOutStreamBuf` using one of the created
+        //    `balber::BerEncoder` objects.
+        //
+        // 6. Ensure that the empty vector is encoded in all cases except when
+        //    the encoder options are explicitly provided and the
+        //    `encodeEmptyArrays` option on that object is set to `false`.
+        //
+        // 7. Repeat steps 1 - 6 for a `MySequenceWithArray` object that has a
+        //    non-empty vector.
+        //
+        // 8. Ensure that the non-empty vector is encoded in all cases.
         //
         // Testing:
         //  Encoding of vectors
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Arrays with 'encodeEmptyArrays'"
-                               << "\n======================================="
-                               << bsl::endl;
+        if (verbose) cout << "\nARRAYS WITH `encodeEmptyArrays` OPTION"
+                             "\n======================================\n";
 
-        if (verbose) bsl::cout << "\nTesting with empty array." << bsl::endl;
+        if (verbose) cout << "\tEmpty array\n";
         {
             balber::BerEncoderOptions options1, options2, options3;
             options1.setEncodeEmptyArrays(true);
@@ -2532,8 +2542,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting with a non-empty array."
-                               << bsl::endl;
+        if (verbose) cout << "\tNon-empty array\n";
         {
             balber::BerEncoderOptions options1, options2, options3;
             options1.setEncodeEmptyArrays(true);
@@ -2581,11 +2590,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 11: {
         // --------------------------------------------------------------------
-        // TESTING NILLABLE VALUES
+        // NILLABLE VALUES
         //
         // Concerns:
         //
@@ -2595,10 +2604,10 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Nillable Values"
-                               << "\n=======================" << bsl::endl;
+        if (verbose) cout << "\nNILLABLE VALUES"
+                             "\n===============\n";
 
-        if (verbose) bsl::cout << "\nTesting with null value." << bsl::endl;
+        if (verbose) cout << "\tNull value\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2615,8 +2624,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting with non-null value."
-                               << bsl::endl;
+        if (verbose) cout << "\tNon-null value\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2634,58 +2642,58 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 10: {
         // --------------------------------------------------------------------
-        // TESTING ANONYMOUS CHOICES
+        // ANONYMOUS CHOICES
         //
         // Concerns:
-        //: 1 If 'balber::BerEncoderOptions' is not specified then the encoder
-        //:   will successfully encode an input with an unselected choice
+        // 1. If `balber::BerEncoderOptions` is not specified then the encoder
+        //    will successfully encode an input with an unselected choice
         //
-        //: 2 If 'balber::BerEncoderOptions' is specified but the
-        //:   'disableUnselectedChoiceEncoding' is set to 'false' then
-        //:   the encoder will successfully encode an input with an unselected
-        //:   choice
-        //:
-        //: 3 If 'balber::BerEncoderOptions' is specified but the
-        //:   'disableUnselectedChoiceEncoding' is set to 'true' then
-        //:   the encoder will fail to encode an input with an unselected
-        //:   choice
+        // 2. If `balber::BerEncoderOptions` is specified but the
+        //    `disableUnselectedChoiceEncoding` is set to `false` then
+        //    the encoder will successfully encode an input with an unselected
+        //    choice
+        //
+        // 3. If `balber::BerEncoderOptions` is specified but the
+        //    `disableUnselectedChoiceEncoding` is set to `true` then
+        //    the encoder will fail to encode an input with an unselected
+        //    choice
         //
         // Plan:
-        //: 1 Create two 'balber::BerEncoderOptions' objects.  Set the
-        //:   'disableUnselectedChoiceEncoding' option in one encoder options
-        //:   object to 'true' and to 'false' in the another object.
-        //:
-        //: 2 Create three 'balber::BerEncoder' objects passing the two
-        //:   'balber::BerEncoderOptions' objects created in step 1 to the
-        //:   first two encoder objects.  The third encoder object is not
-        //:   passed any encoder options.
-        //:
-        //: 3 Populate two 'MyChoice' objects.  Ensuring that the first
-        //:   defaults to an unselected choice.  The second populated with
-        //:   a choice value
-        //:
-        //: 4 Encode the two 'MyChoice' objects onto a
-        //:   'bdlsb::MemOutStreamBuf' using each of the created
-        //:   'balber::BerEncoder' objects.
-        //:
-        //: 5 Ensure that the encoder fails to encode the object when
-        //:   'disableUnselectedChoiceEncoding' option is set and the
-        //:   objects choice is unselected.  Otherwise the encoding
-        //:   should be successful.
-        //:
+        // 1. Create two `balber::BerEncoderOptions` objects.  Set the
+        //    `disableUnselectedChoiceEncoding` option in one encoder options
+        //    object to `true` and to `false` in the another object.
+        //
+        // 2. Create three `balber::BerEncoder` objects passing the two
+        //    `balber::BerEncoderOptions` objects created in step 1 to the
+        //    first two encoder objects.  The third encoder object is not
+        //    passed any encoder options.
+        //
+        // 3. Populate two `MyChoice` objects.  Ensuring that the first
+        //    defaults to an unselected choice.  The second populated with
+        //    a choice value
+        //
+        // 4. Encode the two `MyChoice` objects onto a
+        //    `bdlsb::MemOutStreamBuf` using each of the created
+        //    `balber::BerEncoder` objects.
+        //
+        // 5. Ensure that the encoder fails to encode the object when
+        //    `disableUnselectedChoiceEncoding` option is set and the
+        //    objects choice is unselected.  Otherwise the encoding
+        //    should be successful.
+        //
         //
         // Testing:
         //  Encoding of anonymous choices
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Anonymous Choice"
-                               << "\n========================" << bsl::endl;
+        if (verbose) cout << "\nANONYMOUS CHOICES"
+                          << "\n=================\n";
 
-        if (verbose) bsl::cout << "\nTesting with no selection." << bsl::endl;
+        if (verbose) cout << "\tChoice with no selection\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2741,7 +2749,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting with selection." << bsl::endl;
+        if (verbose) cout << "\tChoice with selection\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2853,11 +2861,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 9: {
         // --------------------------------------------------------------------
-        // TESTING ARRAYS
+        // ARRAYS
         //
         // Concerns:
         //
@@ -2867,10 +2875,10 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Arrays"
-                               << "\n==============" << bsl::endl;
+        if (verbose) cout << "\nARRAYS"
+                             "\n======\n";
 
-        if (verbose) bsl::cout << "\nTesting with empty array." << bsl::endl;
+        if (verbose) cout << "\tEmpty array\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2886,8 +2894,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting with non-empty array."
-                               << bsl::endl;
+        if (verbose) cout << "\tNon-empty array\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2905,11 +2912,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 8: {
         // --------------------------------------------------------------------
-        // TESTING NULLABLE VALUES
+        // NULLABLE VALUES
         //
         // Concerns:
         //
@@ -2919,10 +2926,10 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Nullable Values"
-                               << "\n=======================" << bsl::endl;
+        if (verbose) cout << "\nNULLABLE VALUES"
+                             "\n===============\n";
 
-        if (verbose) bsl::cout << "\nTesting with null value." << bsl::endl;
+        if (verbose) cout << "\tNull value\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2938,8 +2945,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting with non-null value."
-                               << bsl::endl;
+        if (verbose) cout << "\tNon-null value\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -2956,58 +2962,58 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 7: {
         // --------------------------------------------------------------------
-        // TESTING CHOICES
+        // CHOICES
         //
         // Concerns:
-        //: 1 If 'balber::BerEncoderOptions' is not specified then the encoder
-        //:   will successfully encode an input with an unselected choice
+        // 1. If `balber::BerEncoderOptions` is not specified then the encoder
+        //    will successfully encode an input with an unselected choice
         //
-        //: 2 If 'balber::BerEncoderOptions' is specified but the
-        //:   'disableUnselectedChoiceEncoding' is set to 'false' then
-        //:   the encoder will successfully encode an input with an unselected
-        //:   choice
-        //:
-        //: 3 If 'balber::BerEncoderOptions' is specified but the
-        //:   'disableUnselectedChoiceEncoding' is set to 'true' then
-        //:   the encoder will fail to encode an input with an unselected
-        //:   choice
+        // 2. If `balber::BerEncoderOptions` is specified but the
+        //    `disableUnselectedChoiceEncoding` is set to `false` then
+        //    the encoder will successfully encode an input with an unselected
+        //    choice
+        //
+        // 3. If `balber::BerEncoderOptions` is specified but the
+        //    `disableUnselectedChoiceEncoding` is set to `true` then
+        //    the encoder will fail to encode an input with an unselected
+        //    choice
         //
         // Plan:
-        //: 1 Create two 'balber::BerEncoderOptions' objects.  Set the
-        //:   'disableUnselectedChoiceEncoding' option in one encoder options
-        //:   object to 'true' and to 'false' in the another object.
-        //:
-        //: 2 Create three 'balber::BerEncoder' objects passing the two
-        //:   'balber::BerEncoderOptions' objects created in step 1 to the
-        //:   first two encoder objects.  The third encoder object is not
-        //:   passed any encoder options.
-        //:
-        //: 3 Populate two 'MyChoice' objects.  Ensuring that the first
-        //:   defaults to an unselected choice.  The second populated with
-        //:   a choice value
-        //:
-        //: 4 Encode the two 'MyChoice' objects onto a
-        //:   'bdlsb::MemOutStreamBuf' using each of the created
-        //:   'balber::BerEncoder' objects.
-        //:
-        //: 5 Ensure that the encoder fails to encode the object when
-        //:   'disableUnselectedChoiceEncoding' option is set and the
-        //:   objects choice is unselected.  Otherwise the encoding
-        //:   should be successful.
-        //:
+        // 1. Create two `balber::BerEncoderOptions` objects.  Set the
+        //    `disableUnselectedChoiceEncoding` option in one encoder options
+        //    object to `true` and to `false` in the another object.
+        //
+        // 2. Create three `balber::BerEncoder` objects passing the two
+        //    `balber::BerEncoderOptions` objects created in step 1 to the
+        //    first two encoder objects.  The third encoder object is not
+        //    passed any encoder options.
+        //
+        // 3. Populate two `MyChoice` objects.  Ensuring that the first
+        //    defaults to an unselected choice.  The second populated with
+        //    a choice value
+        //
+        // 4. Encode the two `MyChoice` objects onto a
+        //    `bdlsb::MemOutStreamBuf` using each of the created
+        //    `balber::BerEncoder` objects.
+        //
+        // 5. Ensure that the encoder fails to encode the object when
+        //    `disableUnselectedChoiceEncoding` option is set and the
+        //    objects choice is unselected.  Otherwise the encoding
+        //    should be successful.
+        //
         //
         // Testing:
         //  Encoding of choices
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Choices"
-                               << "\n===============" << bsl::endl;
+        if (verbose) cout << "\nCHOICES"
+                          << "\n=======\n";
 
-        if (verbose) bsl::cout << "\nTesting with no selection." << bsl::endl;
+        if (verbose) cout << "\tChoice with no selection\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -3057,7 +3063,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting with selection." << bsl::endl;
+        if (verbose) cout << "\tChoice with selection\n";
         {
             bdlsb::MemOutStreamBuf osb;
 
@@ -3113,11 +3119,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 6: {
         // --------------------------------------------------------------------
-        // TESTING SEQUENCES
+        // SEQUENCES
         //
         // Concerns:
         //
@@ -3127,8 +3133,8 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Sequences"
-                               << "\n=================" << bsl::endl;
+        if (verbose) cout << "\nSEQUENCES"
+                             "\n=========\n";
 
         bdlsb::MemOutStreamBuf osb;
 
@@ -3144,11 +3150,11 @@ int main(int argc, char *argv[])
             printBuffer(osb.data(), osb.length());
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 5: {
         // --------------------------------------------------------------------
-        // TESTING ENUMERATIONS
+        // ENUMERATIONS
         //
         // Concerns:
         //
@@ -3158,8 +3164,8 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Enumerations"
-                               << "\n====================" << bsl::endl;
+        if (verbose) cout << "\nENUMERATIONS"
+                             "\n============\n";
 
         bdlsb::MemOutStreamBuf osb;
 
@@ -3173,11 +3179,11 @@ int main(int argc, char *argv[])
             printBuffer(osb.data(), osb.length());
         }
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 4: {
         // --------------------------------------------------------------------
-        // TESTING CUSTOMIZED TYPES
+        // CUSTOMIZED TYPES
         //
         // Concerns:
         //
@@ -3187,14 +3193,14 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nTesting Customized Types"
-                               << "\n========================" << bsl::endl;
+        if (verbose) cout << "\nCUSTOMIZED TYPES"
+                             "\n================\n";
 
         bdlsb::MemOutStreamBuf osb1, osb2, osb3, osb4;
 
         const bsl::string VALUE = "Hello";
 
-        if (verbose) bsl::cout << "\nEncoding customized string." << bsl::endl;
+        if (verbose) cout << "\tCustomized string\n";
         {
             test::CustomizedString value;
             value.fromString(VALUE);
@@ -3208,8 +3214,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEncoding bsl::string (control)."
-                               << bsl::endl;
+        if (verbose) cout << "\t'bsl::string' (control)\n";
         {
             bsl::string value = VALUE;
 
@@ -3222,8 +3227,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEncoding bsl::string_view (control)."
-                               << bsl::endl;
+        if (verbose) cout << "\t'bsl::string_view' (control)\n";
         {
             bsl::string_view value = VALUE;
 
@@ -3236,8 +3240,8 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nEncoding bslstl::StringRef (control)."
-                               << bsl::endl;
+        if (verbose) cout << "\t'bslstl::StringRef' (control)\n";
+
         {
             bslstl::StringRef value = VALUE;
 
@@ -3260,11 +3264,11 @@ int main(int argc, char *argv[])
         ASSERT(0 == bsl::memcmp(osb1.data(), osb3.data(), osb1.length()));
         ASSERT(0 == bsl::memcmp(osb1.data(), osb4.data(), osb1.length()));
 
-        if (verbose) bsl::cout << "\nEnd of test." << bsl::endl;
+        if (verbose) cout << "End of test.\n";
       } break;
       case 3: {
         // --------------------------------------------------------------------
-        // VOCABULARY TYPES TEST
+        // VOCABULARY TYPES
         //
         // Concerns:
         //
@@ -3274,12 +3278,10 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nVOCABULARY TYPES TEST"
-                               << "\n=====================" << bsl::endl;
+        if (verbose) cout << "\nVOCABULARY TYPES"
+                             "\n================\n";
 
-        if (verbose) bsl::cout << "\nTesting bdlt::Date"
-                               << "\n=================" << bsl::endl;
-
+        if (verbose) cout << "\t'bdlt::Date'\n";
         {
             const int YEAR = 2005, MONTH = 12, DAY = 15;
 
@@ -3295,9 +3297,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting bdlt::DateTz"
-                               << "\n===================" << bsl::endl;
-
+        if (verbose) cout << "\t'bdlt::DateTz'\n";
         {
             const int YEAR = 2005, MONTH = 12, DAY = 15, OFFSET = 45;
 
@@ -3313,9 +3313,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting bdlt::Time"
-                               << "\n=================" << bsl::endl;
-
+        if (verbose) cout << "\t'bdlt::Time'\n";
         {
             const int HOUR = 12, MIN = 56, SECS = 9, MILLISECS = 134;
 
@@ -3331,9 +3329,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting bdlt::TimeTz"
-                               << "\n===================" << bsl::endl;
-
+        if (verbose) cout << "\t'bdlt::TimeTz'\n";
         {
             const int HOUR   = 12, MIN = 56, SECS = 9, MILLISECS = 134,
                       OFFSET = 45;
@@ -3350,9 +3346,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting bdlt::Datetime"
-                               << "\n=====================" << bsl::endl;
-
+        if (verbose) cout << "\t'bdlt::Datetime'\n";
         {
             const int YEAR = 2005, MONTH = 12, DAY = 15;
             const int HOUR = 12, MIN = 56, SECS = 9, MILLISECS = 134;
@@ -3369,9 +3363,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) bsl::cout << "\nTesting bdlt::DatetimeTz"
-                               << "\n=======================" << bsl::endl;
-
+        if (verbose) cout << "\t'bdlt::DatetimeTz'\n";
         {
             const int YEAR   = 2005, MONTH = 12, DAY = 15;
             const int HOUR   = 12, MIN = 56, SECS = 9, MILLISECS = 134;
@@ -3390,10 +3382,12 @@ int main(int argc, char *argv[])
                 printBuffer(osb.data(), osb.length());
             }
         }
+
+        if (verbose) cout << "End of test.\n";
       } break;
       case 2: {
         // --------------------------------------------------------------------
-        // REAL TEST
+        // REAL/FLOATING-POINT
         //
         // Concerns:
         //
@@ -3402,8 +3396,8 @@ int main(int argc, char *argv[])
         // Testing:
         // --------------------------------------------------------------------
 
-        if (verbose) bsl::cout << "\nREAL TEST"
-                               << "\n=========" << bsl::endl;
+        if (verbose) cout << "\nREAL/FLOATING-POINT"
+                             "\n===================\n";
 
         {
             static const struct {
@@ -3442,12 +3436,11 @@ int main(int argc, char *argv[])
                                        "09 0A 81 FF 4E 10 00 00 00 0A 63 9B" },
                 { L_,   3.402823466E+38,
                                        "09 09 80 4C 0F FF FF EF F8 38 1B" },
-
             };
 
             const int NUM_DATA = sizeof REAL / sizeof *REAL;
 
-            if (verbose) { cout << "\nTesting normal real values" << endl; }
+            if (verbose) cout << "\tNormal values\n";
 
             for (int di = 0; di < NUM_DATA; ++di) {
                 const int     LINE  = REAL[di].d_lineNum;
@@ -3468,7 +3461,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (verbose) { cout << "\nTesting for special values" << endl; }
+            if (verbose) cout << "\tSpecial values\n";
             {
                 static const struct {
                     int         d_lineNum;  // source line number
@@ -3524,6 +3517,8 @@ int main(int argc, char *argv[])
                 }
             }
         }
+
+        if (verbose) cout << "End of test.\n";
       } break;
       case 1: {
         // --------------------------------------------------------------------
@@ -3537,7 +3532,7 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
 
         if (verbose) bsl::cout << "\nFUNDAMENTALS TEST"
-                               << "\n=================" << bsl::endl;
+                               << "\n=================\n";
 
         {
             const unsigned char   XA1 = UCHAR_MAX;
@@ -3803,6 +3798,8 @@ int main(int argc, char *argv[])
                 }
             }
         }
+
+        if (verbose) cout << "End of test.\n";
       } break;
       case -1: {
         // --------------------------------------------------------------------

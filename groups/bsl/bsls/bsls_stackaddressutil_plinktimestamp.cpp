@@ -10,7 +10,10 @@ BSLS_IDENT("$Id$ $CSID$")
 // BDE_VERIFY pragma: -TR04
 
 // plink_timestamp___ :
-const char *plink_timestamp___[]={0};
+const char *plink_timestamp___[6]={0};
+
+// Note that the size of plink_timestamp___ must match the other weak linker
+// symbol in sysutil_pwhat.c, which is 6.
 
 #if defined(BSLS_PLATFORM_OS_AIX) ||                                         \
     defined(BSLS_PLATFORM_CMP_GNU) ||                                        \
@@ -21,7 +24,7 @@ const char *plink_timestamp___[]={0};
 #endif
 
 // ----------------------------------------------------------------------------
-// Copyright 2018 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

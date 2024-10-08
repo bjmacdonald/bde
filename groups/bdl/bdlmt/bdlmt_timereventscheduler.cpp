@@ -1,16 +1,10 @@
 // bdlmt_timereventscheduler.cpp                                      -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlmt_timereventscheduler.h>
 
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bdlmt_timereventscheduler_cpp,"$Id$ $CSID$")
+
+#include <bdlb_bitutil.h>
 
 #include <bdlf_bind.h>
 
@@ -18,15 +12,14 @@ BSLS_IDENT_RCSID(bdlmt_timereventscheduler_cpp,"$Id$ $CSID$")
 #include <bdlm_metric.h>
 #include <bdlm_metricdescriptor.h>
 
-#include <bslmt_lockguard.h>
+#include <bdlt_timeunitratio.h>
 
 #include <bslma_default.h>
 
+#include <bslmt_lockguard.h>
+
 #include <bsls_assert.h>
 #include <bsls_systemtime.h>
-
-#include <bdlt_timeunitratio.h>
-#include <bdlb_bitutil.h>
 
 #include <bsl_algorithm.h>
 #include <bsl_climits.h>   // for 'CHAR_BIT'
@@ -38,12 +31,12 @@ BSLS_IDENT_RCSID(bdlmt_timereventscheduler_cpp,"$Id$ $CSID$")
 namespace BloombergLP {
 namespace {
 
+/// Default number of bits used to represent each `bdlcc::TimeQueue` handle.
 const int NUM_INDEX_BITS_DEFAULT = 17;
-    // Default number of bits used to represent each 'bdlcc::TimeQueue' handle.
 
+/// Minimum number of bits required to represent a `bdlcc::TimeQueue`
+/// handle.
 const int NUM_INDEX_BITS_MIN = 8;
-    // Minimum number of bits required to represent a 'bdlcc::TimeQueue'
-    // handle.
 
 int numBitsRequired(int value)
 {
@@ -91,9 +84,9 @@ namespace bdlmt {
                    // struct TimerEventSchedulerDispatcher
                    // ====================================
 
+/// This class just contains the method called to run the dispatcher thread.
+/// Once started, it infinite loops, either waiting for or executing events.
 struct TimerEventSchedulerDispatcher {
-    // This class just contains the method called to run the dispatcher thread.
-    // Once started, it infinite loops, either waiting for or executing events.
 
     // CLASS METHODS
     static void dispatchEvents(TimerEventScheduler *scheduler);
@@ -301,9 +294,9 @@ void TimerEventSchedulerDispatcher::dispatchEvents(
                // class TimerEventSchedulerTestTimeSource_Data
                // ============================================
 
+/// This `class` provides storage for the current time and a mutex to
+/// protect access to the current time.
 class TimerEventSchedulerTestTimeSource_Data {
-    // This 'class' provides storage for the current time and a mutex to
-    // protect access to the current time.
 
     // DATA
     bsls::TimeInterval   d_currentTime;       // the current time
@@ -320,24 +313,27 @@ class TimerEventSchedulerTestTimeSource_Data {
 
   public:
     // CREATORS
+
+    /// Construct a test time-source data object that will store the
+    /// "system-time", initialized to the specified `currentTime`.
     explicit
     TimerEventSchedulerTestTimeSource_Data(bsls::TimeInterval currentTime);
-        // Construct a test time-source data object that will store the
-        // "system-time", initialized to the specified 'currentTime'.
 
     //! ~TimerEventSchedulerTestTimeSource_Data() = default;
         // Destroy this object.
 
     // MANIPULATORS
+
+    /// Advance this object's current-time value by the specified `amount`
+    /// of time.  Return the updated current-time value.  The behavior is
+    /// undefined unless `amount` is positive, and `now + amount` is within
+    /// the range that can be represented with a `bsls::TimeInterval`.
     bsls::TimeInterval advanceTime(bsls::TimeInterval amount);
-        // Advance this object's current-time value by the specified 'amount'
-        // of time.  Return the updated current-time value.  The behavior is
-        // undefined unless 'amount' is positive, and 'now + amount' is within
-        // the range that can be represented with a 'bsls::TimeInterval'.
 
     // ACCESSORS
+
+    /// Return this object's current-time value.
     bsls::TimeInterval currentTime() const;
-        // Return this object's current-time value.
 };
 
 // CREATORS
@@ -385,7 +381,7 @@ const char TimerEventScheduler::s_defaultThreadName[16] = { "bdl.TimerEvent" };
 // PRIVATE MANIPULATORS
 void TimerEventScheduler::initialize(
                                     bdlm::MetricsRegistry   *metricsRegistry,
-                                    const bsl::string_view&  metricsIdentifier)
+                                    const bsl::string_view&  eventSchedulerName)
 {
     bdlm::MetricsRegistry *registry = metricsRegistry
                                    ? metricsRegistry
@@ -396,11 +392,11 @@ void TimerEventScheduler::initialize(
 
     bdlm::MetricDescriptor md(
              bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_NAMESPACE_SELECTION,
-             "startlag",
+             "bde.startlag",
              instanceNumber,
              "bdlmt.timereventscheduler",
              "tes",
-             metricsIdentifier);
+             eventSchedulerName);
 
     registry->registerCollectionCallback(
                                    &d_startLagHandle,
@@ -448,6 +444,7 @@ TimerEventScheduler::TimerEventScheduler(bslma::Allocator* basicAllocator)
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(basicAllocator)
 {
     initialize(
             0,
@@ -455,8 +452,8 @@ TimerEventScheduler::TimerEventScheduler(bslma::Allocator* basicAllocator)
 }
 
 TimerEventScheduler::TimerEventScheduler(
-                                    const bsl::string_view&  metricsIdentifier,
-                                    bdlm::MetricsRegistry  *metricsRegistry,
+                                    const bsl::string_view&  eventSchedulerName,
+                                    bdlm::MetricsRegistry   *metricsRegistry,
                                     bslma::Allocator        *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
@@ -477,8 +474,9 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -504,6 +502,7 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(basicAllocator)
 {
     initialize(
             0,
@@ -512,8 +511,8 @@ TimerEventScheduler::TimerEventScheduler(
 
 TimerEventScheduler::TimerEventScheduler(
                                 bsls::SystemClockType::Enum  clockType,
-                                const bsl::string_view&      metricsIdentifier,
-                                bdlm::MetricsRegistry      *metricsRegistry,
+                                const bsl::string_view&      eventSchedulerName,
+                                bdlm::MetricsRegistry       *metricsRegistry,
                                 bslma::Allocator            *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
@@ -535,8 +534,9 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -561,6 +561,7 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(basicAllocator)
 {
     initialize(
             0,
@@ -569,7 +570,7 @@ TimerEventScheduler::TimerEventScheduler(
 
 TimerEventScheduler::TimerEventScheduler(
                      const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
-                     const bsl::string_view&                 metricsIdentifier,
+                     const bsl::string_view&                 eventSchedulerName,
                      bdlm::MetricsRegistry                  *metricsRegistry,
                      bslma::Allocator                       *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
@@ -591,8 +592,9 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -618,6 +620,7 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(basicAllocator)
 {
     initialize(
             0,
@@ -627,8 +630,8 @@ TimerEventScheduler::TimerEventScheduler(
 TimerEventScheduler::TimerEventScheduler(
                      const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
                      bsls::SystemClockType::Enum             clockType,
-                     const bsl::string_view&                 metricsIdentifier,
-                     bdlm::MetricsRegistry                 *metricsRegistry,
+                     const bsl::string_view&                 eventSchedulerName,
+                     bdlm::MetricsRegistry                  *metricsRegistry,
                      bslma::Allocator                       *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
@@ -649,8 +652,9 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::TimerEventScheduler(int               numEvents,
@@ -677,6 +681,7 @@ TimerEventScheduler::TimerEventScheduler(int               numEvents,
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
@@ -689,8 +694,8 @@ TimerEventScheduler::TimerEventScheduler(int               numEvents,
 TimerEventScheduler::TimerEventScheduler(
                                     int                      numEvents,
                                     int                      numClocks,
-                                    const bsl::string_view&  metricsIdentifier,
-                                    bdlm::MetricsRegistry  *metricsRegistry,
+                                    const bsl::string_view&  eventSchedulerName,
+                                    bdlm::MetricsRegistry   *metricsRegistry,
                                     bslma::Allocator        *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
@@ -713,11 +718,12 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
 
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -747,6 +753,7 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
@@ -760,8 +767,8 @@ TimerEventScheduler::TimerEventScheduler(
                                 int                          numEvents,
                                 int                          numClocks,
                                 bsls::SystemClockType::Enum  clockType,
-                                const bsl::string_view&      metricsIdentifier,
-                                bdlm::MetricsRegistry      *metricsRegistry,
+                                const bsl::string_view&      eventSchedulerName,
+                                bdlm::MetricsRegistry       *metricsRegistry,
                                 bslma::Allocator            *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
@@ -785,11 +792,12 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
 
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -819,6 +827,7 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
@@ -832,8 +841,8 @@ TimerEventScheduler::TimerEventScheduler(
                      int                                     numEvents,
                      int                                     numClocks,
                      const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
-                     const bsl::string_view&                 metricsIdentifier,
-                     bdlm::MetricsRegistry                 *metricsRegistry,
+                     const bsl::string_view&                 eventSchedulerName,
+                     bdlm::MetricsRegistry                  *metricsRegistry,
                      bslma::Allocator                       *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
@@ -857,11 +866,12 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(bsls::SystemClockType::e_REALTIME)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
 
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::TimerEventScheduler(
@@ -891,6 +901,7 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
@@ -905,8 +916,8 @@ TimerEventScheduler::TimerEventScheduler(
                      int                                     numClocks,
                      const TimerEventScheduler::Dispatcher&  dispatcherFunctor,
                      bsls::SystemClockType::Enum             clockType,
-                     const bsl::string_view&                 metricsIdentifier,
-                     bdlm::MetricsRegistry                 *metricsRegistry,
+                     const bsl::string_view&                 eventSchedulerName,
+                     bdlm::MetricsRegistry                  *metricsRegistry,
                      bslma::Allocator                       *basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_currentTimeFunctor(bsl::allocator_arg_t(), basicAllocator,
@@ -929,11 +940,12 @@ TimerEventScheduler::TimerEventScheduler(
 , d_numEvents(0)
 , d_numClocks(0)
 , d_clockType(clockType)
+, d_eventSchedulerName(eventSchedulerName, basicAllocator)
 {
     BSLS_ASSERT(numEvents < (1 << 24) - 1);
     BSLS_ASSERT(numClocks < (1 << 24) - 1);
 
-    initialize(metricsRegistry, metricsIdentifier);
+    initialize(metricsRegistry, eventSchedulerName);
 }
 
 TimerEventScheduler::~TimerEventScheduler()
@@ -967,7 +979,12 @@ int TimerEventScheduler::start(const bslmt::ThreadAttributes& threadAttributes)
     bslmt::ThreadAttributes modAttr(threadAttributes);
     modAttr.setDetachedState(bslmt::ThreadAttributes::e_CREATE_JOINABLE);
     if (modAttr.threadName().empty()) {
-        modAttr.setThreadName(s_defaultThreadName);
+        if (d_eventSchedulerName.empty()) {
+            modAttr.setThreadName(s_defaultThreadName);
+        }
+        else {
+            modAttr.setThreadName(d_eventSchedulerName.c_str());
+        }
     }
 
     if (bslmt::ThreadUtil::createWithAllocator(

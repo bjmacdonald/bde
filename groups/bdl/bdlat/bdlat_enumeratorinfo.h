@@ -1,12 +1,4 @@
 // bdlat_enumeratorinfo.h                                             -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #ifndef INCLUDED_BDLAT_ENUMERATORINFO
 #define INCLUDED_BDLAT_ENUMERATORINFO
 
@@ -21,7 +13,7 @@ BSLS_IDENT("$Id: $")
 //@SEE_ALSO:
 //
 //@DESCRIPTION:
-// This component provides the 'bdlat_EnumeratorInfo' 'class' which is a
+// This component provides the `bdlat_EnumeratorInfo` `class` which is a
 // container for holding information (properties) about an enumerator.  The
 // properties of an enumerator include its name and the length of its name, its
 // value, and a brief annotation.  Although each enumerator property is
@@ -29,6 +21,10 @@ BSLS_IDENT("$Id: $")
 //
 ///Usage
 ///-----
+// This section illustrates intended use of this component.
+//
+///Example 1: Basic Usage
+/// - - - - - - - - - - -
 // TBD doc
 
 #include <bdlscm_version.h>
@@ -56,9 +52,9 @@ namespace BloombergLP {
                         // struct bdlat_EnumeratorInfo
                         // ===========================
 
+/// This `struct` holds information about an enumerator.  Its data members
+/// are `public` by design so that instances may be statically initialized.
 struct bdlat_EnumeratorInfo {
-    // This 'struct' holds information about an enumerator.  Its data members
-    // are 'public' by design so that instances may be statically initialized.
 
     // PUBLIC DATA -- DO *NOT* REORDER
     int         d_value;         // value of enumerator
@@ -91,40 +87,41 @@ struct bdlat_EnumeratorInfo {
     //..
     // The assignment operator supplied by the compiler is sufficient.
 
+    /// Return a reference to the modifiable annotation of this enumerator
+    /// info object.
     const char *& annotation();
-        // Return a reference to the modifiable annotation of this enumerator
-        // info object.
 
+    /// Return a reference to the modifiable name of this enumerator info
+    /// object.
     const char *& name();
-        // Return a reference to the modifiable name of this enumerator info
-        // object.
 
+    /// Return a reference to the modifiable length of the name of this
+    /// enumerator info object.  Note that the 0-terminator is not included
+    /// in the length.
     int& nameLength();
-        // Return a reference to the modifiable length of the name of this
-        // enumerator info object.  Note that the 0-terminator is not included
-        // in the length.
 
+    /// Return a reference to the modifiable id of this enumerator info
+    /// object.
     int& value();
-        // Return a reference to the modifiable id of this enumerator info
-        // object.
 
     // ACCESSORS
+
+    /// Return the non-modifiable annotation of this enumerator info object.
     BSLS_KEYWORD_CONSTEXPR
     const char *annotation() const;
-        // Return the non-modifiable annotation of this enumerator info object.
 
+    /// Return the non-modifiable name of this enumerator info object.
     BSLS_KEYWORD_CONSTEXPR
     const char *name() const;
-        // Return the non-modifiable name of this enumerator info object.
 
+    /// Return the length of the name of this enumerator info object.  Note
+    /// that the 0-terminator is not included in the length.
     BSLS_KEYWORD_CONSTEXPR
     int nameLength() const;
-        // Return the length of the name of this enumerator info object.  Note
-        // that the 0-terminator is not included in the length.
 
+    /// Return the index of this enumerator info object.
     BSLS_KEYWORD_CONSTEXPR
     int value() const;
-        // Return the index of this enumerator info object.
 };
 
 // ============================================================================
@@ -132,26 +129,27 @@ struct bdlat_EnumeratorInfo {
 // ============================================================================
 
 // FREE OPERATORS
+
+/// Return `true` if the specified `lhs` and `rhs` enumerator info objects
+/// have the same value, and `false` otherwise.  Two enumerator info objects
+/// have the same value if each of their respective properties are
+/// identical.
 inline
 bool operator==(const bdlat_EnumeratorInfo& lhs,
                 const bdlat_EnumeratorInfo& rhs);
-    // Return 'true' if the specified 'lhs' and 'rhs' enumerator info objects
-    // have the same value, and 'false' otherwise.  Two enumerator info objects
-    // have the same value if each of their respective properties are
-    // identical.
 
+/// Return `true` if the specified `lhs` and `rhs` enumerator info objects
+/// do not have the same value, and `false` otherwise.  Two enumerator info
+/// objects do not have the same value if at least one of their respective
+/// properties is not identical.
 inline
 bool operator!=(const bdlat_EnumeratorInfo& lhs,
                 const bdlat_EnumeratorInfo& rhs);
-    // Return 'true' if the specified 'lhs' and 'rhs' enumerator info objects
-    // do not have the same value, and 'false' otherwise.  Two enumerator info
-    // objects do not have the same value if at least one of their respective
-    // properties is not identical.
 
+/// Write the value of the specified `enumeratorInfo` to the specified
+/// `stream`.
 bsl::ostream& operator<<(bsl::ostream&               stream,
                          const bdlat_EnumeratorInfo& enumeratorInfo);
-    // Write the value of the specified 'enumeratorInfo' to the specified
-    // 'stream'.
 
 // MANIPULATORS
 

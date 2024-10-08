@@ -5,10 +5,11 @@
 #include <bslma_managedallocator.h>
 
 #include <bsls_bsltestutil.h>
+#include <bsls_keyword.h>
 
-#include <stdio.h>      // 'printf'
-#include <stdlib.h>     // 'atoi'
-#include <string.h>     // 'memcpy'
+#include <stdio.h>      // `printf`
+#include <stdlib.h>     // `atoi`
+#include <string.h>     // `memcpy`
 
 #include <iostream>
 
@@ -20,21 +21,21 @@ using std::endl;
 //-----------------------------------------------------------------------------
 //                                  Overview
 //                                  --------
-// The goal of this 'bslma::ManagedAllocator' test suite is to verify that a
+// The goal of this `bslma::ManagedAllocator` test suite is to verify that a
 // concrete derived class compiles and links, and to provide a meaningful
 // usage example illustrating the power of the added facility a managed
 // allocator provides over an ordinary allocator.
 //
-// To aid testing, the concrete derived class 'TestAllocator' is implemented.
+// To aid testing, the concrete derived class `TestAllocator` is implemented.
 // This allocator records the associated constant for its most recently invoked
-// method.  For the 'allocate' method, it also records the argument that the
+// method.  For the `allocate` method, it also records the argument that the
 // method was invoked with.  The allocator's destructor sets the global
-// variable 'globalTestAllocatorDtorCalled' to indicate that the destructor has
+// variable `globalTestAllocatorDtorCalled` to indicate that the destructor has
 // been called.  Note that this global variable is automatically reset to 0 in
 // the allocator's constructor.
 //
-// To achieve the above goal, create a 'TestAllocator' and invoke its
-// 'allocate', 'deallocate' and 'release' methods.  Verify that the
+// To achieve the above goal, create a `TestAllocator` and invoke its
+// `allocate`, `deallocate` and `release` methods.  Verify that the
 // corresponding constant for each method is recorded after each method's
 // invocation.
 //-----------------------------------------------------------------------------
@@ -97,27 +98,36 @@ void aSsErT(bool condition, const char *message, int line)
 
 static int globalTestAllocatorDtorCalled;
 
+/// Test class used to verify protocol.
 class TestAllocator : public bslma::ManagedAllocator {
-    // Test class used to verify protocol.
 
     int  d_fun; // Holds value indicating the most recent method invoked.
-    size_type d_arg; // Holds argument from 'allocate'.
+    size_type d_arg; // Holds argument from `allocate`.
 
   public:
     enum { ALLOCATE = 1, DEALLOCATE = 2, RELEASE = 3 };
 
     // CREATORS
     TestAllocator() : d_fun(0) { globalTestAllocatorDtorCalled = 0; }
-    ~TestAllocator() { globalTestAllocatorDtorCalled = 1; }
+    ~TestAllocator() BSLS_KEYWORD_OVERRIDE
+    {
+        globalTestAllocatorDtorCalled = 1;
+    }
 
     // MANIPULATORS
-    void *allocate(size_type s) { d_fun = ALLOCATE; d_arg = s; return this; }
-    void deallocate(void *)     { d_fun = DEALLOCATE; }
-    void release()              { d_fun = RELEASE;    }
+    void *allocate(size_type s) BSLS_KEYWORD_OVERRIDE
+    {
+        d_fun = ALLOCATE;
+        d_arg = s;
+        return this;
+    }
+
+    void deallocate(void *) BSLS_KEYWORD_OVERRIDE { d_fun = DEALLOCATE; }
+    void release() BSLS_KEYWORD_OVERRIDE          { d_fun = RELEASE;    }
 
     // ACCESSORS
     size_type arg() const { return d_arg; }
-    // Return last argument value for 'allocate'.
+    // Return last argument value for `allocate`.
 
     int fun() const { return d_fun; }
     // Return descriptive code for the function called.
@@ -149,18 +159,18 @@ class LinkedListMA : public bslma::ManagedAllocator {
 
     // CREATORS
     LinkedListMA();
-    ~LinkedListMA();
+    ~LinkedListMA() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    void *allocate(size_type size);
-    void deallocate(void *address);
-    void release(void);
+    void *allocate(size_type size) BSLS_KEYWORD_OVERRIDE;
+    void deallocate(void *address) BSLS_KEYWORD_OVERRIDE;
+    void release(void) BSLS_KEYWORD_OVERRIDE;
 
     friend std::ostream& operator<<(std::ostream& stream,
                                     const LinkedListMA& allctr);
 };
 
-// Private helper function 'changeLists' moves an item from one list to
+// Private helper function `changeLists` moves an item from one list to
 // another; it is used by the class to move items from the free list to the
 // used list or vice-versa.  We expect the implementation never to incorrectly
 // call this helper, i.e., if it says to move an item from a particular list,
@@ -245,16 +255,16 @@ void * LinkedListMA::allocate(size_type size)
     // If we got here, there were no blocks that could satisfy the requirement.
     // Get truly new memory.
     char *newMem = new char[sizeof(Node) + size];
-    ((Node *)newMem)->d_dataSize = size;
-    ((Node *)newMem)->d_next = d_usedList;
-    d_usedList = (Node *)newMem;
+    ((Node *)static_cast<void *>(newMem))->d_dataSize = size;
+    ((Node *)static_cast<void *>(newMem))->d_next = d_usedList;
+    d_usedList = (Node *)static_cast<void *>(newMem);
 
     return newMem + DATAOFFSET;
 }
 
 void LinkedListMA::deallocate(void *address)
 {
-    changeLists((Node *)((char *)address - DATAOFFSET),
+    changeLists((Node *)static_cast<void *>((char *)address - DATAOFFSET),
                 &d_usedList, &d_freeList);
 }
 
@@ -262,9 +272,9 @@ void LinkedListMA::release()
 {
     removeAll(&d_usedList);
 
-    // Another alternative is to thread the usedList onto the 'freeList' by
-    // maintaining a 'freeListHead', and then setting
-    // 'freeListHead->d_next = usedList', and setting 'usedList = 0'.
+    // Another alternative is to thread the usedList onto the `freeList` by
+    // maintaining a `freeListHead`, and then setting
+    // `freeListHead->d_next = usedList`, and setting `usedList = 0`.
 }
 
 std::ostream& operator<<(std::ostream& stream, const LinkedListMA& allctr)
@@ -473,7 +483,7 @@ int main(int argc, char *argv[])
                  "\n\t(This will force printing and removal of all msgs.)"
                  "\n\tThis particular insertion will also force a memory "
                      "reallocation"
-                 "\n\tand then the 'Trigger' level forces immediate "
+                 "\n\tand then the `Trigger` level forces immediate "
                      "deallocation.");
         }
         myLogger.logMsg(Logger::TRIGGER,
@@ -515,10 +525,9 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
 
         const char *sampleStrings[] = {
-            "Hello", "How are you?", "Es geht mir gut",
-            "Porque tenemos que trabajar?", "Donde esta el gatito?",
-            "You get a shiver in the dark/it's raining in the "
-            "park/but meantime"
+           "Hello", "How are you?", "Es geht mir gut",
+           "Porque tenemos que trabajar?", "Donde esta el gatito?",
+           "You get a shiver in the dark/it's raining in the park/but meantime"
         };
 
         const int NUMBER_OF_STRINGS =
@@ -646,14 +655,14 @@ int main(int argc, char *argv[])
         //
         // Concerns:
         //   Our primary concern is that a class derived from
-        //   'bslma::ManagedAllocator' works as expected.
+        //   `bslma::ManagedAllocator` works as expected.
         //
         // Plan:
-        //   Create a 'TestAllocator' and invoke its 'allocate', 'deallocate'
-        //   and 'release' methods.  Verify that the corresponding constant
+        //   Create a `TestAllocator` and invoke its `allocate`, `deallocate`
+        //   and `release` methods.  Verify that the corresponding constant
         //   associated with each method is recorded after each method
         //   invocation.  Also verify that after the allocator leaves its
-        //   scope, the global variable 'globalTestAllocatorDtorCalled' is set
+        //   scope, the global variable `globalTestAllocatorDtorCalled` is set
         //   to non-zero.
         //
         // Testing:
@@ -666,7 +675,7 @@ int main(int argc, char *argv[])
         if (verbose) printf("\nPROTOCOL TEST"
                             "\n=============\n");
 
-        if (verbose) puts("\nTesting 'allocate', 'deallocate', 'release'"
+        if (verbose) puts("\nTesting `allocate`, `deallocate`, `release`"
                             " and destructor.");
         {
             TestAllocator myA;

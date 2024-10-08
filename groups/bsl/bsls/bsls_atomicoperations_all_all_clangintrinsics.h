@@ -5,15 +5,15 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Implement atomic operations using clang '__c11_atomic_*' intrinsics
+//@PURPOSE: Implement atomic operations using clang `__c11_atomic_*` intrinsics
 //
 //@CLASSES:
 //  bsls::AtomicOperations_ALL_ALL_ClangIntrinsics:
-//  clang '__c11_atomic_*' intrinsics
+//  clang `__c11_atomic_*` intrinsics
 //
 //@DESCRIPTION: This component provides classes necessary to implement atomics
 // in 32bit/64bit mode using clang compiler intrinsics.  The classes are for
-// private use only.  See 'bsls_atomicoperations' and 'bsls_atomic' for the
+// private use only.  See `bsls_atomicoperations` and `bsls_atomic` for the
 // public interface to atomics.
 
 #include <bsls_atomicoperations_default.h>
@@ -77,8 +77,8 @@ struct AtomicOperations_ALL_ALL_ClangIntrinsics
     typedef Atomic_TypeTraits<AtomicOperations_ALL_ALL_ClangIntrinsics>
             AtomicTypes;
 
+    /// compile-time assert
     typedef char AtomicInt_SizeCheck[sizeof(int) == 4 ? 1 : -1];
-        // compile-time assert
 
         // *** atomic functions for int ***
 
@@ -268,30 +268,30 @@ inline
 int AtomicOperations_ALL_ALL_ClangIntrinsics::
     addIntNv(AtomicTypes::Int *atomicInt, int value)
 {
-    return __c11_atomic_fetch_add(&atomicInt->d_value,
-                                  value,
-                                  __ATOMIC_SEQ_CST)
-         + value;
+    return static_cast<unsigned>(__c11_atomic_fetch_add(&atomicInt->d_value,
+                                                        value,
+                                                        __ATOMIC_SEQ_CST))
+           + value;
 }
 
 inline
 int AtomicOperations_ALL_ALL_ClangIntrinsics::
     addIntNvAcqRel(AtomicTypes::Int *atomicInt, int value)
 {
-    return __c11_atomic_fetch_add(&atomicInt->d_value,
-                                  value,
-                                  __ATOMIC_ACQ_REL)
-         + value;
+    return static_cast<unsigned>(__c11_atomic_fetch_add(&atomicInt->d_value,
+                                                        value,
+                                                        __ATOMIC_ACQ_REL))
+           + value;
 }
 
 inline
 int AtomicOperations_ALL_ALL_ClangIntrinsics::
     addIntNvRelaxed(AtomicTypes::Int *atomicInt, int value)
 {
-    return __c11_atomic_fetch_add(&atomicInt->d_value,
-                                  value,
-                                  __ATOMIC_RELAXED)
-         + value;
+    return static_cast<unsigned>(__c11_atomic_fetch_add(&atomicInt->d_value,
+                                                        value,
+                                                        __ATOMIC_RELAXED))
+           + value;
 }
 
 inline
@@ -401,30 +401,33 @@ inline
 Types::Int64 AtomicOperations_ALL_ALL_ClangIntrinsics::
     addInt64Nv(AtomicTypes::Int64 *atomicInt, Types::Int64 value)
 {
-    return __c11_atomic_fetch_add(&atomicInt->d_value,
-                                  value,
-                                  __ATOMIC_SEQ_CST)
-         + value;
+    return static_cast<Types::Uint64>(
+                                    __c11_atomic_fetch_add(&atomicInt->d_value,
+                                                           value,
+                                                           __ATOMIC_SEQ_CST))
+           + value;
 }
 
 inline
 Types::Int64 AtomicOperations_ALL_ALL_ClangIntrinsics::
     addInt64NvAcqRel(AtomicTypes::Int64 *atomicInt, Types::Int64 value)
 {
-    return __c11_atomic_fetch_add(&atomicInt->d_value,
-                                  value,
-                                  __ATOMIC_ACQ_REL)
-         + value;
+    return static_cast<Types::Uint64>(
+                                    __c11_atomic_fetch_add(&atomicInt->d_value,
+                                                           value,
+                                                           __ATOMIC_ACQ_REL))
+           + value;
 }
 
 inline
 Types::Int64 AtomicOperations_ALL_ALL_ClangIntrinsics::
     addInt64NvRelaxed(AtomicTypes::Int64 *atomicInt, Types::Int64 value)
 {
-    return __c11_atomic_fetch_add(&atomicInt->d_value,
-                                  value,
-                                  __ATOMIC_RELAXED)
-         + value;
+    return static_cast<Types::Uint64>(
+                                    __c11_atomic_fetch_add(&atomicInt->d_value,
+                                                           value,
+                                                           __ATOMIC_RELAXED))
+           + value;
 }
 
 }  // close package namespace

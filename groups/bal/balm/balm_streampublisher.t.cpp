@@ -1,31 +1,21 @@
 // balm_streampublisher.t.cpp                                         -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balm_streampublisher.h>
 
-#include <balm_metricsample.h>
 #include <balm_metricformat.h>
+#include <balm_metricsample.h>
 
-#include <bdlt_datetimetz.h>
 #include <bdlt_currenttime.h>
+#include <bdlt_datetimetz.h>
 
+#include <bslim_testutil.h>
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_testallocator.h>
 
+#include <bsl_cstdlib.h>
+#include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
 #include <bsl_sstream.h>
-
-#include <bsl_cstdlib.h>
-#include <bsl_cstring.h>
-
-#include <bslim_testutil.h>
 
 using namespace BloombergLP;
 
@@ -80,7 +70,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Incorporate usage example from header into driver, remove leading
-        //   comment characters, and replace 'assert' with 'ASSERT'.
+        //   comment characters, and replace `assert` with `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -92,28 +82,28 @@ int main(int argc, char *argv[])
 ///Usage
 ///-----
 // In the following example we illustrate how to create and publish records
-// with a 'balm::StreamPublisher'.  First we define a couple metric ids.  Note
-// that we create the 'balm::MetricId' objects by hand, but in practice an id
-// should be obtained from a 'balm::MetricRegistry' object (such as the
-// one owned by a 'balm::MetricsManager').
-//..
+// with a `balm::StreamPublisher`.  First we define a couple metric ids.  Note
+// that we create the `balm::MetricId` objects by hand, but in practice an id
+// should be obtained from a `balm::MetricRegistry` object (such as the
+// one owned by a `balm::MetricsManager`).
+// ```
     balm::Category myCategory("MyCategory");
     balm::MetricDescription descA(&myCategory, "MetricA");
     balm::MetricDescription descB(&myCategory, "MetricB");
 
     balm::MetricId metricA(&descA);
     balm::MetricId metricB(&descB);
-//..
-// Now we create a 'balm::StreamPublisher' object, supplying it the stdout
+// ```
+// Now we create a `balm::StreamPublisher` object, supplying it the stdout
 // stream.
-//..
+// ```
     balm::StreamPublisher myPublisher(bsl::cout);
-//..
+// ```
 // Next we create a metric sample containing a some records and send it to the
-// 'balm::StreamPublisher' we created.  Note that because we are not actually
+// `balm::StreamPublisher` we created.  Note that because we are not actually
 // collecting the metrics we set the elapsed time of the sample to an
 // arbitrary 5s interval.
-//..
+// ```
     bslma::Allocator *allocator = bslma::Default::allocator(0);
     bsl::vector<balm::MetricRecord> records(allocator);
 //
@@ -128,14 +118,14 @@ int main(int argc, char *argv[])
                        bsls::TimeInterval(5, 0));
 
     myPublisher.publish(sample);
-//..
+// ```
 // The output of this example would look similar to:
-//..
+// ```
 // 05FEB2009_19:52:11.723+0000 2 Records
 //     Elapsed Time: 5s
 //         MyCategory.MetricA [ count = 5, total = 25, min = 6, max = 25 ]
 //         MyCategory.MetricB [ count = 2, total = 7, min = 3, max = 11 ]
-//..
+// ```
 
       } break;
       case 1: {
@@ -149,10 +139,10 @@ int main(int argc, char *argv[])
         //   operation of the following methods and operators:
         //      - default and copy constructors (and also the destructor)
         //      - the assignment operator (including aliasing)
-        //      - equality operators: 'operator==()' and 'operator!=()'
-        //      - the (test-driver supplied) output operator: 'operator<<()'
-        //      - primary manipulators: 'push_back' and 'clear' methods
-        //      - basic accessors: 'size' and 'operator[]()'
+        //      - equality operators: `operator==()` and `operator!=()`
+        //      - the (test-driver supplied) output operator: `operator<<()`
+        //      - primary manipulators: `push_back` and `clear` methods
+        //      - basic accessors: `size` and `operator[]()`
         //   In addition we would like to exercise objects with potentially
         //   different internal organizations representing the same value.
         //

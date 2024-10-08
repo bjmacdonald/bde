@@ -1,13 +1,8 @@
 // bdlmt_threadpool.cpp                                               -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlmt_threadpool.h>
+
+#include <bsls_ident.h>
+BSLS_IDENT_RCSID(bdlmt_threadpool_cpp,"$Id$ $CSID$")
 
 #include <bdlm_instancecount.h>
 #include <bdlm_metric.h>
@@ -15,30 +10,26 @@
 
 #include <bdlf_bind.h>
 
-#include <bsls_ident.h>
-BSLS_IDENT_RCSID(bdlmt_threadpool_cpp,"$Id$ $CSID$")
-
-#include <bslmt_lockguard.h>
-#include <bsls_systemclocktype.h>
-#include <bsls_systemtime.h>
-#include <bsls_assert.h>
-#include <bsls_platform.h>
-#include <bsls_timeinterval.h>
-#include <bsls_timeutil.h>
-#include <bsls_types.h>
-
 #include <bslmt_barrier.h>           // for testing only
 #include <bslmt_lockguard.h>         // for testing only
 #include <bslmt_threadattributes.h>  // for testing only
 #include <bslmt_threadutil.h>        // for testing only
 
-#if defined(BSLS_PLATFORM_OS_UNIX)
-#include <bsl_c_signal.h>              // sigfillset
-#endif
+#include <bsls_assert.h>
+#include <bsls_platform.h>
+#include <bsls_systemclocktype.h>
+#include <bsls_systemtime.h>
+#include <bsls_timeinterval.h>
+#include <bsls_timeutil.h>
+#include <bsls_types.h>
 
 #include <bsl_climits.h>
 #include <bsl_cstdlib.h>
 #include <bsl_string.h>
+
+#if defined(BSLS_PLATFORM_OS_UNIX)
+#include <bsl_c_signal.h>              // sigfillset
+#endif
 
 namespace {
 
@@ -58,20 +49,20 @@ namespace bdlmt {
                          // ThreadPoolWaitNode
                          // ==================
 
+/// This structure is used to implement the linked list of threads that are
+/// waiting for a request to process.  Each thread has its own instance of
+/// this structure (a local variable in the ThreadPool::workerThread).
+/// When a thread finishes executing a job, if there are no pending jobs, it
+/// will add itself to the head of the wait list.  This logic behaves the
+/// same as a condition variable with the exception that it implements a
+/// LIFO instead of a FIFO wait list logic.  This ensures that threads that
+/// are truly idle will not wake until they have timed out.  When a new job
+/// arrives, the thread will be signaled to process by using the `d_jobCond`
+/// condition variable.  Whether the thread really has a job or the
+/// condition variable timed out on its wait is stored in the `d_hasJob`
+/// state value.  A thread that takes on a new job removes itself from the
+/// wait list (not necessarily at the head of the list).
 struct ThreadPoolWaitNode {
-    // This structure is used to implement the linked list of threads that are
-    // waiting for a request to process.  Each thread has its own instance of
-    // this structure (a local variable in the ThreadPool::workerThread).
-    // When a thread finishes executing a job, if there are no pending jobs, it
-    // will add itself to the head of the wait list.  This logic behaves the
-    // same as a condition variable with the exception that it implements a
-    // LIFO instead of a FIFO wait list logic.  This ensures that threads that
-    // are truly idle will not wake until they have timed out.  When a new job
-    // arrives, the thread will be signaled to process by using the 'd_jobCond'
-    // condition variable.  Whether the thread really has a job or the
-    // condition variable timed out on its wait is stored in the 'd_hasJob'
-    // state value.  A thread that takes on a new job removes itself from the
-    // wait list (not necessarily at the head of the list).
 
     bslmt::Condition             d_jobCond; // signaled when 'd_hasJob' is set
 
@@ -87,15 +78,16 @@ struct ThreadPoolWaitNode {
                                             // otherwise
 
     // CREATORS
+
+    /// Default constructor.
     ThreadPoolWaitNode();
-        // Default constructor.
 };
                             // ===============
                             // ThreadPoolEntry
                             // ===============
 
+/// Entry point for processing threads.
 extern "C" void *ThreadPoolEntry(void *aThis)
-    // Entry point for processing threads.
 {
     ((bdlmt::ThreadPool*)aThis)->workerThread();
     return 0;
@@ -131,7 +123,7 @@ void ThreadPool::doEnqueueJob(bslmf::MovableRef<Job> job)
 }
 
 void ThreadPool::initialize(bdlm::MetricsRegistry   *metricsRegistry,
-                            const bsl::string_view& metricsIdentifier)
+                            const bsl::string_view&  threadPoolName)
 {
     if (d_threadAttributes.threadName().empty()) {
         d_threadAttributes.setThreadName(s_defaultThreadName);
@@ -155,11 +147,11 @@ void ThreadPool::initialize(bdlm::MetricsRegistry   *metricsRegistry,
 
     bdlm::MetricDescriptor md(
              bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_NAMESPACE_SELECTION,
-             "backlog",
+             "bde.backlog",
              instanceNumber,
              "bdlmt.threadpool",
              "tp",
-             metricsIdentifier);
+             threadPoolName);
 
     registry->registerCollectionCallback(
                                    &d_backlogHandle,
@@ -433,15 +425,17 @@ ThreadPool::ThreadPool(const bslmt::ThreadAttributes&  threadAttributes,
     d_maxIdleTime.setTotalMilliseconds(maxIdleTime);
 
     initialize(
-            0,
-            bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_OBJECT_ID_SELECTION);
+        0,
+        (!d_threadAttributes.threadName().empty()
+         ? d_threadAttributes.threadName()
+         : bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_OBJECT_ID_SELECTION));
 }
 
 ThreadPool::ThreadPool(const bslmt::ThreadAttributes&  threadAttributes,
                        int                             minThreads,
                        int                             maxThreads,
                        int                             maxIdleTime,
-                       const bsl::string_view&         metricsIdentifier,
+                       const bsl::string_view&         threadPoolName,
                        bdlm::MetricsRegistry          *metricsRegistry,
                        bslma::Allocator               *basicAllocator)
 : d_queue(basicAllocator)
@@ -461,7 +455,11 @@ ThreadPool::ThreadPool(const bslmt::ThreadAttributes&  threadAttributes,
 
     d_maxIdleTime.setTotalMilliseconds(maxIdleTime);
 
-    initialize(metricsRegistry, metricsIdentifier);
+    if (d_threadAttributes.threadName().empty()) {
+        d_threadAttributes.setThreadName(threadPoolName);
+    }
+
+    initialize(metricsRegistry, threadPoolName);
 }
 
 ThreadPool::ThreadPool(const bslmt::ThreadAttributes&  threadAttributes,
@@ -487,15 +485,17 @@ ThreadPool::ThreadPool(const bslmt::ThreadAttributes&  threadAttributes,
     BSLS_ASSERT(INT_MAX                  >= maxIdleTime.totalMilliseconds());
 
     initialize(
-            0,
-            bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_OBJECT_ID_SELECTION);
+        0,
+        (!d_threadAttributes.threadName().empty()
+         ? d_threadAttributes.threadName()
+         : bdlm::MetricDescriptor::k_USE_METRICS_ADAPTER_OBJECT_ID_SELECTION));
 }
 
 ThreadPool::ThreadPool(const bslmt::ThreadAttributes&  threadAttributes,
                        int                             minThreads,
                        int                             maxThreads,
                        bsls::TimeInterval              maxIdleTime,
-                       const bsl::string_view&         metricsIdentifier,
+                       const bsl::string_view&         threadPoolName,
                        bdlm::MetricsRegistry          *metricsRegistry,
                        bslma::Allocator               *basicAllocator)
 : d_queue(basicAllocator)
@@ -515,7 +515,11 @@ ThreadPool::ThreadPool(const bslmt::ThreadAttributes&  threadAttributes,
     BSLS_ASSERT(bsls::TimeInterval(0, 0) <= maxIdleTime);
     BSLS_ASSERT(INT_MAX                  >= maxIdleTime.totalMilliseconds());
 
-    initialize(metricsRegistry, metricsIdentifier);
+    if (d_threadAttributes.threadName().empty()) {
+        d_threadAttributes.setThreadName(threadPoolName);
+    }
+
+    initialize(metricsRegistry, threadPoolName);
 }
 
 ThreadPool::~ThreadPool()
@@ -671,8 +675,8 @@ double ThreadPool::percentBusy() const
 
     return percentBusy;
 }
-}  // close package namespace
 
+}  // close package namespace
 }  // close enterprise namespace
 
 // ----------------------------------------------------------------------------

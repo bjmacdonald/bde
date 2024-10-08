@@ -18,13 +18,14 @@
 #include <bslma_testallocator.h>
 
 #include <bsls_annotation.h>
+#include <bsls_keyword.h>
 #include <bsls_protocoltest.h>
 
 #include <bsl_cstdlib.h>     // atoi()
 #include <bsl_cstring.h>     // strlen(), memset(), memcpy(), memcmp()
 #include <bsl_ctime.h>       // time()
 #include <bsl_iostream.h>
-#include <bsl_new.h>         // placement 'new' syntax
+#include <bsl_new.h>         // placement `new` syntax
 
 using namespace BloombergLP;
 using namespace bsl;  // automatically added by script
@@ -106,8 +107,10 @@ void aSsErT(bool condition, const char *message, int line)
 
 struct ObserverTest : bsls::ProtocolTestImp<ball::Observer> {
     using Observer::publish;  // avoid hiding base class method
-    void publish(const ball::Record&, const ball::Context&)  { markDone(); }
-    void releaseRecords() { markDone(); }
+
+    void publish(const ball::Record&,
+                 const ball::Context&) BSLS_KEYWORD_OVERRIDE { markDone(); }
+    void releaseRecords()              BSLS_KEYWORD_OVERRIDE { markDone(); }
 };
 
 //=============================================================================
@@ -121,10 +124,10 @@ class my_OstreamObserver : public ball::Observer {
 
   public:
     my_OstreamObserver(ostream& stream) : d_stream(stream) { }
-    virtual ~my_OstreamObserver();
+    ~my_OstreamObserver() BSLS_KEYWORD_OVERRIDE;
     using Observer::publish;  // avoid hiding base class method
-    virtual void publish(const ball::Record&  record,
-                         const ball::Context& context);
+    void publish(const ball::Record&  record,
+                 const ball::Context& context) BSLS_KEYWORD_OVERRIDE;
 };
 
 // my_ostreamobserver.cpp
@@ -142,7 +145,7 @@ void my_OstreamObserver::publish(const ball::Record&  record,
         d_stream << "Single Pass-through Message:" << endl;
       } break;
       case ball::Transmission::e_TRIGGER_ALL: {
-        d_stream << "Remotely ";      // no 'break'; concatenated output
+        d_stream << "Remotely ";      // no `break`; concatenated output
       } BSLS_ANNOTATION_FALLTHROUGH;
       case ball::Transmission::e_TRIGGER: {
         d_stream << "Triggered Publication Sequence: Message "
@@ -189,7 +192,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Incorporate usage example from header into driver, remove leading
-        //   comment characters, and replace 'assert' with 'ASSERT'.
+        //   comment characters, and replace `assert` with `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -257,7 +260,7 @@ int main(int argc, char *argv[])
                 if (veryVerbose) cout << buf << endl;
             }
             if (verbose)
-                cout << "Invoke 'releaseRecords' method." << endl;
+                cout << "Invoke `releaseRecords` method." << endl;
             {
                 observer.releaseRecords();
             }
@@ -268,14 +271,14 @@ int main(int argc, char *argv[])
         // PROTOCOL TEST:
         //
         // Concerns:
-        //   We must ensure that (1) a subclass of the 'ball::Observer' class
+        //   We must ensure that (1) a subclass of the `ball::Observer` class
         //   compiles and links when all virtual functions are defined, and
         //   (2) the functions are in fact virtual.
         //
         // Plan:
-        //   Construct an object of a class derived from 'ball::Observer' and
-        //   bind a 'ball::Observer' reference to the object.  Using the base
-        //   class reference, invoke the 'publish' method and destructor.
+        //   Construct an object of a class derived from `ball::Observer` and
+        //   bind a `ball::Observer` reference to the object.  Using the base
+        //   class reference, invoke the `publish` method and destructor.
         //   Verify that the correct implementations of the methods are called.
         //
         // Testing:

@@ -5,19 +5,26 @@
 #include <bslalg_hastrait.h>
 
 #include <bsls_bsltestutil.h>
+#include <bsls_platform.h>
 
-#include <stdio.h>      // 'printf'
-#include <stdlib.h>     // 'atoi'
+#include <stdio.h>      // `printf`
+#include <stdlib.h>     // `atoi`
 
 using namespace BloombergLP;
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#ifdef BSLS_PLATFORM_CMP_CLANG
+#pragma GCC diagnostic ignored "-Wunused-private-field"
+#endif
+#endif
 
 //=============================================================================
 //                             TEST PLAN
 //-----------------------------------------------------------------------------
 //                             Overview
 //                             --------
-// Verify that the trait under test can be detected using 'bslalg::HasTrait'
-// whether the trait is ascribed using 'BSLMF_NESTED_TRAIT_DECLARATION' or
+// Verify that the trait under test can be detected using `bslalg::HasTrait`
+// whether the trait is ascribed using `BSLMF_NESTED_TRAIT_DECLARATION` or
 // using the (preferred) C++11 idiom for defining traits.
 //-----------------------------------------------------------------------------
 
@@ -133,10 +140,10 @@ int main(int argc, char *argv[])
         // TESTING TRAIT CLASS
         //
         // Concerns:
-        //: 1 The name of the trait class does not change over time.
+        // 1. The name of the trait class does not change over time.
         //
         // Plan:
-        //: 1 Create an instance of the trait class.
+        // 1. Create an instance of the trait class.
         //
         // Testing:
         //   class bslalg::TypeTraitBitwiseMoveable;

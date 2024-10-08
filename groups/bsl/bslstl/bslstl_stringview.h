@@ -5,46 +5,46 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a standard-compliant 'basic_string_view' class template.
+//@PURPOSE: Provide a standard-compliant `basic_string_view` class template.
 //
 //@CLASSES:
-//  bsl::basic_string_view: C++ compliant 'basic_string_view' implementation
-//  bsl::string_view: 'typedef' for 'bsl::basic_string_view<char>'
-//  bsl::wstring_view: 'typedef' for 'bsl::basic_string_view<wchar_t>'
+//  bsl::basic_string_view: C++ compliant `basic_string_view` implementation
+//  bsl::string_view: `typedef` for `bsl::basic_string_view<char>`
+//  bsl::wstring_view: `typedef` for `bsl::basic_string_view<wchar_t>`
 //
 //@CANONICAL_HEADER: bsl_string_view.h
 //
 //@SEE_ALSO: ISO C++ Standard, bdlb_stringviewutil
 //
 //@DESCRIPTION: This component defines a single class template
-// 'bsl::basic_string_view' and aliases for ordinary and wide character
-// specializations 'bsl::string_view' and 'bsl::wstring_view' implementing
-// standard containers, 'std::string_view' and 'std::wstring_view', that can
+// `bsl::basic_string_view` and aliases for ordinary and wide character
+// specializations `bsl::string_view` and `bsl::wstring_view` implementing
+// standard containers, `std::string_view` and `std::wstring_view`, that can
 // refer to a constant contiguous sequence of char-like objects with the first
 // element of the sequence at position zero.
 //
-// An instantiation of 'basic_string_view' is a value-semantic type whose
+// An instantiation of `basic_string_view` is a value-semantic type whose
 // salient attribute is the sequence of characters it represents.  The
-// 'basic_string_view' 'class' is parameterized by the character type,
-// 'CHAR_TYPE' and that character type's traits, 'CHAR_TRAITS'.  The traits for
+// `basic_string_view` `class` is parameterized by the character type,
+// `CHAR_TYPE` and that character type's traits, `CHAR_TRAITS`.  The traits for
 // each character type provide functions that assign, compare, and copy a
 // sequence of those characters.
 //
-// A 'basic_string_view' meets the requirements of a sequential container with
+// A `basic_string_view` meets the requirements of a sequential container with
 // random access iterators as specified in the [basic.string_view] section of
-// the C++ standard [24.4].  The 'basic_string_view' implemented here adheres
+// the C++ standard [24.4].  The `basic_string_view` implemented here adheres
 // to the C++17 standard, except that it does not have template specializations
-// 'std::u16string_view' and 'std::u32string_view'.  Note that if compiler
-// supports C++17 standard, then 'stl' implementation of 'basic_string_view' is
+// `std::u16string_view` and `std::u32string_view`.  Note that if compiler
+// supports C++17 standard, then `stl` implementation of `basic_string_view` is
 // used.
 //
 ///Lexicographical Comparisons
 ///---------------------------
-// Two 'basic_string_view's 'lhs' and 'rhs' are lexicographically compared by
-// first determining 'N', the smaller of the lengths of 'lhs' and 'rhs', and
-// comparing characters at each position between 0 and 'N - 1', using
-// 'CHAR_TRAITS::compare' in lexicographical fashion.  If
-// 'CHAR_TRAITS::compare' determines that string_views are non-equal (smaller
+// Two `basic_string_view`s `lhs` and `rhs` are lexicographically compared by
+// first determining `N`, the smaller of the lengths of `lhs` and `rhs`, and
+// comparing characters at each position between 0 and `N - 1`, using
+// `CHAR_TRAITS::compare` in lexicographical fashion.  If
+// `CHAR_TRAITS::compare` determines that string_views are non-equal (smaller
 // or larger), then this is the result.  Otherwise, the lengths of the
 // string_views are compared and the shorter string_view is declared the
 // smaller.  Lexicographical comparison returns equality only when both
@@ -54,88 +54,88 @@ BSLS_IDENT("$Id: $")
 ///Operations
 ///----------
 // This section describes the run-time complexity of operations on instances of
-// 'basic_string_view':
-//..
-//  Legend
-//  ------
-//  'V'              - the 'CHAR_TYPE' template parameter type of the
-//                     'basic_string_view'
-//  'a', 'b'         - two distinct objects of type 'basic_string_view<V>'
-//  'k'              - an integral number
-//  'p'              - a pointer defining a sequence of 'CHAR_TYPE' characters
+// `basic_string_view`:
+// ```
+// Legend
+// ------
+// 'V'              - the 'CHAR_TYPE' template parameter type of the
+//                    'basic_string_view'
+// 'a', 'b'         - two distinct objects of type 'basic_string_view<V>'
+// 'k'              - an integral number
+// 'p'              - a pointer defining a sequence of 'CHAR_TYPE' characters
 //
-//  +----------------------------------------------+--------------------------+
-//  | Operation                                    | Complexity               |
-//  |==============================================+==========================|
-//  | basic_string_view<V> a (default construction)| O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | basic_string_view<V> a(b) (copy construction)| O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | basic_string_view<V> a(p)                    | O[n]                     |
-//  |----------------------------------------------+--------------------------|
-//  | basic_string_view<V> a(p, k)                 | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.~basic_string_view<V>() (destruction)      | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.begin(), a.end(),                          | O[1]                     |
-//  | a.cbegin(), a.cend(),                        |                          |
-//  | a.rbegin(), a.rend(),                        |                          |
-//  | a.crbegin(), a.crend()                       |                          |
-//  |----------------------------------------------+--------------------------|
-//  | a.size()                                     | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.max_size()                                 | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.remove_prefix(k)                           | O[1]                     |
-//  | a.remove_suffix(k)                           |                          |
-//  |----------------------------------------------+--------------------------|
-//  | a[k]                                         | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.at(k)                                      | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.front()                                    | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.back()                                     | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a.swap(b), swap(a, b)                        | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a = b; (assignment)                          | O[1]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a == b, a != b                               | O[n]                     |
-//  |----------------------------------------------+--------------------------|
-//  | a < b, a <= b, a > b, a >= b                 | O[n]                     |
-//  +----------------------------------------------+--------------------------+
-//..
+// +----------------------------------------------+--------------------------+
+// | Operation                                    | Complexity               |
+// |==============================================+==========================|
+// | basic_string_view<V> a (default construction)| O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | basic_string_view<V> a(b) (copy construction)| O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | basic_string_view<V> a(p)                    | O[n]                     |
+// |----------------------------------------------+--------------------------|
+// | basic_string_view<V> a(p, k)                 | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.~basic_string_view<V>() (destruction)      | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.begin(), a.end(),                          | O[1]                     |
+// | a.cbegin(), a.cend(),                        |                          |
+// | a.rbegin(), a.rend(),                        |                          |
+// | a.crbegin(), a.crend()                       |                          |
+// |----------------------------------------------+--------------------------|
+// | a.size()                                     | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.max_size()                                 | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.remove_prefix(k)                           | O[1]                     |
+// | a.remove_suffix(k)                           |                          |
+// |----------------------------------------------+--------------------------|
+// | a[k]                                         | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.at(k)                                      | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.front()                                    | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.back()                                     | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a.swap(b), swap(a, b)                        | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a = b; (assignment)                          | O[1]                     |
+// |----------------------------------------------+--------------------------|
+// | a == b, a != b                               | O[n]                     |
+// |----------------------------------------------+--------------------------|
+// | a < b, a <= b, a > b, a >= b                 | O[n]                     |
+// +----------------------------------------------+--------------------------+
+// ```
 //
 ///User-defined literals
 ///---------------------
-// The user-defined literal operators are declared for the 'bsl::string_view'
-// and 'bsl::wstring_view' types.  The ud-suffix '_sv' is chosen to distinguish
-// between the 'bsl'-string_view's user-defined literal operators and the
-// 'std'-string_view's user-defined literal 'operator ""sv' introduced in the
+// The user-defined literal operators are declared for the `bsl::string_view`
+// and `bsl::wstring_view` types.  The ud-suffix `_sv` is chosen to distinguish
+// between the `bsl`-string_view's user-defined literal operators and the
+// `std`-string_view's user-defined literal `operator ""sv` introduced in the
 // C++14 standard and implemented in the standard library provided by the
-// compiler vendor.  Note that the 'bsl'-string_view's 'operator "" _sv',
-// unlike the 'std'-string_view's 'operator ""sv', can be used in a client's
+// compiler vendor.  Note that the `bsl`-string_view's `operator "" _sv`,
+// unlike the `std`-string_view's `operator ""sv`, can be used in a client's
 // code if the compiler supports the C++11 standard.  Also note that if the
-// compiler supports the C++17 standard then the 'std'-string_view's
-// 'operator ""sv' can be used to initialize a 'bsl'-string_view as follows:
-//..
-//  using namespace std::string_view_literals;
-//  bsl::string_view sv = "test"sv;
-//..
+// compiler supports the C++17 standard then the `std`-string_view's
+// `operator ""sv` can be used to initialize a `bsl`-string_view as follows:
+// ```
+// using namespace std::string_view_literals;
+// bsl::string_view sv = "test"sv;
+// ```
 //
-// Also note that 'bsl'-string_view's user-defined literal operators are
-// declared in the 'bsl::literals::string_view_literals' namespace, where
-// 'literals' and 'string_view_literals' are inline namespaces.  Access to
-// these operators can be gained with either 'using namespace bsl::literals',
-// 'using namespace bsl::string_view_literals' or
-// 'using namespace bsl::literals::string_view_literals'.  But we recommend
-// 'using namespace bsl::string_view_literals' to minimize the scope of the
+// Also note that `bsl`-string_view's user-defined literal operators are
+// declared in the `bsl::literals::string_view_literals` namespace, where
+// `literals` and `string_view_literals` are inline namespaces.  Access to
+// these operators can be gained with either `using namespace bsl::literals`,
+// `using namespace bsl::string_view_literals` or
+// `using namespace bsl::literals::string_view_literals`.  But we recommend
+// `using namespace bsl::string_view_literals` to minimize the scope of the
 // using declaration:
-//..
-//  using namespace bsl::string_view_literals;
-//  bsl::string_view svr = "test"_sv;
-//..
+// ```
+// using namespace bsl::string_view_literals;
+// bsl::string_view svr = "test"_sv;
+// ```
 //
 ///Usage
 ///-----
@@ -143,51 +143,51 @@ BSLS_IDENT("$Id: $")
 //
 ///Example 1: Basic Syntax
 ///- - - - - - - - - - - -
-// The 'bsl::string_view' can be used as a lightweight replacement of the
-// 'bsl::string', unless you need to modify the content.  It takes up no more
+// The `bsl::string_view` can be used as a lightweight replacement of the
+// `bsl::string`, unless you need to modify the content.  It takes up no more
 // space and doesn't allocate memory:
-//..
-//      bslma::TestAllocator         da("Default", veryVeryVeryVerbose);
-//      bslma::DefaultAllocatorGuard dag(&da);
+// ```
+//     bslma::TestAllocator         da("Default", veryVeryVeryVerbose);
+//     bslma::DefaultAllocatorGuard dag(&da);
 //
-//      bslma::TestAllocator sfa ("StringFootprint",     veryVeryVeryVerbose);
-//      bslma::TestAllocator svfa("StringViewFootprint", veryVeryVeryVerbose);
-//      bslma::TestAllocator ssa ("StringSupplied",      veryVeryVeryVerbose);
+//     bslma::TestAllocator sfa ("StringFootprint",     veryVeryVeryVerbose);
+//     bslma::TestAllocator svfa("StringViewFootprint", veryVeryVeryVerbose);
+//     bslma::TestAllocator ssa ("StringSupplied",      veryVeryVeryVerbose);
 //
-//      const char *LONG_STRING = "0123456789012345678901234567890123456789"
-//                                "0123456789012345678901234567890123456789";
+//     const char *LONG_STRING = "0123456789012345678901234567890123456789"
+//                               "0123456789012345678901234567890123456789";
 //
-//      bsl::string      *sPtr  = new (sfa ) bsl::string(LONG_STRING, &ssa);
-//      bsl::string_view *svPtr = new (svfa) bsl::string_view(LONG_STRING);
+//     bsl::string      *sPtr  = new (sfa ) bsl::string(LONG_STRING, &ssa);
+//     bsl::string_view *svPtr = new (svfa) bsl::string_view(LONG_STRING);
 //
-//      assert(sfa.numBytesInUse() >= svfa.numBytesInUse());
-//      assert(0                   <   ssa.numBytesInUse());
-//      assert(0                   ==   da.numBytesInUse());
-//..
-// At the same time it supports all most used 'access' operations of the
-// 'bsl::string', using the same interfaces:
-//..
-//      const bsl::string&      STR = *sPtr;
-//      const bsl::string_view& SV  = *svPtr;
+//     assert(sfa.numBytesInUse() >= svfa.numBytesInUse());
+//     assert(0                   <   ssa.numBytesInUse());
+//     assert(0                   ==   da.numBytesInUse());
+// ```
+// At the same time it supports all most used `access` operations of the
+// `bsl::string`, using the same interfaces:
+// ```
+//     const bsl::string&      STR = *sPtr;
+//     const bsl::string_view& SV  = *svPtr;
 //
-//      assert(STR.length()                == SV.length());
-//      assert(STR.empty()                 == SV.empty());
-//      assert(STR.front()                 == SV.front());
-//      assert(STR.at(15)                  == SV.at(15));
-//      assert(STR.find("345")             == SV.find("345"));
-//      assert(STR.find_last_not_of("578") == SV.find_last_not_of("578"));
-//      assert(STR.compare(0, 3, "012")    == SV.compare(0, 3, "012"));
-//..
-// However, using the 'bsl::string_view', you need to be especially attentive
+//     assert(STR.length()                == SV.length());
+//     assert(STR.empty()                 == SV.empty());
+//     assert(STR.front()                 == SV.front());
+//     assert(STR.at(15)                  == SV.at(15));
+//     assert(STR.find("345")             == SV.find("345"));
+//     assert(STR.find_last_not_of("578") == SV.find_last_not_of("578"));
+//     assert(STR.compare(0, 3, "012")    == SV.compare(0, 3, "012"));
+// ```
+// However, using the `bsl::string_view`, you need to be especially attentive
 // to the lifetime of the source character string, since the component
 // explicitly refers to it:
-//..
-//      assert(LONG_STRING != STR.data());
-//      assert(LONG_STRING == SV.data());
+// ```
+//     assert(LONG_STRING != STR.data());
+//     assert(LONG_STRING == SV.data());
 //
-//      sfa.deleteObject(sPtr);
-//      svfa.deleteObject(svPtr);
-//..
+//     sfa.deleteObject(sPtr);
+//     svfa.deleteObject(svPtr);
+// ```
 
 #include <bslscm_version.h>
 
@@ -292,33 +292,36 @@ struct StringView_Identity {
         TYPE d_value;
 
         // CREATOR
+
+        /// Initialize `d_value` from the specified `argument`, of the
+        /// specified `ARG_TYPE`, where `ARG_TYPE` can be any type that is
+        /// convertible to the specified `TYPE`.
         template <class ARG_TYPE>
         type(const ARG_TYPE& argument,
                      typename
                      bsl::enable_if<bsl::is_convertible<ARG_TYPE, TYPE>::value,
                                     int>::type = 0);
-            // Initialize 'd_value' from the specified 'argument', of the
-            // specified 'ARG_TYPE', where 'ARG_TYPE' can be any type that is
-            // convertible to the specified 'TYPE'.
 
-        // type(const type&) = default;
+        //! type(const type&) = default;
 
         // MANIPULATORS
-        // type& operator=(const type&) = default;
 
+        //! type& operator=(const type&) = default;
+
+        /// Assign the specified `rhs` of type `TYPE` to this object, and
+        /// return a reference providing modifiable access to the `TYPE`
+        /// object held by this object.
         TYPE& operator=(const TYPE& rhs);
-            // Assign the specified 'rhs' of type 'TYPE' to this object, and
-            // return a reference providing modifiable access to the 'TYPE'
-            // object held by this object.
 
+        /// Return a reference providing modifiable access to the `TYPE`
+        /// object held by this object.
         operator TYPE&();
-            // Return a reference providing modifiable access to the 'TYPE'
-            // object held by this object.
 
         // ACCESSOR
+
+        /// Return a const reference to the `TYPE` object held by this
+        /// object.
         operator const TYPE&() const;
-            // Return a const reference to the 'TYPE' object held by this
-            // object.
     };
 #else
     // TYPES
@@ -335,15 +338,15 @@ namespace bsl {
             // struct BasicStringView_IsCompatibleIterator
             // ===========================================
 
+/// `value` is 1 if (template parameter) type `CONTG_ITER` is convertible to
+/// `const CHAR_TYPE *` (i.e., convertible to `d_start_p` of
+/// `basic_string_view`); otherwise, `value` is 0.
 template <class CHAR_TYPE, class CONTG_ITER>
 struct BasicStringView_IsCompatibleIterator : bsl::is_convertible<
                                       CONTG_ITER,
                                       typename bsl::add_pointer<
                                       typename bsl::add_const<CHAR_TYPE>::type
                                                                        >::type>
-    // 'value' is 1 if (template parameter) type 'CONTG_ITER' is convertible to
-    // 'const CHAR_TYPE *' (i.e., convertible to 'd_start_p' of
-    // 'basic_string_view'); otherwise, 'value' is 0.
 {
 };
 
@@ -351,12 +354,12 @@ struct BasicStringView_IsCompatibleIterator : bsl::is_convertible<
             // struct BasicStringView_IsCompatibleSentinel
             // ===========================================
 
+/// `value` is 1 if (template parameter) type `SENTINEL> is *not*
+/// convertible to `size_type`, and 0 otherwise.
 template <class SENTINEL>
 struct BasicStringView_IsCompatibleSentinel :
     bsl::integral_constant<bool,
                            ! bsl::is_convertible<SENTINEL, std::size_t>::value>
-    // 'value' is 1 if (template parameter) type 'SENTINEL> is *not*
-    // convertible to 'size_type', and 0 otherwise.
 {
 };
 
@@ -369,25 +372,25 @@ using std::char_traits;
                         // class basic_string_view
                         // =======================
 
+/// This class template provides an STL-compliant `string_view`.  This
+/// implementation offers strong exception guarantees (see below), with the
+/// general rule that any method that attempts to access a position outside
+/// the valid range of a string_view throws `std::out_of_range`.
+///
+/// Note that the search methods, such as `find`, `rfind`, etc, do *not*
+/// actually access invalid positions, so they do *not* throw exceptions.
+///
+/// More generally, this class supports an almost complete set of *in-core*
+/// *value* *semantic* operations, including copy construction, assignment,
+/// equality comparison (but excluding `ostream` printing since this
+/// component is below STL).  A precise operational definition of when two
+/// objects have the same value can be found in the description of
+/// `operator==` for the class.  This class is *exception* *neutral* with
+/// full guarantee of rollback: if an exception is thrown during the
+/// invocation of a method on a pre-existing object, the object is left
+/// unchanged.  In no event is memory leaked.
 template <class CHAR_TYPE, class CHAR_TRAITS = char_traits<CHAR_TYPE> >
 class basic_string_view {
-    // This class template provides an STL-compliant 'string_view'.  This
-    // implementation offers strong exception guarantees (see below), with the
-    // general rule that any method that attempts to access a position outside
-    // the valid range of a string_view throws 'std::out_of_range'.
-    //
-    // Note that the search methods, such as 'find', 'rfind', etc, do *not*
-    // actually access invalid positions, so they do *not* throw exceptions.
-    //
-    // More generally, this class supports an almost complete set of *in-core*
-    // *value* *semantic* operations, including copy construction, assignment,
-    // equality comparison (but excluding 'ostream' printing since this
-    // component is below STL).  A precise operational definition of when two
-    // objects have the same value can be found in the description of
-    // 'operator==' for the class.  This class is *exception* *neutral* with
-    // full guarantee of rollback: if an exception is thrown during the
-    // invocation of a method on a pre-existing object, the object is left
-    // unchanged.  In no event is memory leaked.
 
   public:
     // TYPES
@@ -408,9 +411,10 @@ class basic_string_view {
 
   public:
     // CLASS DATA
+
+    /// Value used to denote "not-a-position", guaranteed to be outside the
+    /// range `[0 .. max_size()]`.
     static const size_type npos = ~size_type(0);
-        // Value used to denote "not-a-position", guaranteed to be outside the
-        // range '[0 .. max_size()]'.
 
   private:
     // DATA
@@ -418,19 +422,21 @@ class basic_string_view {
     size_type        d_length;   // length of the view
 
     // PRIVATE ACCESSORS
+
+    /// Lexicographically compare the substring of this string starting at
+    /// the specified `lhsPosition` of length `lhsNumChars` with the
+    /// specified initial `otherNumChars` characters in the specified
+    /// `other` string, and return a negative value if the indicated
+    /// substring of this string is less than `other`, a positive value if
+    /// it is greater than `other`, and 0 in case of equality.  The behavior
+    /// is undefined unless `lhsPosition <= length()`,
+    /// `lhsNumChars <= length()`, and
+    /// `lhsPosition <= length() - lhsNumChars`.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     int privateCompareRaw(size_type        lhsPosition,
                           size_type        lhsNumChars,
                           const CHAR_TYPE *other,
                           size_type        otherNumChars) const;
-        // Lexicographically compare the substring of this string starting at
-        // the specified 'lhsPosition' of length 'lhsNumChars' with the
-        // specified initial 'otherNumChars' characters in the specified
-        // 'other' string, and return a negative value if the indicated
-        // substring of this string is less than 'other', a positive value if
-        // it is greater than 'other', and 0 in case of equality.  The behavior
-        // is undefined unless 'lhsPosition <= length()',
-        // 'lhsNumChars <= length()', and
-        // 'lhsPosition <= length() - lhsNumChars'.
 
   public:
     // TRAITS
@@ -438,27 +444,38 @@ class basic_string_view {
                                    bsl::is_trivially_copyable);
 
     // CREATORS
+
+    /// Create an empty view.
     BSLS_KEYWORD_CONSTEXPR
     basic_string_view() BSLS_KEYWORD_NOEXCEPT;
-        // Create an empty view.
 
+    /// Create a view that has the same value as the specified `original`
+    /// object.
     //! basic_string_view(const basic_string_view& original) = default;
-        // Create a view that has the same value as the specified 'original'
-        // object.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
-    basic_string_view(const CHAR_TYPE *characterString);  // IMPLICIT
-        // Create a view of the specified null-terminated 'characterString' (of
-        // length 'CHAR_TRAITS::length(characterString)').
+    /// Create a view of the specified null-terminated `characterString` (of
+    /// length `CHAR_TRAITS::length(characterString)`).
+    BSLS_KEYWORD_CONSTEXPR_CPP17
+    basic_string_view(const CHAR_TYPE *characterString);           // IMPLICIT
 
+    /// Create a view that has the same value as the subview of the
+    /// optionally specified `numChars` length starting at the beginning of
+    /// the specified `characterString`.  The behavior is undefined unless
+    /// `characterString || (numChars == 0)` and `numChars <= max_size()`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     basic_string_view(const CHAR_TYPE *characterString,
                       size_type        numChars);
-        // Create a view that has the same value as the subview of the
-        // optionally specified 'numChars' length starting at the beginning of
-        // the specified 'characterString'.  The behavior is undefined unless
-        // 'characterString || (numChars == 0)' and 'numChars <= max_size()'.
 
+    /// Create a view from of characters in the range starting at the
+    /// specified `first`, a contiguous iterator, to the position
+    /// immediately before the specified `end`, a sentinel type.  The
+    /// behavior is undefined unless:
+    /// * `[first, last)` is a contiguous valid range,
+    /// *o if `first` is 0, then `0 == last - first`, and
+    /// *o the `SENTINEL` type is *not* convertible to `std::size_t`.
+    /// Note that contiguous iterator types also provide random access.
+    /// Also note that pointers to `CHAR_TYPE` can be used as iterator and
+    /// sentinel types.
     template <class CONTG_ITER, class SENTINEL>
     BSLS_KEYWORD_CONSTEXPR_CPP14
     basic_string_view(CONTG_ITER first,
@@ -469,525 +486,514 @@ class basic_string_view {
                                                            CONTG_ITER>::value
                    && BasicStringView_IsCompatibleSentinel<SENTINEL  >::value
                       >::type * = 0);
-        // Create a view from of characters in the range starting at the
-        // specified 'first', a contiguous iterator, to the position
-        // immediately before the specified 'end', a sentinel type.  The
-        // behavior is undefined unless:
-        //: o '[first, last)' is a contiguous valid range,
-        //: o if 'first' is 0, then '0 == last - first', and
-        //: o the 'SENTINEL' type is *not* convertible to 'std::size_t'.
-        // Note that contiguous iterator types also provide random access.
-        // Also note that pointers to 'CHAR_TYPE' can be used as iterator and
-        // sentinel types.
 
+    /// Create a view of the specified `string`.
     template <class ALLOCATOR>
-    BSLS_KEYWORD_CONSTEXPR_CPP14
     basic_string_view(
               const std::basic_string<CHAR_TYPE, CHAR_TRAITS, ALLOCATOR>& str);
                                                                     // IMPLICIT
-        // Create a view of the specified 'string'.
 
 #ifdef BSLSTL_STRING_VIEW_AND_STD_STRING_VIEW_COEXIST
+    /// Create a view identical to the specified `view`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     basic_string_view(
                    const std::basic_string_view<CHAR_TYPE, CHAR_TRAITS>& view);
                                                                     // IMPLICIT
-        // Create a view identical to the specified 'view'.
 
 #endif // BSLSTL_STRING_VIEW_AND_STD_STRING_VIEW_COEXIST
 
+    /// Destroy this object.
     //! ~basic_string_view() = default;
-        // Destroy this object.
 
     // MANIPULATORS
-    //! basic_string_view& operator=(const basic_string_view& rhs) = default;
-        // Assign to this view the value of the specified 'rhs' object, and
-        // return a reference providing modifiable access to this view.
 
+    /// Assign to this view the value of the specified `rhs` object, and
+    /// return a reference providing modifiable access to this view.
+    //! basic_string_view& operator=(const basic_string_view& rhs) = default;
+
+    /// Assign to this view the value of the specified `rhs` object, and
+    /// return a reference providing modifiable access to this view.
     template <class ALLOCATOR>
     BSLS_KEYWORD_CONSTEXPR_CPP14
     basic_string_view& operator=(
                const std::basic_string<CHAR_TYPE, CHAR_TRAITS, ALLOCATOR>& rhs)
     BSLS_KEYWORD_NOEXCEPT;
-        // Assign to this view the value of the specified 'rhs' object, and
-        // return a reference providing modifiable access to this view.
 
+    /// Move the start of this view forward by the specified `numChars`.
+    /// The behavior is undefined unless `numChars <= length()`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     void remove_prefix(size_type numChars);
-        // Move the start of this view forward by the specified 'numChars'.
-        // The behavior is undefined unless 'numChars <= length()'.
 
+    /// Move the end of this view back by the specified `numChars`.  The
+    /// behavior is undefined unless `numChars <= length()`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     void remove_suffix(size_type numChars);
-        // Move the end of this view back by the specified 'numChars'.  The
-        // behavior is undefined unless 'numChars <= length()'.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Exchange the value of this view with the value of the specified
+    /// `other` object.
     void swap(basic_string_view& other) BSLS_KEYWORD_NOEXCEPT;
-        // Exchange the value of this view with the value of the specified
-        // 'other' object.
 
     // ACCESSORS
 
                       // *** iterator support ***
 
+    /// Return an iterator providing non-modifiable access to the first
+    /// character of this view (or the past-the-end iterator if this view is
+    /// empty).
     BSLS_KEYWORD_CONSTEXPR
     const_iterator  begin() const BSLS_KEYWORD_NOEXCEPT;
     BSLS_KEYWORD_CONSTEXPR
     const_iterator cbegin() const BSLS_KEYWORD_NOEXCEPT;
-        // Return an iterator providing non-modifiable access to the first
-        // character of this view (or the past-the-end iterator if this view is
-        // empty).
 
+    /// Return the past-the-end iterator for this view.
     BSLS_KEYWORD_CONSTEXPR
     const_iterator  end() const BSLS_KEYWORD_NOEXCEPT;
     BSLS_KEYWORD_CONSTEXPR
     const_iterator cend() const BSLS_KEYWORD_NOEXCEPT;
-        // Return the past-the-end iterator for this view.
 
-    BSLS_KEYWORD_CONSTEXPR
+    /// Return a reverse iterator providing non-modifiable access to the
+    /// last character of this view (or the past-the-end reverse iterator if
+    /// this view is empty).
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     const_reverse_iterator  rbegin() const BSLS_KEYWORD_NOEXCEPT;
-    BSLS_KEYWORD_CONSTEXPR
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     const_reverse_iterator crbegin() const BSLS_KEYWORD_NOEXCEPT;
-        // Return a reverse iterator providing non-modifiable access to the
-        // last character of this view (or the past-the-end reverse iterator if
-        // this view is empty).
 
-    BSLS_KEYWORD_CONSTEXPR
+    /// Return the past-the-end reverse iterator for this view.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     const_reverse_iterator  rend() const BSLS_KEYWORD_NOEXCEPT;
-    BSLS_KEYWORD_CONSTEXPR
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     const_reverse_iterator crend() const BSLS_KEYWORD_NOEXCEPT;
-        // Return the past-the-end reverse iterator for this view.
 
                       // *** capacity ***
 
+    /// Return the length of this view.
     BSLS_KEYWORD_CONSTEXPR
     size_type size() const BSLS_KEYWORD_NOEXCEPT;
-        // Return the length of this view.
 
+    /// Return the length of this view.
     BSLS_KEYWORD_CONSTEXPR
     size_type length() const BSLS_KEYWORD_NOEXCEPT;
-        // Return the length of this view.
 
+    /// Return the maximal possible length of this view.  Note that requests
+    /// to create a view longer than this number of characters are
+    /// guaranteed to raise an `std::length_error` exception.
     BSLS_KEYWORD_CONSTEXPR
     size_type max_size() const BSLS_KEYWORD_NOEXCEPT;
-        // Return the maximal possible length of this view.  Note that requests
-        // to create a view longer than this number of characters are
-        // guaranteed to raise an 'std::length_error' exception.
 
+    /// Return `true` if this view has length 0, and `false` otherwise.
     BSLS_KEYWORD_CONSTEXPR
     bool empty() const BSLS_KEYWORD_NOEXCEPT;
-        // Return 'true' if this view has length 0, and 'false' otherwise.
 
                       // *** element access ***
 
+    /// Return a reference providing non-modifiable access to the character
+    /// at the specified `position` in this view.  The behavior is undefined
+    /// unless `position < length()`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     const_reference operator[](size_type position) const;
-        // Return a reference providing non-modifiable access to the character
-        // at the specified 'position' in this view.  The behavior is undefined
-        // unless 'position < length()'.
 
+    /// Return a reference providing non-modifiable access to the character
+    /// at the specified `position` in this view.  Throw `std::out_of_range`
+    /// if `position >= length()`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     const_reference at(size_type position) const;
-        // Return a reference providing non-modifiable access to the character
-        // at the specified 'position' in this view.  Throw 'std::out_of_range'
-        // if 'position >= length()'.
 
+    /// Return a reference providing non-modifiable access to the character
+    /// at the first position in this view.  The behavior is undefined if
+    /// this view is empty.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     const_reference front() const;
-        // Return a reference providing non-modifiable access to the character
-        // at the first position in this view.  The behavior is undefined if
-        // this view is empty.
 
+    /// Return a reference providing non-modifiable access to the character
+    /// at the last position in this view.  The behavior is undefined if
+    /// this view is empty.  Note that the last position is `length() - 1`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     const_reference back() const;
-        // Return a reference providing non-modifiable access to the character
-        // at the last position in this view.  The behavior is undefined if
-        // this view is empty.  Note that the last position is 'length() - 1'.
 
+    /// Return an address providing non-modifiable access to the underlying
+    /// character array.  Note that this array may be not null-terminated.
     BSLS_KEYWORD_CONSTEXPR
     const_pointer data() const BSLS_KEYWORD_NOEXCEPT;
-        // Return an address providing non-modifiable access to the underlying
-        // character array.  Note that this array may be not null-terminated.
 
                       // *** string operations ***
 
+    /// Copy from this view, starting from the optionally specified
+    /// `position`, the specified `numChars` or `length() - position`
+    /// characters, whichever is smaller, into the specified
+    /// `characterString` buffer, and return the number of characters
+    /// copied.  If `position` is not specified, 0 is used.  Throw
+    /// `std::out_of_range` if `position > length()`.  Note that the output
+    /// `characterString` is *not* null-terminated.  The behavior is
+    /// undefined unless `characterString` has enough room to hold at least
+    /// `numChars` or `length() - position`, whichever is smaller, and the
+    /// `characterString` does not lie within the source range to be copied.
     size_type copy(CHAR_TYPE *characterString,
                    size_type  numChars,
                    size_type  position = 0) const;
-        // Copy from this view, starting from the optionally specified
-        // 'position', the specified 'numChars' or 'length() - position'
-        // characters, whichever is smaller, into the specified
-        // 'characterString' buffer, and return the number of characters
-        // copied.  If 'position' is not specified, 0 is used.  Throw
-        // 'std::out_of_range' if 'position > length()'.  Note that the output
-        // 'characterString' is *not* null-terminated.  The behavior is
-        // undefined unless 'characterString' has enough room to hold at least
-        // 'numChars' or 'length() - position', whichever is smaller, and the
-        // 'characterString' does not lie within the source range to be copied.
 
+    /// Return a view whose value is the subview starting at the optionally
+    /// specified `position` in this view, of length the optionally
+    /// specified `numChars` or `length() - position`, whichever is smaller.
+    /// If `position` is not specified, 0 is used (i.e., the subview is from
+    /// the beginning of this view).  If `numChars` is not specified, `npos`
+    /// is used (i.e., the entire suffix from `position` to the end of the
+    /// view is returned).  Throw `std::out_of_range` if
+    /// `position > length()`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     basic_string_view substr(size_type position = 0,
                              size_type numChars = npos) const;
-        // Return a view whose value is the subview starting at the optionally
-        // specified 'position' in this view, of length the optionally
-        // specified 'numChars' or 'length() - position', whichever is smaller.
-        // If 'position' is not specified, 0 is used (i.e., the subview is from
-        // the beginning of this view).  If 'numChars' is not specified, 'npos'
-        // is used (i.e., the entire suffix from 'position' to the end of the
-        // view is returned).  Throw 'std::out_of_range' if
-        // 'position > length()'.
 
-    BSLS_KEYWORD_CONSTEXPR
+    /// Lexicographically compare this view with the specified `other` view,
+    /// and return a negative value if this view is less than `other`, a
+    /// positive value if it is greater than `other`, and 0 in case of
+    /// equality.  See {Lexicographical Comparisons}.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     int compare(basic_string_view other) const BSLS_KEYWORD_NOEXCEPT;
-        // Lexicographically compare this view with the specified 'other' view,
-        // and return a negative value if this view is less than 'other', a
-        // positive value if it is greater than 'other', and 0 in case of
-        // equality.  See {Lexicographical Comparisons}.
 
+    /// Lexicographically compare the subview of this view of the specified
+    /// `numChars` length starting at the specified `position` (or the
+    /// suffix of this view starting at `position` if
+    /// `position + numChars > length()`) with the specified `other` view,
+    /// and return a negative value if the indicated subview of this view is
+    /// less than `other`, a positive value if it is greater than `other`,
+    /// and 0 in case of equality.  Throw `std::out_of_range` if
+    /// `position > length()`.  See {Lexicographical Comparisons}.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     int compare(size_type         position,
                 size_type         numChars,
                 basic_string_view other) const;
-        // Lexicographically compare the subview of this view of the specified
-        // 'numChars' length starting at the specified 'position' (or the
-        // suffix of this view starting at 'position' if
-        // 'position + numChars > length()') with the specified 'other' view,
-        // and return a negative value if the indicated subview of this view is
-        // less than 'other', a positive value if it is greater than 'other',
-        // and 0 in case of equality.  Throw 'std::out_of_range' if
-        // 'position > length()'.  See {Lexicographical Comparisons}.
 
+    /// Lexicographically compare the subview of this view of the specified
+    /// `lhsNumChars` length starting at the specified `lhsPosition` (or the
+    /// suffix of this view starting at `lhsPosition` if
+    /// `lhsPosition + lhsNumChars > length()`) with the subview of the
+    /// specified `other` view of the specified `otherNumChars` length
+    /// starting at the specified `otherPosition` (or the suffix of `other`
+    /// starting at `otherPosition` if
+    /// `otherPosition + otherNumChars > other.length()`).  Return a
+    /// negative value if the indicated subview of this view is less than
+    /// the indicated subview of `other`, a positive value if it is greater
+    /// than the indicated subview of `other`, and 0 in case of equality.
+    /// Throw `std::out_of_range` if `lhsPosition > length()` or
+    /// `otherPosition > other.length()`.  See {Lexicographical
+    /// Comparisons}.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     int compare(size_type         lhsPosition,
                 size_type         lhsNumChars,
                 basic_string_view other,
                 size_type         otherPosition,
                 size_type         otherNumChars) const;
-        // Lexicographically compare the subview of this view of the specified
-        // 'lhsNumChars' length starting at the specified 'lhsPosition' (or the
-        // suffix of this view starting at 'lhsPosition' if
-        // 'lhsPosition + lhsNumChars > length()') with the subview of the
-        // specified 'other' view of the specified 'otherNumChars' length
-        // starting at the specified 'otherPosition' (or the suffix of 'other'
-        // starting at 'otherPosition' if
-        // 'otherPosition + otherNumChars > other.length()').  Return a
-        // negative value if the indicated subview of this view is less than
-        // the indicated subview of 'other', a positive value if it is greater
-        // than the indicated subview of 'other', and 0 in case of equality.
-        // Throw 'std::out_of_range' if 'lhsPosition > length()' or
-        // 'otherPosition > other.length()'.  See {Lexicographical
-        // Comparisons}.
 
+    /// Lexicographically compare this view with the specified
+    /// null-terminated `other` string (of length
+    /// `CHAR_TRAITS::length(other)`), and return a negative value if this
+    /// view is less than `other`, a positive value if it is greater than
+    /// `other`, and 0 in case of equality.  The behavior is undefined
+    /// unless `other` is a null-terminated string.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     int compare(const CHAR_TYPE *other) const;
-        // Lexicographically compare this view with the specified
-        // null-terminated 'other' string (of length
-        // 'CHAR_TRAITS::length(other)'), and return a negative value if this
-        // view is less than 'other', a positive value if it is greater than
-        // 'other', and 0 in case of equality.  The behavior is undefined
-        // unless 'other' is a null-terminated string.
 
+    /// Lexicographically compare the subview of this view of the specified
+    /// `lhsNumChars` length starting at the specified `lhsPosition` (or the
+    /// suffix of this view starting at `lhsPosition` if
+    /// `lhsPosition + lhsNumChars > length()`) with the specified
+    /// null-terminated `other` string (of length
+    /// `CHAR_TRAITS::length(other)`), and return a negative value if the
+    /// indicated subview of this view is less than `other`, a positive
+    /// value if it is greater than `other`, and 0 in case of equality.
+    /// Throw `std::out_of_range` if `lhsPosition > length()`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     int compare(size_type        lhsPosition,
                 size_type        lhsNumChars,
                 const CHAR_TYPE *other) const;
-        // Lexicographically compare the subview of this view of the specified
-        // 'lhsNumChars' length starting at the specified 'lhsPosition' (or the
-        // suffix of this view starting at 'lhsPosition' if
-        // 'lhsPosition + lhsNumChars > length()') with the specified
-        // null-terminated 'other' string (of length
-        // 'CHAR_TRAITS::length(other)'), and return a negative value if the
-        // indicated subview of this view is less than 'other', a positive
-        // value if it is greater than 'other', and 0 in case of equality.
-        // Throw 'std::out_of_range' if 'lhsPosition > length()'.
 
+    /// Lexicographically compare the subview of this view of the specified
+    /// `lhsNumChars` length starting at the specified `lhsPosition` (or the
+    /// suffix of this view starting at `lhsPosition` if
+    /// `lhsPosition + lhsNumChars > length()`) with the specified `other`
+    /// string of the specified `otherNumChars` length, and return a
+    /// negative value if the indicated subview of this view is less than
+    /// `other`, a positive value if it is greater than `other`, and 0 in
+    /// case of equality.  `CHAR_TRAITS::lt` is used to compare characters.
+    /// Throw `std::out_of_range` if `lhsPosition > length()`.  The behavior
+    /// is undefined unless `other || 0 == otherNumChars`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     int compare(size_type        lhsPosition,
                 size_type        lhsNumChars,
                 const CHAR_TYPE *other,
                 size_type        otherNumChars) const;
-        // Lexicographically compare the subview of this view of the specified
-        // 'lhsNumChars' length starting at the specified 'lhsPosition' (or the
-        // suffix of this view starting at 'lhsPosition' if
-        // 'lhsPosition + lhsNumChars > length()') with the specified 'other'
-        // string of the specified 'otherNumChars' length, and return a
-        // negative value if the indicated subview of this view is less than
-        // 'other', a positive value if it is greater than 'other', and 0 in
-        // case of equality.  'CHAR_TRAITS::lt' is used to compare characters.
-        // Throw 'std::out_of_range' if 'lhsPosition > length()'.  The behavior
-        // is undefined unless 'other || 0 == otherNumChars'.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return `true` if this view starts with the specified `subview`, and
+    /// `false` otherwise.  See {Lexicographical Comparisons}.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     bool starts_with(basic_string_view subview) const BSLS_KEYWORD_NOEXCEPT;
-        // Return 'true' if this view starts with the specified 'subview', and
-        // 'false' otherwise.  See {Lexicographical Comparisons}.
 
+    /// Return `true` if this view starts with the specified `character`,
+    /// and `false` otherwise.
     BSLS_KEYWORD_CONSTEXPR
     bool starts_with(CHAR_TYPE character) const BSLS_KEYWORD_NOEXCEPT;
-        // Return 'true' if this view starts with the specified 'character',
-        // and 'false' otherwise.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return `true` if this view starts with the specified
+    /// `characterString`, and `false` otherwise.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     bool starts_with(const CHAR_TYPE* characterString) const;
-        // Return 'true' if this view starts with the specified
-        // 'characterString', and 'false' otherwise.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return `true` if this view ends with the specified `subview`, and
+    /// `false` otherwise.  See {Lexicographical Comparisons}.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     bool ends_with(basic_string_view subview) const BSLS_KEYWORD_NOEXCEPT;
-        // Return 'true' if this view ends with the specified 'subview', and
-        // 'false' otherwise.  See {Lexicographical Comparisons}.
 
+    // Return `true` if this view ends with the specified `character`, and
+    // `false` otherwise.
     BSLS_KEYWORD_CONSTEXPR
     bool ends_with(CHAR_TYPE character) const BSLS_KEYWORD_NOEXCEPT;
-        // Return 'true' if this view ends with the specified 'character', and
-        // 'false' otherwise.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return `true` if this view ends with the specified
+    /// `characterString`, and `false` otherwise.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     bool ends_with(const CHAR_TYPE* characterString) const;
-        // Return 'true' if this view ends with the specified
-        // 'characterString', and 'false' otherwise.
 
+    /// Return the starting position of the *first* occurrence of the
+    /// specified `subview`, if it can be found in this view (on or *after*
+    /// the optionally specified `position`) using `CHAR_TRAITS::eq` to
+    /// compare characters, and return `npos` otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find(basic_string_view subview,
                    size_type         position = 0) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the starting position of the *first* occurrence of the
-        // specified 'subview', if it can be found in this view (on or *after*
-        // the optionally specified 'position') using 'CHAR_TRAITS::eq' to
-        // compare characters, and return 'npos' otherwise.
 
+    /// Return the starting position of the *first* occurrence of the
+    /// specified `characterString` of the specified `numChars` length, if
+    /// such a string can be found in this view (on or *after* the specified
+    /// `position`) using `CHAR_TRAITS::eq` to compare characters, and
+    /// return `npos` otherwise.  The behavior is undefined unless
+    /// `characterString || (numChars == 0)`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find(const CHAR_TYPE *characterString,
                    size_type        position,
                    size_type        numChars) const;
-        // Return the starting position of the *first* occurrence of the
-        // specified 'characterString' of the specified 'numChars' length, if
-        // such a string can be found in this view (on or *after* the specified
-        // 'position') using 'CHAR_TRAITS::eq' to compare characters, and
-        // return 'npos' otherwise.  The behavior is undefined unless
-        // 'characterString || (numChars == 0)'.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return the starting position of the *first* occurrence of the
+    /// specified null-terminated `characterString`, if such a string can be
+    /// found in this view (on or *after* the optionally specified
+    /// `position`) using `CHAR_TRAITS::eq` to compare characters, and
+    /// return `npos` otherwise.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     size_type find(const CHAR_TYPE *characterString,
                    size_type        position = 0) const;
-        // Return the starting position of the *first* occurrence of the
-        // specified null-terminated 'characterString', if such a string can be
-        // found in this view (on or *after* the optionally specified
-        // 'position') using 'CHAR_TRAITS::eq' to compare characters, and
-        // return 'npos' otherwise.
 
+    /// Return the position of the *first* occurrence of the specified
+    /// `character`, if such an occurrence can be found in this view (on or
+    /// *after* the optionally specified `position` if such a `position` is
+    /// specified), and return `npos` otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find(CHAR_TYPE character,
                    size_type position = 0) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *first* occurrence of the specified
-        // 'character', if such an occurrence can be found in this view (on or
-        // *after* the optionally specified 'position' if such a 'position' is
-        // specified), and return 'npos' otherwise.
 
+    /// Return the starting position of the *last* occurrence of the
+    /// specified `subview` within this view, if such a sequence can be
+    /// found in this view (on or *before* the optionally specified
+    /// `position` if such a `position` is specified) using
+    /// `CHAR_TRAITS::eq` to compare characters, and return `npos`
+    /// otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type rfind(
                 basic_string_view subview,
                 size_type         position = npos) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the starting position of the *last* occurrence of the
-        // specified 'subview' within this view, if such a sequence can be
-        // found in this view (on or *before* the optionally specified
-        // 'position' if such a 'position' is specified) using
-        // 'CHAR_TRAITS::eq' to compare characters, and return 'npos'
-        // otherwise.
 
+    /// Return the starting position of the *last* occurrence of the
+    /// specified `characterString` of the specified `numChars` length, if
+    /// such a string can be found in this view (on or *after* the specified
+    /// `position`) using `CHAR_TRAITS::eq` to compare characters, and
+    /// return `npos` otherwise.  The behavior is undefined unless
+    /// `characterString || (numChars == 0)`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type rfind(const CHAR_TYPE *characterString,
                     size_type        position,
                     size_type        numChars) const;
-        // Return the starting position of the *last* occurrence of the
-        // specified 'characterString' of the specified 'numChars' length, if
-        // such a string can be found in this view (on or *after* the specified
-        // 'position') using 'CHAR_TRAITS::eq' to compare characters, and
-        // return 'npos' otherwise.  The behavior is undefined unless
-        // 'characterString || (numChars == 0)'.
 
+    /// Return the starting position of the *last* occurrence of the
+    /// specified null-terminated `characterString`, if such a string can be
+    /// found in this view (on or *after* the optionally specified
+    /// `position`) using `CHAR_TRAITS::eq` to compare characters, and
+    /// return `npos` otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type rfind(const CHAR_TYPE *characterString,
                     size_type        position = npos) const;
-        // Return the starting position of the *last* occurrence of the
-        // specified null-terminated 'characterString', if such a string can be
-        // found in this view (on or *after* the optionally specified
-        // 'position') using 'CHAR_TRAITS::eq' to compare characters, and
-        // return 'npos' otherwise.
 
+    /// Return the position of the *last* occurrence of the specified
+    /// `character`, if such an occurrence can be found in this view (on or
+    /// *before* the optionally specified `position` if such a `position` is
+    /// specified), and return `npos` otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type rfind(CHAR_TYPE character,
                     size_type position = npos) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *last* occurrence of the specified
-        // 'character', if such an occurrence can be found in this view (on or
-        // *before* the optionally specified 'position' if such a 'position' is
-        // specified), and return 'npos' otherwise.
 
+    /// Return the position of the *first* occurrence of a character
+    /// belonging to the specified `subview`, if such an occurrence can be
+    /// found in this view (on or *after* the optionally specified
+    /// `position` if such a `position` is specified), and return `npos`
+    /// otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_first_of(
                    basic_string_view subview,
                    size_type         position = 0) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *first* occurrence of a character
-        // belonging to the specified 'subview', if such an occurrence can be
-        // found in this view (on or *after* the optionally specified
-        // 'position' if such a 'position' is specified), and return 'npos'
-        // otherwise.
 
+    /// Return the position of the *first* occurrence of a character
+    /// belonging to the specified `characterString` of the specified
+    /// `numChars` length, if such a string can be found in this view (on or
+    /// *after* the specified `position`) using `CHAR_TRAITS::eq` to compare
+    /// characters, and return `npos` otherwise.  The behavior is undefined
+    /// unless `characterString || (numChars == 0)`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_first_of(const CHAR_TYPE *characterString,
                             size_type        position,
                             size_type        numChars) const;
-        // Return the position of the *first* occurrence of a character
-        // belonging to the specified 'characterString' of the specified
-        // 'numChars' length, if such a string can be found in this view (on or
-        // *after* the specified 'position') using 'CHAR_TRAITS::eq' to compare
-        // characters, and return 'npos' otherwise.  The behavior is undefined
-        // unless 'characterString || (numChars == 0)'.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return the position of the *first* occurrence of a character
+    /// belonging to the specified `characterString`, if such an occurrence
+    /// can be found in this view (on or *after* the optionally specified
+    /// `position`), and return `npos` otherwise.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     size_type find_first_of(const CHAR_TYPE *characterString,
                             size_type        position = 0) const;
-        // Return the position of the *first* occurrence of a character
-        // belonging to the specified 'characterString', if such an occurrence
-        // can be found in this view (on or *after* the optionally specified
-        // 'position'), and return 'npos' otherwise.
 
+    /// Return the position of the *first* occurrence of the specified
+    /// `character`, if such an occurrence can be found in this view (on or
+    /// *after* the optionally specified `position` if such a `position` is
+    /// specified), and return `npos` otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_first_of(
                            CHAR_TYPE character,
                            size_type position = 0) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *first* occurrence of the specified
-        // 'character', if such an occurrence can be found in this view (on or
-        // *after* the optionally specified 'position' if such a 'position' is
-        // specified), and return 'npos' otherwise.
 
+    /// Return the position of the *last* occurrence of a character
+    /// belonging to the specified `subview`, if such an occurrence can be
+    /// found in this view (on or *before* the optionally specified
+    /// `position` if such a `position` is specified), and return `npos`
+    /// otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_last_of(
                 basic_string_view subview,
                 size_type         position = npos) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *last* occurrence of a character
-        // belonging to the specified 'subview', if such an occurrence can be
-        // found in this view (on or *before* the optionally specified
-        // 'position' if such a 'position' is specified), and return 'npos'
-        // otherwise.
 
+    /// Return the position of the *last* occurrence of a character
+    /// belonging to the specified `characterString` of the specified
+    /// `numChars` length, if such a string can be found in this view (on or
+    /// *after* the specified `position`) using `CHAR_TRAITS::eq` to compare
+    /// characters, and return `npos` otherwise.  The behavior is undefined
+    /// unless `characterString || (numChars == 0)`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_last_of(const CHAR_TYPE *characterString,
                            size_type        position,
                            size_type        numChars) const;
-        // Return the position of the *last* occurrence of a character
-        // belonging to the specified 'characterString' of the specified
-        // 'numChars' length, if such a string can be found in this view (on or
-        // *after* the specified 'position') using 'CHAR_TRAITS::eq' to compare
-        // characters, and return 'npos' otherwise.  The behavior is undefined
-        // unless 'characterString || (numChars == 0)'.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return the position of the *last* occurrence of a character
+    /// belonging to the specified `characterString`, if such an occurrence
+    /// can be found in this view (on or *after* the optionally specified
+    /// `position`), and return `npos` otherwise.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     size_type find_last_of(const CHAR_TYPE *characterString,
                            size_type        position = npos) const;
-        // Return the position of the *last* occurrence of a character
-        // belonging to the specified 'characterString', if such an occurrence
-        // can be found in this view (on or *after* the optionally specified
-        // 'position'), and return 'npos' otherwise.
 
+    /// Return the position of the *last* occurrence of the specified
+    /// `character`, if such an occurrence can be found in this view (on or
+    /// *before* the optionally specified `position` if such a `position` is
+    /// specified), and return `npos` otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_last_of(
                         CHAR_TYPE character,
                         size_type position = npos) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *last* occurrence of the specified
-        // 'character', if such an occurrence can be found in this view (on or
-        // *before* the optionally specified 'position' if such a 'position' is
-        // specified), and return 'npos' otherwise.
 
+    /// Return the position of the *first* occurrence of a character *not*
+    /// belonging to the specified `subview`, if such an occurrence can be
+    /// found in this view (on or *after* the optionally specified
+    /// `position` if such a `position` is specified), and return `npos`
+    /// otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_first_not_of(
                    basic_string_view subview,
                    size_type         position = 0) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *first* occurrence of a character *not*
-        // belonging to the specified 'subview', if such an occurrence can be
-        // found in this view (on or *after* the optionally specified
-        // 'position' if such a 'position' is specified), and return 'npos'
-        // otherwise.
 
+    /// Return the position of the *first* occurrence of a character *not*
+    /// belonging to the specified `characterString` of the specified
+    /// `numChars` length, if such an occurrence can be found in this view
+    /// (on or *after* the specified `position`) using `CHAR_TRAITS::eq` to
+    /// compare characters, and return `npos` otherwise.  The behavior is
+    /// undefined unless `characterString || (numChars == 0)`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_first_not_of(const CHAR_TYPE *characterString,
                                 size_type        position,
                                 size_type        numChars) const;
-        // Return the position of the *first* occurrence of a character *not*
-        // belonging to the specified 'characterString' of the specified
-        // 'numChars' length, if such an occurrence can be found in this view
-        // (on or *after* the specified 'position') using 'CHAR_TRAITS::eq' to
-        // compare characters, and return 'npos' otherwise.  The behavior is
-        // undefined unless 'characterString || (numChars == 0)'.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return the position of the *first* occurrence of a character *not*
+    /// belonging to the specified `characterString`, if such an occurrence
+    /// can be found in this view (on or *after* the optionally specified
+    /// `position`), and return `npos` otherwise.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     size_type find_first_not_of(const CHAR_TYPE *characterString,
                                 size_type        position = 0) const;
-        // Return the position of the *first* occurrence of a character *not*
-        // belonging to the specified 'characterString', if such an occurrence
-        // can be found in this view (on or *after* the optionally specified
-        // 'position'), and return 'npos' otherwise.
 
+    /// Return the position of the *first* occurrence of a character
+    /// *different* from the specified `character`, if such an occurrence
+    /// can be found in this view (on or *after* the optionally specified
+    /// `position` if such a `position` is specified), and return `npos`
+    /// otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_first_not_of(
                            CHAR_TYPE character,
                            size_type position = 0) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *first* occurrence of a character
-        // *different* from the specified 'character', if such an occurrence
-        // can be found in this view (on or *after* the optionally specified
-        // 'position' if such a 'position' is specified), and return 'npos'
-        // otherwise.
 
+    /// Return the position of the *last* occurrence of a character *not*
+    /// belonging to the specified `subview`, if such an occurrence can be
+    /// found in this view (on or *before* the optionally specified
+    /// `position` if such a `position` is specified), and return `npos`
+    /// otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_last_not_of(
                 basic_string_view subview,
                 size_type         position = npos) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *last* occurrence of a character *not*
-        // belonging to the specified 'subview', if such an occurrence can be
-        // found in this view (on or *before* the optionally specified
-        // 'position' if such a 'position' is specified), and return 'npos'
-        // otherwise.
 
+    /// Return the position of the *last* occurrence of a character *not*
+    /// belonging to the specified `characterString` of the specified
+    /// `numChars` length, if such an occurrence can be found in this view
+    /// (on or *after* the specified `position`) using `CHAR_TRAITS::eq` to
+    /// compare characters, and return `npos` otherwise.  The behavior is
+    /// undefined unless `characterString || (numChars == 0)`.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_last_not_of(const CHAR_TYPE *characterString,
                                size_type        position,
                                size_type        numChars) const;
-        // Return the position of the *last* occurrence of a character *not*
-        // belonging to the specified 'characterString' of the specified
-        // 'numChars' length, if such an occurrence can be found in this view
-        // (on or *after* the specified 'position') using 'CHAR_TRAITS::eq' to
-        // compare characters, and return 'npos' otherwise.  The behavior is
-        // undefined unless 'characterString || (numChars == 0)'.
 
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    /// Return the position of the *last* occurrence of a character *not*
+    /// belonging to the specified `characterString`, if such an occurrence
+    /// can be found in this view (on or *after* the optionally specified
+    /// `position`), and return `npos` otherwise.
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     size_type find_last_not_of(const CHAR_TYPE *characterString,
                                size_type        position = npos) const;
-        // Return the position of the *last* occurrence of a character *not*
-        // belonging to the specified 'characterString', if such an occurrence
-        // can be found in this view (on or *after* the optionally specified
-        // 'position'), and return 'npos' otherwise.
 
+    /// Return the position of the *last* occurrence of a character
+    /// *different* from the specified `character`, if such an occurrence
+    /// can be found in this view (on or *before* the optionally specified
+    /// `position` if such a `position` is specified), and return `npos`
+    /// otherwise.
     BSLS_KEYWORD_CONSTEXPR_CPP14
     size_type find_last_not_of(
                         CHAR_TYPE character,
                         size_type position = npos) const BSLS_KEYWORD_NOEXCEPT;
-        // Return the position of the *last* occurrence of a character
-        // *different* from the specified 'character', if such an occurrence
-        // can be found in this view (on or *before* the optionally specified
-        // 'position' if such a 'position' is specified), and return 'npos'
-        // otherwise.
 
             // *** BDE compatibility with platform libraries: ***
 
+    /// Convert this `const` object to a string type native to the
+    /// compiler`s library, instantiated with the same character type and
+    /// traits type.  The return string will contain the same sequence of
+    /// characters as this object and will have a default-constructed
+    /// allocator.
     template <class ALLOCATOR>
     BSLS_KEYWORD_EXPLICIT
     operator std::basic_string<CHAR_TYPE, CHAR_TRAITS, ALLOCATOR>()
     const
-        // Convert this 'const' object to a string type native to the
-        // compiler's library, instantiated with the same character type and
-        // traits type.  The return string will contain the same sequence of
-        // characters as this object and will have a default-constructed
-        // allocator.
     {
         // See {DRQS 131792157} for why this is inline.
         return std::basic_string<CHAR_TYPE, CHAR_TRAITS, ALLOCATOR>(d_start_p,
@@ -1009,12 +1015,12 @@ typedef basic_string_view<char32_t>  u32string_view;
 #endif
 
 // FREE FUNCTIONS
+
+/// Exchange the value of the specified `a` object with the value of the
+/// specified `b` object.
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR_CPP14
 void swap(basic_string_view<CHAR_TYPE, CHAR_TRAITS>& a,
           basic_string_view<CHAR_TYPE, CHAR_TRAITS>& b) BSLS_KEYWORD_NOEXCEPT;
-    // Exchange the value of the specified 'a' object with the value of the
-    // specified 'b' object.
 
 }  // close namespace bsl
 
@@ -1025,239 +1031,245 @@ namespace bslstl_stringview_relops {
                     // struct StringView_CompareUtil
                     // =============================
 
+/// This component-private utility `struct` contains functions for comparing
+/// two `string_view` objects.  This functionality is needed to implement
+/// the comparison operators operating on string_view objects without
+/// resorting to code duplication or delegating directly between different
+/// overloads of the same operator.  The need to avoid delegation to
+/// overloads stems from a bug in xlC 12 on AIX leading to incorrect
+/// overload resolution and infinite recursion.
 template <class CHAR_TYPE, class CHAR_TRAITS>
 struct StringView_CompareUtil {
-    // This component-private utility 'struct' contains functions for comparing
-    // two 'string_view' objects.  This functionality is needed to implement
-    // the comparison operators operating on string_view objects without
-    // resorting to code duplication or delegating directly between different
-    // overloads of the same operator.  The need to avoid delegation to
-    // overloads stems from a bug in xlC 12 on AIX leading to incorrect
-    // overload resolution and infinite recursion.
 
     // TYPES
     typedef bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> StringView;
 
     // CLASS METHODS
-    static
-    BSLS_KEYWORD_CONSTEXPR
-    bool equals(StringView lhs, StringView rhs) BSLS_KEYWORD_NOEXCEPT;
-        // Return 'true' if 'lhs == rhs' and 'false' otherwise.
 
+    /// Return `true` if `lhs == rhs` and `false` otherwise.
     static
-    BSLS_KEYWORD_CONSTEXPR_CPP14
+    BSLS_KEYWORD_CONSTEXPR_CPP17
+    bool equals(StringView lhs, StringView rhs) BSLS_KEYWORD_NOEXCEPT;
+
+    /// Return `true` if `lhs < rhs` and `false` otherwise.
+    static
+    BSLS_KEYWORD_CONSTEXPR_CPP17
     bool lessThan(StringView lhs, StringView rhs) BSLS_KEYWORD_NOEXCEPT;
-        // Return 'true' if 'lhs < rhs' and 'false' otherwise.
 };
 
 // FREE OPERATORS
+
+/// Return `true` if the specified `lhs` view has the same value as the
+/// specified `rhs` view, and `false` otherwise.  Two views have the same
+/// value if they have the same length, and the characters at each
+/// respective position have the same value according to `CHAR_TRAITS::eq`.
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator==(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
                 bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator==(
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator==(
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type rhs)
 BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the specified 'lhs' view has the same value as the
-    // specified 'rhs' view, and 'false' otherwise.  Two views have the same
-    // value if they have the same length, and the characters at each
-    // respective position have the same value according to 'CHAR_TRAITS::eq'.
 
+/// Return `true` if the specified `lhs` view has a different value from the
+/// specified `rhs` view, and `false` otherwise.  Two views have the same
+/// value if they have the same length, and the characters at each
+/// respective position have the same value according to `CHAR_TRAITS::eq`.
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator!=(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
                 bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator!=(
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator!=(
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type rhs)
 BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the specified 'lhs' view has a different value from the
-    // specified 'rhs' view, and 'false' otherwise.  Two views have the same
-    // value if they have the same length, and the characters at each
-    // respective position have the same value according to 'CHAR_TRAITS::eq'.
 
+/// Return `true` if the specified `lhs` view has a lexicographically
+/// smaller value than the specified `rhs` view, and `false` otherwise.  See
+/// {Lexicographical Comparisons}.
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator<(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              lhs,
                bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator<(
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator<(
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type rhs)
 BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the specified 'lhs' view has a lexicographically
-    // smaller value than the specified 'rhs' view, and 'false' otherwise.  See
-    // {Lexicographical Comparisons}.
 
+/// Return `true` if the specified `lhs` view has a lexicographically larger
+/// value than the specified `rhs` view, and `false` otherwise.  See
+/// {Lexicographical Comparisons}.
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator>(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              lhs,
                bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator>(
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator>(
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type rhs)
 BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the specified 'lhs' view has a lexicographically larger
-    // value than the specified 'rhs' view, and 'false' otherwise.  See
-    // {Lexicographical Comparisons}.
 
+/// Return `true` if the specified `lhs` view has a value lexicographically
+/// smaller than or or equal to the specified `rhs` view, and `false`
+/// otherwise.  See {Lexicographical Comparisons}.
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator<=(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
                 bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator<=(
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator<=(
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type rhs)
 BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the specified 'lhs' view has a value lexicographically
-    // smaller than or or equal to the specified 'rhs' view, and 'false'
-    // otherwise.  See {Lexicographical Comparisons}.
 
+/// Return `true` if the specified `lhs` view has a value lexicographically
+/// larger than or equal to the specified `rhs` view, and `false` otherwise.
+/// See {Lexicographical Comparisons}.
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator>=(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
                 bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator>=(
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            rhs)
 BSLS_KEYWORD_NOEXCEPT;
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool operator>=(
            const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type rhs)
 BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the specified 'lhs' view has a value lexicographically
-    // larger than or equal to the specified 'rhs' view, and 'false' otherwise.
-    // See {Lexicographical Comparisons}.
 
 }  // close namespace bslstl_stringview_relops
 }  // close enterprise namespace
 
 namespace bsl {
 
+/// Write the value of the string bound to the specified `stringView` to the
+/// specified output `stream` and return a reference to the modifiable
+/// `stream`.
 template <class CHAR_TYPE, class CHAR_TRAITS>
 std::basic_ostream<CHAR_TYPE>&
 operator<<(std::basic_ostream<CHAR_TYPE>&            stream,
            basic_string_view<CHAR_TYPE, CHAR_TRAITS> stringView);
-    // Write the value of the string bound to the specified 'stringView' to the
-    // specified output 'stream' and return a reference to the modifiable
-    // 'stream'.
 
 // HASH SPECIALIZATIONS
+
+/// Pass the specified `input` string to the specified `hashAlg` hashing
+/// algorithm of the (template parameter) type `HASHALG`.
 template <class HASHALG, class CHAR_TYPE, class CHAR_TRAITS>
 void hashAppend(HASHALG&                                         hashAlg,
                 const basic_string_view<CHAR_TYPE, CHAR_TRAITS>& input);
-    // Pass the specified 'input' string to the specified 'hashAlg' hashing
-    // algorithm of the (template parameter) type 'HASHALG'.
 
+/// Specialize `bsl::hash` for strings, including an overload for pointers
+/// to allow character arrays to be hashed without converting them first.
 template <class CHAR_TYPE, class CHAR_TRAITS>
 struct hash<basic_string_view<CHAR_TYPE, CHAR_TRAITS> >
     : ::BloombergLP::bslh::Hash<>
-    // Specialize 'bsl::hash' for strings, including an overload for pointers
-    // to allow character arrays to be hashed without converting them first.
 {
     // PUBLIC ACCESSORS
+
+    /// Compute and return the hash value of the specified `input`.
     std::size_t operator()(
                  const basic_string_view<CHAR_TYPE, CHAR_TRAITS>& input) const;
-        // Compute and return the hash value of the specified 'input'.
 
+    /// Compute and return the hash value of the contents of the specified
+    /// null-terminated `input`.  This value will be the same as the hash
+    /// value of a `basic_string_view` constructed from `input`.
     std::size_t operator()(const CHAR_TYPE *input) const;
-        // Compute and return the hash value of the contents of the specified
-        // null-terminated 'input'.  This value will be the same as the hash
-        // value of a 'basic_string_view' constructed from 'input'.
 };
 
 #if defined(BSLS_PLATFORM_CMP_SUN)  // {DRQS 132030795}
 
 // Sun CC 12.3 has trouble with the partial specializations above in certain
 // circumstances (see {DRQS 132030795}).  Adding these explicit specializations
-// for 'string_view' and 'wstring_view' makes the problematic cases work.
+// for `string_view` and `wstring_view` makes the problematic cases work.
 
 template <>
 struct hash<string_view> : ::BloombergLP::bslh::Hash<>
 {
     // PUBLIC ACCESSORS
-    std::size_t operator()(const string_view& input) const;
-        // Compute and return the hash value of the specified 'input'.
 
+    /// Compute and return the hash value of the specified `input`.
+    std::size_t operator()(const string_view& input) const;
+
+    /// Compute and return the hash value of the contents of the specified
+    /// null-terminated `input`.  This value will be the same as the hash
+    /// value of a `basic_string_view` constructed from `input`.
     std::size_t operator()(const char *input) const;
-        // Compute and return the hash value of the contents of the specified
-        // null-terminated 'input'.  This value will be the same as the hash
-        // value of a 'basic_string_view' constructed from 'input'.
 };
 
 template <>
 struct hash<wstring_view> : ::BloombergLP::bslh::Hash<>
 {
     // PUBLIC ACCESSORS
-    std::size_t operator()(const wstring_view& input) const;
-        // Compute and return the hash value of the specified 'input'.
 
+    /// Compute and return the hash value of the specified `input`.
+    std::size_t operator()(const wstring_view& input) const;
+
+    /// Compute and return the hash value of the contents of the specified
+    /// null-terminated `input`.  This value will be the same as the hash
+    /// value of a `basic_string_view` constructed from `input`.
     std::size_t operator()(const wchar_t *input) const;
-        // Compute and return the hash value of the contents of the specified
-        // null-terminated 'input'.  This value will be the same as the hash
-        // value of a 'basic_string_view' constructed from 'input'.
 };
 
 #endif  // defined(BSLS_PLATFORM_CMP_SUN)
@@ -1273,27 +1285,28 @@ inline namespace literals {
 inline namespace string_view_literals {
 
 // FREE OPERATORS
+
+/// Convert a character sequence of the specified `length` excluding the
+/// terminating null character starting at the beginning of the specified
+/// `characterString` to a string_view object of the indicated return type.
+/// (See the "User-Defined Literals" section in the component-level
+/// documentation.)
+///
+/// Example:
+/// ```
+///    using namespace bsl::string_view_literals;
+///    bsl::string_view sv1 = "123\0abc";
+///    bsl::string_view sv2 = "123\0abc"_sv;
+///    assert(3 == sv1.size());
+///    assert(7 == sv2.size());
+///
+///    bsl::wstring_view sv3 = L"123\0abc"_sv;
+///    assert(7 == sv3.size());
+/// ```
  string_view operator ""_sv(const char    *characterString,
                             std::size_t    length);
 wstring_view operator ""_sv(const wchar_t *characterString,
                             std::size_t    length);
-    // Convert a character sequence of the specified 'length' excluding the
-    // terminating null character starting at the beginning of the specified
-    // 'characterString' to a string_view object of the indicated return type.
-    // (See the "User-Defined Literals" section in the component-level
-    // documentation.)
-    //
-    // Example:
-    //..
-    //     using namespace bsl::string_view_literals;
-    //     bsl::string_view sv1 = "123\0abc";
-    //     bsl::string_view sv2 = "123\0abc"_sv;
-    //     assert(3 == sv1.size());
-    //     assert(7 == sv2.size());
-    //
-    //     bsl::wstring_view sv3 = L"123\0abc"_sv;
-    //     assert(7 == sv3.size());
-    //..
 
 }  // close namespace string_view_literals
 }  // close namespace literals
@@ -1305,19 +1318,19 @@ wstring_view operator ""_sv(const wchar_t *characterString,
 namespace BloombergLP {
 namespace bslh {
 
+/// Pass the specified `input` string to the specified `hashAlg` hashing
+/// algorithm of the (template parameter) type `HASHALG`.  Note that this
+/// function violates the BDE coding standard, adding a function for a
+/// namespace for a different package, and none of the function parameters
+/// are from this package either.  This is necessary in order to provide an
+/// implementation of `bslh::hashAppend` for the (native) standard library
+/// `string_view` type as we are not allowed to add overloads directly into
+/// namespace `std`, and this component essentially provides the interface
+/// between `bsl` and `std` string types.
 template <class HASHALG, class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
 void hashAppend(HASHALG&                                              hashAlg,
                 const std::basic_string_view<CHAR_TYPE, CHAR_TRAITS>& input);
-    // Pass the specified 'input' string to the specified 'hashAlg' hashing
-    // algorithm of the (template parameter) type 'HASHALG'.  Note that this
-    // function violates the BDE coding standard, adding a function for a
-    // namespace for a different package, and none of the function parameters
-    // are from this package either.  This is necessary in order to provide an
-    // implementation of 'bslh::hashAppend' for the (native) standard library
-    // 'string_view' type as we are not allowed to add overloads directly into
-    // namespace 'std', and this component essentially provides the interface
-    // between 'bsl' and 'std' string types.
 
 }  // close namespace bslh
 }  // close enterprise namespace
@@ -1387,6 +1400,7 @@ basic_string_view<CHAR_TYPE,CHAR_TRAITS>::npos;
 
 // PRIVATE ACCESSORS
 template <class CHAR_TYPE, class CHAR_TRAITS>
+BSLS_KEYWORD_CONSTEXPR_CPP17
 int basic_string_view<CHAR_TYPE,CHAR_TRAITS>::privateCompareRaw(
                                           size_type        lhsPosition,
                                           size_type        lhsNumChars,
@@ -1424,7 +1438,7 @@ basic_string_view<CHAR_TYPE,CHAR_TRAITS>::basic_string_view()
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::basic_string_view(
                                               const CHAR_TYPE *characterString)
 : d_start_p(characterString)
@@ -1470,7 +1484,6 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::basic_string_view(
 template <class CHAR_TYPE, class CHAR_TRAITS>
 template <class ALLOCATOR>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::basic_string_view(
                const std::basic_string<CHAR_TYPE, CHAR_TRAITS, ALLOCATOR>& str)
 : d_start_p(str.data())
@@ -1525,7 +1538,6 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::remove_suffix(size_type numChars)
 }
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
-BSLS_KEYWORD_CONSTEXPR_CPP14
 void
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::swap(
                                 basic_string_view& other) BSLS_KEYWORD_NOEXCEPT
@@ -1574,7 +1586,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::cend() const BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::const_reverse_iterator
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::rbegin() const BSLS_KEYWORD_NOEXCEPT
 {
@@ -1583,7 +1595,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::rbegin() const BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::const_reverse_iterator
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::crbegin() const
                                                           BSLS_KEYWORD_NOEXCEPT
@@ -1593,7 +1605,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::crbegin() const
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::const_reverse_iterator
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::rend() const BSLS_KEYWORD_NOEXCEPT
 {
@@ -1602,7 +1614,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::rend() const BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::const_reverse_iterator
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::crend() const BSLS_KEYWORD_NOEXCEPT
 {
@@ -1754,7 +1766,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::substr(size_type position,
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 int basic_string_view<CHAR_TYPE, CHAR_TRAITS>::compare(
                            basic_string_view other) const BSLS_KEYWORD_NOEXCEPT
 {
@@ -1895,7 +1907,7 @@ int basic_string_view<CHAR_TYPE, CHAR_TRAITS>::compare(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool basic_string_view<CHAR_TYPE, CHAR_TRAITS>::starts_with(
                          basic_string_view subview) const BSLS_KEYWORD_NOEXCEPT
 {
@@ -1914,7 +1926,7 @@ bool basic_string_view<CHAR_TYPE, CHAR_TRAITS>::starts_with(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool basic_string_view<CHAR_TYPE, CHAR_TRAITS>::starts_with(
                                         const CHAR_TYPE* characterString) const
 {
@@ -1935,7 +1947,7 @@ bool basic_string_view<CHAR_TYPE, CHAR_TRAITS>::starts_with(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool basic_string_view<CHAR_TYPE, CHAR_TRAITS>::ends_with(
                          basic_string_view subview) const BSLS_KEYWORD_NOEXCEPT
 {
@@ -1954,7 +1966,7 @@ bool basic_string_view<CHAR_TYPE, CHAR_TRAITS>::ends_with(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool basic_string_view<CHAR_TYPE, CHAR_TRAITS>::ends_with(
                                         const CHAR_TYPE* characterString) const
 {
@@ -2006,7 +2018,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::size_type
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find(
                                               const CHAR_TYPE *characterString,
@@ -2116,7 +2128,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_first_of(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::size_type
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_first_of(
                                               const CHAR_TYPE *characterString,
@@ -2177,7 +2189,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_last_of(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::size_type
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_last_of(
                                               const CHAR_TYPE *characterString,
@@ -2239,7 +2251,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_first_not_of(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::size_type
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_first_not_of(
                                               const CHAR_TYPE *characterString,
@@ -2300,7 +2312,7 @@ basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_last_not_of(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 BSLS_PLATFORM_AGGRESSIVE_INLINE
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 typename basic_string_view<CHAR_TYPE, CHAR_TRAITS>::size_type
 basic_string_view<CHAR_TYPE, CHAR_TRAITS>::find_last_not_of(
                                               const CHAR_TYPE *characterString,
@@ -2437,7 +2449,7 @@ namespace bslstl_stringview_relops {
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool StringView_CompareUtil<CHAR_TYPE, CHAR_TRAITS>::equals(
                           StringView lhs, StringView rhs) BSLS_KEYWORD_NOEXCEPT
 {
@@ -2447,7 +2459,7 @@ bool StringView_CompareUtil<CHAR_TYPE, CHAR_TRAITS>::equals(
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool StringView_CompareUtil<CHAR_TYPE, CHAR_TRAITS>::lessThan(
                           StringView lhs, StringView rhs) BSLS_KEYWORD_NOEXCEPT
 {
@@ -2467,7 +2479,6 @@ bool StringView_CompareUtil<CHAR_TYPE, CHAR_TRAITS>::lessThan(
 // FREE FUNCTIONS
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR_CPP14
 void bsl::swap(
             basic_string_view<CHAR_TYPE, CHAR_TRAITS>& a,
             basic_string_view<CHAR_TYPE, CHAR_TRAITS>& b) BSLS_KEYWORD_NOEXCEPT
@@ -2478,7 +2489,7 @@ void bsl::swap(
 // FREE OPERATORS
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator==(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>        lhs,
            bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>        rhs)
@@ -2489,7 +2500,7 @@ operator==(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>        lhs,
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator==(typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
@@ -2501,7 +2512,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator==(const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
@@ -2513,7 +2524,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator!=(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
            bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             rhs)
@@ -2524,7 +2535,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator!=(typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
@@ -2536,7 +2547,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator!=(const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
@@ -2548,7 +2559,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR_CPP14
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator<(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              lhs,
           bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              rhs)
@@ -2559,7 +2570,7 @@ operator<(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              lhs,
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator<(typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
@@ -2571,7 +2582,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator<(const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
           typename BloombergLP::bslstl::StringView_Identity<
@@ -2583,7 +2594,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator>(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              lhs,
           bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>              rhs)
@@ -2594,7 +2605,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator>(typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
@@ -2606,7 +2617,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator>(const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
           typename BloombergLP::bslstl::StringView_Identity<
@@ -2618,7 +2629,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator<=(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
            bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             rhs)
@@ -2629,7 +2640,7 @@ operator<=(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator<=(typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
@@ -2641,7 +2652,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator<=(const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<
@@ -2653,7 +2664,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator>=(bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             lhs,
            bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>             rhs)
@@ -2664,7 +2675,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator>=(typename BloombergLP::bslstl::StringView_Identity<
                     bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS> >::type lhs,
@@ -2676,7 +2687,7 @@ BSLS_KEYWORD_NOEXCEPT
 
 template <class CHAR_TYPE, class CHAR_TRAITS>
 inline
-BSLS_KEYWORD_CONSTEXPR
+BSLS_KEYWORD_CONSTEXPR_CPP17
 bool BloombergLP::bslstl_stringview_relops::
 operator>=(const bsl::basic_string_view<CHAR_TYPE, CHAR_TRAITS>            lhs,
            typename BloombergLP::bslstl::StringView_Identity<

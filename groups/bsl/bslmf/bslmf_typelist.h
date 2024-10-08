@@ -32,39 +32,39 @@ BSLS_IDENT("$Id: $")
 //  bslmf::TypeList19: Typelist of 19 types
 //  bslmf::TypeList20: Typelist of 20 types
 //
-//@DESCRIPTION: 'bslmf::TypeList' provides a compile time list that holds up to
+//@DESCRIPTION: `bslmf::TypeList` provides a compile time list that holds up to
 // 20 types.  Users can access the different types the list contains (by
-// index), and the length of the typelist.  A 'bslmf::TypeList' is typically
+// index), and the length of the typelist.  A `bslmf::TypeList` is typically
 // used when writing templatized classes that can store a variable amount of
 // types, such as a bind or variant class.
 //
 ///Usage
 ///-----
 // The following usage example demonstrates how to retrieve information from a
-// 'bslmf::TypeList':
-//..
-//  typedef bslmf::TypeList<int, double, char> List;
-//..
-// We can access the length of the list using the 'LENGTH' member:
-//..
-//  assert(3 == List::LENGTH);  // accessing the length of the list
-//..
+// `bslmf::TypeList`:
+// ```
+// typedef bslmf::TypeList<int, double, char> List;
+// ```
+// We can access the length of the list using the `LENGTH` member:
+// ```
+// assert(3 == List::LENGTH);  // accessing the length of the list
+// ```
 // We can also access the different types stored in the typelist using
-// predefined type members 'TypeN' (where '1 <= t_N <= 20'), or another
-// meta-function 'bslmf::TypeListTypeOf':
-//..
-//  assert(1 == bsl::is_same<int,    List::Type1>::value)
-//  assert(1 == bsl::is_same<double, List::Type2>::value)
-//  assert(1 == bsl::is_same<char,   List::Type3>::value)
+// predefined type members `TypeN` (where `1 <= t_N <= 20`), or another
+// meta-function `bslmf::TypeListTypeOf`:
+// ```
+// assert(1 == bsl::is_same<int,    List::Type1>::value)
+// assert(1 == bsl::is_same<double, List::Type2>::value)
+// assert(1 == bsl::is_same<char,   List::Type3>::value)
 //
-//  typedef bslmf::TypeListTypeOf<1, List>::Type my_Type1;
-//  typedef bslmf::TypeListTypeOf<2, List>::Type my_Type2;
-//  typedef bslmf::TypeListTypeOf<3, List>::Type my_Type3;
+// typedef bslmf::TypeListTypeOf<1, List>::Type my_Type1;
+// typedef bslmf::TypeListTypeOf<2, List>::Type my_Type2;
+// typedef bslmf::TypeListTypeOf<3, List>::Type my_Type3;
 //
-//  assert(1 == bsl::is_same<int,    my_Type1>::value)
-//  assert(1 == bsl::is_same<double, my_Type2>::value)
-//  assert(1 == bsl::is_same<char,   my_Type3>::value)
-//..
+// assert(1 == bsl::is_same<int,    my_Type1>::value)
+// assert(1 == bsl::is_same<double, my_Type2>::value)
+// assert(1 == bsl::is_same<char,   my_Type3>::value)
+// ```
 
 #include <bslscm_version.h>
 
@@ -75,15 +75,15 @@ BSLS_IDENT("$Id: $")
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_VARIADIC_TEMPLATES) \
  && defined(BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES)
+/// This macro indicates that we have all the needed features for an
+/// implementation of the typelist facility that is source-compatible with
+/// the pre-existing C++03 facility.  The main change is that the numbered
+/// classes TypeList0-TypeList20 are no longer distinct classes, but aliases
+/// of specific instantiations of the primary TypeList template.  Eventually
+/// these partial template specializations will be eliminated, when the
+/// individually named members are no longer used throughout the whole of
+/// the Bloomberg codebase.
 #define BSLMF_TYPELIST_USING_VARIADIC_TEMPLATES
-    // This macro indicates that we have all the needed features for an
-    // implementation of the typelist facility that is source-compatible with
-    // the pre-existing C++03 facility.  The main change is that the numbered
-    // classes TypeList0-TypeList20 are no longer distinct classes, but aliases
-    // of specific instantiations of the primary TypeList template.  Eventually
-    // these partial template specializations will be eliminated, when the
-    // individually named members are no longer used throughout the whole of
-    // the Bloomberg codebase.
 #endif
 
 namespace BloombergLP {
@@ -99,15 +99,15 @@ typedef Nil TypeListNil;
                          // struct TypeListTypeAt
                          // =====================
 
+/// This template is specialized below to return the type the `t_INDEX`th
+/// member of the typelist `t_LIST`.  If `0 > t_INDEX <= t_LIST::LENGTH`
+/// then `Type` will be defined as the type of the member.  Note that
+/// t_INDEX is relative to 1.
 template <unsigned t_INDEX,  // 'unsigned' is a proxy for 'size_t'
           class t_LIST,
           class t_DEFAULTTYPE = Nil,
           bool t_INRANGE      = (t_INDEX < t_LIST::LENGTH)>
 struct TypeListTypeAt {
-    // This template is specialized below to return the type the 't_INDEX'th
-    // member of the typelist 't_LIST'.  If '0 > t_INDEX <= t_LIST::LENGTH'
-    // then 'Type' will be defined as the type of the member.  Note that
-    // t_INDEX is relative to 1.
 
     // PUBLIC t_TYPES
     typedef t_LIST ListType;
@@ -120,11 +120,11 @@ struct TypeListTypeAt {
                          // struct TypeListTypeOf
                          // =====================
 
+/// Classic Bloomberg code uses a 1-based index into the type list.
 template <int t_INDEX, class t_LIST, class t_DEFAULTTYPE = Nil>
 using TypeListTypeOf = TypeListTypeAt<static_cast<unsigned int>(t_INDEX - 1),
                                       t_LIST,
                                       t_DEFAULTTYPE>;
-    // Classic Bloomberg code uses a 1-based index into the type list.
 
                               // ===============
                               // struct TypeList
@@ -1521,6 +1521,14 @@ struct TypeList20;
                               // struct TypeList
                               // ===============
 
+/// This template declares a typelist of 0-20 types.  For each type
+/// specified, a corresponding type will be declared as "Type<t_N>" where
+/// where `t_N` is the Nth parameter to this typelist(relative to 1).
+/// Additionally, the enumeration `LENGTH` is declared with a value equal to
+/// the length of this typelist.  Each typelist also declares a member
+/// template `TypeOf` such that `TypeOf<t_N>::Type` evaluates to the type of
+/// the Nth the in this typelist.  The type `Type` is also declared a length
+/// specific version of this typelist.
 template <class t_A1  = Nil,
           class t_A2  = Nil,
           class t_A3  = Nil,
@@ -1561,30 +1569,22 @@ struct TypeList : public TypeList20<t_A1,
                                     t_A18,
                                     t_A19,
                                     t_A20> {
-    // This template declares a typelist of 0-20 types.  For each type
-    // specified, a corresponding type will be declared as "Type<t_N>" where
-    // where 't_N' is the Nth parameter to this typelist(relative to 1).
-    // Additionally, the enumeration 'LENGTH' is declared with a value equal to
-    // the length of this typelist.  Each typelist also declares a member
-    // template 'TypeOf' such that 'TypeOf<t_N>::Type' evaluates to the type of
-    // the Nth the in this typelist.  The type 'Type' is also declared a length
-    // specific version of this typelist.
 };
 
                            // =====================
                            // struct TypeListTypeOf
                            // =====================
 
+/// This template is specialized below to return the type the `t_INDEX`th
+/// member of the typelist `t_LIST`.  If `1 <= t_INDEX <= t_LIST::LENGTH`
+/// then `Type` will be defined as the type of the member.  Note that
+/// t_INDEX is relative to 1.
 template <int t_INDEX,
           class t_LIST,
           class t_DEFAULTTYPE = Nil,
           int t_INRANGE =
               ((1 <= t_INDEX && t_INDEX <= (int)t_LIST::LENGTH) ? 1 : 0)>
 struct TypeListTypeOf {
-    // This template is specialized below to return the type the 't_INDEX'th
-    // member of the typelist 't_LIST'.  If '1 <= t_INDEX <= t_LIST::LENGTH'
-    // then 'Type' will be defined as the type of the member.  Note that
-    // t_INDEX is relative to 1.
 
     // PUBLIC t_TYPES
     typedef t_LIST ListType;
@@ -1601,8 +1601,8 @@ struct TypeListTypeOf {
                             // struct TypeList*
                             // ================
 
+/// List of 0 types
 struct TypeList0 {
-    // List of 0 types
     typedef TypeList0 ListType;
     enum { LENGTH = 0 };
     template <int t_INDEX>
@@ -1611,9 +1611,9 @@ struct TypeList0 {
     typedef ListType Type;
 };
 
+/// List of a single type `t_A1` types
 template <class t_A1>
 struct TypeList1 {
-    // List of a single type 't_A1' types
     typedef TypeList1<t_A1> ListType;
     enum { LENGTH = 1 };
 
@@ -1626,9 +1626,9 @@ struct TypeList1 {
     typedef ListType Type;
 };
 
+/// List of a two types `t_A1`, `t_A2` types
 template <class t_A1, class t_A2>
 struct TypeList2 {
-    // List of a two types 't_A1', 't_A2' types
     typedef TypeList2<t_A1, t_A2> ListType;
     enum { LENGTH = 2 };
 
@@ -1642,9 +1642,9 @@ struct TypeList2 {
     typedef ListType Type;
 };
 
+/// List of a three types `t_A1`, `t_A2`, `t_A3` types
 template <class t_A1, class t_A2, class t_A3>
 struct TypeList3 {
-    // List of a three types 't_A1', 't_A2', 't_A3' types
 
     typedef TypeList3<t_A1,t_A2,t_A3> ListType;
 
@@ -2437,6 +2437,8 @@ struct TypeList20 {
                             // ---------------
 
 // SPECIALIZATIONS
+
+/// This template provides a specialization of `TypeList` of 0 types.
 template <>
 struct TypeList<Nil, Nil, Nil,
     Nil, Nil, Nil, Nil,
@@ -2445,9 +2447,9 @@ struct TypeList<Nil, Nil, Nil,
     Nil, Nil, Nil, Nil,
     Nil>
 :  public TypeList0 {
-    // This template provides a specialization of 'TypeList' of 0 types.
 };
 
+/// This template provides a specialization of `TypeList` of 1 type.
 template <class t_A1>
 struct TypeList<t_A1,
                 Nil,
@@ -2469,9 +2471,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil,
                 Nil> : public TypeList1<t_A1> {
-    // This template provides a specialization of 'TypeList' of 1 type.
 };
 
+/// This template provides a specialization of `TypeList` of 2 types.
 template <class t_A1, class t_A2>
 struct TypeList<t_A1,
                 t_A2,
@@ -2493,9 +2495,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil,
                 Nil> : public TypeList2<t_A1, t_A2> {
-    // This template provides a specialization of 'TypeList' of 2 types.
 };
 
+/// This template provides a specialization of `TypeList` of 3 types.
 template <class t_A1, class t_A2, class t_A3>
 struct TypeList<t_A1,
                 t_A2,
@@ -2517,9 +2519,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil,
                 Nil> : public TypeList3<t_A1, t_A2, t_A3> {
-    // This template provides a specialization of 'TypeList' of 3 types.
 };
 
+/// This template provides a specialization of `TypeList` of 4 types.
 template <class t_A1, class t_A2, class t_A3, class t_A4>
 struct TypeList<t_A1,
                 t_A2,
@@ -2541,9 +2543,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil,
                 Nil> : public TypeList4<t_A1, t_A2, t_A3, t_A4> {
-    // This template provides a specialization of 'TypeList' of 4 types.
 };
 
+/// This template provides a specialization of `TypeList` of 5 types.
 template <class t_A1, class t_A2, class t_A3, class t_A4, class t_A5>
 struct TypeList<t_A1,
                 t_A2,
@@ -2565,9 +2567,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil,
                 Nil> : public TypeList5<t_A1, t_A2, t_A3, t_A4, t_A5> {
-    // This template provides a specialization of 'TypeList' of 5 types.
 };
 
+/// This template provides a specialization of `TypeList` of 6 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2594,9 +2596,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil,
                 Nil> : public TypeList6<t_A1, t_A2, t_A3, t_A4, t_A5, t_A6> {
-    // This template provides a specialization of 'TypeList' of 6 types.
 };
 
+/// This template provides a specialization of `TypeList` of 7 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2625,9 +2627,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil>
 : public TypeList7<t_A1, t_A2, t_A3, t_A4, t_A5, t_A6, t_A7> {
-    // This template provides a specialization of 'TypeList' of 7 types.
 };
 
+/// This template provides a specialization of `TypeList` of 8 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2657,9 +2659,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil>
 : public TypeList8<t_A1, t_A2, t_A3, t_A4, t_A5, t_A6, t_A7, t_A8> {
-    // This template provides a specialization of 'TypeList' of 8 types.
 };
 
+/// This template provides a specialization of `TypeList` of 9 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2690,9 +2692,9 @@ struct TypeList<t_A1,
                 Nil,
                 Nil>
 : public TypeList9<t_A1, t_A2, t_A3, t_A4, t_A5, t_A6, t_A7, t_A8, t_A9> {
-    // This template provides a specialization of 'TypeList' of 9 types.
 };
 
+/// This template provides a specialization of `TypeList` of 10 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2732,9 +2734,9 @@ struct TypeList<t_A1,
                                          t_A8,
                                          t_A9,
                                          t_A10> {
-    // This template provides a specialization of 'TypeList' of 10 types.
 };
 
+/// This template provides a specialization of `TypeList` of 11 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2776,9 +2778,9 @@ struct TypeList<t_A1,
                                          t_A9,
                                          t_A10,
                                          t_A11> {
-    // This template provides a specialization of 'TypeList' of 11 types.
 };
 
+/// This template provides a specialization of `TypeList` of 12 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2822,9 +2824,9 @@ struct TypeList<t_A1,
                                          t_A10,
                                          t_A11,
                                          t_A12> {
-    // This template provides a specialization of 'TypeList' of 12 types.
 };
 
+/// This template provides a specialization of `TypeList` of 13 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2870,9 +2872,9 @@ struct TypeList<t_A1,
                                          t_A11,
                                          t_A12,
                                          t_A13> {
-    // This template provides a specialization of 'TypeList' of 13 types.
 };
 
+/// This template provides a specialization of `TypeList` of 14 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2920,9 +2922,9 @@ struct TypeList<t_A1,
                                          t_A12,
                                          t_A13,
                                          t_A14> {
-    // This template provides a specialization of 'TypeList' of 14 types.
 };
 
+/// This template provides a specialization of `TypeList` of 15 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -2972,9 +2974,9 @@ struct TypeList<t_A1,
                                          t_A13,
                                          t_A14,
                                          t_A15> {
-    // This template provides a specialization of 'TypeList' of 15 types.
 };
 
+/// This template provides a specialization of `TypeList` of 16 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -3026,9 +3028,9 @@ struct TypeList<t_A1,
                                          t_A14,
                                          t_A15,
                                          t_A16> {
-    // This template provides a specialization of 'TypeList' of 16 types.
 };
 
+/// This template provides a specialization of `TypeList` of 17 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -3082,9 +3084,9 @@ struct TypeList<t_A1,
                                          t_A15,
                                          t_A16,
                                          t_A17> {
-    // This template provides a specialization of 'TypeList' of 17 types.
 };
 
+/// This template provides a specialization of `TypeList` of 18 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -3140,9 +3142,9 @@ struct TypeList<t_A1,
                                          t_A16,
                                          t_A17,
                                          t_A18> {
-    // This template provides a specialization of 'TypeList' of 18 types.
 };
 
+/// This template provides a specialization of `TypeList` of 19 types.
 template <class t_A1,
           class t_A2,
           class t_A3,
@@ -3200,7 +3202,6 @@ struct TypeList<t_A1,
                                          t_A17,
                                          t_A18,
                                          t_A19> {
-    // This template provides a specialization of 'TypeList' of 19 types.
 };
 
                          // ---------------------
@@ -3337,146 +3338,146 @@ struct TypeListTypeOf<20, t_LIST, t_DEFAULTTYPE, 1> {
 //                           BACKWARD COMPATIBILITY
 // ============================================================================
 
+/// This alias is defined for backward compatibility.
 typedef bslmf::TypeList0 bslmf_TypeList0;
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList
 #undef bslmf_TypeList
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList bslmf::TypeList
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeListNil
 #undef bslmf_TypeListNil
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeListNil bslmf::TypeListNil
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList1
 #undef bslmf_TypeList1
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList1 bslmf::TypeList1
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList2
 #undef bslmf_TypeList2
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList2 bslmf::TypeList2
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList3
 #undef bslmf_TypeList3
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList3 bslmf::TypeList3
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList4
 #undef bslmf_TypeList4
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList4 bslmf::TypeList4
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList5
 #undef bslmf_TypeList5
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList5 bslmf::TypeList5
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList6
 #undef bslmf_TypeList6
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList6 bslmf::TypeList6
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList7
 #undef bslmf_TypeList7
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList7 bslmf::TypeList7
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList8
 #undef bslmf_TypeList8
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList8 bslmf::TypeList8
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList9
 #undef bslmf_TypeList9
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList9 bslmf::TypeList9
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList10
 #undef bslmf_TypeList10
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList10 bslmf::TypeList10
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList11
 #undef bslmf_TypeList11
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList11 bslmf::TypeList11
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList12
 #undef bslmf_TypeList12
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList12 bslmf::TypeList12
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList13
 #undef bslmf_TypeList13
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList13 bslmf::TypeList13
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList14
 #undef bslmf_TypeList14
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList14 bslmf::TypeList14
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList15
 #undef bslmf_TypeList15
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList15 bslmf::TypeList15
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList16
 #undef bslmf_TypeList16
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList16 bslmf::TypeList16
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList17
 #undef bslmf_TypeList17
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList17 bslmf::TypeList17
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList18
 #undef bslmf_TypeList18
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList18 bslmf::TypeList18
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList19
 #undef bslmf_TypeList19
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList19 bslmf::TypeList19
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeList20
 #undef bslmf_TypeList20
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeList20 bslmf::TypeList20
-    // This alias is defined for backward compatibility.
 
 #ifdef bslmf_TypeListTypeOf
 #undef bslmf_TypeListTypeOf
 #endif
+/// This alias is defined for backward compatibility.
 #define bslmf_TypeListTypeOf bslmf::TypeListTypeOf
-    // This alias is defined for backward compatibility.
 #endif  // BDE_OPENSOURCE_PUBLICATION -- BACKWARD_COMPATIBILITY
 
 }  // close enterprise namespace

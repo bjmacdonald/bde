@@ -12,7 +12,7 @@ BSLS_IDENT("$Id: $")
 //
 //@DESCRIPTION: This component provides classes necessary to implement atomics
 // on the Windows X86 platform with MSVC compiler.  The classes are for private
-// use only.  See 'bsls_atomicoperations' and 'bsls_atomic' for the public
+// use only.  See `bsls_atomicoperations` and `bsls_atomic` for the public
 // interface to atomics.
 
 #include <bsls_atomicoperations_default.h>
@@ -193,10 +193,11 @@ inline
 int AtomicOperations_X86_WIN_MSVC::
     addIntNv(AtomicTypes::Int *atomicInt, int value)
 {
-    return _InterlockedExchangeAdd(
-            reinterpret_cast<long volatile *>(&atomicInt->d_value),
-            value)
-        + value;
+    return static_cast<unsigned>(_InterlockedExchangeAdd(
+                                 reinterpret_cast<long volatile *>(
+                                                          &atomicInt->d_value),
+                                 value))
+           + value;
 }
 
     // *** atomic functions for Int64 ***

@@ -1,5 +1,4 @@
 // bdlde_base64alphabet.t.cpp                                         -*-C++-*-
-
 #include <bdlde_base64alphabet.h>
 
 #include <bslim_testutil.h>
@@ -149,7 +148,7 @@ int main(int argc, char *argv[])
 
 ///Usage
 ///-----
-// In this section we show intended use of this component.
+// This section illustrates intended use of this component.
 //
 ///Example 1: Basic Syntax
 ///- - - - - - - - - - - -
@@ -259,10 +258,12 @@ int main(int argc, char *argv[])
             //----     -----------------------      ---------------
             {  L_,     Obj::e_BASIC,                "BASIC"        },
             {  L_,     Obj::e_URL,                  "URL"          },
+#ifndef BDE_BUILD_TARGET_UBSAN
             {  L_,     NUM_VALUES,                  UNKNOWN_FORMAT },
             {  L_,     -1,                          UNKNOWN_FORMAT },
             {  L_,     -5,                          UNKNOWN_FORMAT },
             {  L_,     99,                          UNKNOWN_FORMAT }
+#endif
         };
         const int NUM_DATA = sizeof DATA / sizeof *DATA;
 
@@ -376,9 +377,11 @@ int main(int argc, char *argv[])
             //----  -----  ---  ----------------------    -----------------
             { L_,    0,    4,  Obj::e_BASIC,             "BASIC"        NL },
             { L_,    0,    4,  Obj::e_URL,               "URL"          NL },
+#ifndef BDE_BUILD_TARGET_UBSAN
             { L_,    0,    4,  -1,                       UNKNOWN_FORMAT NL },
             { L_,    0,    4,  -5,                       UNKNOWN_FORMAT NL },
             { L_,    0,    4,  99,                       UNKNOWN_FORMAT NL },
+#endif
 
             { L_,    0,   -1,  Obj::e_BASIC,             "BASIC"           },
             { L_,    0,    0,  Obj::e_BASIC,             "BASIC"        NL },
@@ -508,10 +511,12 @@ int main(int argc, char *argv[])
             // ----    -----------------------      -----------------
             {  L_,     Obj::e_BASIC,                "BASIC"        },
             {  L_,     Obj::e_URL,                  "URL"          },
+#ifndef BDE_BUILD_TARGET_UBSAN
             {  L_,     NUM_VALUES,                  UNKNOWN_FORMAT },
             {  L_,     -1,                          UNKNOWN_FORMAT },
             {  L_,     -5,                          UNKNOWN_FORMAT },
             {  L_,     99,                          UNKNOWN_FORMAT }
+#endif
         };
         const int NUM_DATA = sizeof DATA / sizeof *DATA;
 

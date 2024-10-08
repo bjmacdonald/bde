@@ -5,19 +5,19 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide an exception class thrown by 'bsl::function'.
+//@PURPOSE: Provide an exception class thrown by `bsl::function`.
 //
 //@CLASSES:
-//  bsl::bad_function_call: exception type thrown by 'bsl::function'
+//  bsl::bad_function_call: exception type thrown by `bsl::function`
 //
 //@CANONICAL_HEADER: bsl_functional.h
 //
 //@SEE_ALSO: bslstl_function, bslstl_stdexceptionutil
 //
-//@DESCRIPTION: This component provides a 'bsl::bad_function_call' exception
-// class.  This exception is thrown by 'bsl::function::operator()' when the
-// function wrapper object has no target.  If 'std::function' implementation is
-// available, 'bsl::bad_function_call' is an alias to 'std::bad_function_call'.
+//@DESCRIPTION: This component provides a `bsl::bad_function_call` exception
+// class.  This exception is thrown by `bsl::function::operator()` when the
+// function wrapper object has no target.  If `std::function` implementation is
+// available, `bsl::bad_function_call` is an alias to `std::bad_function_call`.
 //
 
 #include <bslscm_version.h>
@@ -45,21 +45,23 @@ typedef std::bad_function_call bad_function_call;
 class bad_function_call : public std::exception {
   public:
     // CREATORS
+
+    /// Create a `bad_function_call` object.  Note that this function is
+    /// explicitly user-declared, to make it simple to declare `const`
+    /// objects of this type.
     bad_function_call() BSLS_KEYWORD_NOEXCEPT;
-        // Create a 'bad_function_call' object.  Note that this function is
-        // explicitly user-declared, to make it simple to declare 'const'
-        // objects of this type.
 
     // ACCESSORS
+
+    /// Return a pointer to the string literal "bad_function_call", with a
+    /// storage duration of the lifetime of the program.  Note that the
+    /// caller should *not* attempt to free this memory.  Note that the
+    /// `bsls_exceptionutil` macro `BSLS_NOTHROW_SPEC` is deliberately not
+    /// used here, as a number of standard libraries declare `what` in the
+    /// base `exception` class explicitly with the no-throw specification,
+    /// even in a build that may not recognize exceptions.
     const char *what() const BSLS_EXCEPTION_VIRTUAL_NOTHROW
                                                          BSLS_KEYWORD_OVERRIDE;
-        // Return a pointer to the string literal "bad_function_call", with a
-        // storage duration of the lifetime of the program.  Note that the
-        // caller should *not* attempt to free this memory.  Note that the
-        // 'bsls_exceptionutil' macro 'BSLS_NOTHROW_SPEC' is deliberately not
-        // used here, as a number of standard libraries declare 'what' in the
-        // base 'exception' class explicitly with the no-throw specification,
-        // even in a build that may not recognize exceptions.
 };
 
 // ============================================================================

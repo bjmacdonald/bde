@@ -7,30 +7,30 @@ BSLS_IDENT("$Id: $")
 
 // BDE_VERIFY pragma: -TP25  // CLASSES are not defined in C++11
 
-//@PURPOSE: Provide a standard compliant version of 'errc'.
+//@PURPOSE: Provide a standard compliant version of `errc`.
 //
 //@CLASSES:
-//  bsl::errc: namespace for 'errc' enumeration type
-//  bsl::ErrcEnum: 'typedef' for 'bsl::errc::Enum' or 'std::errc'
+//  bsl::errc: namespace for `errc` enumeration type
+//  bsl::ErrcEnum: `typedef` for `bsl::errc::Enum` or `std::errc`
 //
 //@CANONICAL_HEADER: bsl_system_error.h
 //
-//@DESCRIPTION: This component defines an enumeration 'bsl::errc::Enum', and
-// marks it eligible to participate as an error condition in the 'system_error'
-// facility.  In C++11 mode, the vendor-supplied '<system_error>'
-// implementation is used instead, and the corresponding names from 'std' are
-// imported into 'bsl'.
+//@DESCRIPTION: This component defines an enumeration `bsl::errc::Enum`, and
+// marks it eligible to participate as an error condition in the `system_error`
+// facility.  In C++11 mode, the vendor-supplied `<system_error>`
+// implementation is used instead, and the corresponding names from `std` are
+// imported into `bsl`.
 //
-// This component also defines the type alias 'bsl::ErrcEnum' that can be used
-// as the type of the 'errc' enumeration in both C++03 and C++11 mode.  Because
-// 'errc' is defined in C++11 as an 'enum class', we cannot emulate use of
-// 'std::errc' in C++03 mode - that tag can either be used to qualify the
+// This component also defines the type alias `bsl::ErrcEnum` that can be used
+// as the type of the `errc` enumeration in both C++03 and C++11 mode.  Because
+// `errc` is defined in C++11 as an `enum class`, we cannot emulate use of
+// `std::errc` in C++03 mode - that tag can either be used to qualify the
 // enumeration literals or name the type, but not both.  This component chooses
-// to have 'bsl::errc' be the literal qualifier and 'bsl::ErrcEnum' be the type
+// to have `bsl::errc` be the literal qualifier and `bsl::ErrcEnum` be the type
 // so to use this component portably, one would, for example, write
-//..
-//  bsl::ErrcEnum error_value = bsl::errc::io_error;
-//..
+// ```
+// bsl::ErrcEnum error_value = bsl::errc::io_error;
+// ```
 //
 ///Usage
 ///-----
@@ -39,18 +39,18 @@ BSLS_IDENT("$Id: $")
 ///Example 1: Descriptive System Error Value Names
 ///- - - - - - - - - - - - - - - - - - - - - - - -
 // Suppose we would like to have more descriptive and non-macro names for
-// 'errno' system error values.  We can use the 'errc' from the 'system_error'
+// `errno` system error values.  We can use the `errc` from the `system_error`
 // facility of the C++ standard for this.
 //
 // First, we do something that will set an error value.
-//..
-//  strtod("1e2000", 0);
-//..
+// ```
+// strtod("1e2000", 0);
+// ```
 // Finally, we check for that error using the descriptive name.
-//..
-//  bsl::ErrcEnum expected = bsl::errc::result_out_of_range;
-//  assert(static_cast<int>(expected) == errno);
-//..
+// ```
+// bsl::ErrcEnum expected = bsl::errc::result_out_of_range;
+// assert(static_cast<int>(expected) == errno);
+// ```
 
 #include <bslscm_version.h>
 
@@ -84,16 +84,16 @@ namespace bsl {
                                // struct 'errc'
                                // =============
 
+/// This `struct` defines an enumeration type that provides named literals
+/// for the `errno` values defined in the `<cerrno>` header.  Note that in
+/// the C++11 standard, `std::errc` is defined as an `enum class`, so that
+/// literals can be qualified with `std::errc::` and objects of the type can
+/// be declared as `std::errc`.  In C++03 mode, we cannot have both, and we
+/// have chosen in favor of allowing the literals to be qualified, so
+/// objects of the type must be declared as `bsl::errc::Enum`.  For
+/// portability between modes, declare objects of the enumeration type as
+/// `bsl::ErrcEnum`.
 struct errc {
-    // This 'struct' defines an enumeration type that provides named literals
-    // for the 'errno' values defined in the '<cerrno>' header.  Note that in
-    // the C++11 standard, 'std::errc' is defined as an 'enum class', so that
-    // literals can be qualified with 'std::errc::' and objects of the type can
-    // be declared as 'std::errc'.  In C++03 mode, we cannot have both, and we
-    // have chosen in favor of allowing the literals to be qualified, so
-    // objects of the type must be declared as 'bsl::errc::Enum'.  For
-    // portability between modes, declare objects of the enumeration type as
-    // 'bsl::ErrcEnum'.
 
     // TYPES
     enum Enum {
@@ -184,9 +184,9 @@ typedef errc::Enum ErrcEnum;  // Portable typedef for 'errc'
                        // struct is_error_condition_enum
                        // ------------------------------
 
+/// Mark the `errc` enumeration as an error condition.
 template <>
 struct is_error_condition_enum<errc::Enum> : public bsl::true_type {
-    // Mark the 'errc' enumeration as an error condition.
 };
 
 }  // close namespace bsl

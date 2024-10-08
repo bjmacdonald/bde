@@ -1,12 +1,4 @@
 // bdlmt_fixedthreadpool.t.cpp                                        -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlmt_fixedthreadpool.h>
 
 #include <bdlm_instancecount.h>
@@ -28,6 +20,7 @@
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
 #include <bsls_atomic.h>
+#include <bsls_keyword.h>
 #include <bsls_platform.h>
 #include <bsls_stopwatch.h>
 #include <bsls_systemtime.h>
@@ -104,10 +97,11 @@ using bsl::flush;
 // [ 9] TESTING CPU consumption of an idle pool.
 // [11] Usage examples
 // [12] Usage examples
-// [16] CONCERN: 'start()' failure behavior
-// [17] CONCERN: 'drain', 'shutdown', 'stop' behavior when '!isStarted()'
-// [18] DRQS 167232024: 'drain' FAILS TO WAIT FOR ALL JOBS TO FINISH
-// [19] CONCERN: POOL OBJECT CAN OUTLIVE USED 'MetricsRegistry'
+// [16] CONCERN: `start()` failure behavior
+// [17] CONCERN: `drain`, `shutdown`, `stop` behavior when `!isStarted()`
+// [18] DRQS 167232024: `drain` FAILS TO WAIT FOR ALL JOBS TO FINISH
+// [19] CONCERN: POOL OBJECT CAN OUTLIVE USED `MetricsRegistry`
+// [20] THREAD NAMES
 
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
@@ -208,11 +202,11 @@ bslma::TestAllocator taDefault;
                          // class TestMetricsAdapter
                          // ========================
 
+/// This class implements a pure abstract interface for clients and
+/// suppliers of metrics adapters.  The implemtation does not register
+/// callbacks with any monitoring system, but does track registrations to
+/// enable testing of thread-enabled objects metric registration.
 class TestMetricsAdapter : public bdlm::MetricsAdapter {
-    // This class implements a pure abstract interface for clients and
-    // suppliers of metrics adapters.  The implemtation does not register
-    // callbacks with any monitoring system, but does track registrations to
-    // enable testing of thread-enabled objects metric registration.
 
     // DATA
     bsl::vector<bdlm::MetricDescriptor> d_descriptors;
@@ -220,33 +214,37 @@ class TestMetricsAdapter : public bdlm::MetricsAdapter {
 
   public:
     // CREATORS
-    TestMetricsAdapter();
-        // Create a 'TestMetricsAdapter'.
 
-    ~TestMetricsAdapter();
-        // Destroy this object.
+    /// Create a `TestMetricsAdapter`.
+    TestMetricsAdapter();
+
+    /// Destroy this object.
+    ~TestMetricsAdapter() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    CallbackHandle registerCollectionCallback(
-                                const bdlm::MetricDescriptor& metricDescriptor,
-                                const Callback&               callback);
-        // Do nothing with the specified 'metricsDescriptor' and 'callback'.
-        // Return a callback handle that will be verified in
-        // 'removeCollectionCallback'.
 
-    int removeCollectionCallback(const CallbackHandle& handle);
-        // Do nothing with the specified 'handle'.  Assert the supplied
-        // 'handle' matches what was provided by 'registerCollectionCallback'.
+    /// Do nothing with the specified `metricsDescriptor` and `callback`.
+    /// Return a callback handle that will be verified in
+    /// `removeCollectionCallback`.
+    CallbackHandle registerCollectionCallback(
+                 const bdlm::MetricDescriptor& metricDescriptor,
+                 const Callback&               callback) BSLS_KEYWORD_OVERRIDE;
+
+    int removeCollectionCallback(const CallbackHandle& handle)
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Do nothing with the specified `handle`.  Assert the supplied
+        // `handle` matches what was provided by `registerCollectionCallback`.
         // Return 0.
 
+    /// Return this object to its constructed state.
     void reset();
-        // Return this object to its constructed state.
 
     // ACCESSORS
+
+    /// Return `true` if the registered descriptors match the ones expected
+    /// for the supplied `name` and the provided callback handles were
+    /// removed, and `false` otherwise.
     bool verify(const bsl::string& name) const;
-        // Return 'true' if the registered descriptors match the ones expected
-        // for the supplied 'name' and the provided callback handles were
-        // removed, and 'false' otherwise.
 };
 
                          // ------------------------
@@ -298,14 +296,14 @@ bool TestMetricsAdapter::verify(const bsl::string& name) const
     ASSERT(d_handles.empty());
     ASSERT(2 == d_descriptors.size());
     ASSERT(d_descriptors[0].metricNamespace()        == "");
-    ASSERT(d_descriptors[0].metricName()             == "backlog");
+    ASSERT(d_descriptors[0].metricName()             == "bde.backlog");
     ASSERT(d_descriptors[0].objectTypeAbbreviation() == "ftp");
     ASSERT(d_descriptors[0].objectTypeName()         ==
                                                       "bdlmt.fixedthreadpool");
     ASSERT(d_descriptors[0].instanceNumber()         == count);
     ASSERT(d_descriptors[0].objectIdentifier()       == name);
     ASSERT(d_descriptors[1].metricNamespace()        == "");
-    ASSERT(d_descriptors[1].metricName()             == "usedcapacity");
+    ASSERT(d_descriptors[1].metricName()             == "bde.usedcapacity");
     ASSERT(d_descriptors[1].objectTypeAbbreviation() == "ftp");
     ASSERT(d_descriptors[1].objectTypeName()         ==
                                                       "bdlmt.fixedthreadpool");
@@ -315,17 +313,15 @@ bool TestMetricsAdapter::verify(const bsl::string& name) const
     return d_handles.empty()
         && 2 == d_descriptors.size()
         && d_descriptors[0].metricNamespace()        == ""
-        && d_descriptors[0].metricName()             == "backlog"
+        && d_descriptors[0].metricName()             == "bde.backlog"
         && d_descriptors[0].objectTypeAbbreviation() == "ftp"
-        && d_descriptors[0].objectTypeName()         ==
-                                                        "bdlmt.fixedthreadpool"
+        && d_descriptors[0].objectTypeName()         == "bdlmt.fixedthreadpool"
         && d_descriptors[0].instanceNumber()         == count
         && d_descriptors[0].objectIdentifier()       == name
         && d_descriptors[1].metricNamespace()        == ""
-        && d_descriptors[1].metricName()             == "usedcapacity"
+        && d_descriptors[1].metricName()             == "bde.usedcapacity"
         && d_descriptors[1].objectTypeAbbreviation() == "ftp"
-        && d_descriptors[1].objectTypeName()         ==
-                                                        "bdlmt.fixedthreadpool"
+        && d_descriptors[1].objectTypeName()         == "bdlmt.fixedthreadpool"
         && d_descriptors[1].instanceNumber()         == count
         && d_descriptors[1].objectIdentifier()       == name;
 }
@@ -334,8 +330,36 @@ bool TestMetricsAdapter::verify(const bsl::string& name) const
 //                 HELPER CLASSES AND FUNCTIONS  FOR TESTING
 // ----------------------------------------------------------------------------
 
+namespace THREAD_NAMES_TEST {
+
+void threadNameCheckJob(void *arg)
+    // Check that the name of the current thread matches `expectedThreadName`,
+    // where `expectedThreadName` is the specified `arg`.
+{
+    const char *expectedThreadName = static_cast<const char *>(arg);
+
+    bsl::string name;
+    bslmt::ThreadUtil::getThreadName(&name);
+#if defined(BSLS_PLATFORM_OS_LINUX) ||  defined(BSLS_PLATFORM_OS_DARWIN) ||   \
+    defined(BSLS_PLATFORM_OS_SOLARIS)
+    ASSERTV(expectedThreadName, name, expectedThreadName == name);
+#elif defined(BSLS_PLATFORM_OS_WINDOWS)
+    // The threadname will only be visible if we're running on Windows 10,
+    // version 1607 or later, otherwise it will be empty.
+
+    ASSERTV(expectedThreadName, name, expectedThreadName == name ||
+                                                                 name.empty());
+#else
+    // Platform doesn't support thread names.
+
+    ASSERTV(name, name.empty());
+#endif
+}
+
+}  // close namespace THREAD_NAMES_TEST
+
+/// This function does nothing.
 void noop(void *)
-    // This function does nothing.
 {
 }
 
@@ -397,11 +421,11 @@ extern "C" void TestSynchronousSignals(void *)
 }
 #endif
 
+/// This function is used to simulate a thread pool job.  It accepts a
+/// pointer to a pointer to a structure containing a mutex and a conditional
+/// variable.  The function simply blocks until the conditional variable is
+/// signaled.
 void testJobFunction1(void *ptr)
-    // This function is used to simulate a thread pool job.  It accepts a
-    // pointer to a pointer to a structure containing a mutex and a conditional
-    // variable.  The function simply blocks until the conditional variable is
-    // signaled.
 {
     TestJobFunctionArgs *args = (TestJobFunctionArgs*)ptr;
     bslmt::LockGuard<bslmt::Mutex> lock(args->d_mutex_p);
@@ -427,11 +451,11 @@ extern "C" void *testThreadJobFunction1(void *ptr)
     return 0;
 }
 
+/// This function is used to simulate a thread pool job.  It accepts a
+/// pointer to a pointer to a structure containing a mutex and a conditional
+/// variable.  The function simply signals that it has started, increments
+/// the supplied counter and returns.
 void testJobFunction2(void *ptr)
-    // This function is used to simulate a thread pool job.  It accepts a
-    // pointer to a pointer to a structure containing a mutex and a conditional
-    // variable.  The function simply signals that it has started, increments
-    // the supplied counter and returns.
 {
     TestJobFunctionArgs *args = (TestJobFunctionArgs*)ptr;
     bslmt::LockGuard<bslmt::Mutex> lock(args->d_mutex_p);
@@ -446,14 +470,14 @@ extern "C" void *testThreadJobFunction2(void *ptr)
     return 0;
 }
 
+/// This function is used to simulate a thread pool job.  It accepts a
+/// pointer to a pointer to a structure containing a mutex and a conditional
+/// variable.  All the threads calling this function will wait until the
+/// main thread invokes the `wait` on a barrier signifying the start of the
+/// function.  After that all the threads calling this function will wait
+/// until the main thread invokes the `wait` on a barrier signifying the end
+/// of the function, if such a barrier is specified.
 void testJobFunction3(void *ptr)
-    // This function is used to simulate a thread pool job.  It accepts a
-    // pointer to a pointer to a structure containing a mutex and a conditional
-    // variable.  All the threads calling this function will wait until the
-    // main thread invokes the 'wait' on a barrier signifying the start of the
-    // function.  After that all the threads calling this function will wait
-    // until the main thread invokes the 'wait' on a barrier signifying the end
-    // of the function, if such a barrier is specified.
 {
     TestJobFunctionArgs1 *args = (TestJobFunctionArgs1*)ptr;
 
@@ -472,11 +496,11 @@ extern "C" void *testThreadJobFunction3(void *ptr)
     return 0;
 }
 
+/// This function is used to simulate a thread pool job.  It accepts an int
+/// which controls the time taken by that job.  We let the job compute some
+/// quantity (the actually job does not matter, only the time it takes).
+/// Here we compute the golden ratio.
 double testJobFunction4(const int N)
-    // This function is used to simulate a thread pool job.  It accepts an int
-    // which controls the time taken by that job.  We let the job compute some
-    // quantity (the actually job does not matter, only the time it takes).
-    // Here we compute the golden ratio.
 {
     double result = 1.0;
     for (int i = 0; i < N; ++i) {
@@ -485,9 +509,9 @@ double testJobFunction4(const int N)
     return result;
 }
 
+/// Return the total CPU time (user and system) consumed by the current
+/// process since creation; the CPU time unit is seconds.
 static double getCurrentCpuTime()
-    // Return the total CPU time (user and system) consumed by the current
-    // process since creation; the CPU time unit is seconds.
 {
 #ifdef BSLS_PLATFORM_OS_WINDOWS
     HANDLE me = GetCurrentProcess();
@@ -514,17 +538,17 @@ static bsls::AtomicInt s_continue;
 
 static char s_watchdogText[128];
 
+/// Assign the specified `value` to be displayed if the watchdog expires.
 void setWatchdogText(const char *value)
-    // Assign the specified 'value' to be displayed if the watchdog expires.
 {
     memcpy(s_watchdogText, value, strlen(value) + 1);
 }
 
+/// Watchdog function used to determine when a timeout should occur.  This
+/// function returns without expiration if `0 == s_continue` before one
+/// second elapses.  Upon expiration, `s_watchdogText` is displayed and the
+/// program is aborted.
 extern "C" void *watchdog(void *arg)
-    // Watchdog function used to determine when a timeout should occur.  This
-    // function returns without expiration if '0 == s_continue' before one
-    // second elapses.  Upon expiration, 's_watchdogText' is displayed and the
-    // program is aborted.
 {
     if (arg) {
         setWatchdogText(static_cast<const char *>(arg));
@@ -541,7 +565,7 @@ extern "C" void *watchdog(void *arg)
         ASSERTV(s_watchdogText, count < MAX);
 
         if (MAX == count && s_continue) {
-            // 'abort' is preferred here but, on Windows, may result in a
+            // `abort` is preferred here but, on Windows, may result in a
             // dialog box and the process not terminating.
 
 #ifndef BSLS_PLATFORM_OS_WINDOWS
@@ -636,8 +660,8 @@ struct myFastSearchJobInfo {
 
 extern "C" {
 
+/// Thread function, take arguments from the specified `arg`.
 static void myFastSearchJob(void *arg)
-    // Thread function, take arguments from the specified 'arg'.
 {
     FILE *file;
     myFastSearchJobInfo *job =  (myFastSearchJobInfo*)arg;
@@ -668,12 +692,12 @@ static void myFastSearchJob(void *arg)
 
 }
 
+/// Simultaneously search the files in the specified `fileList` for the
+/// specified `word, accumulated in the specified `outFileList' the names of
+/// those files containing `word`.
 static void myFastSearch(const bsl::string&              word,
                          const bsl::vector<bsl::string>& fileList,
                          bsl::vector<bsl::string>&       outFileList)
-    // Simultaneously search the files in the specified 'fileList' for the
-    // specified 'word, accumulated in the specified 'outFileList' the names of
-    // those files containing 'word'.
 {
     bslmt::Mutex            mutex;
     bslmt::ThreadAttributes defaultAttributes;
@@ -732,12 +756,12 @@ static void myFastFunctorSearchJob(myFastSearchJobInfo *job)
     }
 }
 
+/// Simultaneously search the files in the specified `fileList` for the
+/// specified `word, accumulated in the specified `outFileList' the names of
+/// those files containing `word`.
 static void myFastFunctorSearch(const bsl::string&              word,
                                 const bsl::vector<bsl::string>& fileList,
                                 bsl::vector<bsl::string>&       outFileList)
-    // Simultaneously search the files in the specified 'fileList' for the
-    // specified 'word, accumulated in the specified 'outFileList' the names of
-    // those files containing 'word'.
 {
     bslmt::Mutex            mutex;
     bslmt::ThreadAttributes defaultAttributes;
@@ -787,31 +811,34 @@ class CopyCountingFunctor {
 
   public:
     // CREATORS
+
+    /// Create a new `CopyCountingFunctor` object that has the specified
+    /// `counter`, and set the counter to 0.
     explicit CopyCountingFunctor(int *counter);
-        // Create a new 'CopyCountingFunctor' object that has the specified
-        // 'counter', and set the counter to 0.
 
+    /// Create a new `CopyCountingFunctor` object that has the same counter
+    /// as the specified `other`; and also increase the counter by one.
     CopyCountingFunctor(const CopyCountingFunctor& other);
-        // Create a new 'CopyCountingFunctor' object that has the same counter
-        // as the specified 'other'; and also increase the counter by one.
 
+    /// Create a new `CopyCountingFunctor` object that has the same counter
+    /// as the specified `other`.
     CopyCountingFunctor(bslmf::MovableRef<CopyCountingFunctor> other);
-        // Create a new 'CopyCountingFunctor' object that has the same counter
-        // as the specified 'other'.
 
     // MANIPULATORS
-    CopyCountingFunctor& operator=(const CopyCountingFunctor& other);
-        // Overwrite this object that has the same counter as the specified
-        // 'other'; and also increase that counter by one.
 
+    /// Overwrite this object that has the same counter as the specified
+    /// `other`; and also increase that counter by one.
+    CopyCountingFunctor& operator=(const CopyCountingFunctor& other);
+
+    /// Overwrite this object that has the same counter as the specified
+    /// `other`.
     CopyCountingFunctor& operator=(
                                  bslmf::MovableRef<CopyCountingFunctor> other);
-        // Overwrite this object that has the same counter as the specified
-        // 'other'.
 
     // ACCESSORS
+
+    /// Do noting.
     void operator()();
-        // Do noting.
 };
 
                            // -------------------
@@ -866,8 +893,8 @@ void CopyCountingFunctor::operator()()
 
 namespace FIXEDTHREADPOOL_CASE_14 {
 
+/// Invoke a set of operations operations synchronously.
 class ConcurrencyTest {
-    // Invoke a set of operations operations synchronously.
 
     // DATA
     bdlmt::FixedThreadPool  d_pool;
@@ -875,8 +902,9 @@ class ConcurrencyTest {
     bslma::Allocator       *d_allocator_p;
 
     // PRIVATE MANIPULATORS
+
+    /// Execute a single test.
     void execute();
-        // Execute a single test.
 
     ConcurrencyTest(const ConcurrencyTest&);             // unimplemented
     ConcurrencyTest& operator=(const ConcurrencyTest&);  // unimplemented
@@ -891,12 +919,13 @@ class ConcurrencyTest {
         d_pool.start();
     }
 
+    /// Destroy this object.
     ~ConcurrencyTest() {}
-        // Destroy this object.
 
     //  MANIPULATORS
+
+    /// Run the test.
     void runTest();
-        // Run the test.
 };
 
 void ConcurrencyTest::execute()
@@ -1051,9 +1080,9 @@ bsls::AtomicInt depthCounter;
 
 extern "C" {
 
+/// This function is used to simulate a thread pool job.  It enqueues itself
+/// in the pool if the depth limit is not reached.
 void testJobFunction5(void *)
-    // This function is used to simulate a thread pool job.  It enqueues itself
-    // in the pool if the depth limit is not reached.
 {
     ASSERT(depthCounter >= 0);
     ASSERT(depthCounter <= DEPTH_LIMIT);
@@ -1103,27 +1132,196 @@ int main(int argc, char *argv[])
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
     switch (test) { case 0:  // case 0 is always the first case
-      case 19: {
+      case 20: {
         // --------------------------------------------------------------------
-        // TESTING CONCERN: POOL OBJECT CAN OUTLIVE USED 'MetricsRegistry'
+        // TESTING THREAD NAMES
         //
         // Concerns:
-        //: 1 'MetricsRegistry' object passed during construction can end its
-        //:   lifetime before the pool's destructor is called without causing
-        //:   segfault or any other use-after-free issue.  See DRQS 173705664
-        //:   and DRQS 174980848 for more details.
+        // 1. On platforms that support thread names, the thread name is set
+        //    correctly.
         //
         // Plan:
-        //: 1 Create a 'MetricsRegistry' object on a free store and pass it to
-        //:   the constructed pool.  Delete the 'MetricsRegistry' object.  The
-        //:   pool destruction mustn't cause core dumps or other similar
-        //:   issues.
+        // 1. Verify when `threadAttributes.threadName()` and `threadPoolName`
+        //    are empty, the global default is used.
+        //
+        // 2. Verify when `threadAttributes.threadName()` is empty and
+        //    `threadPoolName` is specified, `threadPoolName` is used.
+        //
+        // 3. Verify when `threadAttributes.threadName()` is specified, it is
+        //    used.
         //
         // Testing:
-        //   CONCERN: POOL OBJECT CAN OUTLIVE USED 'MetricsRegistry'
+        //   THREAD NAMES
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "TESTING THREAD NAMES\n"
+                             "====================\n";
+
+        namespace TC = THREAD_NAMES_TEST;
+
+        const int k_NUM_THREADS =  5;
+        const int k_MAX_PENDING = 10;
+
+        char defaultThreadName[]     = { "bdl.FixedPool" };
+        char constructorThreadName[] = { "name" };
+        char nonDefaultThreadName[]  = { "bow wow" };
+
+        if (verbose) cout << "Check default thread name\n";
+        {
+            Obj mX(k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, defaultThreadName);
+            }
+
+            mX.stop();
+        }
+        {
+            Obj mX(k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   "",
+                   0,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, defaultThreadName);
+            }
+
+            mX.stop();
+        }
+        {
+            bslmt::ThreadAttributes attr;
+            ASSERT(attr.threadName().empty());
+            Obj mX(attr,
+                   k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, defaultThreadName);
+            }
+
+            mX.stop();
+        }
+        {
+            bslmt::ThreadAttributes attr;
+            ASSERT(attr.threadName().empty());
+            Obj mX(attr,
+                   k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   "",
+                   0,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, defaultThreadName);
+            }
+
+            mX.stop();
+        }
+
+        if (verbose) cout << "Check thread name set in constructor argument\n";
+        {
+            Obj mX(k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   constructorThreadName,
+                   0,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, constructorThreadName);
+            }
+
+            mX.stop();
+        }
+        {
+            bslmt::ThreadAttributes attr;
+            ASSERT(attr.threadName().empty());
+            Obj mX(attr,
+                   k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   constructorThreadName,
+                   0,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, constructorThreadName);
+            }
+
+            mX.stop();
+        }
+
+        if (verbose) cout << "Check thread name set in attributes\n";
+        {
+            bslmt::ThreadAttributes attr;
+            attr.setThreadName(nonDefaultThreadName);
+            Obj mX(attr,
+                   k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, nonDefaultThreadName);
+            }
+
+            mX.stop();
+        }
+        {
+            bslmt::ThreadAttributes attr;
+            attr.setThreadName(nonDefaultThreadName);
+            Obj mX(attr,
+                   k_NUM_THREADS,
+                   k_MAX_PENDING,
+                   constructorThreadName,
+                   0,
+                   &testAllocator);
+
+            mX.start();
+
+            for (int ii = 0; ii < 10; ++ii) {
+                mX.enqueueJob(&TC::threadNameCheckJob, nonDefaultThreadName);
+            }
+
+            mX.stop();
+        }
+      } break;
+      case 19: {
+        // --------------------------------------------------------------------
+        // TESTING CONCERN: POOL OBJECT CAN OUTLIVE USED `MetricsRegistry`
+        //
+        // Concerns:
+        // 1. `MetricsRegistry` object passed during construction can end its
+        //    lifetime before the pool's destructor is called without causing
+        //    segfault or any other use-after-free issue.  See DRQS 173705664
+        //    and DRQS 174980848 for more details.
+        //
+        // Plan:
+        // 1. Create a `MetricsRegistry` object on a free store and pass it to
+        //    the constructed pool.  Delete the `MetricsRegistry` object.  The
+        //    pool destruction mustn't cause core dumps or other similar
+        //    issues.
+        //
+        // Testing:
+        //   CONCERN: POOL OBJECT CAN OUTLIVE USED `MetricsRegistry`
         // --------------------------------------------------------------------
         if (verbose) cout <<
-            "\nTESTING CONCERN: POOL OBJECT CAN OUTLIVE USED 'MetricsRegistry'"
+            "\nTESTING CONCERN: POOL OBJECT CAN OUTLIVE USED `MetricsRegistry`"
             "\n==============================================================="
             << endl;
 
@@ -1133,27 +1331,27 @@ int main(int argc, char *argv[])
 
         // Prematurely kill the registry
         delete metricsRegistry;
-        // 'pool' outlives the 'MetricsRegistry' object w/o segfault
+        // `pool` outlives the `MetricsRegistry` object w/o segfault
       } break;
       case 18: {
         // --------------------------------------------------------------------
-        // DRQS 167232024: 'drain' FAILS TO WAIT FOR ALL JOBS TO FINISH
+        // DRQS 167232024: `drain` FAILS TO WAIT FOR ALL JOBS TO FINISH
         //
         // Concerns:
-        //: 1 When a thread enqueues some jobs and then invokes 'drain', there
-        //:   are no pending jobs.
+        // 1. When a thread enqueues some jobs and then invokes `drain`, there
+        //    are no pending jobs.
         //
         // Plan:
-        //: 1 Verify '0 == numPendingJobs' after enqueuing a few jobs and
-        //:   invoking 'drain'.
+        // 1. Verify `0 == numPendingJobs` after enqueuing a few jobs and
+        //    invoking `drain`.
         //
         // Testing:
-        //   DRQS 167232024: 'drain' FAILS TO WAIT FOR ALL JOBS TO FINISH
+        //   DRQS 167232024: `drain` FAILS TO WAIT FOR ALL JOBS TO FINISH
         // --------------------------------------------------------------------
 
         if (verbose) {
             cout
-              << "DRQS 167232024: 'drain' FAILS TO WAIT FOR ALL JOBS TO FINISH"
+              << "DRQS 167232024: `drain` FAILS TO WAIT FOR ALL JOBS TO FINISH"
               << endl
               << "============================================================"
               << endl;
@@ -1165,7 +1363,7 @@ int main(int argc, char *argv[])
 
         bslmt::ThreadUtil::create(&watchdogHandle,
                                   watchdog,
-                                  const_cast<char *>("'drain'"));
+                                  const_cast<char *>("`drain`"));
 
         Obj mX(4, 4);  const Obj& X = mX;
 
@@ -1198,41 +1396,41 @@ int main(int argc, char *argv[])
       } break;
       case 17: {
         // --------------------------------------------------------------------
-        // 'drain', 'shutdown', 'stop' BEHAVIOR WHEN '!isStarted()'
-        //   When the thread pool is not started, the methods 'drain',
-        //   'shutdown', and 'stop' do nothing.
+        // `drain`, `shutdown`, `stop` BEHAVIOR WHEN `!isStarted()`
+        //   When the thread pool is not started, the methods `drain`,
+        //   `shutdown`, and `stop` do nothing.
         //
         // Concerns:
-        //: 1 If the thread pool is not started, the methods 'drain', 'stop',
-        //    and 'shutdown' do nothing.
+        // 1. If the thread pool is not started, the methods `drain`, `stop`,
+        //    and `shutdown` do nothing.
         //
         // Plan:
-        //: 1 Construct a 'bdlmt::FixedThreadPool', enable enqueueing, enqueue
-        //:   a job, and invoke 'drain'.  Use a watchdog thread to ensure the
-        //:   invoking thread returns timely.  Verify the enqueued job was not
-        //:   removed and the thread pool 'isEnabled()'.
-        //:
-        //: 2 Construct a 'bdlmt::FixedThreadPool', enable enqueueing, enqueue
-        //:   a job, and invoke 'shutdown'.  Verify the enqueued job was not
-        //:   removed and the thread pool 'isEnabled()'.
-        //:
-        //: 3 Construct a 'bdlmt::FixedThreadPool', enable enqueueing, enqueue
-        //:   a job, and invoke 'stop'.  Verify the enqueued job was not
-        //:   removed and the thread pool 'isEnabled()'.
+        // 1. Construct a `bdlmt::FixedThreadPool`, enable enqueueing, enqueue
+        //    a job, and invoke `drain`.  Use a watchdog thread to ensure the
+        //    invoking thread returns timely.  Verify the enqueued job was not
+        //    removed and the thread pool `isEnabled()`.
+        //
+        // 2. Construct a `bdlmt::FixedThreadPool`, enable enqueueing, enqueue
+        //    a job, and invoke `shutdown`.  Verify the enqueued job was not
+        //    removed and the thread pool `isEnabled()`.
+        //
+        // 3. Construct a `bdlmt::FixedThreadPool`, enable enqueueing, enqueue
+        //    a job, and invoke `stop`.  Verify the enqueued job was not
+        //    removed and the thread pool `isEnabled()`.
         //
         // Testing:
-        //   CONCERN: 'drain', 'shutdown', 'stop' behavior when '!isStarted()'
+        //   CONCERN: `drain`, `shutdown`, `stop` behavior when `!isStarted()`
         // --------------------------------------------------------------------
 
         if (verbose) {
     // -----^
     cout << endl
-         << "'drain', 'shutdown', 'stop' BEHAVIOR WHEN '!isStarted()'" << endl
+         << "`drain`, `shutdown`, `stop` BEHAVIOR WHEN `!isStarted()`" << endl
          << "========================================================" << endl;
     // -----v
         }
 
-        if (verbose) cout << "Testing 'drain'." << endl;
+        if (verbose) cout << "Testing `drain`." << endl;
         {
             bslmt::ThreadUtil::Handle watchdogHandle;
 
@@ -1240,7 +1438,7 @@ int main(int argc, char *argv[])
 
             bslmt::ThreadUtil::create(&watchdogHandle,
                                       watchdog,
-                                      const_cast<char *>("'drain'"));
+                                      const_cast<char *>("`drain`"));
 
             Obj mX(4, 4);  const Obj& X = mX;
 
@@ -1258,7 +1456,7 @@ int main(int argc, char *argv[])
             bslmt::ThreadUtil::join(watchdogHandle);
         }
 
-        if (verbose) cout << "Testing 'shutdown'." << endl;
+        if (verbose) cout << "Testing `shutdown`." << endl;
         {
             Obj mX(4, 4);  const Obj& X = mX;
 
@@ -1272,7 +1470,7 @@ int main(int argc, char *argv[])
             ASSERT(X.isEnabled());
         }
 
-        if (verbose) cout << "Testing 'stop'." << endl;
+        if (verbose) cout << "Testing `stop`." << endl;
         {
             Obj mX(4, 4);  const Obj& X = mX;
 
@@ -1288,26 +1486,26 @@ int main(int argc, char *argv[])
       } break;
       case 16: {
         // --------------------------------------------------------------------
-        // 'start' FAILURE BEHAVIOR
-        //   If the 'start' method fails, the thread pool should behave as
+        // `start` FAILURE BEHAVIOR
+        //   If the `start` method fails, the thread pool should behave as
         //   expected.
         //
         // Concerns:
-        //: 1 If the thread start function fails, the 'start' method returns,
+        // 1. If the thread start function fails, the `start` method returns,
         //    all pool threads are joined, and the method's return value
         //    indicates failure.
         //
         // Plan:
-        //: 1 Construct a 'bdlmt::FixedThreadPool' with an unsatisfiable number
-        //:   of threads.  Start the pool and verify '0 != start()'.  Use a
-        //:   watchdog thread to ensure the test completes timely.
+        // 1. Construct a `bdlmt::FixedThreadPool` with an unsatisfiable number
+        //    of threads.  Start the pool and verify `0 != start()`.  Use a
+        //    watchdog thread to ensure the test completes timely.
         //
         // Testing:
-        //   CONCERN: 'start()' failure behavior
+        //   CONCERN: `start()` failure behavior
         // --------------------------------------------------------------------
 
         if (verbose) cout << endl
-                          << "'start' FAILURE BEHAVIOR" << endl
+                          << "`start` FAILURE BEHAVIOR" << endl
                           << "========================" << endl;
 
 #if defined(BSLS_PLATFORM_OS_WINDOWS) || \
@@ -1330,7 +1528,7 @@ int main(int argc, char *argv[])
         bslmt::ThreadUtil::create(
                                &watchdogHandle,
                                watchdog,
-                               const_cast<char *>("'start' failure behavior"));
+                               const_cast<char *>("`start` failure behavior"));
 
         bdlmt::FixedThreadPool mX(k_NUM_THREADS, k_CAPACITY);
 
@@ -1346,15 +1544,15 @@ int main(int argc, char *argv[])
         // TESTING MOVING ENQUEUEJOB
         //
         // Concerns:
-        //: 1 Explicit move moves
-        //: 2 rvalue/temporary is moved from in C++11 mode
+        // 1. Explicit move moves
+        // 2. rvalue/temporary is moved from in C++11 mode
         //
         // Plan:
-        //: 1 Create a thread pool of size 3.
-        //: 2 enqueue one job using explicit move
-        //: 3 tryEnqueue one job using explicit move
-        //: 4 enqueue an implicit rvalue reference (temporary) in C++11 mode
-        //: 5 tryEnqueue an implicit rvalue reference (temporary) in C++11 mode
+        // 1. Create a thread pool of size 3.
+        // 2. enqueue one job using explicit move
+        // 3. tryEnqueue one job using explicit move
+        // 4. enqueue an implicit rvalue reference (temporary) in C++11 mode
+        // 5. tryEnqueue an implicit rvalue reference (temporary) in C++11 mode
         //
         // Testing:
         //   int enqueueJob(bslmf::MovableRef<Job>);
@@ -1422,7 +1620,7 @@ int main(int argc, char *argv[])
         // TEST CASE FOR WINDOWS TEST FAILURE
         //   This test case was created for a windows failure that occurred on
         //   8/17.  This essentially recreates the use of
-        //   'bdlmt_fixedthreadpool' in the 'balm' test drivers.
+        //   `bdlmt_fixedthreadpool` in the `balm` test drivers.
         //
         // Plan:
         // --------------------------------------------------------------------
@@ -1453,7 +1651,7 @@ int main(int argc, char *argv[])
         //   that it has been eliminated.
         //
         //   Start a bunch of single-threaded thread pools, several pairs of
-        //   them, actually.  Submit 'rabbit' jobs, that submit jobs like
+        //   them, actually.  Submit `rabbit` jobs, that submit jobs like
         //   themselves to the adjacent thread pools.  Once the rabbits are
         //   reproducing amongst the thread pools, shut them all down, then
         //   test the thread pools to see if any residual jobs were left in
@@ -1519,7 +1717,7 @@ int main(int argc, char *argv[])
             } while (numFertileRabbits < pauseUntil);
 
             for (int i = 0; i < NUM_THREADPOOLS; ++i) {
-                // Create a temporal gap in 'shutdown' between the underlying
+                // Create a temporal gap in `shutdown` between the underlying
                 // queue being disabled and the threadpool's threads being
                 // joined to allow in-progress enqueues from other threadpools
                 // to complete.
@@ -1567,7 +1765,7 @@ int main(int argc, char *argv[])
             } while (numFertileRabbits < pauseUntil);
 
             for (int i = 0; i < NUM_THREADPOOLS; ++i) {
-                // Create a temporal gap in 'shutdown' between the underlying
+                // Create a temporal gap in `shutdown` between the underlying
                 // queue being disabled and the threadpool's threads being
                 // joined to allow in-progress enqueues from other threadpools
                 // to complete.
@@ -1804,13 +2002,13 @@ int main(int argc, char *argv[])
       } break;
       case 7: {
         // --------------------------------------------------------------------
-        // TESTING 'numActiveThreads'
+        // TESTING `numActiveThreads`
         //
         // Concerns:
-        //   (1) 'numActiveThreads' of a stopped threadPool is 0.
-        //   (2) 'numActiveThreads' of a heavily loaded threadPool is
+        //   (1) `numActiveThreads` of a stopped threadPool is 0.
+        //   (2) `numActiveThreads` of a heavily loaded threadPool is
         //       numThreads.
-        //   (3) 'numActiveThreads' of an idle threadPool 0.
+        //   (3) `numActiveThreads` of an idle threadPool 0.
         // --------------------------------------------------------------------
           if (verbose) cout << "TESTING numActiveThreads\n"
                             << "==========================" << endl ;
@@ -1883,7 +2081,7 @@ int main(int argc, char *argv[])
       } break;
       case 5: {
         // --------------------------------------------------------------------
-        // TESTING 'tryEnqueueJob'
+        // TESTING `tryEnqueueJob`
         //   Verify that tryEnqueueJob does not block,
         //
         // Plan:
@@ -1916,7 +2114,7 @@ int main(int argc, char *argv[])
         };
         const int NUM_VALUES = sizeof VALUES / sizeof *VALUES;
 
-        if (verbose) cout << "TESTING 'tryEnqueueJob'\n"
+        if (verbose) cout << "TESTING `tryEnqueueJob`\n"
                           << "=======================" << endl ;
 
         for (int i = 0; i < NUM_VALUES; ++i) {
@@ -1987,8 +2185,8 @@ int main(int argc, char *argv[])
       } break;
       case 4: {
         // --------------------------------------------------------------------
-        // TESTING 'drain' and 'stop' and 'shutdown'
-        //   Verify that the 'drain', 'stop' and 'shutdown' behave as expected.
+        // TESTING `drain` and `stop` and `shutdown`
+        //   Verify that the `drain`, `stop` and `shutdown` behave as expected.
         //
         // Plan:
         //   First, for a sequence of independent number of threads, create a
@@ -2035,13 +2233,13 @@ int main(int argc, char *argv[])
 
         ASSERT(0 == Obj::e_SUCCESS);
 
-        if (verbose) cout << "Testing: 'drain', 'stop', and 'shutdown'\n"
+        if (verbose) cout << "Testing: `drain`, `stop`, and `shutdown`\n"
                           << "=======================================" << endl;
 
         bslma::TestAllocator ga(veryVeryVerbose);
         bslma::Default::setGlobalAllocator(&ga);
 
-        if (veryVerbose) cout << "\tTesting: 'drain'\n"
+        if (veryVerbose) cout << "\tTesting: `drain`\n"
                               << "\t----------------" << endl;
 
         for (int i = 0; i < NUM_VALUES; ++i) {
@@ -2102,7 +2300,7 @@ int main(int argc, char *argv[])
             // running.
         }
 
-        if (veryVerbose) cout << "\n\tTesting: 'stop'"
+        if (veryVerbose) cout << "\n\tTesting: `stop`"
                               << "\n\t--------------" << endl;
 
         for (int i = 0; i < NUM_VALUES; ++i) {
@@ -2156,7 +2354,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (veryVerbose) cout << "\n\tTesting: 'shutdown'"
+        if (veryVerbose) cout << "\n\tTesting: `shutdown`"
                               << "\n\t------------------"
                               << endl;
 
@@ -2364,72 +2562,87 @@ int main(int argc, char *argv[])
                 ASSERT(otherAdapter.verify("b"));
                 otherAdapter.reset();
 
-                {
-                    bslmt::ThreadAttributes attr;
-                    Obj x(attr, THREADS, QUEUE_CAPACITY, &testAllocator);
+                bslmt::ThreadAttributes  attrNoName;
+                bslmt::ThreadAttributes  attrName1;
+                bslmt::ThreadAttributes  attrName2;
 
-                    const Obj& X = x;
+                const char *ATTR_NAME[] = { "", "name1", "name2" };
 
-                    ASSERTV(i, THREADS        == X.numThreads());
-                    ASSERTV(i, 0              == X.numThreadsStarted());
-                    ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
+                attrName1.setThreadName(ATTR_NAME[1]);
+                attrName2.setThreadName(ATTR_NAME[2]);
+
+                bslmt::ThreadAttributes *ATTRS[] = { &attrNoName,
+                                                     &attrName1,
+                                                     &attrName2 };
+
+                const int NUM_ATTRS = sizeof ATTRS / sizeof *ATTRS;
+
+                for (int j = 0; j < NUM_ATTRS; ++j) {
+                    bslmt::ThreadAttributes attr(*ATTRS[j]);
+
+                    {
+                        Obj x(attr, THREADS, QUEUE_CAPACITY, &testAllocator);
+
+                        const Obj& X = x;
+
+                        ASSERTV(i, THREADS        == X.numThreads());
+                        ASSERTV(i, 0              == X.numThreadsStarted());
+                        ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
+                    }
+                    ASSERT(defaultAdapter.verify(ATTR_NAME[j]));
+                    defaultAdapter.reset();
+
+                    {
+                        Obj x(attr,
+                              THREADS,
+                              QUEUE_CAPACITY,
+                              "",
+                              0,
+                              &testAllocator);
+
+                        const Obj& X = x;
+
+                        ASSERTV(i, THREADS        == X.numThreads());
+                        ASSERTV(i, 0              == X.numThreadsStarted());
+                        ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
+                    }
+                    ASSERT(defaultAdapter.verify(""));
+                    defaultAdapter.reset();
+
+                    {
+                        Obj x(attr,
+                              THREADS,
+                              QUEUE_CAPACITY,
+                              "a",
+                              0,
+                              &testAllocator);
+
+                        const Obj& X = x;
+
+                        ASSERTV(i, THREADS        == X.numThreads());
+                        ASSERTV(i, 0              == X.numThreadsStarted());
+                        ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
+                    }
+                    ASSERT(defaultAdapter.verify("a"));
+                    defaultAdapter.reset();
+
+                    {
+                        Obj x(attr,
+                              THREADS,
+                              QUEUE_CAPACITY,
+                              "b",
+                              &otherRegistry,
+                              &testAllocator);
+
+                        const Obj& X = x;
+
+                        ASSERTV(i, THREADS        == X.numThreads());
+                        ASSERTV(i, 0              == X.numThreadsStarted());
+                        ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
+                    }
+                    ASSERT(otherAdapter.verify("b"));
+                    otherAdapter.reset();
                 }
-                ASSERT(defaultAdapter.verify(""));
-                defaultAdapter.reset();
-
-                {
-                    bslmt::ThreadAttributes attr;
-                    Obj x(attr,
-                          THREADS,
-                          QUEUE_CAPACITY,
-                          "",
-                          0,
-                          &testAllocator);
-
-                    const Obj& X = x;
-
-                    ASSERTV(i, THREADS        == X.numThreads());
-                    ASSERTV(i, 0              == X.numThreadsStarted());
-                    ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
-                }
-                ASSERT(defaultAdapter.verify(""));
-                defaultAdapter.reset();
-
-                {
-                    bslmt::ThreadAttributes attr;
-                    Obj x(attr,
-                          THREADS,
-                          QUEUE_CAPACITY,
-                          "a",
-                          0,
-                          &testAllocator);
-
-                    const Obj& X = x;
-
-                    ASSERTV(i, THREADS        == X.numThreads());
-                    ASSERTV(i, 0              == X.numThreadsStarted());
-                    ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
-                }
-                ASSERT(defaultAdapter.verify("a"));
-                defaultAdapter.reset();
-
-                {
-                    bslmt::ThreadAttributes attr;
-                    Obj x(attr,
-                          THREADS,
-                          QUEUE_CAPACITY,
-                          "b",
-                          &otherRegistry,
-                          &testAllocator);
-
-                    const Obj& X = x;
-
-                    ASSERTV(i, THREADS        == X.numThreads());
-                    ASSERTV(i, 0              == X.numThreadsStarted());
-                    ASSERTV(i, QUEUE_CAPACITY == X.queueCapacity());
-                }
-                ASSERT(otherAdapter.verify("b"));
-                otherAdapter.reset();
             }
         }
       } break;
@@ -2468,22 +2681,22 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
         // TESTING HELPER FUNCTIONS
         //   Verify that the support functions used to test
-        //   'bdlmt::FixedThreadPool' behave as expected.  The
-        //   'testJobFunction1' function is expected to increment the supplied
+        //   `bdlmt::FixedThreadPool` behave as expected.  The
+        //   `testJobFunction1` function is expected to increment the supplied
         //   counter, signal a condition variable indicating that it has
         //   started, and wait for a stop condition to be signaled before
-        //   exiting.  'testJobFunction2' is expected to simply increment the
+        //   exiting.  `testJobFunction2` is expected to simply increment the
         //   supplied counter, signal a condition variable, indicating that it
         //   has started, and exit.
         //
         // Plan:
-        //   First create NITERATIONS threads that call 'testJobFunction1'.
+        //   First create NITERATIONS threads that call `testJobFunction1`.
         //   After each thread is started, verify that it increments the
         //   counter properly and that it waits for the stop condition before
         //   returning.  Then signal the stop the and verify that all the
         //   threads exit.
         //
-        //   Next create NITERATIONS threads that call 'testJobFunction2'.
+        //   Next create NITERATIONS threads that call `testJobFunction2`.
         //   After each thread is started, verify that it increments the
         //   counter properly.  Finally verify that each thread exits properly.
         //
@@ -2499,7 +2712,7 @@ int main(int argc, char *argv[])
         {
             const int NITERATIONS=50;
 
-            if (veryVerbose) cout << "\tTesting: 'testJobFunction1'" << endl
+            if (veryVerbose) cout << "\tTesting: `testJobFunction1`" << endl
                                   << "\t===========================" << endl;
 
             bslmt::Mutex mutex;
@@ -2541,7 +2754,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (veryVerbose) cout << "\tTesting: 'testJobFunction2'\n"
+        if (veryVerbose) cout << "\tTesting: `testJobFunction2`\n"
                               << "\t===========================" << endl;
         {
             const int NITERATIONS=50;
@@ -2582,7 +2795,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (veryVerbose) cout << "\tTesting: 'testJobFunction3'\n"
+        if (veryVerbose) cout << "\tTesting: `testJobFunction3`\n"
                               << "\t===========================" << endl;
         {
             const int NITERATIONS=50;

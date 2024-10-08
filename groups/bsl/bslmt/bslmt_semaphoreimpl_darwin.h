@@ -5,26 +5,26 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a Darwin implementation of 'bslmt::Semaphore'.
+//@PURPOSE: Provide a Darwin implementation of `bslmt::Semaphore`.
 //
 //@CLASSES:
 //  bslmt::SemaphoreImpl<DarwinSemaphore>: semaphore specialization for Darwin
 //
 //@SEE_ALSO: bslmt_semaphore
 //
-//@DESCRIPTION: This component provides an implementation of 'bslmt::Semaphore'
+//@DESCRIPTION: This component provides an implementation of `bslmt::Semaphore`
 // for POSIX threads ("pthreads") according to the POSIX support on Darwin
-// platform, 'bslmt::SemaphoreImpl<DarwinSemaphore>', via the template
+// platform, `bslmt::SemaphoreImpl<DarwinSemaphore>`, via the template
 // specialization:
-//..
-//  bslmt::SemaphoreImpl<Platform::DarwinSemaphore>
-//..
+// ```
+// bslmt::SemaphoreImpl<Platform::DarwinSemaphore>
+// ```
 // This template class should not be used (directly) by client code.  Clients
-// should instead use 'bslmt::Semaphore'.
+// should instead use `bslmt::Semaphore`.
 //
 ///Usage
 ///-----
-// This component is an implementation detail of 'bslmt' and is *not* intended
+// This component is an implementation detail of `bslmt` and is *not* intended
 // for direct client use.  It is subject to change without notice.  As such, a
 // usage example is not provided.
 
@@ -48,11 +48,11 @@ class SemaphoreImpl;
               // class SemaphoreImpl<Platform::DarwinSemaphore>
               // ==============================================
 
+/// This class provides a full specialization of `SemaphoreImpl` for
+/// pthreads on Darwin.  The implementation provided here defines an
+/// efficient proxy for the `sem_t` pthread type, and related operations.
 template <>
 class SemaphoreImpl<Platform::DarwinSemaphore> {
-    // This class provides a full specialization of 'SemaphoreImpl' for
-    // pthreads on Darwin.  The implementation provided here defines an
-    // efficient proxy for the 'sem_t' pthread type, and related operations.
 
     // DATA
     sem_t             *d_sem_p;           // pointer to native semaphore handle
@@ -64,36 +64,37 @@ class SemaphoreImpl<Platform::DarwinSemaphore> {
 
   public:
     // CREATORS
-    SemaphoreImpl(int count);
-        // Create a semaphore initialized to the specified 'count'.  This
-        // method does not return normally unless there are sufficient system
-        // resources to construct the object.
 
+    /// Create a semaphore initialized to the specified `count`.  This
+    /// method does not return normally unless there are sufficient system
+    /// resources to construct the object.
+    SemaphoreImpl(int count);
+
+    /// Destroy a semaphore
     ~SemaphoreImpl();
-        // Destroy a semaphore
 
     // MANIPULATORS
+
+    /// Atomically increment the count of this semaphore.
     void post();
-        // Atomically increment the count of this semaphore.
 
+    /// Atomically increment the count of this semaphore by the specified
+    /// `number`.  The behavior is undefined unless `number > 0`.
     void post(int number);
-        // Atomically increment the count of this semaphore by the specified
-        // 'number'.  The behavior is undefined unless 'number > 0'.
 
+    /// Decrement the count of this semaphore if it is positive and return
+    /// 0.  Return a non-zero value otherwise.
     int tryWait();
-        // Decrement the count of this semaphore if it is positive and return
-        // 0.  Return a non-zero value otherwise.
 
+    /// Block until the count of this semaphore is a positive value and
+    /// atomically decrement it.
     void wait();
-        // Block until the count of this semaphore is a positive value and
-        // atomically decrement it.
 
     // ACCESSORS
-    int getValue() const;
-        // Return the current value of this semaphore.
-};
 
-}  // close package namespace
+    /// Return the current value of this semaphore.
+    int getValue() const;
+};
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -105,7 +106,7 @@ class SemaphoreImpl<Platform::DarwinSemaphore> {
 
 // CREATORS
 inline
-bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::~SemaphoreImpl()
+SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::~SemaphoreImpl()
 {
     int result = ::sem_close(d_sem_p);
 
@@ -115,7 +116,7 @@ bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::~SemaphoreImpl()
 
 // MANIPULATORS
 inline
-void bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::post()
+void SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::post()
 {
     int result = ::sem_post(d_sem_p);
 
@@ -124,7 +125,7 @@ void bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::post()
 }
 
 inline
-int bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::tryWait()
+int SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::tryWait()
 {
     return ::sem_trywait(d_sem_p);
 
@@ -132,7 +133,7 @@ int bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::tryWait()
 
 // ACCESSORS
 inline
-int bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::getValue() const
+int SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::getValue() const
 {
     // Not implemented on Darwin, but sem_getvalue still returns success.
     BSLS_ASSERT(false &&
@@ -140,6 +141,7 @@ int bslmt::SemaphoreImpl<bslmt::Platform::DarwinSemaphore>::getValue() const
     return 0;
 }
 
+}  // close package namespace
 }  // close enterprise namespace
 
 #endif  // BSLS_PLATFORM_OS_DARWIN

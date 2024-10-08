@@ -7,11 +7,11 @@ BSLS_IDENT("$Id: $")
 
 //@PURPOSE: Provide functionality of the corresponding C++ Standard header.
 //
-//@DESCRIPTION: Provide types, in the 'bsl' namespace, equivalent to those
+//@DESCRIPTION: Provide types, in the `bsl` namespace, equivalent to those
 // defined in the corresponding C++ standard header.  Include the native
 // compiler-provided standard header, and also directly include Bloomberg's
 // implementation of the C++ standard type (if one exists).  Finally, place the
-// included symbols from the 'std' namespace (if any) into the 'bsl' namespace.
+// included symbols from the `std` namespace (if any) into the `bsl` namespace.
 
 #include <bsls_libraryfeatures.h>
 #include <thread>
@@ -31,9 +31,9 @@ namespace bsl {
     }  // close namespace this_thread
     using std::thread;
 
-    #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD
     using std::jthread;
-    #endif
+#endif
 }  // close package namespace
 
 #endif

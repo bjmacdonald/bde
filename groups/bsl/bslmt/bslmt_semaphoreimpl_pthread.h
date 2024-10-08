@@ -5,25 +5,25 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a POSIX implementation of 'bslmt::Semaphore'.
+//@PURPOSE: Provide a POSIX implementation of `bslmt::Semaphore`.
 //
 //@CLASSES:
 //  bslmt::SemaphoreImpl<PosixSemaphore>: POSIX specialization
 //
 //@SEE_ALSO: bslmt_semaphore
 //
-//@DESCRIPTION: This component provides an implementation of 'bslmt::Semaphore'
-// for POSIX threads ("pthreads"), 'bslmt::SemaphoreImpl<PosixSemaphore>', via
+//@DESCRIPTION: This component provides an implementation of `bslmt::Semaphore`
+// for POSIX threads ("pthreads"), `bslmt::SemaphoreImpl<PosixSemaphore>`, via
 // the template specialization:
-//..
-//  bslmt::SemaphoreImpl<Platform::PosixThreads>
-//..
+// ```
+// bslmt::SemaphoreImpl<Platform::PosixThreads>
+// ```
 // This template class should not be used (directly) by client code.  Clients
-// should instead use 'bslmt::Semaphore'.
+// should instead use `bslmt::Semaphore`.
 //
 ///Usage
 ///-----
-// This component is an implementation detail of 'bslmt' and is *not* intended
+// This component is an implementation detail of `bslmt` and is *not* intended
 // for direct client use.  It is subject to change without notice.  As such, a
 // usage example is not provided.
 
@@ -49,11 +49,11 @@ class SemaphoreImpl;
               // class SemaphoreImpl<Platform::PosixSemaphore>
               // =============================================
 
+/// This class provides a full specialization of `SemaphoreImpl` for
+/// pthreads.  The implementation provided here defines an efficient proxy
+/// for the `sem_t` pthread type, and related operations.
 template <>
 class SemaphoreImpl<Platform::PosixSemaphore> {
-    // This class provides a full specialization of 'SemaphoreImpl' for
-    // pthreads.  The implementation provided here defines an efficient proxy
-    // for the 'sem_t' pthread type, and related operations.
 
     // DATA
     sem_t d_sem;                // native semaphore handle
@@ -65,37 +65,38 @@ class SemaphoreImpl<Platform::PosixSemaphore> {
 
   public:
     // CREATORS
+
+    /// Create a semaphore initialized to the specified `count`.  This
+    /// method does not return normally unless there are sufficient system
+    /// resources to construct the object.
     explicit
     SemaphoreImpl(int count);
-        // Create a semaphore initialized to the specified 'count'.  This
-        // method does not return normally unless there are sufficient system
-        // resources to construct the object.
 
+    /// Destroy a semaphore
     ~SemaphoreImpl();
-        // Destroy a semaphore
 
     // MANIPULATORS
+
+    /// Atomically increment the count of this semaphore.
     void post();
-        // Atomically increment the count of this semaphore.
 
+    /// Atomically increment the count of this semaphore by the specified
+    /// `number`.  The behavior is undefined unless `number > 0`.
     void post(int number);
-        // Atomically increment the count of this semaphore by the specified
-        // 'number'.  The behavior is undefined unless 'number > 0'.
 
+    /// Decrement the count of this semaphore if it is positive and return
+    /// 0.  Return a non-zero value otherwise.
     int tryWait();
-        // Decrement the count of this semaphore if it is positive and return
-        // 0.  Return a non-zero value otherwise.
 
+    /// Block until the count of this semaphore is a positive value and
+    /// atomically decrement it.
     void wait();
-        // Block until the count of this semaphore is a positive value and
-        // atomically decrement it.
 
     // ACCESSORS
-    int getValue() const;
-        // Return the current value of this semaphore.
-};
 
-}  // close package namespace
+    /// Return the current value of this semaphore.
+    int getValue() const;
+};
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -107,7 +108,7 @@ class SemaphoreImpl<Platform::PosixSemaphore> {
 
 // CREATORS
 inline
-bslmt::SemaphoreImpl<bslmt::Platform::PosixSemaphore>::~SemaphoreImpl()
+SemaphoreImpl<bslmt::Platform::PosixSemaphore>::~SemaphoreImpl()
 {
     int result = ::sem_destroy(&d_sem);
 
@@ -117,7 +118,7 @@ bslmt::SemaphoreImpl<bslmt::Platform::PosixSemaphore>::~SemaphoreImpl()
 
 // MANIPULATORS
 inline
-void bslmt::SemaphoreImpl<bslmt::Platform::PosixSemaphore>::post()
+void SemaphoreImpl<bslmt::Platform::PosixSemaphore>::post()
 {
     int result = ::sem_post(&d_sem);
 
@@ -126,14 +127,14 @@ void bslmt::SemaphoreImpl<bslmt::Platform::PosixSemaphore>::post()
 }
 
 inline
-int bslmt::SemaphoreImpl<bslmt::Platform::PosixSemaphore>::tryWait()
+int SemaphoreImpl<bslmt::Platform::PosixSemaphore>::tryWait()
 {
     return ::sem_trywait(&d_sem);
 }
 
 // ACCESSORS
 inline
-int bslmt::SemaphoreImpl<bslmt::Platform::PosixSemaphore>::getValue() const
+int SemaphoreImpl<bslmt::Platform::PosixSemaphore>::getValue() const
 {
     int value = 0;
     int result = ::sem_getvalue(const_cast<sem_t *>(&d_sem), &value);
@@ -144,6 +145,7 @@ int bslmt::SemaphoreImpl<bslmt::Platform::PosixSemaphore>::getValue() const
     return value;
 }
 
+}  // close package namespace
 }  // close enterprise namespace
 
 #endif  // defined(BSLMT_PLATFORM_POSIX_SEMAPHORE)

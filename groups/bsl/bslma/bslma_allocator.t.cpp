@@ -6,15 +6,23 @@
 #include <bsls_alignmentutil.h>
 #include <bsls_bsltestutil.h>
 #include <bsls_compilerfeatures.h>
+#include <bsls_keyword.h>
+#include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 
-#include <stdio.h>      // 'printf'
-#include <stdlib.h>     // 'atoi'
+#include <stdio.h>      // `printf`
+#include <stdlib.h>     // `atoi`
 #include <string.h>
 
 #include <new>
 
 using namespace BloombergLP;
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#ifdef BSLS_PLATFORM_CMP_CLANG
+#pragma GCC diagnostic ignored "-Wunused-private-field"
+#endif
+#endif
 
 //=============================================================================
 //                              TEST PLAN
@@ -24,10 +32,10 @@ using namespace BloombergLP;
 // We are testing a pure protocol class as well as a set of overloaded
 // operators.  We need to verify that (1) a concrete derived class compiles
 // and links, (2) that the each of the two concrete template functions,
-// 'deleteObject' and 'deleteObjectRaw' destroys the argument object and calls
+// `deleteObject` and `deleteObjectRaw` destroys the argument object and calls
 // the deallocate method of the supplied allocator, and (3) that the overloaded
-// 'new' and 'delete' operators respectively forward the call to the
-// 'allocate' and 'deallocate' method of the supplied allocator.
+// `new` and `delete` operators respectively forward the call to the
+// `allocate` and `deallocate` method of the supplied allocator.
 //-----------------------------------------------------------------------------
 // [ 1] virtual ~Allocator();
 // [ 1] virtual void *allocate(size_type) = 0;
@@ -109,9 +117,9 @@ void aSsErT(bool condition, const char *message, int line)
 //                      CONCRETE DERIVED TYPES
 //-----------------------------------------------------------------------------
 
+/// This class is used with `bsls::ProtocolTest` to test the
+/// `bslma::Allocator` protocol.
 class AllocatorProtocolTest : public bsls::ProtocolTestImp<bslma::Allocator> {
-    // This class is used with 'bsls::ProtocolTest' to test the
-    // 'bslma::Allocator' protocol.
 
   protected:
     void* do_allocate(std::size_t, std::size_t) BSLS_KEYWORD_OVERRIDE;
@@ -152,12 +160,12 @@ void AllocatorProtocolTest::deallocate(void *)
     markDone();
 }
 
+/// This class is used with `bsls::ProtocolTest` to test the
+/// `bslma::Allocator` protocol.  Unlike the `AllocatorProtocolTest`, the
+/// non-pure `do_allocate`, `do_deallocate`, and `do_is_equal` virtual
+/// functions are not overriden; their default implementations are used
+/// instead.
 class IndirectProtocolTest : public bsls::ProtocolTestImp<bslma::Allocator> {
-    // This class is used with 'bsls::ProtocolTest' to test the
-    // 'bslma::Allocator' protocol.  Unlike the 'AllocatorProtocolTest', the
-    // non-pure 'do_allocate', 'do_deallocate', and 'do_is_equal' virtual
-    // functions are not overriden; their default implementations are used
-    // instead.
 
   public:
     void *allocate(size_type) BSLS_KEYWORD_OVERRIDE;
@@ -175,8 +183,8 @@ void IndirectProtocolTest::deallocate(void *)
     markDone();
 }
 
+/// Test class used to verify protocol.
 class my_Allocator : public bslma::Allocator {
-    // Test class used to verify protocol.
 
     int d_fun;  // holds code describing function:
                 //   + 1 allocate
@@ -194,9 +202,9 @@ class my_Allocator : public bslma::Allocator {
 
   public:
     my_Allocator() : d_allocateCount(0), d_deallocateCount(0) { }
-    ~my_Allocator() { }
+    ~my_Allocator() BSLS_KEYWORD_OVERRIDE { }
 
-    void *allocate(size_type s) {
+    void *allocate(size_type s) BSLS_KEYWORD_OVERRIDE {
         d_fun = 1;
         d_arg = s;
         ++d_allocateCount;
@@ -204,24 +212,29 @@ class my_Allocator : public bslma::Allocator {
     }
 
     // MANIPULATORS
-    void deallocate(void *) { d_fun = 2;  ++d_deallocateCount; }
+    void deallocate(void *) BSLS_KEYWORD_OVERRIDE
+    {
+        d_fun = 2;
+        ++d_deallocateCount;
+    }
 
     // ACCESSORS
+
+    /// Return number of times allocate called.
     int allocateCount() const { return d_allocateCount; }
-        // Return number of times allocate called.
 
+    /// Return last argument value for allocate.
     size_type arg() const { return d_arg; }
-        // Return last argument value for allocate.
 
+    /// Return number of times deallocate called.
     int deallocateCount() const { return d_deallocateCount; }
-        // Return number of times deallocate called.
 
+    /// Return descriptive code for the function called.
     int fun() const { return d_fun; }
-        // Return descriptive code for the function called.
 };
 
+/// Test class used to verify examples.
 class my_NewDeleteAllocator : public bslma::Allocator {
-    // Test class used to verify examples.
 
     int d_count;
 
@@ -230,9 +243,9 @@ class my_NewDeleteAllocator : public bslma::Allocator {
 
   public:
     my_NewDeleteAllocator(): d_count(0) { }
-    ~my_NewDeleteAllocator() { }
+    ~my_NewDeleteAllocator() BSLS_KEYWORD_OVERRIDE { }
 
-    void *allocate(size_type size)  {
+    void *allocate(size_type size) BSLS_KEYWORD_OVERRIDE {
         unsigned *p = (unsigned *) operator new(
                                size + bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT);
         *p = MAGIC;
@@ -241,7 +254,7 @@ class my_NewDeleteAllocator : public bslma::Allocator {
         return (char *) p + bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT;
     }
 
-    void deallocate(void *address)  {
+    void deallocate(void *address) BSLS_KEYWORD_OVERRIDE {
         unsigned *p = (unsigned *)
                          ((bsls::AlignmentUtil::MaxAlignedType *) address - 1);
         ASSERT(MAGIC == *p);
@@ -255,7 +268,7 @@ class my_NewDeleteAllocator : public bslma::Allocator {
 };
 
 //=============================================================================
-//                   CONCRETE OBJECTS FOR TESTING 'deleteObject'
+//                   CONCRETE OBJECTS FOR TESTING `deleteObject`
 //-----------------------------------------------------------------------------
 static int globalObjectStatus = 0;    // global flag set by test-object d'tors
 static int class3ObjectCount = 0;     // Count set by my_Class3 c'tor/d'tor
@@ -281,7 +294,7 @@ class my_Class3Base {
 class my_Class3 : public my_Class3Base {
   public:
     my_Class3() { ++class3ObjectCount; }
-    virtual ~my_Class3();
+    ~my_Class3() BSLS_KEYWORD_OVERRIDE;
 };
 
 my_Class3Base::~my_Class3Base() { }
@@ -304,22 +317,22 @@ class my_VirtualBase {
 class my_LeftBase : virtual public my_VirtualBase {
     int x;
   public:
-    my_LeftBase()             { leftBaseObjectCount = 1; }
-    virtual ~my_LeftBase()    { leftBaseObjectCount = 0; }
+    my_LeftBase()                        { leftBaseObjectCount = 1; }
+    ~my_LeftBase() BSLS_KEYWORD_OVERRIDE { leftBaseObjectCount = 0; }
 };
 
 class my_RightBase : virtual public my_VirtualBase {
     int x;
   public:
-    my_RightBase()            { rightBaseObjectCount = 1; }
-    virtual ~my_RightBase()   { rightBaseObjectCount = 0; }
+    my_RightBase()                        { rightBaseObjectCount = 1; }
+    ~my_RightBase() BSLS_KEYWORD_OVERRIDE { rightBaseObjectCount = 0; }
 };
 
 class my_MostDerived : public my_LeftBase, public my_RightBase {
     int x;
   public:
-    my_MostDerived()          { mostDerivedObjectCount = 1; }
-    ~my_MostDerived()         { mostDerivedObjectCount = 0; }
+    my_MostDerived()                        { mostDerivedObjectCount = 1; }
+    ~my_MostDerived() BSLS_KEYWORD_OVERRIDE { mostDerivedObjectCount = 0; }
 };
 
 //=============================================================================
@@ -363,12 +376,12 @@ enum { INITIAL_SIZE = 1, GROW_FACTOR = 2 };
 
 my_NewDeleteAllocator myA;
 
+/// The above initialization expression is equivalent to 'basicAllocator
+/// ? basicAllocator : &bslma::NewDeleteAllocator::singleton()'.
 my_DoubleStack::my_DoubleStack(bslma::Allocator *basicAllocator)
 : d_size(INITIAL_SIZE)
 , d_length(0)
 , d_allocator_p(basicAllocator ? basicAllocator : &myA)
-    // The above initialization expression is equivalent to 'basicAllocator
-    // ? basicAllocator : &bslma::NewDeleteAllocator::singleton()'.
 {
     ASSERT(d_allocator_p);
     d_stack_p = (double *) d_allocator_p->allocate(d_size * sizeof *d_stack_p);
@@ -386,16 +399,16 @@ my_DoubleStack::~my_DoubleStack()
     d_allocator_p->deallocate(d_stack_p);
 }
 
+/// Reallocate memory in the specified `array` to the specified `newSize`
+/// using the specified `basicAllocator`.  The specified `length` number of
+/// leading elements are preserved.  Since the class invariant requires that
+/// the physical capacity of the container may grow but never shrink; the
+/// behavior is undefined unless `length <= newSize`.
 static inline
 void reallocate(double           **array,
                 int                newSize,
                 int                length,
                 bslma::Allocator  *basicAllocator)
-    // Reallocate memory in the specified 'array' to the specified 'newSize'
-    // using the specified 'basicAllocator'.  The specified 'length' number of
-    // leading elements are preserved.  Since the class invariant requires that
-    // the physical capacity of the container may grow but never shrink; the
-    // behavior is undefined unless 'length <= newSize'.
 {
     ASSERT(array);
     ASSERT(1 <= newSize);
@@ -537,7 +550,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Incorporate usage example from header into driver, remove leading
-        //   comment characters, and replace 'assert' with 'ASSERT'.
+        //   comment characters, and replace `assert` with `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -575,7 +588,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) printf("\nUsage test for 'new' operator.\n");
+        if (verbose) printf("\nUsage test for `new` operator.\n");
         {
             my_NewDeleteAllocator myA;
             bslma::Allocator& a = myA;
@@ -593,7 +606,7 @@ int main(int argc, char *argv[])
         //   automatically to deallocate the object.
         //
         // Plan:
-        //   Invoke 'operator new' for a class that throws an exception from
+        //   Invoke `operator new` for a class that throws an exception from
         //   the chosen constructor.  Catch the exception and verify that
         //   deallocation was performed automatically.
         //
@@ -636,10 +649,10 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
         // OPERATOR TEST
         //   We want to make sure that the correct underlying method is
-        //   called based on the type of the overloaded 'new' operator.
+        //   called based on the type of the overloaded `new` operator.
         //
         // Plan:
-        //   Invoke 'operator new' for types of various size.  Verify that
+        //   Invoke `operator new` for types of various size.  Verify that
         //   correct parameters are passed to allocate method.
         //
         // Testing:
@@ -673,15 +686,15 @@ int main(int argc, char *argv[])
       } break;
       case 3: {
         // --------------------------------------------------------------------
-        // MEMBER TEMPLATE METHOD 'deleteObjectRaw' TEST
-        //   We want to make sure that when 'deleteObjRaw' is used both
-        //   destructor and 'deallocate' are invoked.
+        // MEMBER TEMPLATE METHOD `deleteObjectRaw` TEST
+        //   We want to make sure that when `deleteObjRaw` is used both
+        //   destructor and `deallocate` are invoked.
         //
         // Plan:
         //   Using an allocator and placement new operator construct objects of
-        //   two different classes.  Invoke 'deleteObjectRaw' to delete
+        //   two different classes.  Invoke `deleteObjectRaw` to delete
         //   constructed objects and check that both destructor and
-        //   'deallocate' have been called.  Repeat tests with a derived-class
+        //   `deallocate` have been called.  Repeat tests with a derived-class
         //   object with a virtual destructor.  Test with null pointer.
         //
         // Testing:
@@ -690,10 +703,10 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
 
         if (verbose) printf(
-                          "\nMEMBER TEMPLATE METHOD 'deleteObjectRaw' TEST"
+                          "\nMEMBER TEMPLATE METHOD `deleteObjectRaw` TEST"
                           "\n=============================================\n");
 
-        if (verbose) printf("\nTesting 'deleteObjectRaw':\n");
+        if (verbose) printf("\nTesting `deleteObjectRaw`:\n");
         {
             my_NewDeleteAllocator myA;  bslma::Allocator& a = myA;
 
@@ -812,28 +825,28 @@ int main(int argc, char *argv[])
 
       case 2: {
         // --------------------------------------------------------------------
-        // MEMBER TEMPLATE METHOD 'deleteObject' TEST
+        // MEMBER TEMPLATE METHOD `deleteObject` TEST
         //
         // Concerns:
-        //: 1 'deleteObject' can be called with a null pointer, having no
-        //:   effect.
-        //: 2 'deleteObject' can be called with a null pointer literal, having
-        //:   no effect.
-        //: 3 'deleteObject', when passed a pointer to an object allocated by
-        //:   a given allocator, runs the destructor for the referenced object,
-        //:   and then calls 'deallocate' for the footprint of that object.
-        //: 4 'deleteObject', when passed a pointer to a derived object (where
-        //:   the base type has a virtual destructor) allocated by a given
-        //:   allocator, runs the derived destructor for the referenced object,
-        //:   and then calls 'deallocate' for the footprint of that whole
-        //:   object, even when the base class is not the left-most base of the
-        //:   derived type.
+        // 1. `deleteObject` can be called with a null pointer, having no
+        //    effect.
+        // 2. `deleteObject` can be called with a null pointer literal, having
+        //    no effect.
+        // 3. `deleteObject`, when passed a pointer to an object allocated by
+        //    a given allocator, runs the destructor for the referenced object,
+        //    and then calls `deallocate` for the footprint of that object.
+        // 4. `deleteObject`, when passed a pointer to a derived object (where
+        //    the base type has a virtual destructor) allocated by a given
+        //    allocator, runs the derived destructor for the referenced object,
+        //    and then calls `deallocate` for the footprint of that whole
+        //    object, even when the base class is not the left-most base of the
+        //    derived type.
         //
         // Plan:
         //   Using an allocator and placement new operator construct objects of
-        //   two different classes.  Invoke 'deleteObject' to delete
+        //   two different classes.  Invoke `deleteObject` to delete
         //   constructed objects and check that both destructor and
-        //   'deallocate' have been called.  Repeat tests with a derived-class
+        //   `deallocate` have been called.  Repeat tests with a derived-class
         //   object with a virtual destructor.  Test with null pointer.
         //
         // Testing:
@@ -841,10 +854,10 @@ int main(int argc, char *argv[])
         //   void deleteObject(bsl::nulptr_t);
         // --------------------------------------------------------------------
 
-        if (verbose) printf("\nMEMBER TEMPLATE METHOD 'deleteObject' TEST"
+        if (verbose) printf("\nMEMBER TEMPLATE METHOD `deleteObject` TEST"
                             "\n==========================================\n");
 
-        if (verbose) printf("\nTesting 'deleteObject':\n");
+        if (verbose) printf("\nTesting `deleteObject`:\n");
         {
             my_NewDeleteAllocator myA;  bslma::Allocator& a = myA;
 
@@ -1024,42 +1037,42 @@ int main(int argc, char *argv[])
         //   Ensure this class is a properly defined protocol.
         //
         // Concerns:
-        //: 1 The protocol is abstract: no objects of it can be created.
-        //: 2 The protocol has no data members.
-        //: 3 The protocol has a virtual destructor.
-        //: 4 All methods of the 'bslma::Allocator' protocol are publicly
-        //:   accessible virtual functions.
-        //: 5 All virtual methods inherited from 'bsl::memory_resource' are
-        //:   available through public pass-through functions
-        //: 6 The methods inherited from 'bsl::memory_resource' are not pure
-        //:   virtual in the 'bslma::Allocator' derived class. If they are not
-        //:   overriden, 'do_allocate' and 'do_deallocate' call the (overriden)
-        //:   'allocate' and 'deallocate' methods, respectively.
+        // 1. The protocol is abstract: no objects of it can be created.
+        // 2. The protocol has no data members.
+        // 3. The protocol has a virtual destructor.
+        // 4. All methods of the `bslma::Allocator` protocol are publicly
+        //    accessible virtual functions.
+        // 5. All virtual methods inherited from `bsl::memory_resource` are
+        //    available through public pass-through functions
+        // 6. The methods inherited from `bsl::memory_resource` are not pure
+        //    virtual in the `bslma::Allocator` derived class. If they are not
+        //    overriden, `do_allocate` and `do_deallocate` call the (overriden)
+        //    `allocate` and `deallocate` methods, respectively.
         //
         // Plan:
-        //: 1 Define a concrete derived implementation of the protocol,
-        //:   'AllocatorProtocolTest', that overrides all of the virtual
-        //:   methods and records when they are called.
-        //: 2 Create an object of the 'bsls::ProtocolTest' class template
-        //:   parameterized by 'AllocatorProtocolTest', and use it to verify
-        //:   that:
-        //:
-        //:   1 The protocol is abstract. (C-1)
-        //:   2 The protocol has no data members. (C-2)
-        //:   3 The protocol has a virtual destructor. (C-3)
-        //:
-        //: 3 Use the 'BSLS_PROTOCOLTEST_ASSERT' macro to verify that
-        //:   non-creator methods of the 'bslma::Allocator' protocol are
-        //:   virtual and publicly available.  (C-4)
-        //: 4 Use the 'BSLS_PROTOCOLTEST_ASSERT' macro to verify that
-        //:   non-creator methods inherited from 'bsl::memory_resource' are
-        //:   virtual and available through public pass-through functions.
-        //:   (C-5)
-        //: 5 Define a concrete derivded implementation of the protocol,
-        //:   'IndirectProtocolTest', that overrides the new (pure)
-        //:   virtual methods introduced by 'bslma::Allocator' but not the (not
-        //:   pure) virtual methods inherited from 'bsl::memory_resource'.
-        //:   Repeat steps 2-4 with this 'IndirectProtocolTest'.
+        // 1. Define a concrete derived implementation of the protocol,
+        //    `AllocatorProtocolTest`, that overrides all of the virtual
+        //    methods and records when they are called.
+        // 2. Create an object of the `bsls::ProtocolTest` class template
+        //    parameterized by `AllocatorProtocolTest`, and use it to verify
+        //    that:
+        //
+        //   1. The protocol is abstract. (C-1)
+        //   2. The protocol has no data members. (C-2)
+        //   3. The protocol has a virtual destructor. (C-3)
+        //
+        // 3. Use the `BSLS_PROTOCOLTEST_ASSERT` macro to verify that
+        //    non-creator methods of the `bslma::Allocator` protocol are
+        //    virtual and publicly available.  (C-4)
+        // 4. Use the `BSLS_PROTOCOLTEST_ASSERT` macro to verify that
+        //    non-creator methods inherited from `bsl::memory_resource` are
+        //    virtual and available through public pass-through functions.
+        //    (C-5)
+        // 5. Define a concrete derivded implementation of the protocol,
+        //    `IndirectProtocolTest`, that overrides the new (pure)
+        //    virtual methods introduced by `bslma::Allocator` but not the (not
+        //    pure) virtual methods inherited from `bsl::memory_resource`.
+        //    Repeat steps 2-4 with this `IndirectProtocolTest`.
         //
         // Testing:
         //      ~Allocator();
@@ -1079,21 +1092,21 @@ int main(int argc, char *argv[])
         ASSERT(testObj.testNoDataMembers());
         ASSERT(testObj.testVirtualDestructor());
 
-        // Create a reference to 'bslma::Allocator' to test protocol.
+        // Create a reference to `bslma::Allocator` to test protocol.
         const bslma::Allocator& other = AllocatorProtocolTest();
         void *p = 0;
 
-        // Test 'bslma::Allocator' protocol.  Note that the base-class
-        // 'allocate' and 'deallocate' non-virtual functions are hidden.
-        BSLS_PROTOCOLTEST_ASSERT(testObj, allocate(2));
+        // Test `bslma::Allocator` protocol.  Note that the base-class
+        // `allocate` and `deallocate` non-virtual functions are hidden.
+        BSLS_PROTOCOLTEST_RV_ASSERT(testObj, allocate(2), p);
         BSLS_PROTOCOLTEST_ASSERT(testObj, deallocate(p));
 
-        // Test 'bsl::memory_resource' base-class protocol via pass-through
-        // functions.  Note that the base-class 'allocate' and 'deallocate' are
-        // hidden within 'bslma::Allocator' and must be qualified in the method
+        // Test `bsl::memory_resource` base-class protocol via pass-through
+        // functions.  Note that the base-class `allocate` and `deallocate` are
+        // hidden within `bslma::Allocator` and must be qualified in the method
         // call.
         typedef bsl::memory_resource Base;
-        BSLS_PROTOCOLTEST_ASSERT(testObj, Base::allocate(2, 1));
+        BSLS_PROTOCOLTEST_RV_ASSERT(testObj, Base::allocate(2, 1), p);
         BSLS_PROTOCOLTEST_ASSERT(testObj, Base::deallocate(p, 2, 1));
         BSLS_PROTOCOLTEST_ASSERT(testObj, is_equal(other));
 
@@ -1103,19 +1116,19 @@ int main(int argc, char *argv[])
         ASSERT(testIndirect.testNoDataMembers());
         ASSERT(testIndirect.testVirtualDestructor());
 
-        // Test 'bslma::Allocator' protocol.  Note that the base-class
-        // 'allocate' and 'deallocate' non-virtual functions are hidden.
+        // Test `bslma::Allocator` protocol.  Note that the base-class
+        // `allocate` and `deallocate` non-virtual functions are hidden.
         BSLS_PROTOCOLTEST_ASSERT(testIndirect, allocate(2));
         BSLS_PROTOCOLTEST_ASSERT(testIndirect, deallocate(p));
 
-        // Test 'bsl::memory_resource' base-class protocol via pass-through
-        // functions.  Note that the base-class 'allocate' and 'deallocate' are
-        // hidden within 'bslma::Allocator' and must be qualified in the method
+        // Test `bsl::memory_resource` base-class protocol via pass-through
+        // functions.  Note that the base-class `allocate` and `deallocate` are
+        // hidden within `bslma::Allocator` and must be qualified in the method
         // call.
         typedef bsl::memory_resource Base;
-        BSLS_PROTOCOLTEST_ASSERT(testIndirect, Base::allocate(2, 1));
+        BSLS_PROTOCOLTEST_RV_ASSERT(testIndirect, Base::allocate(2, 1), p);
         BSLS_PROTOCOLTEST_ASSERT(testIndirect, Base::deallocate(p, 2, 1));
-        // The default implementation of 'do_is_equal' cannot be tested because
+        // The default implementation of `do_is_equal` cannot be tested because
         // it does call a virtual function that we can intercept.
 
       } break;

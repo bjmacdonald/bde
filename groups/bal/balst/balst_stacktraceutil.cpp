@@ -1,28 +1,21 @@
 // balst_stacktraceutil.cpp                                           -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balst_stacktraceutil.h>
 
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(balst_stacktraceutil_cpp,"$Id$ $CSID$")
 
 #include <balst_objectfileformat.h>
+#include <balst_resolverimpl_dladdr.h>
+#include <balst_resolverimpl_elf.h>
+#include <balst_resolverimpl_xcoff.h>
+#include <balst_resolverimpl_windows.h>
 #include <balst_stacktraceframe.h>
-#include <balst_stacktraceresolverimpl_dladdr.h>
-#include <balst_stacktraceresolverimpl_elf.h>
-#include <balst_stacktraceresolverimpl_xcoff.h>
-#include <balst_stacktraceresolverimpl_windows.h>
 
 #include <bdlma_heapbypassallocator.h>
 
 #include <bslma_allocator.h>
 #include <bslma_deallocatorguard.h>
+
 #include <bsls_assert.h>
 #include <bsls_platform.h>
 #include <bsls_stackaddressutil.h>
@@ -40,13 +33,13 @@ BSLS_IDENT_RCSID(balst_stacktraceutil_cpp,"$Id$ $CSID$")
 #pragma optimize("", off)
 #endif
 
+/// Find in the specified `pathName` the first character following the last
+/// `pathName` separator character (i.e., `/` or '\\') and return its
+/// address.  If there are no separator characters, return the address of
+/// the first character of `pathName`.  If the last character of `pathName`
+/// is a separator charactor, return the address of the terminating '\0'.
 static
 const char *findBasename(const char *pathName)
-    // Find in the specified 'pathName' the first character following the last
-    // 'pathName' separator character (i.e., '/' or '\\') and return its
-    // address.  If there are no separator characters, return the address of
-    // the first character of 'pathName'.  If the last character of 'pathName'
-    // is a separator charactor, return the address of the terminating '\0'.
 {
     const char *ptr = pathName + bsl::strlen(pathName);
 
@@ -67,30 +60,31 @@ namespace BloombergLP {
 namespace balst {
 
 template <class RESOLVER_POLICY>
-class StackTraceResolverImpl;
+class ResolverImpl;
 
 template <>
-class StackTraceResolverImpl<ObjectFileFormat::Dummy>
+class ResolverImpl<ObjectFileFormat::Dummy>
 {
   public:
     // PUBLIC CLASS METHODS
+
+    /// Populate information for the specified `stackFrames`, a vector of
+    /// stack trace frames in a stack trace object.  Specify `demangle`, to
+    /// determine whether demangling is to occur, and `basicAllocator`,
+    /// which is to be used for memory allocation.  The behavior is
+    /// undefined unless all the `address` field in `stackFrames` are valid
+    /// and other fields are invalid, and `basicAllocator != 0`.
     static
     int resolve(StackTrace *,    // 'stackTrace'
                 bool        )    // 'demangle'
-        // Populate information for the specified 'stackFrames', a vector of
-        // stack trace frames in a stack trace object.  Specify 'demangle', to
-        // determine whether demangling is to occur, and 'basicAllocator',
-        // which is to be used for memory allocation.  The behavior is
-        // undefined unless all the 'address' field in 'stackFrames' are valid
-        // and other fields are invalid, and 'basicAllocator != 0'.
     {
         return -1;
     }
 
+    /// For testing only.  Do some random garbage and return a line number
+    /// from within the routine.
     static inline
     int testFunc()
-        // For testing only.  Do some random garbage and return a line number
-        // from within the routine.
     {
         return -1;
     }
@@ -124,7 +118,7 @@ int StackTraceUtil::loadStackTraceFromAddressArray(
     BSLS_ASSERT(0 == numAddresses || 0 != addresses);
 
     typedef ObjectFileFormat::Policy Policy;
-    typedef StackTraceResolverImpl<Policy> Resolver;
+    typedef ResolverImpl<Policy>     Resolver;
 
     result->removeAll();
     result->resize(numAddresses);

@@ -1,12 +1,4 @@
 // bdlmt_multiprioritythreadpool.t.cpp                                -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlmt_multiprioritythreadpool.h>
 
 #include <bdlcc_queue.h>
@@ -15,14 +7,20 @@
 
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>
-#include <bslma_testallocator.h>
+#include <bslma_newdeleteallocator.h>
+#include <bslma_testallocator.h>       // for testing only
+
 #include <bslmt_barrier.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bslmt_qlock.h>
 #include <bslmt_testutil.h>
 #include <bslmt_threadgroup.h>
+
+#include <bsls_atomic.h>
+#include <bsls_platform.h>
 #include <bsls_systemtime.h>
+#include <bsls_timeinterval.h>
 
 #include <bsl_algorithm.h>
 #include <bsl_cctype.h>
@@ -33,17 +31,6 @@
 #include <bsl_list.h>
 #include <bsl_string.h>
 
-#include <bslma_default.h>
-#include <bslma_defaultallocatorguard.h>
-#include <bslma_newdeleteallocator.h>
-#include <bslma_testallocator.h>
-#include <bslma_testallocator.h>       // for testing only
-
-#include <bsls_atomic.h>
-#include <bsls_timeinterval.h>
-
-#include <bsl_algorithm.h>
-
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -52,6 +39,12 @@ using bsl::cout;
 using bsl::cerr;
 using bsl::endl;
 using bsl::flush;
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#ifdef BSLS_PLATFORM_CMP_CLANG
+#pragma GCC diagnostic ignored "-Wnull-pointer-subtraction"
+#endif
+#endif
 
 // ============================================================================
 //                             TEST PLAN
@@ -87,7 +80,7 @@ using bsl::flush;
 // [ 6] // enqueuing fails on disabled queue
 // [ 7] // queue sorting
 // [10] stress test
-// [11] ignoring 'joinable' trait of attributes passed
+// [11] ignoring `joinable` trait of attributes passed
 // [12] usage example 2
 // [13] usage example 1
 
@@ -156,9 +149,9 @@ int veryVeryVeryVerbose;
 
 namespace u {
 
+/// Return the current time, as a `TimeInterval`.
 inline
 double nowAsDouble()
-    // Return the current time, as a 'TimeInterval'.
 {
     return bsls::SystemTime::nowRealtimeClock().totalSecondsAsDouble();
 }
@@ -225,7 +218,7 @@ extern "C" void *lessUrgentJob(void *)
 // it is not really any faster than doing it with a single thread.
 //
 // For every prime number P, we have to mark all multiples of it up in two
-// ranges '[P .. P**2]', and '[P**2 .. TOP_NUMBER]' as non-prime.  For any
+// ranges `[P .. P**2]`, and `[P**2 .. TOP_NUMBER]` as non-prime.  For any
 // P**2, if we can determine that all primes below P have marked all their
 // multiples up to P**2, then we can scan that range and any unmarked values in
 // it will be a new prime.  The we can start out with our first prime, 2, and
@@ -249,7 +242,7 @@ bsls::AtomicInt scannedTo[TOP_NUMBER];  // is P is a prime, what is the highest
 
 bsls::AtomicInt maxPrimeFound;      // maximum prime we have identified so far
 int primeNumbers[TOP_NUMBER];       // elements in the range
-                                    // '0 .. numPrimeNumbers - 1' are the prime
+                                    // `0 .. numPrimeNumbers - 1` are the prime
                                     // numbers we have found so far
 bsls::AtomicInt numPrimeNumbers;
 
@@ -618,7 +611,7 @@ void checkOutPool(bdlmt::MultipriorityThreadPool *pool)
 
 namespace MULTIPRIORITYTHREADPOOL_CASE_3 {
 
-long counter;
+unsigned long counter;
 
 extern "C" void *sleepAndAmassCounterBy(void *arg)
 {
@@ -639,7 +632,7 @@ extern "C" void *sleepAndAmassCounterBy(void *arg)
 namespace MULTIPRIORITYTHREADPOOL_CASE_2 {
 
 int callCount;
-long counter;
+unsigned long counter;
 
 extern "C" void *amassCounterBy(void *arg)
 {
@@ -815,7 +808,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Create threadpools with attributes specified, both with joinable
-        //   and detached state, and in both cases verify that 'stopThreads()'
+        //   and detached state, and in both cases verify that `stopThreads()`
         //   blocks until all started jobs have been completed.
         // --------------------------------------------------------------------
 
@@ -896,7 +889,7 @@ int main(int argc, char *argv[])
         //   get done faster than less urgent ones.
         //
         // Plan:
-        //   Using an atomicInt as a 'timer', have a lightweight job that is
+        //   Using an atomicInt as a `timer`, have a lightweight job that is
         //   a functor that records two times -- when it is submitted to the
         //   threadpool, and when the functor is executed.  Submit otherwise
         //   identical jobs of varying priorities, and observe at the end
@@ -1024,11 +1017,11 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Create a threadpool.  Before starting it, enqueue a bunch of
-        //   jobs.  Then call 'removeJobs()'.  Then start and drain the
+        //   jobs.  Then call `removeJobs()`.  Then start and drain the
         //   threadpool, and verify that none of the jobs have run.
         //
-        //   Repeat the experiment, except using 'shutdown()' instead of
-        //   'removeJobs()'.
+        //   Repeat the experiment, except using `shutdown()` instead of
+        //   `removeJobs()`.
         //
         // Testing:
         //   removeJobs()
@@ -1181,9 +1174,9 @@ int main(int argc, char *argv[])
 
         using namespace MULTIPRIORITYTHREADPOOL_CASE_5;
 
+        // ints 0-9 in scrambled order
         static const bsl::uintptr_t scramble[] =
                                                 {5, 8, 3, 1, 7, 9, 0, 4, 6, 2};
-            // ints 0-9 in scrambled order
         enum { k_SCRAMBLE_LEN = sizeof scramble / sizeof scramble[0] };
         const char garbageVal = static_cast<char>(0x8f);
 
@@ -1649,7 +1642,7 @@ int main(int argc, char *argv[])
 
         if (verbose) {
             cout << "===========================================\n"
-                    "Testing all constructors and 'numThreads()'\n"
+                    "Testing all constructors and `numThreads()`\n"
                     "===========================================\n";
         }
 
@@ -1665,8 +1658,8 @@ int main(int argc, char *argv[])
             ATTRIBS_YES
         };
 
+        // numbers to use as priorities as well as numThreads
         static const int numArray[] = { 1, 2, 3, 7, 10, 15, 32 };
-            // numbers to use as priorities as well as numThreads
         enum { k_NUM_ARRAY_LEN = sizeof numArray / sizeof numArray[0] };
 
         bslma::TestAllocator taDefault;
@@ -1795,7 +1788,7 @@ int main(int argc, char *argv[])
         // DRAINJOBS
         //
         // Concerns:
-        //   That 'drainJobs()' properly blocks until a queue is emptied.
+        //   That `drainJobs()` properly blocks until a queue is emptied.
         //
         // Plan:
         //   Repeat test case 2, except without the barriers but with quite
@@ -1824,7 +1817,7 @@ int main(int argc, char *argv[])
                                             &ta);
 
         counter = 0;
-        long otherCounter = 0;
+        unsigned long otherCounter = 0;
 
         for (int i = 0; i < k_INC_BY_LENGTH; ++i) {
             int sts = pool.enqueueJob(&sleepAndAmassCounterBy,
@@ -1887,7 +1880,7 @@ int main(int argc, char *argv[])
 
         for (int j = 0; 100 > j; ++j) {
             counter = 0;
-            long otherCounter = 0;
+            unsigned long otherCounter = 0;
 
             for (int i = 0; i < k_INC_BY_LENGTH; ++i) {
                 ASSERT(!pool.enqueueJob(&amassCounterBy,

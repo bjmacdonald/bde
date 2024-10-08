@@ -1,23 +1,17 @@
 // balm_collector.t.cpp                                               -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balm_collector.h>
+
+#include <bdlf_bind.h>
+#include <bdlmt_fixedthreadpool.h>
+
+#include <bsla_maybeunused.h>
+
+#include <bslim_testutil.h>
 
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_testallocator.h>
 
-#include <bslma_testallocator.h>
-
 #include <bslmt_barrier.h>
-#include <bdlmt_fixedthreadpool.h>
-
-#include <bdlf_bind.h>
 
 #include <bsls_types.h>
 
@@ -29,7 +23,6 @@
 #include <bsl_ostream.h>
 #include <bsl_sstream.h>
 
-#include <bslim_testutil.h>
 
 using namespace BloombergLP;
 
@@ -42,7 +35,7 @@ using bsl::flush;
 // ----------------------------------------------------------------------------
 //                                  Overview
 //                                  --------
-// The 'balm::Collector' is a mechanism for collecting and recording
+// The `balm::Collector` is a mechanism for collecting and recording
 // aggregated metric values.  Ensure values can be accumulated into and read
 // out of the container, and that the operations are thread safe.
 // ----------------------------------------------------------------------------
@@ -117,18 +110,18 @@ typedef balm::MetricDescription Desc;
 //                      GLOBAL STUB CLASSES FOR TESTING
 // ----------------------------------------------------------------------------
 
+/// Invoke a set of operations operations synchronously.
 class ConcurrencyTest {
-    // Invoke a set of operations operations synchronously.
 
     // DATA
     bdlmt::FixedThreadPool  d_pool;
     bslmt::Barrier          d_barrier;
     balm::Collector        *d_collector_p;
-    bslma::Allocator       *d_allocator_p;
 
     // PRIVATE MANIPULATORS
+
+    /// Execute a single test.
     void execute();
-        // Execute a single test.
 
   public:
 
@@ -139,7 +132,6 @@ class ConcurrencyTest {
     : d_pool(numThreads, 1000, basicAllocator)
     , d_barrier(numThreads)
     , d_collector_p(collector)
-    , d_allocator_p(basicAllocator)
     {
         d_pool.start();
     }
@@ -147,8 +139,9 @@ class ConcurrencyTest {
     ~ConcurrencyTest() {}
 
     //  MANIPULATORS
+
+    /// Run the test.
     void runTest();
-        // Run the test.
 };
 
 void ConcurrencyTest::execute()
@@ -258,7 +251,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Incorporate usage example from header into driver, remove leading
-        //   comment characters, and replace 'assert' with 'ASSERT'.
+        //   comment characters, and replace `assert` with `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -269,29 +262,29 @@ int main(int argc, char *argv[])
 
 ///Usage
 ///-----
-// The following example creates a 'balm::Collector', modifies its values, then
-// collects a 'balm::MetricRecord'.
+// The following example creates a `balm::Collector`, modifies its values, then
+// collects a `balm::MetricRecord`.
 //
-// We start by creating a 'balm::MetricId' object by hand; but in
-// practice, an id should be obtained from a 'balm::MetricRegistry' object
-// (such as the one owned by a 'balm::MetricsManager'):
-//..
+// We start by creating a `balm::MetricId` object by hand; but in
+// practice, an id should be obtained from a `balm::MetricRegistry` object
+// (such as the one owned by a `balm::MetricsManager`):
+// ```
     balm::Category           myCategory("MyCategory");
     balm::MetricDescription  description(&myCategory, "MyMetric");
     balm::MetricId           myMetric(&description);
-//..
-// Now we create a 'balm::Collector' object using 'myMetric' and use the
-// 'update' method to update its collected value.
-//..
+// ```
+// Now we create a `balm::Collector` object using `myMetric` and use the
+// `update` method to update its collected value.
+// ```
     balm::Collector collector(myMetric);
 
     collector.update(1.0);
     collector.update(3.0);
-//..
+// ```
 // The collector accumulated the values 1 and 3.  The result should have a
 // count of 2, a total of 4 (3 + 1), a max of 3 (max(3,1)), and a min of 1
 // (min(3,1)).
-//..
+// ```
     balm::MetricRecord record;
     collector.loadAndReset(&record);
 
@@ -300,7 +293,7 @@ int main(int argc, char *argv[])
         ASSERT(4        == record.total());
         ASSERT(1.0      == record.min());
         ASSERT(3.0      == record.max());
-//..
+// ```
       } break;
       case 8: {
         // --------------------------------------------------------------------

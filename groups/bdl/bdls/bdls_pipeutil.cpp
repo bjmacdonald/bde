@@ -1,12 +1,4 @@
 // bdls_pipeutil.cpp                                                  -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdls_pipeutil.h>
 
 #include <bsls_ident.h>
@@ -50,10 +42,10 @@ namespace {
 
 #ifdef BSLS_PLATFORM_OS_UNIX
 
+/// open an appropriate working directory
 template <class STRING_TYPE>
 inline
 void getPipeDir(STRING_TYPE *dir)
-    // open an appropriate working directory
 {
     BSLS_ASSERT(dir);
 

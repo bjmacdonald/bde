@@ -1,21 +1,11 @@
 // balscm_versiontag.t.cpp                                            -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
-
 #include <balscm_versiontag.h>
 
-#include <bsl_iostream.h>
-
-#include <bsl_cstdlib.h>     // atoi()
-#include <bsl_cstdio.h>
-
 #include <bslim_testutil.h>
+
+#include <bsl_cstdio.h>
+#include <bsl_cstdlib.h>     // atoi()
+#include <bsl_iostream.h>
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -66,8 +56,8 @@ static void aSsErT(bool condition, const char *message, int line)
 //                      USAGE EXAMPLE HELPER FUNCTIONS
 // ----------------------------------------------------------------------------
 
+/// Return 1
 int newFunction()
-    // Return 1
 {
     return 1;
 }
@@ -98,7 +88,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Use the exact text of the usage example from the user
-        //   documentation, but change uses of 'assert' to 'ASSERT'.
+        //   documentation, but change uses of `assert` to `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -115,19 +105,19 @@ int main(int argc, char *argv[])
 // interface change.  For example, if the name of a function changes (a rare
 // occurrence, but potentially disruptive when it does happen), the impact on
 // affected code can be minimized by conditionally calling the function by its
-// old or new name using conditional compilation.  In the following, the '#if'
-// preprocessor directive compares 'BAL_VERSION' (i.e., the latest BAL version,
+// old or new name using conditional compilation.  In the following, the `#if`
+// preprocessor directive compares `BAL_VERSION` (i.e., the latest BAL version,
 // excluding the patch version) to a specified major and minor version composed
-// using the 'BSL_MAKE_VERSION' macro:
-//..
+// using the `BSL_MAKE_VERSION` macro:
+// ```
     #if BAL_VERSION > BSL_MAKE_VERSION(1, 3)
-        // Call 'newFunction' for BAL versions later than 1.3.
+        // Call `newFunction` for BAL versions later than 1.3.
         int result = newFunction();
     #else
-        // Call 'oldFunction' for BAL version 1.3 or earlier.
+        // Call `oldFunction` for BAL version 1.3 or earlier.
         int result = oldFunction();
     #endif
-//..
+// ```
 
         (void)result;
       } break;

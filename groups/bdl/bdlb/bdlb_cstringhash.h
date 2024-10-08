@@ -12,10 +12,10 @@ BSLS_IDENT("$Id: $")
 //
 //@SEE_ALSO:
 //
-//@DESCRIPTION: This component provides a 'struct', 'bdlb::CStringHash', that
+//@DESCRIPTION: This component provides a `struct`, `bdlb::CStringHash`, that
 // defines a functor to generate a hash code for a null-terminated string,
 // rather than simply generating a hash code for the address of the string, as
-// the 'std::hash' functor would do.  This hash functor is suitable for
+// the `std::hash` functor would do.  This hash functor is suitable for
 // supporting C-strings as keys in unordered associative containers.  Note that
 // the container behavior would be undefined if the strings referenced by such
 // pointers were to change value.
@@ -24,143 +24,146 @@ BSLS_IDENT("$Id: $")
 ///-----
 // This section illustrates intended use of this component.
 //
-///Example 1: Basic Use of 'bdlb::CStringHash'
+///Example 1: Basic Use of `bdlb::CStringHash`
 ///- - - - - - - - - - - - - - - - - - - - - -
 // Suppose we need an associative container to store some objects, uniquely
 // identified by C-strings.   The following code illustrates how to use
-// 'bdlb::CStringHash' as a hash function for the standard container
-// 'unordered_map' taking C-string as a key.
+// `bdlb::CStringHash` as a hash function for the standard container
+// `unordered_map` taking C-string as a key.
 //
 // First, let us define our mapped type class:
-//..
-//  class Security
-//  {
-//      // This class implements a value semantic type that represents
-//      // ownership of a security.
+// ```
+// /// This class implements a value semantic type that represents
+// /// ownership of a security.
+// class Security
+// {
 //
-//      // DATA
-//      char         *d_name_p;      // Security name
-//      unsigned int  d_sharesOwned; // The number of owned shares
+//     // DATA
+//     char         *d_name_p;      // Security name
+//     unsigned int  d_sharesOwned; // The number of owned shares
 //
-//    public:
-//      // CREATORS
-//      Security(const char *name, unsigned int sharesOwned);
-//          // Create a 'Security' object having the specified 'name' and
-//          // 'sharesOwned'.
+//   public:
+//     // CREATORS
 //
-//      Security(const Security& original);
-//          // Create a 'Security' object having the value of the specified
-//          // 'original' security.
+//     /// Create a `Security` object having the specified `name` and
+//     /// `sharesOwned`.
+//     Security(const char *name, unsigned int sharesOwned);
 //
-//      ~Security();
-//          // Destroy this security object.
+//     /// Create a `Security` object having the value of the specified
+//     /// `original` security.
+//     Security(const Security& original);
+//
+//     /// Destroy this security object.
+//     ~Security();
 //
 //
-//      // ACCESSORS
-//      unsigned int sharesOwned() const;
-//          // Return the value of the 'sharesOwned' attribute of this security
-//          // object.
+//     // ACCESSORS
 //
-//      // MANIPULATORS
-//      Security& operator=(Security other);
-//          // Assign to this security object the value of the specified
-//          // 'other' object, and return a reference providing modifiable
-//          // access to this object.
+//     /// Return the value of the `sharesOwned` attribute of this security
+//     /// object.
+//     unsigned int sharesOwned() const;
 //
-//      void swap(Security& other);
-//          // Efficiently exchange the value of this security with the value
-//          // of the specified 'other' security.
-//  };
+//     // MANIPULATORS
 //
-//  // CREATORS
-//  inline
-//  Security::Security(const char *name, unsigned int sharesOwned)
-//  : d_sharesOwned(sharesOwned)
-//  {
-//      d_name_p = new char [strlen(name) + 1];
-//      strncpy(d_name_p, name, strlen(name) + 1);
-//  }
+//     /// Assign to this security object the value of the specified
+//     /// `other` object, and return a reference providing modifiable
+//     /// access to this object.
+//     Security& operator=(Security other);
 //
-//  inline
-//  Security::Security(const Security& original)
-//  : d_sharesOwned(original.d_sharesOwned)
-//  {
-//      if (this != &original)
-//      {
-//          d_name_p = new char [strlen(original.d_name_p) + 1];
-//          strncpy(d_name_p,
-//                  original.d_name_p,
-//                  strlen(original.d_name_p) + 1);
-//      }
-//  }
+//     /// Efficiently exchange the value of this security with the value
+//     /// of the specified `other` security.
+//     void swap(Security& other);
+// };
 //
-//  inline
-//  Security::~Security()
-//  {
-//      delete [] d_name_p;
-//  }
+// // CREATORS
+// inline
+// Security::Security(const char *name, unsigned int sharesOwned)
+// : d_sharesOwned(sharesOwned)
+// {
+//     d_name_p = new char [strlen(name) + 1];
+//     strncpy(d_name_p, name, strlen(name) + 1);
+// }
 //
-//  // ACCESSORS
+// inline
+// Security::Security(const Security& original)
+// : d_sharesOwned(original.d_sharesOwned)
+// {
+//     if (this != &original)
+//     {
+//         d_name_p = new char [strlen(original.d_name_p) + 1];
+//         strncpy(d_name_p,
+//                 original.d_name_p,
+//                 strlen(original.d_name_p) + 1);
+//     }
+// }
 //
-//  inline    unsigned int Security::sharesOwned() const
-//  {
-//      return d_sharesOwned;
-//  }
+// inline
+// Security::~Security()
+// {
+//     delete [] d_name_p;
+// }
 //
-//  // MANIPULATORS
-//  inline
-//  Security& Security::operator=(Security other)
-//  {
-//      this->swap(other);
-//      return *this;
-//  }
+// // ACCESSORS
 //
-//  inline
-//  void Security::swap(Security& other)
-//  {
-//      char * tempPtr = d_name_p;
-//      d_name_p = other.d_name_p;
-//      other.d_name_p = tempPtr;
-//      unsigned int tempInt = d_sharesOwned;
-//      d_sharesOwned = other.d_sharesOwned;
-//      other.d_sharesOwned = tempInt;
-//  }
-//..
-// Next, we define container type using 'bdlb::CStringHash' as a hash function
-// and 'bdlb::CstringEqualTo' as a comparator:
-//..
-//  typedef unordered_map<const char *,
-//                        Security,
-//                        bdlb::CStringHash,
-//                        bdlb::CStringEqualTo> SecuritiesUM;
-//..
-// This container stores objects of 'Security' class and allow access to them
+// inline    unsigned int Security::sharesOwned() const
+// {
+//     return d_sharesOwned;
+// }
+//
+// // MANIPULATORS
+// inline
+// Security& Security::operator=(Security other)
+// {
+//     this->swap(other);
+//     return *this;
+// }
+//
+// inline
+// void Security::swap(Security& other)
+// {
+//     char * tempPtr = d_name_p;
+//     d_name_p = other.d_name_p;
+//     other.d_name_p = tempPtr;
+//     unsigned int tempInt = d_sharesOwned;
+//     d_sharesOwned = other.d_sharesOwned;
+//     other.d_sharesOwned = tempInt;
+// }
+// ```
+// Next, we define container type using `bdlb::CStringHash` as a hash function
+// and `bdlb::CstringEqualTo` as a comparator:
+// ```
+// typedef unordered_map<const char *,
+//                       Security,
+//                       bdlb::CStringHash,
+//                       bdlb::CStringEqualTo> SecuritiesUM;
+// ```
+// This container stores objects of `Security` class and allow access to them
 // by their names.
 //
 // Then, we create several C-strings with security names:
-//..
-//  const char *ibm  = "IBM";
-//  const char *msft = "Microsoft";
-//  const char *goog = "Google";
-//..
+// ```
+// const char *ibm  = "IBM";
+// const char *msft = "Microsoft";
+// const char *goog = "Google";
+// ```
 // Now, we create a container for securities and fill it:
-//..
-//  SecuritiesUM securities;
+// ```
+// SecuritiesUM securities;
 //
-//  securities.insert(
-//            std::make_pair<const char *, Security>(ibm, Security(ibm, 616)));
-//  securities.insert(
-//      std::make_pair<const char *, Security>(msft, Security(msft, 6150000)));
-//..
+// securities.insert(
+//           std::make_pair<const char *, Security>(ibm, Security(ibm, 616)));
+// securities.insert(
+//     std::make_pair<const char *, Security>(msft, Security(msft, 6150000)));
+// ```
 // Finally, we make sure, that we able to access securities by their names:
-//..
-//  SecuritiesUM::iterator it = securities.find(ibm);
-//  assert(616 == it->second.sharesOwned());
-//  it = securities.find(msft);
-//  assert(6150000 == it->second.sharesOwned());
-//  it = securities.find(goog);
-//  assert(securities.end() == it);
-//..
+// ```
+// SecuritiesUM::iterator it = securities.find(ibm);
+// assert(616 == it->second.sharesOwned());
+// it = securities.find(msft);
+// assert(6150000 == it->second.sharesOwned());
+// it = securities.find(goog);
+// assert(securities.end() == it);
+// ```
 
 #include <bdlscm_version.h>
 
@@ -184,11 +187,11 @@ namespace bdlb {
                            // struct CStringHash
                            // ==================
 
+/// This `struct` defines a hash operation for null-terminated character
+/// strings enabling them to be used as keys in the standard unordered
+/// associative containers such as `bsl::unordered_map` and
+/// `bsl::unordered_set`.  Note that this class is an empty POD type.
 struct CStringHash {
-    // This 'struct' defines a hash operation for null-terminated character
-    // strings enabling them to be used as keys in the standard unordered
-    // associative containers such as 'bsl::unordered_map' and
-    // 'bsl::unordered_set'.  Note that this class is an empty POD type.
 
     // STANDARD TYPEDEFS
     typedef const char  *argument_type;
@@ -199,29 +202,31 @@ struct CStringHash {
     BSLMF_NESTED_TRAIT_DECLARATION(CStringHash,
                                    bsl::is_trivially_default_constructible);
 
+    /// Create a `CStringHash` object.
     //! CStringHash() = default;
-        // Create a 'CStringHash' object.
 
+    /// Create a `CStringHash` object.  Note that as `CStringHash` is an
+    /// empty (stateless) type, this operation will have no observable
+    /// effect.
     //! CStringHash(const CStringHash& original) = default;
-        // Create a 'CStringHash' object.  Note that as 'CStringHash' is an
-        // empty (stateless) type, this operation will have no observable
-        // effect.
 
+    /// Destroy this object.
     //! ~CStringHash() = default;
-        // Destroy this object.
 
     // MANIPULATORS
+
+    /// Assign to this object the value of the specified `rhs` object, and
+    /// a return a reference providing modifiable access to this object.
+    /// Note that as `CStringHash` is an empty (stateless) type, this
+    /// operation will have no observable effect.
     //! CStringHash& operator=(const CStringHash& rhs) = default;
-        // Assign to this object the value of the specified 'rhs' object, and
-        // a return a reference providing modifiable access to this object.
-        // Note that as 'CStringHash' is an empty (stateless) type, this
-        // operation will have no observable effect.
 
     // ACCESSORS
+
+    /// Return a hash code generated from the contents of the specified
+    /// null-terminated `argument` string.  The behavior is undefined
+    /// unless `argument` points to a null-terminated string.
     bsl::size_t operator()(const char *argument) const;
-        // Return a hash code generated from the contents of the specified
-        // null-terminated 'argument' string.  The behavior is undefined
-        // unless 'argument' points to a null-terminated string.
 };
 
 // ============================================================================

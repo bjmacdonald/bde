@@ -14,15 +14,15 @@ BSLS_IDENT("$Id: $")
 //@SEE_ALSO: bsl+bslhdrs
 //
 //@DESCRIPTION: This component is for internal use only.  Please include
-// '<bsl_algorithm.h>' instead.  This component provides a namespace for
+// `<bsl_algorithm.h>` instead.  This component provides a namespace for
 // implementations for standard algorithms that are not provided by the
-// underlying standard library implementation.  For example, 'any_of' is a
+// underlying standard library implementation.  For example, `any_of` is a
 // C++11 algorithm, and it is provided here for code using C++03.
 //
 ///Usage
 ///-----
-// This component is for use by the 'bsl+bslhdrs' package.  Use
-// 'bsl_algorithm.h' directly.
+// This component is for use by the `bsl+bslhdrs` package.  Use
+// `bsl_algorithm.h` directly.
 
 #include <bslscm_version.h>
 #include <bsls_assert.h>
@@ -43,12 +43,16 @@ BSLS_IDENT("$Id: $")
 namespace BloombergLP {
 namespace bslstl {
 
+/// Provide a namespace for implementing helper routines for algorithm
+/// implementations.
 struct AlgorithmUtil {
-    // Provide a namespace for implementing helper routines for algorithm
-    // implementations.
 
   private:
     // PRIVATE CLASS METHODS
+
+    /// Copy the specified `count` elements from the specified `first`
+    /// to the specified `result`.   Return an iterator pointing past
+    /// the last copied element in the output range.
     template <class t_INPUT_ITERATOR, class t_SIZE, class t_OUTPUT_ITERATOR>
     static
     t_OUTPUT_ITERATOR copyNImp(t_INPUT_ITERATOR               first,
@@ -63,28 +67,26 @@ struct AlgorithmUtil {
                                t_SIZE                                 count,
                                t_OUTPUT_ITERATOR                      result,
                                const bsl::random_access_iterator_tag&);
-        // Copy the specified 'count' elements from the specified 'first'
-        // to the specified 'result'.   Return an iterator pointing past
-        // the last copied element in the output range.
 
   public:
     // CLASS FUNCTIONS
+
+    /// Erase all the elements in the specified container `container` that
+    /// satisfy the specified predicate `predicate`.  Return the number of
+    /// elements erased.
     template <class CONTAINER, class PREDICATE>
     static
     typename CONTAINER::size_type
     containerEraseIf(CONTAINER& container, PREDICATE predicate);
-        // Erase all the elements in the specified container 'container' that
-        // satisfy the specified predicate 'predicate'.  Return the number of
-        // elements erased.
 
+    /// Copy the specified `count` elements from the specified `first`
+    /// to the specified `result`.   Return an iterator pointing past
+    /// the last copied element in the output range.
     template <class t_INPUT_ITERATOR, class t_SIZE, class t_OUTPUT_ITERATOR>
     static
     t_OUTPUT_ITERATOR copyN(t_INPUT_ITERATOR  first,
                             t_SIZE            count,
                             t_OUTPUT_ITERATOR result);
-        // Copy the specified 'count' elements from the specified 'first'
-        // to the specified 'result'.   Return an iterator pointing past
-        // the last copied element in the output range.
 };
 
 }  // close package namespace
@@ -170,11 +172,8 @@ namespace bsl {
     using std::any_of;
     using std::copy_if;
 
-    // 'copy_n' is implemented separately in 'bslstp_exalgorithm' for backwards
-    // compatibility with the previous STLport definition (which differs from
-    // the platform implementation).
-    //
-    // using std::(copy_n);
+    using std::copy_n;
+    #define BSLSTL_ALGORITHM_COPY_N_IS_ALIASED
 
     using std::find_if_not;
     using std::is_heap;
@@ -385,107 +384,123 @@ namespace ranges {
 #endif  // BDE_OMIT_INTERNAL_DEPRECATED
 
 #ifndef BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
-    // Use the compiler vendor supplied version of 'count' and 'count_if'.
+    // Use the compiler vendor supplied version of `count` and `count_if`.
     using std::count;
     using std::count_if;
 #else
     // Sun-specific fixes
+
+    /// Provide an override for `count` since Sun only provides a 4 argument
+    /// version while the C++ standard requires a 3 argument version.
     template <class InputIter, class TYPE>
     typename iterator_traits<InputIter>::difference_type
     count(InputIter first, InputIter last, const TYPE& value);
-        // Provide an override for 'count' since Sun only provides a 4 argument
-        // version while the C++ standard requires a 3 argument version.
 
+    /// Provide an override for `count_if` since Sun only provides a 4
+    /// argument version while the C++ standard requires a 3 argument
+    /// version.
     template <class InputIter, class PREDICATE>
     typename iterator_traits<InputIter>::difference_type
     count_if(InputIter first, InputIter last, PREDICATE pred);
-        // Provide an override for 'count_if' since Sun only provides a 4
-        // argument version while the C++ standard requires a 3 argument
-        // version.
 #endif  // BSLSTL_ITERATOR_PROVIDE_SUN_CPP98_FIXES
 
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+    /// Return `true` if, for the specified `[first, last)` range and the
+    /// specified predicate `pred`, the range is either empty or `pred(*i)`
+    /// is `true` for every iterator `i` in the range, and `false`
+    /// otherwise.  Note that at most `last - first` applications of the
+    /// predicate are performed.
     template <class INPUT_ITERATOR, class PREDICATE>
     bool all_of(INPUT_ITERATOR first, INPUT_ITERATOR last, PREDICATE pred);
-        // Return 'true' if, for the specified '[first, last)' range and the
-        // specified predicate 'pred', the range is either empty or 'pred(*i)'
-        // is 'true' for every iterator 'i' in the range, and 'false'
-        // otherwise.  Note that at most 'last - first' applications of the
-        // predicate are performed.
 
+    /// Return `false` if, for the specified `[first, last)` range and the
+    /// specified predicate `pred`, the range is either empty or `pred(*i)`
+    /// is `false` for every iterator `i` in the range, and `true`
+    /// otherwise.  Note that at most `last - first` applications of the
+    /// predicate are performed.
     template <class INPUT_ITERATOR, class PREDICATE>
     bool any_of(INPUT_ITERATOR first, INPUT_ITERATOR last, PREDICATE pred);
-        // Return 'false' if, for the specified '[first, last)' range and the
-        // specified predicate 'pred', the range is either empty or 'pred(*i)'
-        // is 'false' for every iterator 'i' in the range, and 'true'
-        // otherwise.  Note that at most 'last - first' applications of the
-        // predicate are performed.
 
+    /// Return `true` if, for the specified `[first, last)` range and the
+    /// specified predicate `pred`, the range is either empty or `pred(*i)`
+    /// is `false` for every iterator `i` in the range, and `false`
+    /// otherwise.  Note that at most `last - first` applications of the
+    /// predicate are performed.
     template <class INPUT_ITERATOR, class PREDICATE>
     bool none_of(INPUT_ITERATOR first, INPUT_ITERATOR last, PREDICATE pred);
-        // Return 'true' if, for the specified '[first, last)' range and the
-        // specified predicate 'pred', the range is either empty or 'pred(*i)'
-        // is 'false' for every iterator 'i' in the range, and 'false'
-        // otherwise.  Note that at most 'last - first' applications of the
-        // predicate are performed.
 
 # if defined(BSLS_LIBRARYFEATURES_STDCPP_MSVC)
     // Visual Studio (the versions we support) provides 'copy_if'.
     using std::copy_if;
 # else
+/// C++03 standard libraries do not provide `std::copy_if` (as it was not
+/// part of the C++03 standard), but it is actually implementable in C++03,
+/// so we inject it here.
 # define BSLSTL_ALGORITHMWORKAROUND_IMPLEMENTS_COPY_IF                        1
-    // C++03 standard libraries do not provide 'std::copy_if' (as it was not
-    // part of the C++03 standard), but it is actually implementable in C++03,
-    // so we inject it here.
 
+    /// Copy all elements in the half-open range of the specified `first`,
+    /// and `last` (`[first, last)`) input iterators for which the specified
+    /// `pred` unary predicate is `true` to the specified `result` output
+    /// iterator, incrementing result after each copied element, keeping the
+    /// element order stable.  The behavior is undefined if the ranges
+    /// `[first, last)` and
+    /// `[result, advance(result, distance(first, last)))` overlap.  The
+    /// behavior is also undefined if `pred` attempts to invoke any
+    /// non-constant functions of its argument.  See also [alg.copy] in the
+    /// C++11 standard.
     template <class INPUT_ITERATOR, class OUTPUT_ITERATOR, class PREDICATE>
     OUTPUT_ITERATOR
     copy_if(INPUT_ITERATOR  first,
             INPUT_ITERATOR  last,
             OUTPUT_ITERATOR result,
             PREDICATE       pred);
-        // Copy all elements in the half-open range of the specified 'first',
-        // and 'last' ('[first, last)') input iterators for which the specified
-        // 'pred' unary predicate is 'true' to the specified 'result' output
-        // iterator, incrementing result after each copied element, keeping the
-        // element order stable.  The behavior is undefined if the ranges
-        // '[first, last)' and
-        // '[result, advance(result, distance(first, last)))' overlap.  The
-        // behavior is also undefined if 'pred' attempts to invoke any
-        // non-constant functions of its argument.  See also [alg.copy] in the
-        // C++11 standard.
 # endif  // !BSLS_LIBRARYFEATURES_STDCPP_MSVC
 #endif  // !BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+    /// Return the specified `value` adjusted so that it is in the range
+    /// [`low`, `high`), using the specified comparison predicate `comp`.
     template<class TYPE, class COMPARE>
     BSLS_KEYWORD_CONSTEXPR_CPP14
     const TYPE&
     clamp(const TYPE& value, const TYPE& low, const TYPE& high, COMPARE comp);
-        // Return the specified 'value' adjusted so that it is in the range
-        // ['low', 'high'), using the specified comparison predicate 'comp'.
 
+    /// Return the specified `value` adjusted so that it is in the range
+    /// [`low`, `high`).
     template<class TYPE>
     BSLS_KEYWORD_CONSTEXPR_CPP14
     const TYPE&
     clamp(const TYPE& value, const TYPE& low, const TYPE& high);
-        // Return the specified 'value' adjusted so that it is in the range
-        // ['low', 'high').
 #endif
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP17_SEARCH_OVERLOAD
+    /// Return the position in the specified range `[first, last)` of the
+    /// first occurrence of the pattern sought by the specified `searcher`
+    /// if found, and `last` otherwise.  See [alg.search].
     template<class FORWARD_ITERATOR, class SEARCHER>
     BSLS_KEYWORD_CONSTEXPR_CPP14
     FORWARD_ITERATOR search(FORWARD_ITERATOR first,
                             FORWARD_ITERATOR last,
                             const SEARCHER&  searcher);
-        // Return the position in the specified range '[first, last)' of the
-        // first occurrence of the pattern sought by the specified 'searcher'
-        // if found, and 'last' otherwise.  See [alg.search].
 #endif  //  BSLS_LIBRARYFEATURES_HAS_CPP17_SEARCH_OVERLOAD
 
 }  // close namespace bsl
+
+
+
+#ifndef BSLSTL_ALGORITHM_COPY_N_IS_ALIASED
+namespace bsl {
+/// Copy the specified `count` elements from the specified `first` to the
+/// specified `result`.  Return an iterator pointing past the last copied
+/// element in the output range.
+template <class t_INPUT_ITERATOR, class t_SIZE, class t_OUTPUT_ITERATOR>
+inline
+t_OUTPUT_ITERATOR copy_n(t_INPUT_ITERATOR  first,
+                         t_SIZE            count,
+                         t_OUTPUT_ITERATOR result);
+}  // close namespace bsl
+#endif  // BSLSTL_ALGORITHM_COPY_N_IS_ALIASED
 
 // ============================================================================
 //                            INLINE DEFINITIONS
@@ -672,6 +687,18 @@ bsl::search(FORWARD_ITERATOR first,
 }
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_SEARCH_OVERLOAD
 
+#ifndef BSLSTL_ALGORITHM_COPY_N_IS_ALIASED
+template <class t_INPUT_ITERATOR, class t_SIZE, class t_OUTPUT_ITERATOR>
+inline
+t_OUTPUT_ITERATOR bsl::copy_n(t_INPUT_ITERATOR  first,
+                              t_SIZE            count,
+                              t_OUTPUT_ITERATOR result)
+{
+    return BloombergLP::bslstl::AlgorithmUtil::copyN(first,
+                                                     count,
+                                                     result);
+}
+#endif  // BSLSTL_ALGORITHM_COPY_N_IS_ALIASED
 
 #endif  // INCLUDED_BSLSTL_ALGORITHM
 

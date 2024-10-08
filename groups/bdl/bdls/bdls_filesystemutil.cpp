@@ -1,12 +1,4 @@
 // bdls_filesystemutil.cpp                                            -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdls_filesystemutil.h>
 
 #include <bsls_ident.h>
@@ -25,6 +17,7 @@ BSLS_IDENT_RCSID(bdls_filesystemutil_cpp, "$Id$ $CSID$")
 #include <bdlt_epochutil.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_bufferedsequentialallocator.h>
+#include <bdlma_localsequentialallocator.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>
@@ -35,6 +28,7 @@ BSLS_IDENT_RCSID(bdls_filesystemutil_cpp, "$Id$ $CSID$")
 
 #include <bsla_maybeunused.h>
 #include <bsls_alignedbuffer.h>
+#include <bsls_alignmentutil.h>
 #include <bsls_assert.h>
 #include <bsls_bslexceptionutil.h>
 #include <bsls_platform.h>
@@ -42,8 +36,10 @@ BSLS_IDENT_RCSID(bdls_filesystemutil_cpp, "$Id$ $CSID$")
 #include <bsls_timeutil.h>
 
 #include <bsl_algorithm.h>
+#include <bsl_cctype.h>
 #include <bsl_c_stdio.h> // needed for rename on AIX & snprintf everywhere
 #include <bsl_cstddef.h>
+#include <bsl_cstdlib.h>
 #include <bsl_cstring.h> // for memcpy
 #include <bsl_limits.h>
 #include <bsl_string.h>
@@ -159,6 +155,18 @@ namespace BloombergLP {
 namespace {
 namespace u {
 
+// 'substr' on a 'string_view', which yields a 'string_view', is more efficient
+// than 'substr' on a 'string', which yields a 'string'.
+
+/// Convert the specified `str` to a string view, and then return the result
+/// of `substr` on that passing the specified `idx` and `len`.
+bsl::string_view substr(const bsl::string& str,
+                        const size_t       idx,
+                        const size_t       len = bsl::string::npos)
+{
+    return bsl::string_view(str).substr(idx, len);
+}
+
 #if defined(BSLS_PLATFORM_OS_UNIX) \
  && defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
 
@@ -166,63 +174,65 @@ namespace u {
                           // struct UnixInterfaceUtil
                           // ========================
 
+/// This component-private utility `struct` provides an implementation of
+/// the requirements for the `UNIX_INTERFACE` template parameter of the
+/// functions provided by `FilesystemUtil_UnixImplUtil` in terms of actual
+/// Unix interface calls.  See also the notes regarding the `stat` structure
+/// in the documentation for `struct FilesystemUtil_UnixImpUtil`.
 struct UnixInterfaceUtil {
-    // This component-private utility 'struct' provides an implementation of
-    // the requirements for the 'UNIX_INTERFACE' template parameter of the
-    // functions provided by 'FilesystemUtil_UnixImplUtil' in terms of actual
-    // Unix interface calls.  See also the notes regarding the 'stat' structure
-    // in the documentation for 'struct FilesystemUtil_UnixImpUtil'.
 
     // TYPES
+
+    /// `off_t` is an alias to the `off_t` type provided by the
+    /// `sys/types.h` header.  It is a signed integral type used to
+    /// represent quantities of bytes.  Note that, depending on the build
+    /// configuration, this type may have 32 or 64 bits.
     typedef ::off_t off_t;
-        // 'off_t' is an alias to the 'off_t' type provided by the
-        // 'sys/types.h' header.  It is a signed integral type used to
-        // represent quantities of bytes.  Note that, depending on the build
-        // configuration, this type may have 32 or 64 bits.
 
+    /// `stat` is an alias to the `stat` `struct` provided by the
+    /// `sys/stat.h` header.
     typedef struct ::stat stat;
-        // 'stat' is an alias to the 'stat' 'struct' provided by the
-        // 'sys/stat.h' header.
 
+    /// `time_t` is an alias to the `time_t` type provided by the
+    /// `sys/types.h` header.  It represents a time point as number of
+    /// seconds since January 1st 1970 in Coordinated Universal Time.
     typedef ::time_t time_t;
-        // 'time_t' is an alias to the 'time_t' type provided by the
-        // 'sys/types.h' header.  It represents a time point as number of
-        // seconds since January 1st 1970 in Coordinated Universal Time.
 
     // CLASS METHODS
+
+    /// Return the value of the `st_mtim.nsec` field of the specified `stat`
+    /// struct.
     static long get_st_mtim_nsec(const stat& stat);
-        // Return the value of the 'st_mtim.nsec' field of the specified 'stat'
-        // struct.
 
+    /// Return the value of the `st_mtime` data member of the specified
+    /// `stat` struct.
     static time_t get_st_mtime(const stat& stat);
-        // Return the value of the 'st_mtime' data member of the specified
-        // 'stat' struct.
 
+    /// Return the value of the `st_size` data member of the specified
+    /// `stat` struct.  Note that this function is provided in order to
+    /// create a consistent interface for accessing the data members of a
+    /// `stat` struct with `get_st_mtime`.
     static off_t get_st_size(const stat& stat);
-        // Return the value of the 'st_size' data member of the specified
-        // 'stat' struct.  Note that this function is provided in order to
-        // create a consistent interface for accessing the data members of a
-        // 'stat' struct with 'get_st_mtime'.
 
+    /// Invoke and return the result of `::fstat(fildes, buf)` with the
+    /// specified  `fildes` and `buf`, where `::fstat` is the function
+    /// provided by the `sys/stat.h` header.
     static int fstat(int fildes, stat *buf);
-        // Invoke and return the result of '::fstat(fildes, buf)' with the
-        // specified  'fildes' and 'buf', where '::fstat' is the function
-        // provided by the 'sys/stat.h' header.
 };
 
                              // ==================
                              // struct UnixImpUtil
                              // ==================
 
+/// `UnixImpUtil` is an alias to an utility `struct` that provides the
+/// implementations of some of `bdls::FilesystemUtil`s functions for Unix
+/// systems.  Note that this `struct` is a specialization of a utility class
+/// template that defines some file-system operations in terms of a
+/// parameterized Unix-interface utility.  This alias instantiates that
+/// template with a `struct` that provides actual Unix interface calls.  The
+/// utility class template parameterizes its Unix interface in order to
+/// permit tests to instantiate the template with mock Unix interfaces.
 typedef bdls::FilesystemUtil_UnixImpUtil<UnixInterfaceUtil> UnixImpUtil;
-    // 'UnixImpUtil' is an alias to an utility 'struct' that provides the
-    // implementations of some of 'bdls::FilesystemUtil's functions for Unix
-    // systems.  Note that this 'struct' is a specialization of a utility class
-    // template that defines some file-system operations in terms of a
-    // parameterized Unix-interface utility.  This alias instantiates that
-    // template with a 'struct' that provides actual Unix interface calls.  The
-    // utility class template parameterizes its Unix interface in order to
-    // permit tests to instantiate the template with mock Unix interfaces.
 
                      // =================================
                      // typedef InterfaceUtil and ImpUtil
@@ -447,27 +457,28 @@ namespace {
                                // struct NameRec
                                // ==============
 
+/// This `struct` is for maintaining file names and whether they are
+/// matched as patterns or not.  It is used only by `visitTree`.
 struct NameRec {
-    // This 'struct' is for maintaining file names and whether they are
-    // matched as patterns or not.  It is used only by 'visitTree'.
 
     bsl::string d_basename;
     bool        d_foundAsPattern;
 
     // CREATORS
+
+    /// Create a `NameRec` object having the specified `basename` and the
+    /// the specified `foundAsPattern`.
     NameRec(const bsl::string& basename, bool foundAsPattern)
     : d_basename(basename)
     , d_foundAsPattern(foundAsPattern)
-        // Create a 'NameRec' object having the specified 'basename' and the
-        // the specified 'foundAsPattern'.
     {
     }
 
+    /// Create a `NameRec` object having the specified `basename` and the
+    /// the specified `foundAsPattern`.
     NameRec(const char *basename, bool foundAsPattern)
     : d_basename()
     , d_foundAsPattern(foundAsPattern)
-        // Create a 'NameRec' object having the specified 'basename' and the
-        // the specified 'foundAsPattern'.
     {
         BSLS_ASSERT(0 != basename);
 
@@ -475,9 +486,10 @@ struct NameRec {
     }
 
     // ACCESSOR
+
+    /// Return `true` if the `fullName` of this object is less than the
+    /// the `fullName` of the specified `rhs`.
     bool operator<(const NameRec& rhs) const
-        // Return 'true' if the 'fullName' of this object is less than the
-        // the 'fullName' of the specified 'rhs'.
     {
         const int rc = bsl::strcmp(d_basename.c_str(), rhs.d_basename.c_str());
 
@@ -497,10 +509,10 @@ struct NameRec {
 
 }  // close unnamed namespace
 
+/// Return an identifier for the current running process.  Note that this
+/// duplicates functionality in `ProcessUtil`, and is reproduced here to
+/// avoid a cycle.
 int getProcessId()
-    // Return an identifier for the current running process.  Note that this
-    // duplicates functionality in 'ProcessUtil', and is reproduced here to
-    // avoid a cycle.
 {
 #ifdef BSLS_PLATFORM_OS_WINDOWS
     return static_cast<int>(GetCurrentProcessId());
@@ -509,12 +521,12 @@ int getProcessId()
 #endif
 }
 
+/// Return `true` if the specified `path` is "." or ".." and `false`
+/// otherwise.  This is equivalent to `isDotOrDots`, except it is called in
+/// the case where we know there are no `/`s in the file name, making the
+/// check simpler and faster.
 static inline
 bool shortIsDotOrDots(const char *path)
-    // Return 'true' if the specified 'path' is "." or ".." and 'false'
-    // otherwise.  This is equivalent to 'isDotOrDots', except it is called in
-    // the case where we know there are no '/'s in the file name, making the
-    // check simpler and faster.
 {
     return '.' == *path && (!path[1] || ('.' == path[1] && !path[2]));
 }
@@ -532,11 +544,11 @@ namespace {
 #  error "'bdls_filesystemutil' does not support this platform."
 # endif
 
+/// Run the appropriate `fstat` or `fstat64` function on the specified file
+/// `descriptor`, returning the results in the specified `statResult`.
 static inline
 int performFStat(BloombergLP::bdls::FilesystemUtil::FileDescriptor  descriptor,
                  StatResult                                        *statResult)
-    // Run the appropriate 'fstat' or 'fstat64' function on the specified file
-    // 'descriptor', returning the results in the specified 'statResult'.
 {
 #if   defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
     return ::fstat  (descriptor, statResult);
@@ -547,14 +559,14 @@ int performFStat(BloombergLP::bdls::FilesystemUtil::FileDescriptor  descriptor,
 #endif
 }
 
+/// Run the appropriate `stat` or `stat64` function on the specified
+/// `fileName`, returning the results in the specified `statResult`, where
+/// the specified `followLinks` indicates whether symlinks are to be
+/// followed using `lstat` or `lstat64`.
 static inline
 int performStat(const char *fileName,
                 StatResult *statResult,
                 bool        followLinks = true)
-    // Run the appropriate 'stat' or 'stat64' function on the specified
-    // 'fileName', returning the results in the specified 'statResult', where
-    // the specified 'followLinks' indicates whether symlinks are to be
-    // followed using 'lstat' or 'lstat64'.
 {
 # if defined(U_USE_UNIX_FILE_SYSTEM_INTERFACE)
     return followLinks ?  ::stat(fileName, statResult)
@@ -572,14 +584,14 @@ extern "C" {
 // The following function must have a long, unique name.  Even though it's
 // declared 'static', on Solaris CC it winds up having global linkage.
 
+/// Return 0 if the specified `errorNum` is an `errno`-type value describing
+/// that access wasn't granted due to file permissions, which will manifest
+/// itself as one of the values `EPERM`, `EACCES`, or `ENOENT` and 1
+/// otherwise.
 static
 int bloombergLP_bdls_FileSystemUtil_isNotFilePermissionsError(
                                                           const char *,
                                                           int         errorNum)
-    // Return 0 if the specified 'errorNum' is an 'errno'-type value describing
-    // that access wasn't granted due to file permissions, which will manifest
-    // itself as one of the values 'EPERM', 'EACCES', or 'ENOENT' and 1
-    // otherwise.
 {
     // One use of this function is to pass it to 'glob', which will use the
     // function to indicate whether or not to stop traversing files based on
@@ -618,10 +630,10 @@ static const IsNotFilePermissionsErrorFuncPtr isNotFilePermissionsError_p =
 namespace BloombergLP {
 
 namespace {
+/// A `thunk` to be bound to the specified `vector` that can be called to
+/// push the specified `item` to the `vector`.
 template <class VECTOR_TYPE>
 void pushBackWrapper(VECTOR_TYPE *vector, const char *item)
-    // A 'thunk' to be bound to the specified 'vector' that can be called to
-    // push the specified 'item' to the 'vector'.
 {
     BSLS_ASSERT(vector);
 
@@ -765,22 +777,22 @@ int localFcntlLock(int descriptor, int cmd, int type)
     return fcntl(descriptor, cmd, &flk);
 }
 
+/// Free the specified glob data structure, `pglob`.  Note that this
+/// function has a signature appropriate for use as a managed pointer
+/// deleter, hence the parameters are both passed as `void *`.
 static inline
 void invokeGlobFree(void *pglob, void *)
-    // Free the specified glob data structure, 'pglob'.  Note that this
-    // function has a signature appropriate for use as a managed pointer
-    // deleter, hence the parameters are both passed as 'void *'.
 {
     BSLS_ASSERT(pglob);
 
     globfree(static_cast<glob_t *>(pglob));
 }
 
+/// Close the specified directory, `dir`.  Note that this function has a
+/// signature appropriate for use as a managed pointer deleter, hence the
+/// parameters are both passed as `void *`.
 static inline
 void invokeCloseDir(void *dir, void *)
-    // Close the specified directory, 'dir'.  Note that this function has a
-    // signature appropriate for use as a managed pointer deleter, hence the
-    // parameters are both passed as 'void *'.
 {
     BSLS_ASSERT(dir);
 
@@ -797,10 +809,23 @@ void invokeCloseDir(void *dir, void *)
     BSLS_ASSERT(0 == rc);
 }
 
+/// Close the file descriptor pointed to by the specified `fd_p`.  This is
+/// to be used in conjunction with `bslma::ManagedPtr` to create RAII guards
+/// for file descriptors.
+static
+void invokeCloseFD(void *fd_p, void *)
+{
+    typedef bdls::FilesystemUtil Util;
+    typedef Util::FileDescriptor FileDescriptor;
+
+    int rc = ::close(*static_cast<FileDescriptor *>(fd_p));
+    BSLS_ASSERT(0 == rc);    (void) rc;
+}
+
+/// Return `true` if the specified `path` is "." or ".." or ends in
+/// "/." or "/..", and `false` otherwise.
 static inline
 bool isDotOrDots(const char *path)
-    // Return 'true' if the specified 'path' is "." or ".." or ends in
-    // "/." or "/..", and 'false' otherwise.
 {
     BSLS_ASSERT(path);
 
@@ -839,13 +864,13 @@ bool isDotOrDots(const char *path)
     return '/' == end[-3];
 }
 
+/// Create a directory.  Return 0 on success, `k_ERROR_PATH_NOT_FOUND` if a
+/// component used as a directory in the specified `path` either does not
+/// exist or is not a directory, `k_ERROR_ALREADY_EXISTS` if the file system
+/// entry (not necessarily a directory) with the name `path` already exists,
+/// and a negative value for any other kind of error.
 static inline
 int makeDirectory(const char *path, bool isPrivate)
-    // Create a directory.  Return 0 on success, 'k_ERROR_PATH_NOT_FOUND' if a
-    // component used as a directory in the specified 'path' either does not
-    // exist or is not a directory, 'k_ERROR_ALREADY_EXISTS' if the file system
-    // entry (not necessarily a directory) with the name 'path' already exists,
-    // and a negative value for any other kind of error.
 {
     BSLS_ASSERT(path);
 
@@ -873,24 +898,175 @@ int makeDirectory(const char *path, bool isPrivate)
     }
 }
 
-static inline
-int removeDirectory(const char *path)
-    // Remove the specified directory 'path'.  Return 0 on success and a
-    // non-zero value otherwise.
+/// Delete everything in the tree whose root directory is specified by the
+/// specified open file descriptor `dirFD`, not including the root.  Close
+/// `dirFd`.  The behavior is undefined unless `dirFD` refers to a directory
+/// and not a symlink.  Return 0 on success and a non-zero value otherwise.
+static
+int u_removeContentsOfTree(
+                 const BloombergLP::bdls::FilesystemUtil::FileDescriptor dirFD)
 {
-    BSLS_ASSERT(path);
+    typedef bdls::FilesystemUtil::FileDescriptor FileDescriptor;
 
-    return rmdir(path);
+    // This function is declared as returing 0 on success and non-zero
+    // otherwise.  In practice, we return different non-zero values for every
+    // error condition.  These values are not part of the declared interface,
+    // intended to aid debugging only and may be changed by maintainers on a
+    // whim.
+
+    DIR *dir = ::fdopendir(dirFD);    // 'dir' assumes ownership of 'dirFd'
+                                      // and will close it when 'dir' is
+                                      // closed.
+    if (0 == dir) {
+        return -2;                                                    // RETURN
+    }
+    bslma::ManagedPtr<DIR> dirGuard(dir, 0, &invokeCloseDir);
+
+#if defined(BSLS_PLATFORM_OS_SUNOS) || defined(BSLS_PLATFORM_OS_SOLARIS)
+    // There is no constant 'NAME_MAX' upper limit on file name lengths on
+    // Solaris, so we have to query the directory with '::fpathconf' to
+    // determine it and potentially allocate our 'dirent' object.
+
+    // Watching the value returned to 'nameMax' from '::fpathconf' below, we
+    // get '255', but on some other type of device the value could be greater.
+    // Nonetheless, we'll set 'k_MIN_NAME_MAX' to 255, which as long as
+    // '::fpathconf' returns the same value, will mean that no memory is ever
+    // allocated from the default allocator for 'entry' or 'prevName' below.
+    // To test that the allocating code works, we temporarily set
+    // 'k_MIN_NAME_MAX' to 0.
+
+    enum { k_MIN_NAME_MAX = 255,
+           k_DIRENT_STACK_SPACE_SIZE = sizeof(::dirent) + k_MIN_NAME_MAX + 1 };
+
+    static const bsl::size_t direntAlign =
+             bsls::AlignmentUtil::calculateAlignmentFromSize(sizeof(::dirent));
+    const bsl::size_t nameMax   = ::fpathconf(dirFD, _PC_NAME_MAX);
+    const bsl::size_t direntLen =
+              (((offsetof(::dirent, d_name) + nameMax + 1) + direntAlign - 1) /
+                                                    direntAlign) * direntAlign;
+
+    // No guard is needed to release '&entry' -- if 'direntAlloc' had to
+    // allocate from the default allocator, it will be released by
+    // 'direntAlloc's d'tor.
+
+    bdlma::LocalSequentialAllocator<k_DIRENT_STACK_SPACE_SIZE> direntAlloc;
+
+    // 'static_cast<::dirent *>' confuses the lex parser for Solaris CC, hence
+    // we say '< ::dirent>' here.
+
+    ::dirent& entry = *static_cast< ::dirent *>(direntAlloc.allocate(
+                                                                   direntLen));
+#else
+# if defined(BSLS_PLATFORM_OS_AIX) && !defined(NAME_MAX)
+    // 'fpathconf' is supported on AIX, 'NAME_MAX' is undefined, and the
+    // 'fpathconf'-based imp works there, but on AIX, 'man fpathconf' documents
+    // that the largest value for '_PC_NAME_MAX' returned is 255, so we opt for
+    // the simpler imp below with a fixed 'k_MIN_NAME_MAX'.
+
+    enum { k_MIN_NAME_MAX = 255 };
+# else
+    enum { k_MIN_NAME_MAX = NAME_MAX };
+# endif
+
+    union {
+        ::dirent d_entry;
+        char     d_overflow[sizeof(::dirent) + k_MIN_NAME_MAX + 1];
+    } entryHolder;
+    ::dirent& entry = entryHolder.d_entry;
+    new (&entry) ::dirent();
+#endif
+
+    bdlma::LocalSequentialAllocator<k_MIN_NAME_MAX + 1> prevNameAlloc;
+    bsl::string prevName(&prevNameAlloc);
+    prevName.reserve(k_MIN_NAME_MAX);
+
+    ::dirent *entry_p = 0;
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+    int rc;
+    while (errno = 0, rc = ::readdir_r(dir, &entry, &entry_p),
+                                       0 == rc && 0 != entry_p && 0 == errno) {
+
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+
+        const bsl::string_view name = entry.d_name;
+        if (name.length() <= 2 && shortIsDotOrDots(entry.d_name)) {
+            continue;
+        }
+
+        // Sometimes, after deleting the last file in the directory,
+        // 'readdir_r' returns the same file name again, in which case we just
+        // skip and go around again.
+
+        if (name == prevName) {
+            continue;
+        }
+
+        FileDescriptor entryFD = ::openat(dirFD,
+                                          entry.d_name,
+                                          O_DIRECTORY | O_RDONLY | O_NOFOLLOW,
+                                          0);
+        if (-1 != entryFD) {
+            // 'entry.d_name' is a directory.
+
+            // 'u_removeContentsOfTree' will close 'entryFD'.
+
+            const int rc = u_removeContentsOfTree(entryFD);
+            if (0 != rc) {
+                return -7;                                            // RETURN
+            }
+        }
+
+        const int flag = -1 != entryFD ? AT_REMOVEDIR : 0;
+        if (0 != ::unlinkat(dirFD, entry.d_name, flag)) {
+            return -9;                                                // RETURN
+        }
+
+        // update 'prevName'
+
+#if defined(BSLS_PLATFORM_OS_SUNOS) || defined(BSLS_PLATFORM_OS_SOLARIS)
+        if (prevName.capacity() < name.length()) {
+            BSLS_ASSERT(prevName.capacity() == k_MIN_NAME_MAX);
+            BSLS_ASSERT(name.length() <= nameMax);
+
+            // This will allocate from the default allocator, but will occur
+            // at most once per call of this function.
+
+            prevName.reserve(nameMax);
+        }
+#endif
+        BSLS_ASSERT(name.length() <= prevName.capacity());
+        prevName = name;
+    }
+
+#if defined(BSLS_PLATFORM_OS_AIX)
+    if (9 == rc) {
+        // '9 == rc' just means 'readdir_r' reached the end of the directory on
+        // AIX.
+
+        rc = 0;
+    }
+#endif
+
+    // The 'while' condition was '0 == rc && 0 != entry_p && 0 == errno' and
+    // and on success we expect that to be true except '0 == entry_p'.  If
+    // '0 != rc' or '0 != errno' it means some sort of error happened.
+
+    if (0 != rc) {
+        return -10;                                                   // RETURN
+    }
+    else if (0 != errno) {
+        return -11;                                                   // RETURN
+    }
+    BSLS_ASSERT(0 == entry_p);
+
+    return 0;
 }
-
-static inline
-int removeFile(const char *path)
-{
-    BSLS_ASSERT(path);
-
-    return unlink(path);
-}
-
 #endif
 
 namespace {
@@ -1228,7 +1404,7 @@ FilesystemUtil::FileDescriptor FilesystemUtil::open(
         accessMode = FILE_APPEND_DATA;
       } break;
       default: {
-        BSLS_ASSERT_OPT(!"Unknown IO policy");
+        BSLS_ASSERT_OPT(0 == "Unknown IO policy");
       } break;
     }
 
@@ -1260,7 +1436,7 @@ FilesystemUtil::FileDescriptor FilesystemUtil::open(
         }
       } break;
       default: {
-        BSLS_ASSERT_OPT(!"Unknown open policy");
+        BSLS_ASSERT_OPT(0 == "Unknown open policy");
       } break;
     }
 
@@ -1301,13 +1477,49 @@ int FilesystemUtil::close(FileDescriptor descriptor)
                                             : int(k_UNKNOWN_ERROR);
 }
 
-int FilesystemUtil::remove(const char *fileToRemove, bool recursive)
+int FilesystemUtil::remove(const char *path, bool recursive)
 {
-    BSLS_ASSERT(fileToRemove);
+    BSLS_ASSERT(path);
 
-    if (isDirectory(fileToRemove)) {
+    if (!*path) {
+        return -2;                                                    // RETURN
+    }
+
+    static const size_t    npos          = bsl::string::npos;
+    static const char      PS            = '\\';
+    bsl::string            sPath         = path;
+    const bsl::string_view slashDot      = "\\.";
+
+    // replace all '/'s with '\'s
+
+    bsl::replace(sPath.begin(), sPath.end(), '/', PS);
+
+    // Detect and eliminate trailing '\\'s and "\\."s and, if any were found,
+    // indicate that the deleted entity must be a directory.
+
+    bool isErrorIfNotDir = false;
+    for (;;) {
+        if (2 <= sPath.length() && PS == sPath.back()) {
+            // trim trailing '/'s
+
+            sPath.pop_back();
+            isErrorIfNotDir = true;
+        }
+        else if (3 <= sPath.length() &&
+                            slashDot == u::substr(sPath, sPath.length() - 2)) {
+            sPath.resize(sPath.length() - 2);
+            isErrorIfNotDir = true;
+        }
+        else {
+            break;
+        }
+    }
+
+    // transform all occurrences of '\.\' in the path with '\'
+
+    if (isDirectory(sPath.c_str())) {
         if (recursive) {
-            bsl::string pattern(fileToRemove);
+            bsl::string pattern(sPath);
             PathUtil::appendRaw(&pattern, "*");
             bsl::vector<bsl::string> children;
             findMatchingPaths(&children, pattern.c_str());
@@ -1315,14 +1527,17 @@ int FilesystemUtil::remove(const char *fileToRemove, bool recursive)
                  i < children.size();
                  ++i) {
                 if (0 != remove(children[i].c_str(), true)) {
-                    return -1;                                        // RETURN
+                    return -5;                                        // RETURN
                 }
             }
         }
-        return removeDirectory(fileToRemove);                         // RETURN
+        return removeDirectory(sPath.c_str()) ? -6 : 0;               // RETURN
+    }
+    else if (isErrorIfNotDir) {
+        return -7;                                                    // RETURN
     }
     else {
-        return removeFile(fileToRemove);                              // RETURN
+        return removeFile(sPath.c_str()) ? -8 : 0;                    // RETURN
     }
 }
 
@@ -1341,7 +1556,7 @@ FilesystemUtil::Offset FilesystemUtil::seek(FileDescriptor         descriptor,
         whence = FILE_END;
       } break;
       default: {
-        BSLS_ASSERT(!"Unknown from whence seeking");
+        BSLS_ASSERT(0 == "Unknown from whence seeking");
       } break;
     }
     LARGE_INTEGER li;
@@ -2202,76 +2417,158 @@ int FilesystemUtil::remove(const char *path, bool recursiveFlag)
 {
     BSLS_ASSERT(path);
 
-    if (isDirectory(path)) {
-        if (recursiveFlag) {
-            // What we'd LIKE to do here is findMatchingPaths("path/*") and
-            // delete each one.  But glob(), on which findMatchingPaths() is
-            // built, will not include the name of a symbolic link if there is
-            // no file attached.  Thus a bad link would prevent a directory
-            // from being removed.  So instead we must open and read the
-            // directory ourselves and remove everything that's not "." or
-            // "..", checking for directories (*without* following links) and
-            // recursing as necessary.
+    typedef FilesystemUtil ThisUtil;
 
-            DIR *dir = opendir(path);
-            if (0 == dir) {
-                return -1;                                            // RETURN
-            }
-            bslma::ManagedPtr<DIR> dirGuard(dir, 0, &invokeCloseDir);
+    // This function is declared as returing 0 on success and non-zero
+    // otherwise.  In practice, we return different non-zero values for every
+    // error condition.  These values are not part of the declared interface,
+    // intended to aid debugging only and may be changed by maintainers on a
+    // whim.
 
-            bsl::string workingPath = path;
+    if (!*path) {
+        return -2;                                                    // RETURN
+    }
 
-            // The amount of space available in the 'd_name' member of the
-            // dirent struct is apparently "implementation-defined" and in
-            // particular is allowed to be less than the maximum path length
-            // (!).  The very C-style way to fix this is to make sure that
-            // there's lots of extra space available at the end of the struct
-            // (d_name is always the last member) so that strcpy can happily
-            // copy into it without instigating a buffer overrun attack against
-            // us =)
+    static const size_t    npos               = bsl::string_view::npos;
+    static const char      PS                 = '/';
+    bsl::string            sPath              = path;
+    bsl::string            parent;
+    bsl::string            leaf;
+    bool                   foundParentAndLeaf = false;
+    bool                   isErrorIfNotDir    = false;
+    const bsl::string_view slashSlash         = "//";
+    const bsl::string_view slashDot           = "/.";
+    const bsl::string_view slashDotDot        = "/..";
 
-            enum { OVERFLOW_SIZE = 2048 };    // probably excessive, but it's
-                                              // just stack
-            union {
-                struct dirent d_entry;
-                char d_overflow[OVERFLOW_SIZE];
-            } entryHolder;
+    // replace all instances of "//" in the path with "/"
 
-            struct dirent& entry = entryHolder.d_entry;
-            struct dirent *entry_p;
-            StatResult dummy;
-            int rc;
-            do {
-#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-                rc = readdir_r(dir, &entry, &entry_p);
-#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-                if (0 != rc) {
-                    break;
-                }
+    for (size_t idx = 0; npos != (idx = sPath.find(slashSlash, idx)); ) {
+        sPath.erase(sPath.begin() + idx);
+    }
+    BSLS_ASSERT_OPT(npos == sPath.find(slashSlash));
 
-                if (shortIsDotOrDots(entry.d_name)) {
-                    continue;
-                }
+    // trim meaningless stuff off the end to help us identify paths ending with
+    // "/..".
 
-                PathUtil::appendRaw(&workingPath, entry.d_name);
-                if (0 == ::performStat(workingPath.c_str(), &dummy, false)
-                   && 0 != remove(workingPath.c_str(), true)) {
-                    return -1;                                        // RETURN
-                }
-                PathUtil::popLeaf(&workingPath);
-            } while (&entry == entry_p);
+    for (;;) {
+        if (2 <= sPath.length() && PS == sPath.back()) {
+            // trim trailing '/'s
+
+            sPath.pop_back();
+            isErrorIfNotDir = true;
         }
+        else if (3 <= sPath.length() &&
+                            slashDot == u::substr(sPath, sPath.length() - 2)) {
+            sPath.resize(sPath.length() - 2);
+            isErrorIfNotDir = true;
+        }
+        else {
+            break;
+        }
+    }
 
-        return removeDirectory(path);                                 // RETURN
+    if (3 < sPath.length() &&
+                         slashDotDot == u::substr(sPath, sPath.length() - 3)) {
+        // The path ends with "/..".  If the directory before that is a
+        // symlink, we have to resolve that symlink to see where the ".." then
+        // leads to and eventually find its parent.
+
+        // '::realpath' will do the following:
+        //: o If 'sPath' is relative, turn it to absolute.
+        //:
+        //: o Resolve the "/.." at the end (which may be tricky if the element
+        //:   before it is a symlink) and all "/./"s and "/../"s in the path.
+        //:
+        //: o Resolve all symlinks.
+
+        // Removing the symlinks is a potential security hole, since any of
+        // them may have been manipulated (or put there in the first place) by
+        // an attacker, but it's necessary in order to resolve a path that is
+        // or ends with "..".
+
+        char resolved[PATH_MAX + 1];    // large, but non-recursive stack
+        char *pc = ::realpath(sPath.c_str(), resolved);
+        if (!pc) {
+            return -3;                                                // RETURN
+        }
+        sPath           = resolved;
+        isErrorIfNotDir = true;
+    }
+    else if (npos == sPath.find(PS)) {
+        // 'sPath' is just a leaf.
+
+        parent             = ".";
+        leaf               = sPath;
+        foundParentAndLeaf = true;
+    }
+
+    if (!foundParentAndLeaf) {
+        if (  0 != PathUtil::getDirname(&parent, sPath.c_str())
+           || 0 != PathUtil::getLeaf(   &leaf,   sPath.c_str())) {
+            return -4;                                                // RETURN
+        }
+    }
+
+    // Note that 'parent' might be a symlink, and if so, we want to follow the
+    // symlink and open the directory it points to.  So we don't pass
+    // 'O_NOFOLLOW' to this 'open'.
+    //
+    // For example, if 'path' is '/home/wilbur/tmp.txt' where '/home/wilbur' is
+    // a symlink to '/home9/wilbur', we still want to wind up deleting
+    // '/home9/wilbur/tmp.txt'.
+    //
+    // Following this link is potentially another security hole, but it's
+    // unavoidable.
+
+    FileDescriptor parentFD = ::open(parent.c_str(),
+                                     O_RDONLY | O_DIRECTORY,
+                                     0);
+    if (-1 == parentFD) {
+        return -5;                                                    // RETURN
+    }
+    bslma::ManagedPtr<FileDescriptor> parentFDGuard(&parentFD,
+                                                    0,
+                                                    &invokeCloseFD);
+
+    // If 'leaf' is a symlink, we just want to delete the symlink, not what it
+    // points to, hence 'O_NOFOLLOW'.
+
+    FileDescriptor leafFD = ::openat(parentFD,
+                                     leaf.c_str(),
+                                     O_DIRECTORY | O_RDONLY | O_NOFOLLOW,
+                                     0);
+    if (-1 == leafFD) {
+        // It's a plain file, symlink, pipe, or socket -- we'll just delete it
+        // like a plain file.
+
+        if (isErrorIfNotDir) {
+            // 'isErrorIfNotDir' indicates that 'path' ended with '/' or "/.",
+            // which indicate that the client thought it was a directory, which
+            // is inconsistent and an error.
+
+            return -7;                                                // RETURN
+        }
     }
     else {
-        return removeFile(path);                                      // RETURN
+        // 'leaf' is a directory.
+
+        if (recursiveFlag) {
+            const int rc = u_removeContentsOfTree(leafFD);
+            if (0 != rc) {
+                return -100 + rc;                                     // RETURN
+            }
+
+            // 'u_removeContentsOfTree' closed 'leafFD'
+        }
+        else if (0 != ThisUtil::close(leafFD)) {
+            return -8;                                                // RETURN
+        }
     }
+
+    const int flag = -1 != leafFD ? AT_REMOVEDIR : 0;
+    return ::unlinkat(parentFD, leaf.c_str(), flag)
+           ? -13
+           : 0;
 }
 
 int FilesystemUtil::read(FileDescriptor descriptor, void *buffer, int numBytes)

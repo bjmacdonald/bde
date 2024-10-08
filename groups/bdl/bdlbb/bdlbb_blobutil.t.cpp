@@ -1,13 +1,5 @@
 // bdlbb_blobutil.t.cpp                                               -*-C++-*-
-
 #include <bdlbb_blobutil.h>
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
 
 #include <bdlbb_blob.h>
 #include <bdlbb_simpleblobbufferfactory.h>
@@ -28,21 +20,31 @@
 #include <bsls_review.h>
 #include <bsls_types.h>
 
-#include <bsl_climits.h>     // 'INT_MIN'
+#include <bsl_climits.h>     // `INT_MIN`
 #include <bsl_cstddef.h>
-#include <bsl_cstdlib.h>     // 'atoi'
-#include <bsl_cstring.h>     // 'memcpy'
+#include <bsl_cstdlib.h>     // `atoi`
+#include <bsl_cstring.h>     // `memcpy`
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
 
 using namespace BloombergLP;
-using namespace bsl;  // automatically added by script
+using namespace bsl;
 
 //=============================================================================
 //                                  TEST PLAN
 //-----------------------------------------------------------------------------
+// [19] BlobUtilAsciiDumper(const Blob *blob);
+// [19] BlobUtilAsciiDumper(const Blob *blob, int length);
+// [19] BlobUtilAsciiDumper(const Blob *blob, int offset, int length);
+// [19] bsl::ostream& operator<<(ostream&, const BlobUtilAsciiDumper&);
+// [18] bsl::ostream& asciiDump(bsl::ostream& stream, const Blob& source);
+// [18] bsl::ostream& asciiDump(bsl::ostream&, const Blob&, int, int);
+// [17] BlobUtilHexDumper(const Blob *blob);
+// [17] BlobUtilHexDumper(const Blob *blob, int length);
+// [17] BlobUtilHexDumper(const Blob *blob, int offset, int length);
+// [17] bsl::ostream& operator<<(bsl::ostream&, const BlobUtilHexDumper&);
 // [16] void append(int length, char fill);
 // [15] void prependWithCapacityBuffer(Blob*,BlobBuffer*,const char*,int);
 // [14] void appendWithCapacityBuffer(Blob*,BlobBuffer*,const char*,int);
@@ -66,7 +68,7 @@ using namespace bsl;  // automatically added by script
 // [ 2] Testing compare
 // [ 1] Testing "write special cases"
 //-----------------------------------------------------------------------------
-// [11] CONCERN: append doesn't do excessive 'reserveBufferCapacity'.
+// [11] CONCERN: append doesn't do excessive `reserveBufferCapacity`.
 //-----------------------------------------------------------------------------
 
 // ============================================================================
@@ -131,10 +133,10 @@ void aSsErT(bool condition, const char *message, int line)
                          // class BlobBufferFactory
                          // =======================
 
+/// This `class` is just like a `SimpleBlobBufferFactory` except that it
+/// initializes the first byte of each blob buffer to '#' and counts the
+/// number of the `allocate` function calls.
 class BlobBufferFactory : public bdlbb::BlobBufferFactory {
-    // This 'class' is just like a 'SimpleBlobBufferFactory' except that it
-    // initializes the first byte of each blob buffer to '#' and counts the
-    // number of the 'allocate' function calls.
 
     // PRIVATE DATA
     int               d_numAllocateCalls;
@@ -155,12 +157,12 @@ class BlobBufferFactory : public bdlbb::BlobBufferFactory {
     {
     }
 
-    virtual ~BlobBufferFactory()
+    ~BlobBufferFactory() BSLS_KEYWORD_OVERRIDE
     {
     }
 
     // MANIPULATORS
-    virtual void allocate(bdlbb::BlobBuffer *buffer)
+    void allocate(bdlbb::BlobBuffer *buffer) BSLS_KEYWORD_OVERRIDE
     {
         ++d_numAllocateCalls;
         bsl::shared_ptr<char> shptr((char*)d_allocator_p->allocate(d_size),
@@ -180,8 +182,8 @@ class BlobBufferFactory : public bdlbb::BlobBufferFactory {
         return d_size;
     }
 
+    /// Return how many times the `allocate` function was called.
     int numAllocateCalls() const
-        // Return how many times the 'allocate' function was called.
     {
         return d_numAllocateCalls;
     }
@@ -191,10 +193,10 @@ class BlobBufferFactory : public bdlbb::BlobBufferFactory {
                          // class BlobBufferFactory
                          // =======================
 
+/// This `class` is just like a `SimpleBlobBufferFactory` except that half
+/// the blob buffers it creates will have zero length and a null data
+/// pointer.
 class MaliciousBlobBufferFactory : public bdlbb::BlobBufferFactory {
-    // This 'class' is just like a 'SimpleBlobBufferFactory' except that half
-    // the blob buffers it creates will have zero length and a null data
-    // pointer.
 
     // PRIVATE DATA
     int               d_size;
@@ -207,6 +209,13 @@ class MaliciousBlobBufferFactory : public bdlbb::BlobBufferFactory {
 
   public:
     // CREATORS
+
+    /// Create a malicious blob buffer factory where the non-zero buffers
+    /// will have the specified size `initialSize`.  If the specified
+    /// `firstBufferZero` is true, make the first buffer of 0 length and
+    /// every other buffer as well.  If `firstBufferZero` is false, make
+    /// the second buffer zero, and every other buffer after that.  Use
+    /// the specified `basicAllocator` for memory.
     explicit
     MaliciousBlobBufferFactory(int               initialSize,
                                bool              firstBufferZero,
@@ -214,12 +223,6 @@ class MaliciousBlobBufferFactory : public bdlbb::BlobBufferFactory {
     : d_size(initialSize)
     , d_zeroBuffer(firstBufferZero)
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
-        // Create a malicious blob buffer factory where the non-zero buffers
-        // will have the specified size 'initialSize'.  If the specified
-        // 'firstBufferZero' is true, make the first buffer of 0 length and
-        // every other buffer as well.  If 'firstBufferZero' is false, make
-        // the second buffer zero, and every other buffer after that.  Use
-        // the specified 'basicAllocator' for memory.
     {
     }
 
@@ -269,7 +272,7 @@ int veryVerbose;
 int veryVeryVerbose;
 
 //=============================================================================
-//              GENERATOR FUNCTIONS 'g' AND 'gg' FOR TESTING
+//              GENERATOR FUNCTIONS `g` AND `gg` FOR TESTING
 //-----------------------------------------------------------------------------
 // The following functions generate a string of repeating characters in the
 // range [a-z] of a specified length.
@@ -281,10 +284,10 @@ enum FillType {
 
 int ggg(bsl::string *result, int length, FillType fill = e_LETTERS)
 {
-    // Clear the specified 'result' and append a subset of the string
+    // Clear the specified `result` and append a subset of the string
     // "abcdefghijklmnopqrstuvwxyz" or "0123456789", repeating the pattern
-    // until the total length of 'result' reaches the specified 'length'.
-    // Optionally specify 'fill' to choose either letters or digits.
+    // until the total length of `result` reaches the specified `length`.
+    // Optionally specify `fill` to choose either letters or digits.
 
     static const char letters[] = "abcdefghijklmnopqrstuvwxyz";
     static const char digits[]  = "0123456789";
@@ -307,8 +310,8 @@ int ggg(bsl::string *result, int length, FillType fill = e_LETTERS)
 
 bsl::string& gg(bsl::string *result, int length, FillType fill = e_LETTERS)
 {
-    // Return, by reference, the specified 'result' with its value adjusted
-    // according to the specified 'length' and 'fill'.
+    // Return, by reference, the specified `result` with its value adjusted
+    // according to the specified `length` and `fill`.
 
     ASSERT(0 == ggg(result, length, fill));
     return *result;
@@ -316,8 +319,8 @@ bsl::string& gg(bsl::string *result, int length, FillType fill = e_LETTERS)
 
 bsl::string g(int length, FillType fill = e_LETTERS)
 {
-    // Return, by value, a new object corresponding to the specified 'length'
-    // and 'fill'.
+    // Return, by value, a new object corresponding to the specified `length`
+    // and `fill`.
 
     bsl::string object;
     return gg(&object, length, fill);
@@ -335,11 +338,13 @@ void copyStringToBlob(bdlbb::Blob *dest, const bsl::string& str)
     int         bufferIndex       = 0;
     while (numBytesRemaining) {
         bdlbb::BlobBuffer buffer         = dest->buffer(bufferIndex);
-        int               numBytesToCopy =
-                                    bsl::min(numBytesRemaining, buffer.size());
-        bsl::memcpy(buffer.data(), data, numBytesToCopy);
-        data += numBytesToCopy;
-        numBytesRemaining -= numBytesToCopy;
+
+        if (0 != buffer.size()) {
+            int numBytesToCopy = bsl::min(numBytesRemaining, buffer.size());
+            bsl::memcpy(buffer.data(), data, numBytesToCopy);
+            data += numBytesToCopy;
+            numBytesRemaining -= numBytesToCopy;
+        }
         ++bufferIndex;
     }
     ASSERT(0 == numBytesRemaining);
@@ -471,16 +476,16 @@ static bool bad_jk(int j, int k, bdlbb::Blob& blob)
 namespace {
 namespace u {
 
+/// Check, with `ASSERT`, that the first specified `prevSize` bytes in the
+/// specified `dst` have the specified value `otherChar`, and that any
+/// remaining bytes, if any, have the specified value `fillChar`.  The
+/// behavior is undefined unless all the buffers in the blob are of
+/// specified size `blobBufferSize`.
 void checkBlob(const bdlbb::Blob& dst,
                int                blobBufferSize,
                int                prevSize,
                char               otherChar,
                char               fillChar)
-    // Check, with 'ASSERT', that the first specified 'prevSize' bytes in the
-    // specified 'dst' have the specified value 'otherChar', and that any
-    // remaining bytes, if any, have the specified value 'fillChar'.  The
-    // behavior is undefined unless all the buffers in the blob are of
-    // specified size 'blobBufferSize'.
 {
     ASSERT(0 < blobBufferSize);
     ASSERT(0 <= prevSize);
@@ -496,14 +501,14 @@ void checkBlob(const bdlbb::Blob& dst,
     }
 }
 
+/// Check, with `ASSERT`, that the first specified `prevSize` bytes in the
+/// specified `dst` have the specified value `otherChar`, and that any
+/// remaining bytes, if any, have the specified value `fillChar`.  There
+/// is no constraint on blob buffer sizes.
 void checkVariableBlob(const bdlbb::Blob& dst,
                        int                prevSize,
                        char               otherChar,
                        char               fillChar)
-    // Check, with 'ASSERT', that the first specified 'prevSize' bytes in the
-    // specified 'dst' have the specified value 'otherChar', and that any
-    // remaining bytes, if any, have the specified value 'fillChar'.  There
-    // is no constraint on blob buffer sizes.
 {
     ASSERT(0 <= prevSize);
 
@@ -514,7 +519,7 @@ void checkVariableBlob(const bdlbb::Blob& dst,
 
         const char *buf = buffer.data();
 
-        // 'ii' in this index in the blob of 'buf[0]'.
+        // `ii` in this index in the blob of `buf[0]`.
 
         bufLen = bsl::min(buffer.size(), dst.length() - ii);
         const int mid = bsl::max(0, bsl::min(prevSize - ii, bufLen));
@@ -526,12 +531,12 @@ void checkVariableBlob(const bdlbb::Blob& dst,
     }
 }
 
+/// Return `true` if the specified `lhs` and `rhs` are basically equal and
+/// `false` otherwise.  Two blobs are basically equal when all their
+/// parameters are exactly the same, except that the `BlobBuffer` pointers
+/// can point to different shared buffers.  This function is used instead of
+/// equality comparison operator in tests of move-insertion functions.
 bool areBlobsBasicallyEqual(const Blob& lhs, const Blob& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' are basically equal and
-    // 'false' otherwise.  Two blobs are basically equal when all their
-    // parameters are exactly the same, except that the 'BlobBuffer' pointers
-    // can point to different shared buffers.  This function is used instead of
-    // equality comparison operator in tests of move-insertion functions.
 {
     if (lhs.totalSize()            != rhs.totalSize() ||
         lhs.length()               != rhs.length() ||
@@ -564,44 +569,640 @@ int main(int argc, char *argv[])
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
-    // CONCERN: 'BSLS_REVIEW' failures should lead to test failures.
+    // CONCERN: `BSLS_REVIEW` failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
     switch (test) { case 0:
-      case 16: {
+      case 19: {
         // --------------------------------------------------------------------
-        // TESTING 'append' WITH SINGLE CHAR FILL
+        // TESTING `BlobUtilAsciiDumper`
         //
         // Concerns:
-        //: 1 That the single-char fill overload of 'append' works as
-        //:   documented.
+        // 1. The three and two parameter constructors accept any positive
+        //    length and offset values (even exceeding blob length).
+        //
+        // 2. The one-parameter constructor sets the size of the blob as the
+        //    number of bytes to output.
+        //
+        // 3. The output operator calculates the number of bytes to output as
+        //    the lesser of the length passed and the difference between the
+        //    blob size and the offset.
+        //
+        // 4. No memory is allocated by constructors.
+        //
+        // 5. The output `operator<<`s signature and return type are standard.
+        //
+        // 6. The output `operator<<` returns the destination `ostream`.
+        //
+        // 7. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Iterate through different values of 'BUFFER_SIZE', 'PRE_SIZE',
-        //:   and 'APPEND_LENGTH'.
-        //:
-        //: 2 Create a factory that creates buffers of uniform size
-        //:   'BUFFER_SIZE'.
-        //:
-        //: 3 Randomly choose two not equal character values 'preFillChar' and
-        //:   'appendChar'.
-        //:
-        //: 4 Create a blob using the factory, make it 'PRE_SIZE' long, and
-        //:   filled with 'preFillChar'.
-        //:
-        //: 5 Call 'BlobUtil::append(APPEND_LENGTH, appendChar)'.
-        //:
-        //: 6 Verify the length of the blob is 'PRE_SIZE + APPEND_LENGTH'.
-        //:
-        //: 7 Call 'u::checkBlob' to confirm that the blob contains 'PRE_SIZE'
-        //:   bytes of 'preFillChar' followed by 'APPEND_LENGTH' bytes of
-        //:   'appendChar'.
+        // 1. Create several objects, passing different values as arguments.
+        //    Verify object values through direct access to the object fields.
+        //    Verify that no additional memory is allocated.  (C-1..2, 4)
+        //
+        // 2. Use the address of `operator<<` to initialize a function pointer
+        //    having the appropriate signature and return type for the
+        //    output operator defined in this component.  (C-5..6)
+        //
+        // 3. Create bdlbb::Blob' object, pass it to the `BlobUtilAsciiDumper`
+        //    constructor and output the resulting object using output stream
+        //    operator.  Compare the result with the result of the `asciiDump`
+        //    function call for the same `Blob` object.  (C-3)
+        //
+        // 4. Verify that, in appropriate build modes, defensive checks are
+        //    triggered for invalid constructor arguments, but not triggered
+        //    for valid ones (using the `BSLS_ASSERTTEST_*` macros). (C-7)
+        //
+        // Testing:
+        //   BlobUtilAsciiDumper(const Blob *blob);
+        //   BlobUtilAsciiDumper(const Blob *blob, int length);
+        //   BlobUtilAsciiDumper(const Blob *blob, int offset, int length);
+        //   bsl::ostream& operator<<(ostream&, const BlobUtilAsciiDumper&);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nTESTING `BlobUtilAsciiDumper`"
+                             "\n=============================" << endl;
+
+        if (verbose) cout << "\tTesting constructors" << endl;
+        {
+            bslma::TestAllocator         oa("object",  veryVeryVerbose);
+            bslma::TestAllocator         da("default", veryVeryVerbose);
+            bslma::DefaultAllocatorGuard dag(&da);
+
+            const int BUFFER_SIZE = 8;
+            const int BLOBS_NUM   = 3;
+            bdlbb::SimpleBlobBufferFactory factory(BUFFER_SIZE, &oa);
+            bsl::vector<bdlbb::Blob> blobs(&oa);
+            for (int i = 0; i < BLOBS_NUM; ++i) {
+                bdlbb::Blob blob(&factory, &oa);
+                blob.setLength(i * BUFFER_SIZE);
+                blobs.push_back(bslmf::MovableRefUtil::move(blob));
+            }
+
+            for (int blobIndex = 0; blobIndex < BLOBS_NUM; ++blobIndex) {
+                const bdlbb::Blob *BLOB = &blobs[blobIndex];
+                for (int length = 0; length <= BLOBS_NUM; ++length) {
+                    const int LENGTH = length * BUFFER_SIZE;
+                    for (int offset = 0; offset <= BLOBS_NUM; ++offset) {
+                        const int OFFSET     = offset * BUFFER_SIZE;
+
+                        if (veryVerbose) {
+                             P_(blobIndex) P_(LENGTH) P(OFFSET)
+                        }
+
+                        // Testing a constructor with three parameters.
+                        bdlbb::BlobUtilAsciiDumper mX(BLOB, OFFSET, LENGTH);
+
+                        ASSERTV(BLOB   == mX.d_blob_p);
+                        ASSERTV(OFFSET == mX.d_offset);
+                        ASSERTV(LENGTH == mX.d_length);
+                    }
+
+                    {
+                        if (veryVerbose) {
+                             P_(blobIndex) P(LENGTH)
+                        }
+
+                        // Testing a constructor with two parameters.
+                        bdlbb::BlobUtilAsciiDumper mX(BLOB, LENGTH);
+
+                        ASSERTV(BLOB   == mX.d_blob_p);
+                        ASSERTV(0      == mX.d_offset);
+                        ASSERTV(LENGTH == mX.d_length);
+
+                    }
+                }
+
+                {
+                    if (veryVerbose) {
+                        P(blobIndex)
+                    }
+
+                    // Testing a constructor with one parameter.
+                    bdlbb::BlobUtilAsciiDumper mX(BLOB);
+
+                    ASSERTV(BLOB           == mX.d_blob_p);
+                    ASSERTV(0              == mX.d_offset);
+                    ASSERTV(BLOB->length() == mX.d_length);
+
+                }
+            }
+
+            ASSERT(0 == da.numBytesTotal());
+        }
+
+        if (verbose)
+            cout << "\tVerifying signature and return value of stream "
+                    "operator."
+                 << endl;
+        {
+            typedef std::ostream& (*operatorPtr)(
+                                            std::ostream&,
+                                            const bdlbb::BlobUtilAsciiDumper&);
+
+            // Verify that the signatures and return types are standard.
+
+            operatorPtr operatorOut = bdlbb::operator<<;
+
+            (void)operatorOut; // quash potential compiler warnings
+        }
+
+        if (verbose) cout << "\tTesting stream insertion operator" << endl;
+        {
+            bdlbb::SimpleBlobBufferFactory  factory(5);
+            bdlbb::Blob                     blob(&factory);
+            const char                     *TEST_STR =
+                                    "abcdef 1abcdef 2abcdef 3abcdef 4abcdef 5"
+                                    "abcdef 6abcdef 7abcdef 8abcdef 9abcde 10";
+
+            copyStringToBlob(&blob, TEST_STR);
+            const int BLOB_LENGTH = blob.length();
+
+            for (int length = 0; length <= BLOB_LENGTH + 1; ++length) {
+                const int LENGTH = length;
+                for (int offset = 0; offset <= BLOB_LENGTH + 1; ++offset ) {
+                    const int OFFSET = offset;
+                    const int EXP_OFFSET = OFFSET < BLOB_LENGTH
+                                         ? OFFSET
+                                         : BLOB_LENGTH;
+                    const int EXP_LENGTH = LENGTH < BLOB_LENGTH - EXP_OFFSET
+                                         ? LENGTH
+                                         : BLOB_LENGTH - EXP_OFFSET;
+
+                    if (veryVerbose) {
+                        P_(LENGTH) P(OFFSET)
+                    }
+
+                    bsl::stringstream  outModel;
+                    bsl::stringstream  out;
+                    bsl::ostream      *mR = 0;
+
+                    bdlbb::BlobUtil::asciiDump(outModel,
+                                               blob,
+                                               EXP_OFFSET,
+                                               EXP_LENGTH);
+
+                    mR = &(out << bdlbb::BlobUtilAsciiDumper(&blob,
+                                                           OFFSET,
+                                                           LENGTH));
+
+                    ASSERTV(&out == mR);
+                    ASSERTV(outModel.str() == out.str());
+                }
+            }
+        }
+
+        if (verbose) cout << "\tNegative testing." << endl;
+        {
+            bsls::AssertTestHandlerGuard hG;
+
+            BlobBufferFactory factory(1);
+            bdlbb::Blob       blob(&factory);
+            blob.setLength(1);
+            bsl::stringstream out;
+
+            ASSERT_PASS(bdlbb::BlobUtilAsciiDumper(&blob,  0,  1));
+            ASSERT_FAIL(bdlbb::BlobUtilAsciiDumper(&blob, -1,  1));
+            ASSERT_FAIL(bdlbb::BlobUtilAsciiDumper(&blob,  0, -1));
+
+            ASSERT_PASS(bdlbb::BlobUtilAsciiDumper(&blob,  1));
+            ASSERT_FAIL(bdlbb::BlobUtilAsciiDumper(&blob, -1));
+        }
+      } break;
+      case 18: {
+        // --------------------------------------------------------------------
+        // TESTING `asciiDump`
+        //
+        // Concerns:
+        // 1. The `asciiDump` streams out data in accordance with the requested
+        //    offset and length.
+        //
+        // 2. The `asciiDump` correctly handles empty data buffers.
+        //
+        // 3. No memory is allocated during streaming.
+        //
+        // 4. QoI: Asserted precondition violations are detected when enabled.
+        //
+        // Plan:
+        // 1. Using loop-based approach create several various blobs and
+        //    stream them out using `asciiDump` and passing various offsets and
+        //    lengths.  Verify the result.  Verify that no additional memory is
+        //    allocated.
+        //
+        // 2. Create a blob containing empty data buffers and stream it out
+        //    using `asciiDump` and passing various offsets and lengths.
+        //    Verify the result.  Verify that no additional memory is
+        //    allocated.  (C-1..3)
+        //
+        // 3. Verify that, in appropriate build modes, defensive checks are
+        //    triggered for invalid constructor arguments, but not triggered
+        //    for valid ones (using the `BSLS_ASSERTTEST_*` macros). (C-4)
+        //
+        // Testing:
+        //   bsl::ostream& asciiDump(bsl::ostream& stream, const Blob& source);
+        //   bsl::ostream& asciiDump(bsl::ostream&, const Blob&, int, int);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nTESTING `asciiDump`"
+                          << "\n===================" << endl;
+
+        enum { k_BUF_SIZE = 2048 };
+
+        bslma::TestAllocator         da("default", veryVeryVerbose);
+        bslma::DefaultAllocatorGuard dag(&da);
+
+        const char *STR_DATA = "abcdef 1abcdef 2abcdef 3abcdef 4abcdef 5";
+
+        const int                      BUFFER_SIZE     = 8;
+        const int                      MAX_NUM_BUFFERS = 5;
+        bdlbb::SimpleBlobBufferFactory factory(BUFFER_SIZE);
+
+        if (verbose) cout << "\tTest basic behavior." << endl;
+        for (int i = 0; i < MAX_NUM_BUFFERS; ++i) {
+            const int         NUM_BUFFERS = i;
+            const int         STR_LENGTH  = NUM_BUFFERS * BUFFER_SIZE;
+            const bsl::string TEST_STR(STR_DATA, STR_LENGTH);
+
+            bdlbb::Blob myBlob(&factory);
+            bdlbb::Blob modelBlob(&factory);
+
+            copyStringToBlob(&myBlob,    TEST_STR);
+            copyStringToBlob(&modelBlob, TEST_STR);
+
+            ASSERT(NUM_BUFFERS == myBlob.numDataBuffers());
+
+            // Testing overload with 2 parameters.
+            {
+                char                        buf[k_BUF_SIZE];
+                bdlsb::FixedMemOutStreamBuf obuf(buf, sizeof buf);
+                bsl::ostream                out(&obuf);
+
+                // Action.
+                ASSERT(&out == &bdlbb::BlobUtil::asciiDump(out, myBlob));
+
+                ASSERTV(STR_LENGTH, obuf.length(),
+                        STR_LENGTH == obuf.length());
+                ASSERTV(buf, 0 == strncmp(buf, STR_DATA, STR_LENGTH));
+            }
+
+            // Testing overload with 4 parameters.
+            for (int offset = 0; offset <= STR_LENGTH; offset += 4) {
+                const int OFFSET    = offset;
+                const int REMAINDER = STR_LENGTH - OFFSET;
+
+                for (int length = 0; length <= REMAINDER; length += 4) {
+                    const int LENGTH = length;
+
+                    char                        buf[k_BUF_SIZE];
+                    bdlsb::FixedMemOutStreamBuf obuf(buf, sizeof buf);
+                    bsl::ostream                out(&obuf);
+
+                    const bsls::Types::Int64 NUM_BYTES_TOTAL =
+                                                        da.numBytesTotal();
+
+                    ASSERTV(NUM_BUFFERS, OFFSET, LENGTH,
+                            0 == bdlbb::BlobUtil::compare(modelBlob, myBlob));
+
+                    // Action.
+                    ASSERTV(NUM_BUFFERS, OFFSET, LENGTH,
+                            &out == &bdlbb::BlobUtil::asciiDump(out,
+                                                                myBlob,
+                                                                OFFSET,
+                                                                LENGTH));
+
+                    ASSERTV(NUM_BUFFERS, OFFSET, LENGTH,
+                            0 == bdlbb::BlobUtil::compare(modelBlob, myBlob));
+                    ASSERTV(NUM_BUFFERS, OFFSET, LENGTH,
+                            NUM_BYTES_TOTAL == da.numBytesTotal());
+                    ASSERTV(NUM_BUFFERS, OFFSET, LENGTH, obuf.length(),
+                            LENGTH == obuf.length());
+                    ASSERTV(NUM_BUFFERS, OFFSET, LENGTH,
+                            0 == strncmp(buf, STR_DATA + OFFSET, LENGTH));
+                }
+            }
+        }
+
+        if (verbose) cout << "\tTest blob with empty data buffers." << endl;
+        {
+            bdlbb::Blob             myBlob(&factory);
+            const bdlbb::BlobBuffer emptyBuffer;
+            myBlob.appendDataBuffer(emptyBuffer);
+
+            // Filling the blob.
+
+            for (int i = 0; i < MAX_NUM_BUFFERS; ++i) {
+                bdlbb::BlobBuffer buffer;
+                factory.allocate(&buffer);
+                ASSERT(BUFFER_SIZE == buffer.size());
+                bsl::memcpy(buffer.data(),
+                            STR_DATA + i * BUFFER_SIZE,
+                            BUFFER_SIZE);
+                myBlob.appendDataBuffer(MoveUtil::move(buffer));
+                myBlob.appendDataBuffer(emptyBuffer);
+            }
+
+            ASSERTV(myBlob.numDataBuffers(),
+                    MAX_NUM_BUFFERS * 2 + 1 == myBlob.numDataBuffers());
+
+            const int STR_LENGTH  = MAX_NUM_BUFFERS * BUFFER_SIZE;
+
+            // Testing overload with 2 parameters.
+            {
+                char                        buf[k_BUF_SIZE];
+                bdlsb::FixedMemOutStreamBuf obuf(buf, sizeof buf);
+                bsl::ostream                out(&obuf);
+
+                // Action.
+                ASSERT(&out == &bdlbb::BlobUtil::asciiDump(out, myBlob));
+
+                ASSERTV(STR_LENGTH, obuf.length(),
+                        STR_LENGTH == obuf.length());
+                ASSERTV(buf, 0 == strncmp(buf, STR_DATA, STR_LENGTH));
+            }
+
+            // Testing overload with 4 parameters.
+            for (int offset = 0; offset <= STR_LENGTH; offset += 4) {
+                const int OFFSET    = offset;
+                const int REMAINDER = STR_LENGTH - OFFSET;
+
+                for (int length = 0; length <= REMAINDER; length += 4) {
+                    const int LENGTH = length;
+
+                    char                        buf[k_BUF_SIZE];
+                    bdlsb::FixedMemOutStreamBuf obuf(buf, sizeof buf);
+                    bsl::ostream                out(&obuf);
+
+                    const bsls::Types::Int64 NUM_BYTES_TOTAL =
+                                                        da.numBytesTotal();
+
+                    // Action.
+                    ASSERTV(OFFSET, LENGTH,
+                            &out == &bdlbb::BlobUtil::asciiDump(out,
+                                                                myBlob,
+                                                                OFFSET,
+                                                                LENGTH));
+
+                    ASSERTV(OFFSET, LENGTH,
+                            NUM_BYTES_TOTAL == da.numBytesTotal());
+                    ASSERTV(OFFSET, LENGTH, obuf.length(),
+                            LENGTH == obuf.length());
+                    ASSERTV(OFFSET, LENGTH,
+                            0 == strncmp(buf, STR_DATA + OFFSET, LENGTH));
+                }
+            }
+        }
+
+        if (verbose) cout << "\tNegative testing" << endl;
+        {
+            bsls::AssertTestHandlerGuard hG;
+
+            const int BLOB_BUFFER_SIZE = 2;
+
+            bdlbb::SimpleBlobBufferFactory factory(BLOB_BUFFER_SIZE);
+            bdlbb::Blob                    blob(&factory);
+
+            ASSERTV(0 == blob.length());
+
+            bsl::stringstream os;
+
+            ASSERT_PASS(bdlbb::BlobUtil::asciiDump(os, blob,  0,  0));
+            ASSERT_FAIL(bdlbb::BlobUtil::asciiDump(os, blob,  0, -1));
+            ASSERT_FAIL(bdlbb::BlobUtil::asciiDump(os, blob, -1,  0));
+
+            ASSERT_FAIL(bdlbb::BlobUtil::asciiDump(os, blob,  0,  1));
+            ASSERT_FAIL(bdlbb::BlobUtil::asciiDump(os, blob,  1,  0));
+        }
+      } break;
+      case 17: {
+        // --------------------------------------------------------------------
+        // TESTING `BlobUtilHexDumper`
+        //
+        // Concerns:
+        // 1. The three and two parameter constructors accept any positive
+        //    length and offset values (even exceeding blob length).
+        //
+        // 2. The one-parameter constructor sets the size of the blob as the
+        //    number of bytes to output.
+        //
+        // 3. The output operator calculates the number of bytes to output as
+        //    the lesser of the length passed and the difference between the
+        //    blob size and the offset.
+        //
+        // 4. No memory is allocated by constructors.
+        //
+        // 5. The output `operator<<`s signature and return type are standard.
+        //
+        // 6. The output `operator<<` returns the destination `ostream`.
+        //
+        // 7. QoI: Asserted precondition violations are detected when enabled.
+        //
+        // Plan:
+        // 1. Create several objects, passing different values as arguments.
+        //    Verify object values through direct access to the object fields.
+        //    Verify that no additional memory is allocated.  (C-1..2, 4)
+        //
+        // 2. Use the address of `operator<<` to initialize a function pointer
+        //    having the appropriate signature and return type for the
+        //    output operator defined in this component.  (C-5..6)
+        //
+        // 3. Create bdlbb::Blob' object, pass it to the `BlobUtilHexDumper`
+        //    constructor and output the resulting object using output stream
+        //    operator.  Compare the result with the result of the `hexDump`
+        //    function call for the same `Blob` object.  (C-3)
+        //
+        // 4. Verify that, in appropriate build modes, defensive checks are
+        //    triggered for invalid constructor arguments, but not triggered
+        //    for valid ones (using the `BSLS_ASSERTTEST_*` macros). (C-7)
+        //
+        // Testing:
+        //   BlobUtilHexDumper(const Blob *blob);
+        //   BlobUtilHexDumper(const Blob *blob, int offset, int length);
+        //   bsl::ostream& operator<<(bsl::ostream&, const BlobUtilHexDumper&);
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "TESTING `BlobUtilHexDumper`\n"
+                             "===========================\n";
+
+        if (verbose) cout << "\tTesting constructors\n";
+        {
+            bslma::TestAllocator         oa("object",  veryVeryVerbose);
+            bslma::TestAllocator         da("default", veryVeryVerbose);
+            bslma::DefaultAllocatorGuard dag(&da);
+
+            const int BUFFER_SIZE = 8;
+            const int BLOBS_NUM   = 3;
+            bdlbb::SimpleBlobBufferFactory factory(BUFFER_SIZE, &oa);
+            bsl::vector<bdlbb::Blob> blobs(&oa);
+            for (int i = 0; i < BLOBS_NUM; ++i) {
+                bdlbb::Blob blob(&factory, &oa);
+                blob.setLength(i * BUFFER_SIZE);
+                blobs.push_back(bslmf::MovableRefUtil::move(blob));
+            }
+
+            for (int blobIndex = 0; blobIndex < BLOBS_NUM; ++blobIndex) {
+                const bdlbb::Blob *BLOB = &blobs[blobIndex];
+                for (int length = 0; length <= BLOBS_NUM; ++length) {
+                    const int LENGTH = length * BUFFER_SIZE;
+                    for (int offset = 0; offset <= BLOBS_NUM; ++offset) {
+                        const int OFFSET     = offset * BUFFER_SIZE;
+
+                        if (veryVerbose) {
+                             P_(blobIndex) P_(LENGTH) P(OFFSET)
+                        }
+
+                        // Testing a constructor with three parameters.
+                        bdlbb::BlobUtilHexDumper mX(BLOB, OFFSET, LENGTH);
+
+                        ASSERTV(BLOB   == mX.d_blob_p);
+                        ASSERTV(OFFSET == mX.d_offset);
+                        ASSERTV(LENGTH == mX.d_length);
+                    }
+
+                    {
+                        if (veryVerbose) {
+                             P_(blobIndex) P(LENGTH)
+                        }
+
+                        // Testing a constructor with two parameters.
+                        bdlbb::BlobUtilHexDumper mX(BLOB, LENGTH);
+
+                        ASSERTV(BLOB   == mX.d_blob_p);
+                        ASSERTV(0      == mX.d_offset);
+                        ASSERTV(LENGTH == mX.d_length);
+
+                    }
+                }
+
+                {
+                    if (veryVerbose) {
+                        P(blobIndex)
+                    }
+
+                    // Testing a constructor with one parameter.
+                    bdlbb::BlobUtilHexDumper mX(BLOB);
+
+                    ASSERTV(BLOB           == mX.d_blob_p);
+                    ASSERTV(0              == mX.d_offset);
+                    ASSERTV(BLOB->length() == mX.d_length);
+
+                }
+            }
+
+            ASSERT(0 == da.numBytesTotal());
+        }
+
+        if (verbose)
+            printf("\tVerifying signature and return value of stream "
+                   "operator.\n");
+        {
+            typedef std::ostream& (*operatorPtr)(
+                                              std::ostream&,
+                                              const bdlbb::BlobUtilHexDumper&);
+
+            // Verify that the signatures and return types are standard.
+
+            operatorPtr operatorOut = bdlbb::operator<<;
+
+            (void)operatorOut; // quash potential compiler warnings
+        }
+
+        if (verbose) cout << "\tTesting stream insertion operator\n";
+        {
+            bdlbb::SimpleBlobBufferFactory  factory(5);
+            bdlbb::Blob                     blob(&factory);
+            const char                     *TEST_STR =
+                                    "abcdef 1abcdef 2abcdef 3abcdef 4abcdef 5"
+                                    "abcdef 6abcdef 7abcdef 8abcdef 9abcde 10";
+
+            copyStringToBlob(&blob, TEST_STR);
+            const int BLOB_LENGTH = blob.length();
+
+            for (int length = 0; length <= BLOB_LENGTH + 1; ++length) {
+                const int LENGTH = length;
+                for (int offset = 0; offset <= BLOB_LENGTH + 1; ++offset ) {
+                    const int OFFSET = offset;
+                    const int EXP_OFFSET = OFFSET < BLOB_LENGTH
+                                         ? OFFSET
+                                         : BLOB_LENGTH;
+                    const int EXP_LENGTH = LENGTH < BLOB_LENGTH - EXP_OFFSET
+                                         ? LENGTH
+                                         : BLOB_LENGTH - EXP_OFFSET;
+
+                    if (veryVerbose) {
+                        P_(LENGTH) P(OFFSET)
+                    }
+
+                    bsl::stringstream  outModel;
+                    bsl::stringstream  out;
+                    bsl::ostream      *mR = 0;
+
+                    bdlbb::BlobUtil::hexDump(outModel,
+                                             blob,
+                                             EXP_OFFSET,
+                                             EXP_LENGTH);
+
+                    mR = &(out << bdlbb::BlobUtilHexDumper(&blob,
+                                                           OFFSET,
+                                                           LENGTH));
+
+                    ASSERTV(&out == mR);
+                    ASSERTV(outModel.str() == out.str());
+                }
+            }
+        }
+
+        if (verbose) cout << "Negative testing\n";
+        {
+            bsls::AssertTestHandlerGuard hG;
+
+            BlobBufferFactory factory(1);
+            bdlbb::Blob       blob(&factory);
+            blob.setLength(1);
+            bsl::stringstream out;
+
+            ASSERT_PASS(bdlbb::BlobUtilHexDumper(&blob,  0,  1));
+            ASSERT_FAIL(bdlbb::BlobUtilHexDumper(&blob, -1,  1));
+            ASSERT_FAIL(bdlbb::BlobUtilHexDumper(&blob,  0, -1));
+
+            ASSERT_PASS(bdlbb::BlobUtilHexDumper(&blob,  1));
+            ASSERT_FAIL(bdlbb::BlobUtilHexDumper(&blob, -1));
+        }
+      } break;
+      case 16: {
+        // --------------------------------------------------------------------
+        // TESTING `append` WITH SINGLE CHAR FILL
+        //
+        // Concerns:
+        // 1. That the single-char fill overload of `append` works as
+        //    documented.
+        //
+        // Plan:
+        // 1. Iterate through different values of `BUFFER_SIZE`, `PRE_SIZE`,
+        //    and `APPEND_LENGTH`.
+        //
+        // 2. Create a factory that creates buffers of uniform size
+        //    `BUFFER_SIZE`.
+        //
+        // 3. Randomly choose two not equal character values `preFillChar` and
+        //    `appendChar`.
+        //
+        // 4. Create a blob using the factory, make it `PRE_SIZE` long, and
+        //    filled with `preFillChar`.
+        //
+        // 5. Call `BlobUtil::append(APPEND_LENGTH, appendChar)`.
+        //
+        // 6. Verify the length of the blob is `PRE_SIZE + APPEND_LENGTH`.
+        //
+        // 7. Call `u::checkBlob` to confirm that the blob contains `PRE_SIZE`
+        //    bytes of `preFillChar` followed by `APPEND_LENGTH` bytes of
+        //    `appendChar`.
         //
         // Testing:
         //   void append(int length, char fill);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "TESTING 'append' WITH SINGLE CHAR FILL\n"
+        if (verbose) cout << "TESTING `append` WITH SINGLE CHAR FILL\n"
                              "======================================\n";
 
         typedef bdlbb::BlobBufferFactory Factory;
@@ -658,63 +1259,63 @@ int main(int argc, char *argv[])
       } break;
       case 15: {
         // --------------------------------------------------------------------
-        // TESTING 'prependWithCapacityBuffer' FUNCTION
+        // TESTING `prependWithCapacityBuffer` FUNCTION
         //
         // Concerns:
-        //: 1 The function correctly adds data to the beginning of the 'Blob'.
-        //:
-        //: 2 The function uses the existing capacity first if blob is empty.
-        //:   Otherwise uses the provided capacity buffer first.  Then
-        //:   allocates memory using the factory of the 'Blob'.
-        //:
-        //: 3 Unused part of 'BlobBuffer' is returned after the function call.
-        //:
-        //: 4 The function works correctly when default-constructed (empty)
-        //:   capacity buffer is provided.
-        //:
-        //: 5 Writing 0 bytes is a NOOP.
-        //:
-        //: 6 QoI: Asserted precondition violations are detected when enabled.
+        // 1. The function correctly adds data to the beginning of the `Blob`.
+        //
+        // 2. The function uses the existing capacity first if blob is empty.
+        //    Otherwise uses the provided capacity buffer first.  Then
+        //    allocates memory using the factory of the `Blob`.
+        //
+        // 3. Unused part of `BlobBuffer` is returned after the function call.
+        //
+        // 4. The function works correctly when default-constructed (empty)
+        //    capacity buffer is provided.
+        //
+        // 5. Writing 0 bytes is a NOOP.
+        //
+        // 6. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Create a table specifying various values of blob buffers length,
-        //:   initital blob size and length, capacity buffer initial size,
-        //:   input data size, expected capacity buffer size after the call and
-        //:   expected number of buffer allocations during the call.
-        //:
-        //: 2 For each row in the table create a blob, capacity buffer and
-        //:   input data block having the specified parameters.  Fill the blob
-        //:   with sequence of letters, the capacity buffer with '#' chars,
-        //:   the input data block with digits.
-        //:
-        //: 3 Invoke the 'prependWithCapacityBuffer' function using as
-        //:   arguments the prepared objects.
-        //:
-        //: 4 Verify that size of the capacity buffer matches the value
-        //:   specified in the table.
-        //:
-        //: 5 Verify that number of buffer allocations matches the value
-        //:   specified in the table.
-        //:
-        //: 6 Verify that length of the blob is increased by the size of the
-        //:   input block.
-        //:
-        //: 7 Verify that data in the blob that existed before the call is
-        //:   unchanged.
-        //:
-        //: 8 Verify that the data is added to the beginning of the blob and
-        //:   matches the input data block.
-        //:
-        //: 9 Repeat steps 2 to 8 for each row in the table.
-        //:
-        //:10 Do negative testing to verify that asserts catch all the
-        //:   undefined behavior in the contract.
+        // 1. Create a table specifying various values of blob buffers length,
+        //    initital blob size and length, capacity buffer initial size,
+        //    input data size, expected capacity buffer size after the call and
+        //    expected number of buffer allocations during the call.
+        //
+        // 2. For each row in the table create a blob, capacity buffer and
+        //    input data block having the specified parameters.  Fill the blob
+        //    with sequence of letters, the capacity buffer with '#' chars,
+        //    the input data block with digits.
+        //
+        // 3. Invoke the `prependWithCapacityBuffer` function using as
+        //    arguments the prepared objects.
+        //
+        // 4. Verify that size of the capacity buffer matches the value
+        //    specified in the table.
+        //
+        // 5. Verify that number of buffer allocations matches the value
+        //    specified in the table.
+        //
+        // 6. Verify that length of the blob is increased by the size of the
+        //    input block.
+        //
+        // 7. Verify that data in the blob that existed before the call is
+        //    unchanged.
+        //
+        // 8. Verify that the data is added to the beginning of the blob and
+        //    matches the input data block.
+        //
+        // 9. Repeat steps 2 to 8 for each row in the table.
+        //
+        // 10. Do negative testing to verify that asserts catch all the
+        //    undefined behavior in the contract.
         //
         // Testing:
         //   void prependWithCapacityBuffer(Blob*,BlobBuffer*,const char*,int);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "TESTING 'prependWithCapacityBuffer' FUNCTION\n"
+        if (verbose) cout << "TESTING `prependWithCapacityBuffer` FUNCTION\n"
                              "============================================\n";
 
         static const struct Data {
@@ -726,7 +1327,7 @@ int main(int argc, char *argv[])
             int d_capacityBufferSize;
             int d_inputDataSize;
             int d_expectedCapacityBufferSize;
-            int d_expectedAllocateCalls; // during the 'prepend' call
+            int d_expectedAllocateCalls; // during the `prepend` call
         } DATA[] = {
             { L_, 64, 1,  0, 64,   0, 64, 0 }, // Prepend 0 bytes
             { L_, 64, 1,  0, 64,  32, 64, 0 }, // Prepend to empty blob
@@ -819,7 +1420,7 @@ int main(int argc, char *argv[])
                 Util::copy(tmp.data(), blob, INPUT_DATA_SIZE, BLOB_LENGH);
                 ASSERT(tmp == suffix);
             }
-            // Verify 'source' is added
+            // Verify `source` is added
             {
                 bsl::string tmp(INPUT_DATA_SIZE, '\x0');
                 Util::copy(tmp.data(), blob, 0, INPUT_DATA_SIZE);
@@ -852,65 +1453,65 @@ int main(int argc, char *argv[])
       } break;
       case 14: {
         // --------------------------------------------------------------------
-        // TESTING 'appendWithCapacityBuffer' FUNCTION
+        // TESTING `appendWithCapacityBuffer` FUNCTION
         //
         // Concerns:
-        //: 1 The function correctly adds data to the end of the 'Blob'.
-        //:
-        //: 2 The function tries to take memory from the following places in
-        //:   the specified order:
-        //:     1 Existing capacity of the 'Blob';
-        //:     2 The given 'BlobBuffer';
-        //:     3 Factory of the 'Blob'.
-        //:
-        //: 3 Unused part of 'BlobBuffer' is returned after the function call.
-        //:
-        //: 4 The function works correctly when default-constructed (empty)
-        //:   capacity buffer is provided.
-        //:
-        //: 5 Writing 0 bytes is a NOOP.
-        //:
-        //: 6 QoI: Asserted precondition violations are detected when enabled.
+        // 1. The function correctly adds data to the end of the `Blob`.
+        //
+        // 2. The function tries to take memory from the following places in
+        //    the specified order:
+        //     1. Existing capacity of the `Blob`;
+        //     2. The given `BlobBuffer`;
+        //     3. Factory of the `Blob`.
+        //
+        // 3. Unused part of `BlobBuffer` is returned after the function call.
+        //
+        // 4. The function works correctly when default-constructed (empty)
+        //    capacity buffer is provided.
+        //
+        // 5. Writing 0 bytes is a NOOP.
+        //
+        // 6. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Create a table specifying various values of blob buffers length,
-        //:   initital blob size and length, capacity buffer initial size,
-        //:   input data size, expected capacity buffer size after the call and
-        //:   expected number of buffer allocations during the call.
-        //:
-        //: 2 For each row in the table create a blob, capacity buffer and
-        //:   input data block having the specified parameters.  Fill the blob
-        //:   with sequence of letters, the capacity buffer with '#' chars,
-        //:   the input data block with digits.
-        //:
-        //: 3 Invoke the 'appendWithCapacityBuffer' function using as arguments
-        //:   the prepared objects.
-        //:
-        //: 4 Verify that size of the capacity buffer matches the value
-        //:   specified in the table.
-        //:
-        //: 5 Verify that number of buffer allocations matches the value
-        //:   specified in the table.
-        //:
-        //: 6 Verify that length of the blob is increased by the size of the
-        //:   input block.
-        //:
-        //: 7 Verify that data in the blob that existed before the call is
-        //:   unchanged.
-        //:
-        //: 8 Verify that the data is added to the end of the blob and matches
-        //:   the input data block.
-        //:
-        //: 9 Repeat steps 2 to 8 for each row in the table.
-        //:
-        //:10 Do negative testing to verify that asserts catch all the
-        //:   undefined behavior in the contract.
+        // 1. Create a table specifying various values of blob buffers length,
+        //    initital blob size and length, capacity buffer initial size,
+        //    input data size, expected capacity buffer size after the call and
+        //    expected number of buffer allocations during the call.
+        //
+        // 2. For each row in the table create a blob, capacity buffer and
+        //    input data block having the specified parameters.  Fill the blob
+        //    with sequence of letters, the capacity buffer with '#' chars,
+        //    the input data block with digits.
+        //
+        // 3. Invoke the `appendWithCapacityBuffer` function using as arguments
+        //    the prepared objects.
+        //
+        // 4. Verify that size of the capacity buffer matches the value
+        //    specified in the table.
+        //
+        // 5. Verify that number of buffer allocations matches the value
+        //    specified in the table.
+        //
+        // 6. Verify that length of the blob is increased by the size of the
+        //    input block.
+        //
+        // 7. Verify that data in the blob that existed before the call is
+        //    unchanged.
+        //
+        // 8. Verify that the data is added to the end of the blob and matches
+        //    the input data block.
+        //
+        // 9. Repeat steps 2 to 8 for each row in the table.
+        //
+        // 10. Do negative testing to verify that asserts catch all the
+        //    undefined behavior in the contract.
         //
         // Testing:
         //   void appendWithCapacityBuffer(Blob*,BlobBuffer*,const char*,int);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "TESTING 'appendWithCapacityBuffer' FUNCTION\n"
+        if (verbose) cout << "TESTING `appendWithCapacityBuffer` FUNCTION\n"
                              "===========================================\n";
 
         static const struct Data {
@@ -922,7 +1523,7 @@ int main(int argc, char *argv[])
             int d_capacityBufferSize;
             int d_inputDataSize;
             int d_expectedCapacityBufferSize;
-            int d_expectedAllocateCalls; // during the 'append' call
+            int d_expectedAllocateCalls; // during the `append` call
         } DATA[] = {
             { L_, 64, 1,  0, 64,   0, 64, 0 }, // Append 0 bytes
             { L_, 64, 0,  0, 64,   0, 64, 0 }, // Append 0 bytes
@@ -1017,7 +1618,7 @@ int main(int argc, char *argv[])
                 Util::copy(tmp.data(), blob, 0, BLOB_LENGH);
                 ASSERT(tmp == prefix);
             }
-            // Verify 'source' is added
+            // Verify `source` is added
             {
                 bsl::string tmp(INPUT_DATA_SIZE, '\x0');
                 Util::copy(tmp.data(), blob, BLOB_LENGH, INPUT_DATA_SIZE);
@@ -1052,7 +1653,7 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
         // TESTING SAFE BUFFER ADD FUNCTIONS
         //   Safe functions check compliance with the required conditions and
-        //   invoke appropriate 'bdlbb::Blob' method.  Therefore we use the
+        //   invoke appropriate `bdlbb::Blob` method.  Therefore we use the
         //   result of the class method to verify the result of utility
         //   function.
         //   Since overloads that accept const references just call overloads
@@ -1060,37 +1661,37 @@ int main(int argc, char *argv[])
         //   parameter, we are going to test the first ones superficially.
         //
         // Concerns:
-        //: 1 All functions pass incoming 'BlobBuffer' reference (const or
-        //:   rvalue) to the appropriate 'Blob' method.
-        //:
-        //: 2 All functions correctly calculate whether the incoming
-        //:   'BlobBuffer' object can be added to the 'Blob'.
-        //:
-        //: 3 'BlobBuffer' object is moved by the functions accepting rvalue
-        //:   references.
-        //:
-        //: 4. 'Blob' and 'BlobBuffer' objects remain unaffected on failure.
+        // 1. All functions pass incoming `BlobBuffer` reference (const or
+        //    rvalue) to the appropriate `Blob` method.
+        //
+        // 2. All functions correctly calculate whether the incoming
+        //    `BlobBuffer` object can be added to the `Blob`.
+        //
+        // 3. `BlobBuffer` object is moved by the functions accepting rvalue
+        //    references.
+        //
+        //  4. `Blob` and `BlobBuffer` objects remain unaffected on failure.
         //
         // Plan:
-        //: 1 For all combinations of length, buffer size (for the factory),
-        //:   and number of buffers, check that a blob after prepending and
-        //:   appending data buffers using utility function accepting rvalue
-        //:   reference, has the same characteristics as the blob modified by
-        //:   class methods.  Verify that functions return zero value (success
-        //:   result).  Verify that the 'use_count' of the inserted buffer is
-        //:   equal to 1 (the buffer has been moved, not copied).
-        //:
-        //: 2 For some combinations of buffer size check that a blob after
-        //:   prepending and appending data buffers using utility function
-        //:   accepting const reference has the same characteristics as the
-        //:   blob modified by function accepting rvalue reference.  Verify
-        //:   that functions return zero value (success result).  Verify that
-        //:   the 'use_count' of the inserted buffer is equal to 2 (the buffer
-        //:   has been copied, not moved).  (C-1, 3)
-        //:
-        //: 3 Pass to utility function blob buffer with enormously big size
-        //:   and verify that function returns non-zero value (failure result)
-        //:   and blob is not changed.  (C-2, 4)
+        // 1. For all combinations of length, buffer size (for the factory),
+        //    and number of buffers, check that a blob after prepending and
+        //    appending data buffers using utility function accepting rvalue
+        //    reference, has the same characteristics as the blob modified by
+        //    class methods.  Verify that functions return zero value (success
+        //    result).  Verify that the `use_count` of the inserted buffer is
+        //    equal to 1 (the buffer has been moved, not copied).
+        //
+        // 2. For some combinations of buffer size check that a blob after
+        //    prepending and appending data buffers using utility function
+        //    accepting const reference has the same characteristics as the
+        //    blob modified by function accepting rvalue reference.  Verify
+        //    that functions return zero value (success result).  Verify that
+        //    the `use_count` of the inserted buffer is equal to 2 (the buffer
+        //    has been copied, not moved).  (C-1, 3)
+        //
+        // 3. Pass to utility function blob buffer with enormously big size
+        //    and verify that function returns non-zero value (failure result)
+        //    and blob is not changed.  (C-2, 4)
         //
         // Testing:
         //   int appendBufferIfValid(Blob *d, MovableRef<BlobBuffer> b);
@@ -1135,8 +1736,8 @@ int main(int argc, char *argv[])
             bslma::TestAllocator         da("default", veryVeryVerbose);
             bslma::DefaultAllocatorGuard dag(&da);
 
-            // Testing 'appendBufferIfValid', 'appendDataBufferIfValid' and
-            // 'prependDataBufferIfValid'.
+            // Testing `appendBufferIfValid`, `appendDataBufferIfValid` and
+            // `prependDataBufferIfValid`.
 
             for (int function = APPEND_BUFFER;
                  function <= PREPEND_DATA_BUFFER;
@@ -1169,7 +1770,7 @@ int main(int argc, char *argv[])
                     index          = 0;
                     break;
                   default:
-                    ASSERTV(!"Unexpected function mode");
+                    ASSERTV(0 == "Unexpected function mode");
                 }
 
                 if (veryVerbose) {
@@ -1222,7 +1823,7 @@ int main(int argc, char *argv[])
                 ASSERT(u::areBlobsBasicallyEqual(MODEL, DST));
 
                 // The following check fails because of inconsistent behavior
-                // of 'bsl::vector<>::insert' method (see {DRQS 170573799}).
+                // of `bsl::vector<>::insert` method (see {DRQS 170573799}).
                 // This check should be uncommented after the issue is fixed.
                 //
                 // ASSERT(1 == DST.buffer(index).buffer().use_count());
@@ -1244,7 +1845,7 @@ int main(int argc, char *argv[])
                     index = 0;
                     break;
                   default:
-                    ASSERTV(!"Unexpected function mode");
+                    ASSERTV(0 == "Unexpected function mode");
                 }
 
                 (model.*memberFunction)(MoveUtil::move(modelEmptyBuffer));
@@ -1259,7 +1860,7 @@ int main(int argc, char *argv[])
                 ASSERT(u::areBlobsBasicallyEqual(MODEL, DST));
 
                 // The following check fails because of inconsistent behavior
-                // of 'bsl::vector<>::insert' method (see {DRQS 170573799}).
+                // of `bsl::vector<>::insert` method (see {DRQS 170573799}).
                 // This check should be uncommented after the issue is fixed.
                 //
                 // ASSERT(1 == DST.buffer(index).buffer().use_count());
@@ -1305,7 +1906,7 @@ int main(int argc, char *argv[])
                     index = 0;
                     break;
                   default:
-                    ASSERTV(!"Unexpected function mode");
+                    ASSERTV(0 == "Unexpected function mode");
                 }
 
                 (model.*memberFunction)(MoveUtil::move(
@@ -1322,7 +1923,7 @@ int main(int argc, char *argv[])
                 ASSERT(u::areBlobsBasicallyEqual(MODEL, DST));
 
                 // The following check fails because of inconsistent behavior
-                // of 'bsl::vector<>::insert' method (see {DRQS 170573799}).
+                // of `bsl::vector<>::insert` method (see {DRQS 170573799}).
                 // This check should be uncommented after the issue is fixed.
                 //
                 // ASSERT(1 == DST.buffer(index).buffer().use_count());
@@ -1333,7 +1934,7 @@ int main(int argc, char *argv[])
                 ASSERT(u::areBlobsBasicallyEqual(MODEL, DST));
             }
 
-            // Testing 'insertBufferIfValid'.
+            // Testing `insertBufferIfValid`.
             {
                 for (int position = 0; position <= NUM_BUFFERS; ++position) {
                     const int POSITION = position;
@@ -1411,7 +2012,7 @@ int main(int argc, char *argv[])
                     ASSERT(u::areBlobsBasicallyEqual(MODEL, DST));
 
                     // The following check fails because of inconsistent
-                    // behavior of 'bsl::vector<>::insert' method (see
+                    // behavior of `bsl::vector<>::insert` method (see
                     // {DRQS 170573799}). This check should be uncommented
                     // after the issue is fixed.
                     //
@@ -1443,7 +2044,7 @@ int main(int argc, char *argv[])
                     ASSERT(u::areBlobsBasicallyEqual(MODEL, DST));
 
                     // The following check fails because of inconsistent
-                    // behavior of 'bsl::vector<>::insert' method (see
+                    // behavior of `bsl::vector<>::insert` method (see
                     // {DRQS 170573799}). This check should be uncommented
                     // after the issue is fixed.
                     //
@@ -1528,7 +2129,7 @@ int main(int argc, char *argv[])
                                                        MoveUtil::move(buffer));
                     break;
                   default:
-                    ASSERTV(!"Unexpected function mode");
+                    ASSERTV(0 == "Unexpected function mode");
                 }
 
                 ASSERT(modelResult == result);
@@ -1585,11 +2186,11 @@ int main(int argc, char *argv[])
 
             {
                 // In addition to total size of the blob, return value of
-                // 'Blob::numBuffers()' can also be overflowed.  The safe
+                // `Blob::numBuffers()` can also be overflowed.  The safe
                 // functions must prevent such situations (i.e. the number of
-                // buffers in blob must *not* exceed 'INT_MAX' value) so we
+                // buffers in blob must *not* exceed `INT_MAX` value) so we
                 // have to check it.  To simulate this scenario we need to
-                // create a blob with 'INT_MAX' buffers.  But since it consumes
+                // create a blob with `INT_MAX` buffers.  But since it consumes
                 // a lot of resources, we comment out this test.  The manual
                 // test was performed.
 
@@ -1643,59 +2244,59 @@ int main(int argc, char *argv[])
         // TESTING PADTOALIGNMENT
         //
         // Concerns:
-        //: 1 That 'padToAlignment' will properly align the buffer length.
-        //:   o that the length after padding is a multiple of 'alignment'
-        //:
-        //:   o that the number of bytes padded was less than 'alignment'.
-        //:
-        //:   o that the padded bytes all match the fill char
-        //:
-        //:   o That the bytes in the blob prior to the padding were
-        //:     unaffected.
-        //:
-        //: 2 That characters appended will be:
-        //:   o the fill char that was passed
-        //:
-        //:   o '\0' if no fill char was passed
-        //:
-        //: 3 That 'assert's detect the undefined behavior in the contract.
+        // 1. That `padToAlignment` will properly align the buffer length.
+        //    - that the length after padding is a multiple of `alignment`
+        //
+        //    - that the number of bytes padded was less than `alignment`.
+        //
+        //    - that the padded bytes all match the fill char
+        //
+        //    - That the bytes in the blob prior to the padding were
+        //      unaffected.
+        //
+        // 2. That characters appended will be:
+        //    - the fill char that was passed
+        //
+        //    - '\0' if no fill char was passed
+        //
+        // 3. That `assert`s detect the undefined behavior in the contract.
         //
         // Plan:
-        //: 1 Create a function 'checkBlob' in the unnamed namespace that will
-        //:   examine a blob and verify that:
-        //:   o the first 'prevBlobSize' bytes all match the specified
-        //:     'otherChar'
-        //:
-        //:   o the remaining bytes all match the specified 'fillChar'
-        //:
-        //: 2 Write three nested loops to call 'padToAlignment' with a wide
-        //:   variety of values of the blob buffer size, the preexisting blob
-        //:   length, and all valid values of 'alignment'.  In these cases, set
-        //:   all bytes in the preexisting blob to one byte value 'otherChar',
-        //:   and specify a byte value to the 'fillChar' arg of
-        //:   'padToAlignment' that is different from 'otherChar'.  After the
-        //:   call to 'padToAlignment',
-        //:   o check that the blob length is a multiple of 'alignment'
-        //:
-        //:   o check that less than 'alignment' padding bytes were added
-        //:
-        //:   o call 'u::checkBlob' to verify that:
-        //:     1 bytes prior to the padding match 'otherChar'
-        //:
-        //:     2 padded bytes match 'fillChar'
-        //:
-        //: 3 Write 2 nested loops to call 'padToAlignment' with a variety of
-        //:   two char values: 'otherChar', to which all bytes in the blob
-        //:   prior to the 'padToAlignment' call are initialized, and
-        //:   'fillChar', either the value passed to the 'fillChar' argument,
-        //:   or '\0' in the case where that argument is to be allowed to
-        //:   default.  After the call, 'u::checkBlob' is called to verify that
-        //:   all the bytes in the blob have their expeted values.
-        //:
-        //: 4 Write a table-driven test.
-        //:
-        //: 5 Do negative testing to verify that asserts catch all the
-        //:   undefined behavior in the contract.
+        // 1. Create a function `checkBlob` in the unnamed namespace that will
+        //    examine a blob and verify that:
+        //    - the first `prevBlobSize` bytes all match the specified
+        //      `otherChar`
+        //
+        //    - the remaining bytes all match the specified `fillChar`
+        //
+        // 2. Write three nested loops to call `padToAlignment` with a wide
+        //    variety of values of the blob buffer size, the preexisting blob
+        //    length, and all valid values of `alignment`.  In these cases, set
+        //    all bytes in the preexisting blob to one byte value `otherChar`,
+        //    and specify a byte value to the `fillChar` arg of
+        //    `padToAlignment` that is different from `otherChar`.  After the
+        //    call to `padToAlignment`,
+        //    - check that the blob length is a multiple of `alignment`
+        //
+        //    - check that less than `alignment` padding bytes were added
+        //
+        //    - call `u::checkBlob` to verify that:
+        //     1. bytes prior to the padding match `otherChar`
+        //
+        //     2. padded bytes match `fillChar`
+        //
+        // 3. Write 2 nested loops to call `padToAlignment` with a variety of
+        //    two char values: `otherChar`, to which all bytes in the blob
+        //    prior to the `padToAlignment` call are initialized, and
+        //    `fillChar`, either the value passed to the `fillChar` argument,
+        //    or '\0' in the case where that argument is to be allowed to
+        //    default.  After the call, `u::checkBlob` is called to verify that
+        //    all the bytes in the blob have their expeted values.
+        //
+        // 4. Write a table-driven test.
+        //
+        // 5. Do negative testing to verify that asserts catch all the
+        //    undefined behavior in the contract.
         //
         // Testing:
         //   padToAlignment(Blob *, int, char = 0);
@@ -1716,15 +2317,15 @@ int main(int argc, char *argv[])
             bsl::memset(initBuf, otherChar, sizeof(initBuf));
 
             // Here we iterate 3 nested loops to vary 3 variables:
-            //: o 'blobBufferSize' -- the size of the blob buffers.  Since the
-            //:   blob buffer factory we are using is
-            //:   'SimpleBlobBufferFactory', all the blob buffers are the same
-            //:   size (so a blob buffer size of 0 would make no sense).
-            //:
-            //: o 'alignment' -- must be a power of two.  We vary this over the
-            //:   range of ALL acceptable values.
-            //:
-            //: o 'prevBlobSize' -- the size of the blob before it is padded.
+            //  - `blobBufferSize` -- the size of the blob buffers.  Since the
+            //    blob buffer factory we are using is
+            //    `SimpleBlobBufferFactory`, all the blob buffers are the same
+            //    size (so a blob buffer size of 0 would make no sense).
+            //
+            //  - `alignment` -- must be a power of two.  We vary this over the
+            //    range of ALL acceptable values.
+            //
+            //  - `prevBlobSize` -- the size of the blob before it is padded.
 
             const unsigned blobBufferSizes[] = { 1, 2, 3, 4, 7, 8, 9, 12 };
             enum { k_NUM_BLOB_BUFFER_SIZES = sizeof blobBufferSizes /
@@ -1984,21 +2585,21 @@ int main(int argc, char *argv[])
         // TESTING FIX TO DRQS 144543867
         //
         // Concerns:
-        //: 1 That the bug outlined in DRQS 144543867 has been fixed.  The
-        //:   problem was that the call to 'reserveBufferCapacity' was, under
-        //:   some circumstances, reserving excessive, unneeded capacity.
+        // 1. That the bug outlined in DRQS 144543867 has been fixed.  The
+        //    problem was that the call to `reserveBufferCapacity` was, under
+        //    some circumstances, reserving excessive, unneeded capacity.
         //
         // Plan:
-        //: 1 Create 'blob' with many buffer, and then use 'append' to copy a
-        //:   very small part of it to a second blob, and observe that only a
-        //:   small amount of memory is allocated by the 'vector' in the new
-        //:   blob.
-        //:
-        //: 2 Also do the case where the destination blob has some data but a
-        //:   bunch of unused buffers at the end.
+        // 1. Create `blob` with many buffer, and then use `append` to copy a
+        //    very small part of it to a second blob, and observe that only a
+        //    small amount of memory is allocated by the `vector` in the new
+        //    blob.
+        //
+        // 2. Also do the case where the destination blob has some data but a
+        //    bunch of unused buffers at the end.
         //
         // Testing:
-        //   CONCERN: append doesn't do excessive 'reserveBufferCapacity'.
+        //   CONCERN: append doesn't do excessive `reserveBufferCapacity`.
         // --------------------------------------------------------------------
 
         const int dataSize   = 40000000;
@@ -2053,42 +2654,42 @@ int main(int argc, char *argv[])
       } break;
       case 10: {
         // -------------------------------------------------------------------
-        // TESTING 'copy' FUNCTIONS WRITING TO BLOB
+        // TESTING `copy` FUNCTIONS WRITING TO BLOB
         //
         // Concerns:
-        //: 1 Copying to blob works as expected for different argument values.
-        //:
-        //: 2 Writing within a BlobBuffer or to multiple BlobBuffers succeeds.
-        //:
-        //: 3 QoI: Asserted precondition violations are detected when enabled.
+        // 1. Copying to blob works as expected for different argument values.
+        //
+        // 2. Writing within a BlobBuffer or to multiple BlobBuffers succeeds.
+        //
+        // 3. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Create a table specifying various values of blob length, offset,
-        //:   and number of bytes to copy.
-        //:
-        //: 2 For each value in the table create a blob having the length as
-        //:   specified in the table entry.
-        //:
-        //: 3 Invoke the 'copy' method on that blob using as arguments a
-        //:   string buffer or another blob, and the offset and number of
-        //:   bytes values specified in the table entry.
-        //:
-        //: 4 Create an alternate blob with the expected output and confirm
-        //:   that the two blob compare equal.
-        //:
-        //: 5 Repeat steps 2 to 4 for the same table entry by creating a blob
-        //:   object having different buffer sizes.
-        //:
-        //: 6 Verify that, in appropriate build modes, defensive checks are
-        //:   triggered for invalid attribute values, but not triggered for
-        //:   adjacent valid ones (using the 'BSLS_ASSERTTEST_*' macros).
+        // 1. Create a table specifying various values of blob length, offset,
+        //    and number of bytes to copy.
+        //
+        // 2. For each value in the table create a blob having the length as
+        //    specified in the table entry.
+        //
+        // 3. Invoke the `copy` method on that blob using as arguments a
+        //    string buffer or another blob, and the offset and number of
+        //    bytes values specified in the table entry.
+        //
+        // 4. Create an alternate blob with the expected output and confirm
+        //    that the two blob compare equal.
+        //
+        // 5. Repeat steps 2 to 4 for the same table entry by creating a blob
+        //    object having different buffer sizes.
+        //
+        // 6. Verify that, in appropriate build modes, defensive checks are
+        //    triggered for invalid attribute values, but not triggered for
+        //    adjacent valid ones (using the `BSLS_ASSERTTEST_*` macros).
         //
         // Testing:
         //   void copy(dstBlob, int, const char *, int);
         //   void copy(dstBlob, int, srcBlob, int, int);
         // --------------------------------------------------------------------
 
-        verbose && (cout << "\nTesting 'copy' functions writing to blob"
+        verbose && (cout << "\nTesting `copy` functions writing to blob"
                             "\n========================================\n");
 
         const bsl::string STR = "abcdefghijklmnopqrstuvwxyz";
@@ -2236,14 +2837,14 @@ int main(int argc, char *argv[])
 
                     blob.setLength(3);
 
-                    // Fails '0 <= dstOffset'
+                    // Fails `0 <= dstOffset`
 
                     ASSERT_FAIL(Util::copy(&blob, -1, src, 0));
                     ASSERT_PASS(Util::copy(&blob,  0, src, 0));
 
                     ASSERT_PASS(Util::copy(&blob,  0, src, 1));
 
-                    // Fails 'dstOffset + length <= dst->length()'
+                    // Fails `dstOffset + length <= dst->length()`
 
                     ASSERT_PASS(Util::copy(&blob,  2, src, 1));
                     ASSERT_FAIL(Util::copy(&blob,  2, src, 2));
@@ -2465,14 +3066,14 @@ int main(int argc, char *argv[])
 
                     src.setLength(3);
 
-                    // Fails '0 <= dstOffset'
+                    // Fails `0 <= dstOffset`
 
                     ASSERT_FAIL(Util::copy(&dst, -1, src, 0, 0));
                     ASSERT_PASS(Util::copy(&dst,  0, src, 0, 0));
 
                     dst.setLength(3);
 
-                    // Fails 'dstOffset + length <= dst->length()'
+                    // Fails `dstOffset + length <= dst->length()`
 
                     ASSERT_PASS(Util::copy(&dst,  2, src, 0, 1));
                     ASSERT_FAIL(Util::copy(&dst,  2, src, 0, 2));
@@ -2485,14 +3086,14 @@ int main(int argc, char *argv[])
 
                     dst.setLength(3);
 
-                    // Fails '0 <= srcOffset'
+                    // Fails `0 <= srcOffset`
 
                     ASSERT_FAIL(Util::copy(&dst, 0, src, -1, 0));
                     ASSERT_PASS(Util::copy(&dst, 0, src,  0, 0));
 
                     src.setLength(3);
 
-                    // Fails 'srcOffset + length <= src->length()'
+                    // Fails `srcOffset + length <= src->length()`
 
                     ASSERT_PASS(Util::copy(&dst,  0, src, 2, 1));
                     ASSERT_FAIL(Util::copy(&dst,  0, src, 2, 2));
@@ -2543,7 +3144,7 @@ int main(int argc, char *argv[])
       } break;
       case 9: {
         // -------------------------------------------------------------------
-        // TESTING 'getContiguousRangeOrCopy' FUNCTION
+        // TESTING `getContiguousRangeOrCopy` FUNCTION
         //
         // Concerns:
         //   BLACK BOX:
@@ -2566,7 +3167,7 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        verbose && (cout << "\nTesting 'getContiguousRangeOrCopy' Function"
+        verbose && (cout << "\nTesting `getContiguousRangeOrCopy` Function"
                             "\n===========================================\n");
 
         static const int MAXALN = 16;
@@ -2825,7 +3426,7 @@ int main(int argc, char *argv[])
       } break;
       case 8: {
         // -------------------------------------------------------------------
-        // TESTING 'getContiguousDataBuffer' FUNCTION
+        // TESTING `getContiguousDataBuffer` FUNCTION
         //
         // Concerns:
         //   BLACK BOX:
@@ -2845,7 +3446,7 @@ int main(int argc, char *argv[])
         //                                 bdlbb::BlobBufferFactory *factory)
         // --------------------------------------------------------------------
 
-        verbose && (cout << "\nTesting 'getContiguousDataBuffer' Function"
+        verbose && (cout << "\nTesting `getContiguousDataBuffer` Function"
                             "\n==========================================\n");
 
         static const struct {
@@ -3095,7 +3696,7 @@ int main(int argc, char *argv[])
       } break;
       case 7: {
         // -------------------------------------------------------------------
-        // TESTING 'copy' FUNCTION
+        // TESTING `copy` FUNCTION
         //
         // Concerns:
         //   BLACK BOX:
@@ -3117,7 +3718,7 @@ int main(int argc, char *argv[])
         //
         // --------------------------------------------------------------------
 
-        verbose && (cout << "\nTesting 'copy' Function"
+        verbose && (cout << "\nTesting `copy` Function"
                             "\n=======================\n");
 
         static const struct {
@@ -3234,7 +3835,7 @@ int main(int argc, char *argv[])
       } break;
       case 6: {
         // -------------------------------------------------------------------
-        // TESTING 'findBufferIndexAndOffset' FUNCTION
+        // TESTING `findBufferIndexAndOffset` FUNCTION
         //
         // Concerns:
         //   BLACK BOX:
@@ -3255,7 +3856,7 @@ int main(int argc, char *argv[])
         //                                  const bdlbb::Blob&, int position)
         // --------------------------------------------------------------------
 
-        verbose && (cout << "\nTesting 'findBufferIndexAndOffset' Function"
+        verbose && (cout << "\nTesting `findBufferIndexAndOffset` Function"
                             "\n===========================================\n");
 
         static const struct {
@@ -3420,7 +4021,7 @@ int main(int argc, char *argv[])
         // Testing:
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTesting 'erase' Function"
+        if (verbose) cout << "\nTesting `erase` Function"
                           << "\n=========================" << endl;
 
         const bsl::string STR      = "HelloWorld";
@@ -3603,7 +4204,7 @@ int main(int argc, char *argv[])
         //   static bsl::ostream& hexDump(stream, source);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTesting 'hexdump' Function"
+        if (verbose) cout << "\nTesting `hexdump` Function"
                           << "\n==========================" << endl;
 
         typedef bsl::pair<const char*, int> BufferInfo;
@@ -4133,7 +4734,7 @@ int main(int argc, char *argv[])
         // Testing:
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTesting 'compare' Function"
+        if (verbose) cout << "\nTesting `compare` Function"
                           << "\n=========================" << endl;
 
         const struct {
@@ -4445,7 +5046,7 @@ int main(int argc, char *argv[])
         // Testing:
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTesting 'write' special cases"
+        if (verbose) cout << "\nTesting `write` special cases"
                           << "\n=============================" << endl;
 
         // writing zero bytes from an empty blob
@@ -4517,7 +5118,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == blobStream.length());
         }
 
-        if (verbose) cout << "\nTesting 'append and write' functions"
+        if (verbose) cout << "\nTesting `append and write` functions"
                           << "\n====================================" << endl;
 
         static const struct {

@@ -5,18 +5,18 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide an exception class thrown by 'bsl::variant'.
+//@PURPOSE: Provide an exception class thrown by `bsl::variant`.
 //
 //@CLASSES:
-//  bsl::bad_variant_access: exception type thrown by 'bsl::variant'
+//  bsl::bad_variant_access: exception type thrown by `bsl::variant`
 //
 //@SEE_ALSO: bslstl_variant, bslstl_stdexceptionutil
 //
-//@DESCRIPTION: This component provides the 'bsl::bad_variant_access' exception
-// class.  This exception is thrown by 'bsl::get' when a 'bsl::variant' does
-// not contain the requested alternative and 'bsl::visit' when a 'bsl::variant'
-// does not contain a value.  If 'std::variant' is available,
-// 'bsl::bad_variant_access' is an alias to 'std::bad_variant_access'.
+//@DESCRIPTION: This component provides the `bsl::bad_variant_access` exception
+// class.  This exception is thrown by `bsl::get` when a `bsl::variant` does
+// not contain the requested alternative and `bsl::visit` when a `bsl::variant`
+// does not contain a value.  If `std::variant` is available,
+// `bsl::bad_variant_access` is an alias to `std::bad_variant_access`.
 
 #include <bslscm_version.h>
 
@@ -43,30 +43,32 @@ using std::bad_variant_access;
 class bad_variant_access : public std::exception {
   public:
     // CREATORS
+
+    /// Create a `bad_variant_access` object.  Note that this function is
+    /// explicitly user-declared, to make it simple to declare `const`
+    /// objects of this type.
     bad_variant_access() BSLS_KEYWORD_NOEXCEPT;
-        // Create a 'bad_variant_access' object.  Note that this function is
-        // explicitly user-declared, to make it simple to declare 'const'
-        // objects of this type.
 
     // ACCESSORS
+
+    /// Return a pointer to the string literal "bad_variant_access", with a
+    /// storage duration of the lifetime of the program.  Note that the
+    /// caller should *not* attempt to free this memory.  Note that the
+    /// `bsls_exceptionutil` macro `BSLS_NOTHROW_SPEC` is deliberately not
+    /// used here, as a number of standard libraries declare `what` in the
+    /// base `exception` class explicitly with the no-throw specification,
+    /// even in a build that may not recognize exceptions.
     const char *what() const BSLS_EXCEPTION_VIRTUAL_NOTHROW
                                                          BSLS_KEYWORD_OVERRIDE;
-        // Return a pointer to the string literal "bad_variant_access", with a
-        // storage duration of the lifetime of the program.  Note that the
-        // caller should *not* attempt to free this memory.  Note that the
-        // 'bsls_exceptionutil' macro 'BSLS_NOTHROW_SPEC' is deliberately not
-        // used here, as a number of standard libraries declare 'what' in the
-        // base 'exception' class explicitly with the no-throw specification,
-        // even in a build that may not recognize exceptions.
 };
 
 // ============================================================================
 //                           INLINE DEFINITIONS
 // ============================================================================
 
-                         // -------------------------
+                         // ------------------------
                          // class bad_variant_access
-                         // -------------------------
+                         // ------------------------
 
 inline
 bad_variant_access::bad_variant_access() BSLS_KEYWORD_NOEXCEPT

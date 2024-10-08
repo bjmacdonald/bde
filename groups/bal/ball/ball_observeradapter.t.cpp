@@ -16,11 +16,13 @@
 #include <bslma_default.h>
 #include <bslma_testallocator.h>
 
+#include <bsls_keyword.h>
+
 #include <bsl_cstdlib.h>     // atoi()
 #include <bsl_cstring.h>     // strlen(), memset(), memcpy(), memcmp()
 #include <bsl_ctime.h>       // time()
 #include <bsl_iostream.h>
-#include <bsl_new.h>         // placement 'new' syntax
+#include <bsl_new.h>         // placement `new` syntax
 #include <bsl_sstream.h>
 #include <bsl_string.h>
 
@@ -59,7 +61,8 @@ int testStatus = 0;
 
 struct ConcreteObserver : public ball::ObserverAdapter {
     using ball::ObserverAdapter::publish;
-    void publish(const ball::Record&, const ball::Context&)
+    void publish(const ball::Record&,
+                 const ball::Context&) BSLS_KEYWORD_OVERRIDE
     {
         cout << "ConcreteObserver::publish(record&)" << endl;
     }
@@ -76,30 +79,30 @@ namespace USAGE_EXAMPLE_1 {
 ///-----
 // This section illustrates intended use of this component.
 //
-///Example 1: Concrete Observer Derived From 'ball::ObserverAdapter'
+///Example 1: Concrete Observer Derived From `ball::ObserverAdapter`
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // The following code fragments illustrate the essentials of defining and using
-// a concrete observer inherited from 'ball::ObserverAdapter'.
+// a concrete observer inherited from `ball::ObserverAdapter`.
 //
-// First define a concrete observer 'MyOstreamObserver' derived from
-// 'ball::ObserverAdapter' that declares a single publish method accepting a
-// const-reference to a 'ball::Record' object:
-//..
+// First define a concrete observer `MyOstreamObserver` derived from
+// `ball::ObserverAdapter` that declares a single publish method accepting a
+// const-reference to a `ball::Record` object:
+// ```
     class MyOstreamObserver : public ball::ObserverAdapter {
       bsl::ostream  *d_stream;
 //
     public:
       explicit MyOstreamObserver(bsl::ostream *stream) : d_stream(stream) { }
-      virtual ~MyOstreamObserver();
+      ~MyOstreamObserver() BSLS_KEYWORD_OVERRIDE;
       using Observer::publish;  // avoid hiding base class method
-      virtual void publish(const ball::Record&  record,
-                           const ball::Context& context);
+      void publish(const ball::Record&  record,
+                   const ball::Context& context) BSLS_KEYWORD_OVERRIDE;
     };
-//..
-// Then, we implement the public methods of 'MyOstreamObserver', including the
-// 'publish' method.  This implementation of 'publish' simply prints out the
+// ```
+// Then, we implement the public methods of `MyOstreamObserver`, including the
+// `publish` method.  This implementation of `publish` simply prints out the
 // content of the record it receives to the stream supplied at construction.
-//..
+// ```
     MyOstreamObserver::~MyOstreamObserver()
     {
     }
@@ -125,21 +128,21 @@ namespace USAGE_EXAMPLE_1 {
 
         *d_stream << '\n' << bsl::flush;
     }
-//..
-// Now, we defined a function 'main' in which we create a 'MyOstreamObserver'
-// object and assign the address of this object to a 'ball::ObserverAdapter'
+// ```
+// Now, we defined a function `main` in which we create a `MyOstreamObserver`
+// object and assign the address of this object to a `ball::ObserverAdapter`
 // pointer:
-//..
+// ```
     int main(bool verbose)
     {
         bsl::ostringstream     out;
         MyOstreamObserver      myObserver(&out);
         ball::ObserverAdapter *adapter = &myObserver;
-//..
-// Finally, publish three messages by calling 'publish' method accepting a
-// shared-pointer, provided by 'ball::ObserverAdapter', that in turn will call
-// the 'publish' method defined in 'MyOstreamObserver':
-//..
+// ```
+// Finally, publish three messages by calling `publish` method accepting a
+// shared-pointer, provided by `ball::ObserverAdapter`, that in turn will call
+// the `publish` method defined in `MyOstreamObserver`:
+// ```
         bdlt::Datetime         now;
         ball::RecordAttributes fixedFields;
         ball::UserFields       customFields;
@@ -162,14 +165,14 @@ namespace USAGE_EXAMPLE_1 {
         }
         return 0;
     }
-//..
-// The above code fragments print to 'stdout' like this:
-//..
+// ```
+// The above code fragments print to `stdout` like this:
+// ```
 //  Publish a sequence of three messages.
 //  22FEB2012_00:12:12.000 201 31  0
 //  22FEB2012_00:12:12.000 202 32  0
 //  22FEB2012_00:12:12.000 203 33  0
-//..
+// ```
 
 }  // close namespace USAGE_EXAMPLE_1
 //=============================================================================
@@ -200,7 +203,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Incorporate usage example from header into driver, remove leading
-        //   comment characters, and replace 'assert' with 'ASSERT'.
+        //   comment characters, and replace `assert` with `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -216,15 +219,15 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
         // BREATHING TEST:
         // Concerns:
-        //   We must ensure that (1) a subclass of the 'ball::ObserverAdapter'
+        //   We must ensure that (1) a subclass of the `ball::ObserverAdapter`
         //   class compiles and links when all virtual functions are defined,
         //   and (2) the functions are in fact virtual.
         //
         // Plan:
         //   Construct an object of a class derived from
-        //   'ball::ObserverAdapter' and bind a 'ball::ObserverAdapter'
+        //   `ball::ObserverAdapter` and bind a `ball::ObserverAdapter`
         //   reference to the object.  Using the base class reference, invoke
-        //   the two 'publish' methods, 'releaseRecords' method and destructor.
+        //   the two `publish` methods, `releaseRecords` method and destructor.
         //   Verify that the correct implementations of the methods are called.
         //
         // Testing:

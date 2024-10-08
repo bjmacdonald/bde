@@ -18,11 +18,11 @@
 #include <bdlt_datetime.h>
 #include <bdlt_time.h>
 
-#include <bdlb_printmethods.h>   // 'bdlb::HasPrintMethod'
+#include <bdlb_printmethods.h>   // `bdlb::HasPrintMethod`
 
 #include <bslim_testutil.h>
 
-#include <bslmf_allocatorargt.h> // 'bsl::allocator_arg'
+#include <bslmf_allocatorargt.h> // `bsl::allocator_arg`
 #include <bslmf_assert.h>
 
 #include <bslma_default.h>
@@ -34,30 +34,30 @@
 #include <bsls_asserttest.h>
 #include <bsls_platform.h>
 #include <bsls_review.h>
-#include <bsls_types.h>     // 'bsls::Types::Int64'
+#include <bsls_types.h>     // `bsls::Types::Int64`
 
-#include <bsl_algorithm.h>  // 'bsl::fill'
-#include <bsl_cstddef.h>    // 'bsl::size_t'
-#include <bsl_cstdlib.h>    // '::setenv'
-#include <bsl_cstring.h>    // 'bsl::strcmp', 'bsl::strspn'
+#include <bsl_algorithm.h>  // `bsl::fill`
+#include <bsl_cstddef.h>    // `bsl::size_t`
+#include <bsl_cstdlib.h>    // `::setenv`
+#include <bsl_cstring.h>    // `bsl::strcmp`, `bsl::strspn`
 #include <bsl_fstream.h>
-#include <bsl_functional.h> // 'bsl::function'
+#include <bsl_functional.h> // `bsl::function`
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 #include <bsl_optional.h>
-#include <bsl_ostream.h>    // 'operator<<'
+#include <bsl_ostream.h>    // `operator<<`
 #include <bsl_sstream.h>
 #include <bsl_stdexcept.h>
 #include <bsl_streambuf.h>
-#include <bsl_string.h>     // 'bslstl::StringRef'
-#include <bsl_utility.h>    // 'bsl::pair', 'bsl::make_pair'
+#include <bsl_string.h>     // `bslstl::StringRef`
+#include <bsl_utility.h>    // `bsl::pair`, `bsl::make_pair`
 #include <bsl_vector.h>
 
 #include <bsl_c_ctype.h>
 
 #ifdef BSLS_PLATFORM_OS_WINDOWS
-# include <windows.h>       // 'SetEnvironmentVariable'
+# include <windows.h>       // `SetEnvironmentVariable`
 #endif
 
 using namespace BloombergLP;
@@ -71,68 +71,68 @@ using bsl::flush;
 // ----------------------------------------------------------------------------
 //                                   Overview
 //                                   --------
-// The class, 'balcl::CommandLine', has in-core value semantics and supports
-// the 'bslma::Allocator' memory model.  A slight complication is that there is
-// an invalid state (when no value is defined) and a valid state (after 'parse'
+// The class, `balcl::CommandLine`, has in-core value semantics and supports
+// the `bslma::Allocator` memory model.  A slight complication is that there is
+// an invalid state (when no value is defined) and a valid state (after `parse`
 // returns successfully).  Nevertheless, we follow the usual value-semantic
 // type test driver, simplified from the fact that there are no manipulators
-// (once created and parsed, a 'balcl::CommandLine' object does not change
+// (once created and parsed, a `balcl::CommandLine` object does not change
 // value).
 //
 // Primary Manipulators
-//: o 'CommandLine(const Oi *table, int len, *bA = 0);'
-//: o 'int parse(int argc, const char *const argv[], ostream& stream);'
+//  - `CommandLine(const Oi *table, int len, *bA = 0);`
+//  - `int parse(int argc, const char *const argv[], ostream& stream);`
 //
 // Basic Accessors
-//: o 'bool isParsed() const;'
-//: o 'bool isValid() const;'
-//: o 'bslma::Allocator *allocator() const;'
+//  - `bool isParsed() const;`
+//  - `bool isValid() const;`
+//  - `bslma::Allocator *allocator() const;`
 //
-// The 'parse' method is given a BOOTSTRAP test in TC 3.  Those tests, based on
+// The `parse` method is given a BOOTSTRAP test in TC 3.  Those tests, based on
 // valid input, are sufficient to allow the method to be used in subsequent
-// tests.  Thorough tests of the wide range of allowed input for 'parse'
+// tests.  Thorough tests of the wide range of allowed input for `parse`
 // appear in later test cases.  See TCs 12 to 17.
 //
 ///Input Tables
 ///------------
 // There are several input tables (defined at file scope) that are used
 // throughout this test driver.  In particular, these files are the basis of
-// generating option configurations by the 'u::generateTestData' helper
+// generating option configurations by the `u::generateTestData` helper
 // function.  The cross product of these tables covers the space of
 // qualitatively equivalent inputs.  The tables are:
 //
-//: 1 'OPTION_TYPEINFO': This table represents the space of 'TypeInfo'
-//:   attributes.  There are entries that cover the cross product of every
-//:   supported option type, linked variable (with and without), and constraint
-//:   (with and without, where allowed).
-//:
-//:   o A helper function, 'u::createTypeInfo', is defined to create test
-//:     arguments from table entries.
-//:
-//: 2 'OPTION_OCCURRENCES': This table has an entry for each of the three
-//:   allowed values of 'OccurrenceType'.
-//:
-//:   o A helper function, 'u::createOccurrenceInfo', is defined to create test
-//:     arguments from table entries.
-//:
-//: 3 'OPTION_VALUES': This table provides an entry for each of the allowed
-//:   option types and the address of a value of that type.  These values are
-//:   available for general use in the test driver.  For example, they can be
-//:   used as default values for options when creating option-specification
-//:   tables.
-//:
-//:   o None of these option values correspond to the default value of their
-//:     respective types.
-//:
-//:   o The value chosen for 'balcl::OptionType::e_STRING' is sufficiently long
-//:     to exceed the short-string optimization.
-//:
-//:   o A helper function, 'u::getSomeOptionValue', is provided to return the
-//:     address (a 'void *') of the value for a specified option type.
-//:
-//:   o A helper function, 'u::setOptionValue', is provided to convert the
-//:     "value" field of 'OPTION_VALUES' into an argument for the
-//:     'setDefaultValue' method.
+// 1. `OPTION_TYPEINFO`: This table represents the space of `TypeInfo`
+//    attributes.  There are entries that cover the cross product of every
+//    supported option type, linked variable (with and without), and constraint
+//    (with and without, where allowed).
+//
+//    - A helper function, `u::createTypeInfo`, is defined to create test
+//      arguments from table entries.
+//
+// 2. `OPTION_OCCURRENCES`: This table has an entry for each of the three
+//    allowed values of `OccurrenceType`.
+//
+//    - A helper function, `u::createOccurrenceInfo`, is defined to create test
+//      arguments from table entries.
+//
+// 3. `OPTION_VALUES`: This table provides an entry for each of the allowed
+//    option types and the address of a value of that type.  These values are
+//    available for general use in the test driver.  For example, they can be
+//    used as default values for options when creating option-specification
+//    tables.
+//
+//    - None of these option values correspond to the default value of their
+//      respective types.
+//
+//    - The value chosen for `balcl::OptionType::e_STRING` is sufficiently long
+//      to exceed the short-string optimization.
+//
+//    - A helper function, `u::getSomeOptionValue`, is provided to return the
+//      address (a `void *`) of the value for a specified option type.
+//
+//    - A helper function, `u::setOptionValue`, is provided to convert the
+//      "value" field of `OPTION_VALUES` into an argument for the
+//      `setDefaultValue` method.
 //
 ///Usage and Error Messages
 ///------------------------
@@ -255,13 +255,13 @@ using bsl::flush;
 // [ 5] bool operator!=(const CommandLineOptionsHandle& lhs, rhs);
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [ 2] TESTING 'u::parseCommandLine' TESTING UTILITY
+// [ 2] TESTING `u::parseCommandLine` TESTING UTILITY
 // [11] TESTING INVALID OPTION SPECS
 // [12] TESTING FLAGS BUNDLING
 // [13] TESTING MULTIPLY-SPECIFIED FLAGS
 // [14] TESTING ORDER OF ARGUMENTS
 // [15] TESTING PARSING OF STRINGS
-// [16] TESTING NON-OPTION TOGGLE '--'
+// [16] TESTING NON-OPTION TOGGLE `--`
 // [19] TESTING OPTIONAL LINKED VARIABLES
 // [ *] CONCERN: The global allocator is not used.
 // [21] CONCERN: DRQS 166843299
@@ -402,7 +402,7 @@ enum { k_DATETIME_FIELD_WIDTH = 25
      ,     k_DATE_FIELD_WIDTH =  9
      ,     k_TIME_FIELD_WIDTH = 15 };
 
-// ATTRIBUTES FOR 'balcl::Option'
+// ATTRIBUTES FOR `balcl::Option`
 static const struct {
     int         d_line;   // line number
     const char *d_tag_p;  // tag attribute
@@ -419,7 +419,7 @@ enum { NUM_OPTION_TAGS = sizeof OPTION_TAGS / sizeof *OPTION_TAGS };
 
 bslma::TestAllocator ga("Global");
 
-// ATTRIBUTES FOR 'balcl::TypeInfo'
+// ATTRIBUTES FOR `balcl::TypeInfo`
 bool                          linkedBool;
 char                          linkedChar;
 int                           linkedInt;
@@ -479,26 +479,26 @@ void unsetEnvironmentVariable(const char *envVarName)
 }  // close namespace u
 }  // close unnamed namespace
 
-
                         // =====================
                         // struct TestConstraint
                         // =====================
 
 // BDE_VERIFY pragma: -FABC01  // Function ... not in alphabetic order
 
+/// This `struct` provides a namespace for functions, one for each
+/// constraint type, used to initialize `Constraint` objects for testing.
 struct TestConstraint {
-    // This 'struct' provides a namespace for functions, one for each
-    // constraint type, used to initialize 'Constraint' objects for testing.
 
   private:
+    /// Return `s_constraintValue` and if `false == s_constraintValue`
+    /// output an error message to the specified `stream`.
     static bool commonLogic(bsl::ostream& stream);
-        // Return 's_constraintValue' and if 'false == s_constraintValue'
-        // output an error message to the specified 'stream'.
 
   public:
     // PUBLIC CLASS DATA
+
+    /// Global return value (for easier control).
     static bool s_constraintValue;
-        // Global return value (for easier control).
 
     static bool     charFunc(const char           *, bsl::ostream& stream);
     static bool      intFunc(const int            *, bsl::ostream& stream);
@@ -507,10 +507,11 @@ struct TestConstraint {
     static bool   stringFunc(const bsl::string    *, bsl::ostream& stream);
     static bool datetimeFunc(const bdlt::Datetime *, bsl::ostream& stream);
     static bool     dateFunc(const bdlt::Date     *, bsl::ostream& stream);
+
+    /// Return `s_constraintValue` and if `false == s_constraintValue`
+    /// output an error message to the specified `stream`.  Note that the
+    /// first argument is ignored.
     static bool     timeFunc(const bdlt::Time     *, bsl::ostream& stream);
-        // Return 's_constraintValue' and if 'false == s_constraintValue'
-        // output an error message to the specified 'stream'.  Note that the
-        // first argument is ignored.
 };
 
                         // ---------------------
@@ -678,7 +679,7 @@ const struct {
 enum { NUM_OPTION_TYPEINFO = sizeof  OPTION_TYPEINFO
                            / sizeof *OPTION_TYPEINFO };
 
-// ATTRIBUTES FOR 'balcl::OccurrenceInfo'
+// ATTRIBUTES FOR `balcl::OccurrenceInfo`
 static const struct {
     int             d_line;  // line number
     OccurrenceType  d_type;  // name attribute
@@ -759,77 +760,88 @@ static const struct {
                      "Name_a",
                      "Description for a",
                      TypeInfo(&linkedBoolA),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "b|bLong",
                      "Name_b",
                      "Description for b",
                      TypeInfo(&linkedBoolB),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "c|cLong",
                      "Name_c",
                      "Description for c",
                      TypeInfo(&linkedBoolC),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "i|iLong",
                      "Name_i",
                      "Description for i",
                      TypeInfo(&linkedInt),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "d|dLong",
                      "Name_d",
                      "Description for d",
                      TypeInfo(&linkedDouble),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "s|sLong",
                      "Name_s",
                      "Description for s",
                      TypeInfo(&linkedString),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "I|ILong",
                      "Name_I",
                      "Description for I",
                      TypeInfo(&linkedIntArray),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "D|DLong",
                      "Name_D",
                      "Description for D",
                      TypeInfo(&linkedDoubleArray),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "S|SLong",
                      "Name_S",
                      "Description for S",
                      TypeInfo(&linkedStringArray),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "",
                      "Name1",
                      "Description1",
                      TypeInfo(&linkedString1),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  },
                  {
                      "",
                      "Name2",
                      "Description2",
                      TypeInfo(&linkedStringArray1),
-                     OccurrenceInfo::e_OPTIONAL
+                     OccurrenceInfo::e_OPTIONAL,
+                     ""
                  }
              }
     }
@@ -843,9 +855,9 @@ enum { NUM_SPECS = sizeof SPECS / sizeof *SPECS };
 namespace {
 namespace u {
 
+/// Return the number of arguments (non-null pointers) found starting at
+/// the specified `argv`.  The behavior is undefined unless `0 != argv[0]`.
 int getArgc(const char * const *argv)
-    // Return the number of arguments (non-null pointers) found starting at
-    // the specified 'argv'.  The behavior is undefined unless '0 != argv[0]'.
 {
     ASSERT(argv);
     ASSERT(argv[0])
@@ -863,14 +875,14 @@ int getArgc(const char * const *argv)
                          // function generateArgument
                          // =========================
 
+/// Generate into the specified `argString` a command-line string suitable
+/// to be parsed by a `balcl::CommandLine` object having the specified
+/// `optionInfo`.  Optionally specify a `seed` for changing the return value
+/// of `argString` in a pseudo-random fashion.  Return 0 upon success, and
+/// non-zero otherwise.
 int generateArgument(bsl::string       *argString,
                      const OptionInfo&  optionInfo,
                      int                seed = 0)
-    // Generate into the specified 'argString' a command-line string suitable
-    // to be parsed by a 'balcl::CommandLine' object having the specified
-    // 'optionInfo'.  Optionally specify a 'seed' for changing the return value
-    // of 'argString' in a pseudo-random fashion.  Return 0 upon success, and
-    // non-zero otherwise.
 {
     const OccurrenceInfo& occurrenceInfo = optionInfo.d_defaultInfo;
     Option                option(optionInfo);
@@ -981,19 +993,19 @@ int generateArgument(bsl::string       *argString,
 
 const int MAX_ARGS = 512;
 
+/// Parse the specified modifiable `cmdLine` as would a Unix shell, by
+/// replacing every space by a character '\0' and recording the beginning of
+/// each field into an array that is loaded into the specified `argv`, and
+/// load the number of fields into the specified modifiable `argc`.
+/// Optionally specify `maxArgs`, the maximum allowed number of arguments.
+/// Return 0 on success, non-zero if the command line exceeds `maxArgs`
+/// number of arguments, or on failure.  Note that the `cmdLine` must be
+/// null-terminated and may not contain a carriage return or newline.
+/// Fields must be separated by either a space or a tab character.
 int parseCommandLine(char       *cmdLine,
                      int&        argc,
                      const char *argv[],
                      int         maxArgs = MAX_ARGS)
-    // Parse the specified modifiable 'cmdLine' as would a Unix shell, by
-    // replacing every space by a character '\0' and recording the beginning of
-    // each field into an array that is loaded into the specified 'argv', and
-    // load the number of fields into the specified modifiable 'argc'.
-    // Optionally specify 'maxArgs', the maximum allowed number of arguments.
-    // Return 0 on success, non-zero if the command line exceeds 'maxArgs'
-    // number of arguments, or on failure.  Note that the 'cmdLine' must be
-    // null-terminated and may not contain a carriage return or newline.
-    // Fields must be separated by either a space or a tab character.
 {
     // If passing null string (not even empty), failure.
 
@@ -1001,7 +1013,7 @@ int parseCommandLine(char       *cmdLine,
         return -1;                                                    // RETURN
     }
 
-    // Initialize 'argc'.
+    // Initialize `argc`.
 
     argc = 0;
 
@@ -1062,11 +1074,11 @@ int parseCommandLine(char       *cmdLine,
                         // function setConstraint
                         // ======================
 
+/// Set the constraint of the specified `typeInfo` to the function at the
+/// specified `address` of the signature corresponding to the specified
+/// `type`.  The behavior is undefined unless `Ot::e_VOID != type` and
+/// `Ot::e_BOOL != type`.
 void setConstraint(TypeInfo *typeInfo, ElemType type, const void *address)
-    // Set the constraint of the specified 'typeInfo' to the function at the
-    // specified 'address' of the signature corresponding to the specified
-    // 'type'.  The behavior is undefined unless 'Ot::e_VOID != type' and
-    // 'Ot::e_BOOL != type'.
 {
     BSLS_ASSERT(typeInfo);
     BSLS_ASSERT(Ot::e_VOID != type);
@@ -1110,18 +1122,18 @@ void setConstraint(TypeInfo *typeInfo, ElemType type, const void *address)
                          // function setLinkedVariable
                          // ==========================
 
+/// Invoke the `setLinkedVariable` overload of `balcl::TypeInfo` that
+/// accepts addresses of type `Ot::EnumToType<type>::type *` with the
+/// specified `variable` (address).  If the specified
+/// `isOptionalLinkedVariable` is `true`, then invoke the overload that
+/// accepts addresses of type `bsl::optional<Ot::EnumToType<type>::type> *`.
+/// The behavior is undefined unless `variable` can be legally cast to the
+/// target type.  Note that `isOptionalLinkedVariable` is *disallowed* when
+/// `type` is an "array" option type or `type` is `Ot::e_BOOL`.
 void setLinkedVariable(TypeInfo *typeInfo,
                        ElemType  type,
                        void     *variable,
                        bool      isOptionalLinkedVariable)
-    // Invoke the 'setLinkedVariable' overload of 'balcl::TypeInfo' that
-    // accepts addresses of type 'Ot::EnumToType<type>::type *' with the
-    // specified 'variable' (address).  If the specified
-    // 'isOptionalLinkedVariable' is 'true', then invoke the overload that
-    // accepts addresses of type 'bsl::optional<Ot::EnumToType<type>::type> *'.
-    // The behavior is undefined unless 'variable' can be legally cast to the
-    // target type.  Note that 'isOptionalLinkedVariable' is *disallowed* when
-    // 'type' is an "array" option type or 'type' is 'Ot::e_BOOL'.
 {
     ASSERT(typeInfo);
 
@@ -1149,7 +1161,7 @@ void setLinkedVariable(TypeInfo *typeInfo,
 
     switch (type) {
       case Ot::e_VOID: {
-        BSLS_ASSERT_INVOKE_NORETURN("Reached: 'e_VOID'");
+        BSLS_ASSERT_INVOKE_NORETURN("Reached: `e_VOID`");
       } break;
 
       CASE                    (Ot::e_BOOL)
@@ -1184,11 +1196,11 @@ void setLinkedVariable(TypeInfo *typeInfo,
                          // function setType
                          // ================
 
+/// Set the `balcl::OptionType` element of the specified `typeInfo` to the
+/// specified `type`.  The behavior is undefined unless
+/// `Ot::e_VOID != type`.  Note that this resets both the linked variable
+/// and constraint of `typeInfo`.
 void setType(TypeInfo *typeInfo, ElemType type)
-    // Set the 'balcl::OptionType' element of the specified 'typeInfo' to the
-    // specified 'type'.  The behavior is undefined unless
-    // 'Ot::e_VOID != type'.  Note that this resets both the linked variable
-    // and constraint of 'typeInfo'.
 {
     ASSERT(typeInfo);
 
@@ -1233,22 +1245,22 @@ void setType(TypeInfo *typeInfo, ElemType type)
                           // function createTypeInfo
                           // =======================
 
+/// Set the specified `typeInfo` to have the specified `type`.  Optionally
+/// specify `variable`, the address of a linked variable'.  Optionally
+/// specify `isOptionalLinkedVariable` to `true` if `variable` is the
+/// address of a `bsl::optional` object.  Optionally specify `constraint`,
+/// the address of a constraint functor.  The behavior is undefined unless
+/// `Ot::e_VOID != type`, `variable` is 0 or can be cast to either
+/// `Ot::EnumToType<type>::type *` if `isOptionalLinkedVariable` is `false`
+/// or `bsl::optional<Ot::EnumToType<type>::type> *` if
+/// `isOptionalLinkedVariable` is `true`, `constraint` is 0 or can be cast
+/// to the type defined by `Constraint` for `type`, and if
+/// `Ot::e_BOOL == type` then `constraint` must be 0.
 void createTypeInfo(TypeInfo *typeInfo,
                     ElemType  type,
                     void     *variable = 0,
                     bool      isOptionalLinkedVariable = false,
                     void     *constraint = 0)
-    // Set the specified 'typeInfo' to have the specified 'type'.  Optionally
-    // specify 'variable', the address of a linked variable'.  Optionally
-    // specify 'isOptionalLinkedVariable' to 'true' if 'variable' is the
-    // address of a 'bsl::optional' object.  Optionally specify 'constraint',
-    // the address of a constraint functor.  The behavior is undefined unless
-    // 'Ot::e_VOID != type', 'variable' is 0 or can be cast to either
-    // 'Ot::EnumToType<type>::type *' if 'isOptionalLinkedVariable' is 'false'
-    // or 'bsl::optional<Ot::EnumToType<type>::type> *' if
-    // 'isOptionalLinkedVariable' is 'true', 'constraint' is 0 or can be cast
-    // to the type defined by 'Constraint' for 'type', and if
-    // 'Ot::e_BOOL == type' then 'constraint' must be 0.
 {
     BSLS_ASSERT(typeInfo);
 
@@ -1268,21 +1280,22 @@ void createTypeInfo(TypeInfo *typeInfo,
 }
 
 // BDE_VERIFY pragma: -AR01  // Type using allocator is returned by value
+
+/// Return (by value) a `TypeInfo` object having the specified `type`.
+/// Optionally specify `variable`, an address to be linked to the option.
+/// Optionally specify `isOptionalLinkedVariable` (if `true`, then
+/// `variable` is the address of a `bsl::optional` object).  Optionally
+/// specify a `constraint` on the value of the option.  The returned object
+/// uses the currently installed default allocator.  The behavior is
+/// undefined unless `Ot::e_VOID != type`, `variable` is 0 or can be cast to
+/// `Ot::EnumToType<type>::type *` if `isOptionalLinkedVariable` is `false`
+/// or `bsl::optional<Ot::EnumToType<type>::type> *` if
+/// `isOptionalLinkedVariable` is `true`, and `constraint` is 0 or can be
+/// cast to the type defined by `Constraint` for `type` .
 TypeInfo createTypeInfo(ElemType  type,
                         void     *variable = 0,
                         bool      isOptionalLinkedVariable = false,
                         void     *constraint = 0)
-    // Return (by value) a 'TypeInfo' object having the specified 'type'.
-    // Optionally specify 'variable', an address to be linked to the option.
-    // Optionally specify 'isOptionalLinkedVariable' (if 'true', then
-    // 'variable' is the address of a 'bsl::optional' object).  Optionally
-    // specify a 'constraint' on the value of the option.  The returned object
-    // uses the currently installed default allocator.  The behavior is
-    // undefined unless 'Ot::e_VOID != type', 'variable' is 0 or can be cast to
-    // 'Ot::EnumToType<type>::type *' if 'isOptionalLinkedVariable' is 'false'
-    // or 'bsl::optional<Ot::EnumToType<type>::type> *' if
-    // 'isOptionalLinkedVariable' is 'true', and 'constraint' is 0 or can be
-    // cast to the type defined by 'Constraint' for 'type' .
 {
     TypeInfo result;
     createTypeInfo(&result,
@@ -1294,11 +1307,11 @@ TypeInfo createTypeInfo(ElemType  type,
 }
 // BDE_VERIFY pragma: +AR01  // Type using allocator is returned by value
 
+/// Set the value at the specified `dst` to the value found at the specified
+/// `src` that is of the specified `type`.  The behavior is undefined unless
+/// `src` can be cast to a pointer of `Ot::EnumToType<type>::type`,
+/// `Ot::e_VOID != type`, and `dst->type() == type`.
 void setOptionValue(OptionValue *dst, const void *src, ElemType type)
-    // Set the value at the specified 'dst' to the value found at the specified
-    // 'src' that is of the specified 'type'.  The behavior is undefined unless
-    // 'src' can be cast to a pointer of 'Ot::EnumToType<type>::type',
-    // 'Ot::e_VOID != type', and 'dst->type() == type'.
 {
     BSLS_ASSERT(dst);
     BSLS_ASSERT(src);
@@ -1347,15 +1360,16 @@ void setOptionValue(OptionValue *dst, const void *src, ElemType type)
                           // =============================
 
 // BDE_VERIFY pragma: -AR01  // Type using allocator is returned by value
+
+/// Return (by value) an `OccurrenceInfo` object having the specified
+/// `occurrenceType` and having a default value of the specified `type` and
+/// a value determined by the specified `variable` (if non-zero).  The
+/// returned object uses the currently installed default allocator.  The
+/// behavior is undefined unless `Ot::e_VOID != type` and `variable` can be
+/// cast to a pointer of `Ot::EnumToType<type>::type`,
 OccurrenceInfo createOccurrenceInfo(OccurrenceType  occurrenceType,
                                     ElemType        type,
                                     const void     *variable)
-    // Return (by value) an 'OccurrenceInfo' object having the specified
-    // 'occurrenceType' and having a default value of the specified 'type' and
-    // a value determined by the specified 'variable' (if non-zero).  The
-    // returned object uses the currently installed default allocator.  The
-    // behavior is undefined unless 'Ot::e_VOID != type' and 'variable' can be
-    // cast to a pointer of 'Ot::EnumToType<type>::type',
 {
     BSLS_ASSERT(Ot::e_VOID != type);
 
@@ -1382,15 +1396,15 @@ OccurrenceInfo createOccurrenceInfo(OccurrenceType  occurrenceType,
 
 typedef bsl::logic_error InvalidSpec;
 
+/// Throw an exception of type `InvalidSpec` containing the specified `text`
+/// and referring to the specified `file` at the specified `line` number.
 void throwInvalidSpec(const char *text, const char *file, int line)
-    // Throw an exception of type 'InvalidSpec' containing the specified 'text'
-    // and referring to the specified 'file' at the specified 'line' number.
 {
     bsl::string errorMsg = "In file: ";
     errorMsg += file;
     errorMsg += ", at line: ";
     errorMsg += static_cast<char>(line);
-    errorMsg += "\nAn invalid 'balcl::OptionInfo' was encountered.";
+    errorMsg += "\nAn invalid `balcl::OptionInfo` was encountered.";
     errorMsg += "\nThe following assertion failed: ";
     errorMsg += text;
     throw u::InvalidSpec(errorMsg.c_str());
@@ -1402,16 +1416,16 @@ void throwInvalidSpec(const char *text, const char *file, int line)
                        // function isCompatibleOrdering
                        // =============================
 
+/// Return `true` if all the arguments specifying non-option argument values
+/// and multi-valued options held in the specified `argv1` array of the
+/// specified length `argc` occur in the same order as in the specified
+/// `argv2` array of the same length, and `false` otherwise.  The behavior
+/// is undefined unless the arguments are either "-S=..." for multi-valued
+/// short options (single capitalized letter), "-s=..." for singly-valued
+/// short options (non-capitalized), or non-option argument values.
 bool isCompatibleOrdering(const char *const *argv1,
                           const char *const *argv2,
                           int                argc)
-    // Return 'true' if all the arguments specifying non-option argument values
-    // and multi-valued options held in the specified 'argv1' array of the
-    // specified length 'argc' occur in the same order as in the specified
-    // 'argv2' array of the same length, and 'false' otherwise.  The behavior
-    // is undefined unless the arguments are either "-S=..." for multi-valued
-    // short options (single capitalized letter), "-s=..." for singly-valued
-    // short options (non-capitalized), or non-option argument values.
 {
     bool nonOptionSeenFlag = false;
     bool multiOptionSeenFlag[26];
@@ -1460,9 +1474,9 @@ bool isCompatibleOrdering(const char *const *argv1,
                          // function getSomeOptionValue
                          // ===========================
 
+/// Return the address of the element in `OPTION_VALUES` having the
+/// specified `type` and 0 if no such element is found.
 const void *getSomeOptionValue(ElemType type)
-    // Return the address of the element in 'OPTION_VALUES' having the
-    // specified 'type' and 0 if no such element is found.
 {
     for (bsl::size_t i = 0; i < NUM_OPTION_VALUES; ++i) {
         if (OPTION_VALUES[i].d_type == type) {
@@ -1476,11 +1490,11 @@ const void *getSomeOptionValue(ElemType type)
                          // function isOptionalLinkedVariableInTable
                          // ========================================
 
+/// Return `true` is the specified `variable`, possibly having a 0 value, is
+/// the address of one of the `bsl::optional` objects that are used as
+/// linked variables in some entries of the `OPTION_TYPEINFO` table, and
+/// `false` otherwise.
 bool isOptionalLinkedVariableInTable(void *variable)
-    // Return 'true' is the specified 'variable', possibly having a 0 value, is
-    // the address of one of the 'bsl::optional' objects that are used as
-    // linked variables in some entries of the 'OPTION_TYPEINFO' table, and
-    // 'false' otherwise.
 {
     if (variable == &oLinkedChar
      || variable == &oLinkedInt
@@ -1499,28 +1513,28 @@ bool isOptionalLinkedVariableInTable(void *variable)
                          // function generateTestData
                          // =========================
 
+/// Load into the specified `options` a sequence of `OptionInfo` objects
+/// generated from the global tables of representative values
+/// `OPTION_TYPEINFO`, `OPTION_OCCURRENCE`, and `OPTION_VALUES` (see {Input
+/// Tables}).  Load into the specified `numBaseOptions` the number of
+/// generated options.  The following sequences of options can be validly
+/// used to construct a `balcl::CommandLine` object' where `i` is in the
+/// range `[0 .. numBaseOptions)`:
+/// * Single option
+///   - `option[i]`
+/// * Double option
+///   - `option[i + ]`
+///   - `option[i + numBaseOptions]`
+/// * Triple options
+///   - `option[i]`
+///   - `option[i + 1 * numBaseOptions]`
+///   - `option[i + 2 * numBaseOptions]`
+/// Load into the specified `arguments` a string that can be used on the
+/// command line to satisfy the corresponding option in `options`.  Return 0
+/// on success and a non-zero value if the input data cannot be generated.
 int generateTestData(bsl::vector<OptionInfo>  *options,
                      bsl::vector<bsl::string> *arguments,
                      int                      *numBaseOptions)
-    // Load into the specified 'options' a sequence of 'OptionInfo' objects
-    // generated from the global tables of representative values
-    // 'OPTION_TYPEINFO', 'OPTION_OCCURRENCE', and 'OPTION_VALUES' (see {Input
-    // Tables}).  Load into the specified 'numBaseOptions' the number of
-    // generated options.  The following sequences of options can be validly
-    // used to construct a 'balcl::CommandLine' object' where 'i' is in the
-    // range '[0 .. numBaseOptions)':
-    //: o Single option
-    //:   o 'option[i]'
-    //: o Double option
-    //:   o 'option[i + ]'
-    //:   o 'option[i + numBaseOptions]'
-    //: o Triple options
-    //:   o 'option[i]'
-    //:   o 'option[i + 1 * numBaseOptions]'
-    //:   o 'option[i + 2 * numBaseOptions]'
-    // Load into the specified 'arguments' a string that can be used on the
-    // command line to satisfy the corresponding option in 'options'.  Return 0
-    // on success and a non-zero value if the input data cannot be generated.
 {
     ASSERT(options);
     ASSERT(arguments);
@@ -1567,12 +1581,13 @@ int generateTestData(bsl::vector<OptionInfo>  *options,
             bsl::string(NAME) + uniqueIdent,
             DESC,
             TYPE_INFO,
-            OCCURRENCE_INFO
+            OCCURRENCE_INFO,
+            ""
         };
 
         if (Ot::e_BOOL == TYPE_INFO.type() && OPTION_INFO.d_tag.empty()) {
             // Flags cannot have an empty tag, or in other words non-options
-            // cannot be of type 'bool'.  Skip this.
+            // cannot be of type `bool`.  Skip this.
 
             continue;
         }
@@ -1585,11 +1600,11 @@ int generateTestData(bsl::vector<OptionInfo>  *options,
         }
 
         if (TYPE_INFO.isOptionalLinkedVariable()
-         && (TYPE_INFO.type() == Ot::e_BOOL  // Not impossible for 'TypeInfo'.
+         && (TYPE_INFO.type() == Ot::e_BOOL  // Not impossible for `TypeInfo`.
           || OCCURRENCE_INFO.isRequired()
           || OCCURRENCE_INFO.hasDefaultValue())) {
             // Disallowed combinations when linked variable is a
-            // 'bsl::optional' object.  Skip this.
+            // `bsl::optional` object.  Skip this.
 
             continue;
         }
@@ -1737,6 +1752,16 @@ int generateTestData(bsl::vector<OptionInfo>  *options,
                          // function generateParseInput
                          // ===========================
 
+/// Load into the specified `argString` a Unix-style command line having
+/// "programName' as the first (0th) argument followed by the specified `n`
+/// entries from the specified `arguments`.  Each argument is separated by a
+/// blank character.  The entry indices are determined by the specified `i`
+/// and the specified `numOptions` by the formula: `i + x * numOptions`
+/// where `x` ranges from 0 to `n - 1`.  Append the individual entries as
+/// elements of the specified `argStrings`.  Load `argPtrs` with the address
+/// of the start of each entry in `argStrings`.  Note that the values in
+/// `argPtrs` remain valid as long as the elements of `argStrings` remain
+/// stable.
 void generateParseInput(bsl::string                     *argString,
                         bsl::vector<bsl::string>        *argStrings,
                         bsl::vector<const char *>       *argPtrs,
@@ -1744,22 +1769,12 @@ void generateParseInput(bsl::string                     *argString,
                         int                              n,
                         int                              i,
                         int                              numOptions)
-    // Load into the specified 'argString' a Unix-style command line having
-    // "programName' as the first (0th) argument followed by the specified 'n'
-    // entries from the specified 'arguments'.  Each argument is separated by a
-    // blank character.  The entry indices are determined by the specified 'i'
-    // and the specified 'numOptions' by the formula: 'i + x * numOptions'
-    // where 'x' ranges from 0 to 'n - 1'.  Append the individual entries as
-    // elements of the specified 'argStrings'.  Load 'argPtrs' with the address
-    // of the start of each entry in 'argStrings'.  Note that the values in
-    // 'argPtrs' remain valid as long as the elements of 'argStrings' remain
-    // stable.
 {
     ASSERT(argString)
     ASSERT(argStrings)
     ASSERT(argPtrs)
 
-    argStrings->reserve(n + 5); // 'argStrings' must be stable
+    argStrings->reserve(n + 5); // `argStrings` must be stable
 
     *argString = "\"programName";
 
@@ -1796,17 +1811,17 @@ void generateParseInput(bsl::string                     *argString,
                         // function normalizeIndentation
                         // =============================
 
+/// Load into the specified `output` a "normalized" version of the specified
+/// `input` where `input` is the output of the `TypeInfo` `print` method
+/// called with the specified `level` and the specified `spacesPerLevel`.
+/// The "normalized" version corresponds to calling `print` with `level` and
+/// `spacesPerLevel` having the values 0 and 4, respectively.  The behavior
+/// is undefined unless `level` and `spacesPerLevel` are both non-negative,
+/// and unless `output->empty()`.
 void normalizeIndentation(bsl::string        *output,
                           const bsl::string&  input,
                           int                 level,
                           int                 spacesPerLevel)
-    // Load into the specified 'output' a "normalized" version of the specified
-    // 'input' where 'input' is the output of the 'TypeInfo' 'print' method
-    // called with the specified 'level' and the specified 'spacesPerLevel'.
-    // The "normalized" version corresponds to calling 'print' with 'level' and
-    // 'spacesPerLevel' having the values 0 and 4, respectively.  The behavior
-    // is undefined unless 'level' and 'spacesPerLevel' are both non-negative,
-    // and unless 'output->empty()'.
 {
     BSLS_ASSERT(output);
     BSLS_ASSERT(output->empty());
@@ -1860,7 +1875,7 @@ void normalizeIndentation(bsl::string        *output,
 
 namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_1 {
 
-// BDE_VERIFY pragma: -FD01  // Avoid contract for 'main' below.
+// BDE_VERIFY pragma: -FD01  // Avoid contract for `main` below.
 
 //
 ///Usage
@@ -1869,108 +1884,114 @@ namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_1 {
 //
 ///Example 1: Parsing Command Line Options Using Minimal Functionality
 ///- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Suppose we want to design a sorting utility named 'mysort' that has the
+// Suppose we want to design a sorting utility named `mysort` that has the
 // following syntax:
-//..
+// ```
 //  Usage: mysort [-r|reverse] [-f|field-separator <fieldSeparator>]
 //                -o|outputfile <outputFile> [<fileList>]+
-//                            // Sort the specified files (in 'fileList'), and
+//                            // Sort the specified files (in `fileList`), and
 //                            // write the output to the specified output file.
-//..
-// The '<fileList>' argument is a 'non-option', meaning that its value or
+// ```
+// The `<fileList>` argument is a `non-option`, meaning that its value or
 // values appear on the command line unannounced by tags.  In this case, the
 // '+' following the argument means that it is an array type of argument where
 // at least one element is required, so its values are stored in a
-// 'bsl::vector'.
-//..
+// `bsl::vector`.
+// ```
     int main(int argc, const char **argv)
     {
         using balcl::TypeInfo;
         using balcl::OccurrenceInfo;
-//..
+// ```
 // First, we define our variables to be initialized from the command line.  All
 // values must be initialized to their default state:
-//..
+// ```
         bool reverse = false;
         bsl::string outputFile;
         char fieldSeparator = '|';
         bsl::vector<bsl::string> files;
-//..
-// Then, we define our 'OptionInfo' table of attributes to be set.  The fields
-// of the 'OptionInfo' are:
+// ```
+// Then, we define our `OptionInfo` table of attributes to be set.  The fields
+// of the `OptionInfo` are:
 //
-//: o tag - the tag on the command line for supplying the option
-//:
-//: o name - a one word description of the value to provide for the option
-//:
-//: o description - a short body of text describing the purpose of the option
-//:   etc.
-//:
-//: o TypeInfo - information about the type of the input expected (possibly the
-//:   variable in which to load the value)
-//:
-//: o OccurenceInfo - (optional) whether the option is required, optional, or
-//:   hidden (where hidden means hidden from the help text)
-//:
-//: o environment variable name - (optional) the name of an environment
-//:   variable to use for the option if the option is not provided on the
-//:   command line
-//..
+//  - tag - the tag on the command line for supplying the option
+//
+//  - name - a one word description of the value to provide for the option
+//
+//  - description - a short body of text describing the purpose of the option
+//    etc.
+//
+//  - TypeInfo - information about the type of the input expected (possibly the
+//    variable in which to load the value)
+//
+//  - OccurenceInfo - (optional) whether the option is required, optional, or
+//    hidden (where hidden means hidden from the help text)
+//
+//  - environment variable name - (optional) the name of an environment
+//    variable to use for the option if the option is not provided on the
+//    command line
+// ```
         static const balcl::OptionInfo specTable[] = {
           {
             "r|reverse",                                   // tag
             "isReverse",                                   // name
             "sort in reverse order",                       // description
             TypeInfo(&reverse),                            // link
+            OccurrenceInfo(),                              // occurrence
+            ""                                             // env var name
           },
           {
             "f|field-separator",                           // tag
             "fieldSeparator",                              // name
             "field separator character",                   // description
             TypeInfo(&fieldSeparator),                     // link
+            OccurrenceInfo(),                              // occurrence
+            ""                                             // env var name
           },
           {
             "o|outputfile",                                // tag
             "outputFile",                                  // name
             "output file",                                 // description
             TypeInfo(&outputFile),                         // link
-            OccurrenceInfo::e_REQUIRED                     // occurrence info
+            OccurrenceInfo::e_REQUIRED,                    // occurrence info
                                                            // (not optional)
+            ""                                             // env var name
           },
           {
             "",                                            // non-option
             "fileList",                                    // name
             "input files to be sorted",                    // description
             TypeInfo(&files),                              // link
-            OccurrenceInfo::e_REQUIRED                     // occurrence info
+            OccurrenceInfo::e_REQUIRED,                    // occurrence info
                                                            // (at least one
                                                            // file required)
+            ""                                             // env var name
           }
         };
-//..
+// ```
 // Now, we create a balcl command-line object, supplying it with the spec table
 // that we have just defined:
-//..
+// ```
         balcl::CommandLine cmdLine(specTable);
-//..
+// ```
 // Parse the options and if an error occurred, print a usage message describing
 // the options:
-//..
+// ```
         if (cmdLine.parse(argc, argv)) {
             cmdLine.printUsage();
             return -1;                                                // RETURN
         }
-//..
+// ```
 // If there are no errors in the specification table and correct arguments are
-// passed, 'parse' will set any variables that were specified on the command
+// passed, `parse` will set any variables that were specified on the command
 // line, return 0 and there will be no output.
 //
-// Finally, we show what will happen if 'mysort' is called with invalid
-// arguments.  We will call without specifying an input file to 'fileList',
-// which will be an error.  'parse' streams a message describing the error and
-// then returns non-zero, so our program will call 'cmdLine.printUsage', which
+// Finally, we show what will happen if `mysort` is called with invalid
+// arguments.  We will call without specifying an input file to `fileList`,
+// which will be an error.  `parse` streams a message describing the error and
+// then returns non-zero, so our program will call `cmdLine.printUsage`, which
 // prints a detailed usage message.
-//..
+// ```
 //  $ mysort -r -o sorted.txt
 //  Error: No value supplied for the non-option argument "fileList".
 //
@@ -1985,32 +2006,32 @@ namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_1 {
 //            output file
 //                            <fileList>
 //            input files to be sorted
-//..
+// ```
 //
-///Example 2: Accessing Option Values Through 'balcl::CommandLine' Accessors
+///Example 2: Accessing Option Values Through `balcl::CommandLine` Accessors
 ///- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Imagine we defined the same 'mysort' program with the same options.  After a
-// successful 'parse', 'balcl::Commandline' makes the state of every option
+// Imagine we defined the same `mysort` program with the same options.  After a
+// successful `parse`, `balcl::Commandline` makes the state of every option
 // available through accessors (in addition to setting external variables as
 // shown in example 1).
 //
-// For every type that is supported, there is a 'the<TYPE>' accessor which
+// For every type that is supported, there is a `the<TYPE>` accessor which
 // takes a single argument, the name of the argument.  In the above program, if
 // parsing was successful, the following asserts will always pass:
-//..
+// ```
         ASSERT(cmdLine.theBool("isReverse")       == reverse);
         ASSERT(cmdLine.theString("outputFile")    == outputFile);
         ASSERT(cmdLine.theStringArray("fileList") == files);
-//..
-// The next accessors we'll discuss are 'isSpecified' and 'numSpecified'.
-// Here, we use 'isSpecified' to determine whether "fieldSeparator" was
-// specified on the command line, and we use 'numSpecified' to determine the
+// ```
+// The next accessors we'll discuss are `isSpecified` and `numSpecified`.
+// Here, we use `isSpecified` to determine whether "fieldSeparator" was
+// specified on the command line, and we use `numSpecified` to determine the
 // number of times the "fieldSeparator" option appeared on the command line:
-//..
+// ```
         if (cmdLine.isSpecified("fieldSeparator")) {
             const unsigned char uc = cmdLine.theChar("fieldSeparator");
             if (!::isprint(uc)) {
-                bsl::cerr << "'fieldSeparator' must be printable.\n";
+                bsl::cerr << "`fieldSeparator` must be printable.\n";
 
                 return -1;                                            // RETURN
             }
@@ -2018,22 +2039,23 @@ namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_1 {
 
         if (1 < cmdLine.numSpecified("fieldSeparator")) {
             bsl::cerr <<
-                     "'fieldSeparator' may not be specified more than once.\n";
+                     "`fieldSeparator` may not be specified more than once.\n";
 
             return -1;                                                // RETURN
         }
 return 0;
 }
-//..
+// ```
 
 }  // close namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_1
 
 namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_3 {
 
 int LINE;
+
+/// This function checks that the values passed to the command line in usage
+/// example 2 are as expected.
 void checkExample3(const balcl::CommandLine& cmdLine)
-    // This function checks that the values passed to the command line in usage
-    // example 2 are as expected.
 {
     ASSERTV(LINE, cmdLine.theBool("isReverse"));
     const bsl::vector<bsl::string>& sa = cmdLine.theStringArray("fileList");
@@ -2046,26 +2068,26 @@ void checkExample3(const balcl::CommandLine& cmdLine)
 //
 ///Example 3: Default Values and Specifying Values Via The Environment
 ///- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Suppose we are implementing 'mysort' (from examples 1 & 2) again, but here
+// Suppose we are implementing `mysort` (from examples 1 & 2) again, but here
 // we want to make use of default option values and the ability to supply
 // options via the environment.
 //
 // In this example, we have decided not to link local variables, and instead
-// access the option values via the 'balcl::CommandLine' object.  Since we are
-// not linking local variables, we specify 'OptionType::k_<TYPE>' in the
-// specification table below for each 'TypeInfo' field.
+// access the option values via the `balcl::CommandLine` object.  Since we are
+// not linking local variables, we specify `OptionType::k_<TYPE>` in the
+// specification table below for each `TypeInfo` field.
 //
-// To specify default values, we pass the default value to the 'OccurrenceInfo'
-// field.  Boolean options always have a default value of 'false'.
+// To specify default values, we pass the default value to the `OccurrenceInfo`
+// field.  Boolean options always have a default value of `false`.
 //
 // We also choose to allow these options to be supplied through the
 // environment.  To enable this, we specify an environment variable name as the
-// 5th (optional) element of the 'OptionInfo' specification for the option.  If
+// 5th (optional) element of the `OptionInfo` specification for the option.  If
 // no name is supplied for the environment variable, the option cannot be set
 // via the environment.
 //
-// First, in 'main', we define our spec table:
-//..
+// First, in `main`, we define our spec table:
+// ```
     using balcl::TypeInfo;
     using balcl::OptionType;
     using balcl::OccurrenceInfo;
@@ -2092,14 +2114,14 @@ void checkExample3(const balcl::CommandLine& cmdLine)
 //
     int main(int argc, const char **argv)
     {
-//..
-// Then, we declare our 'cmdLine' object.  This time, we pass it a stream, and
-// messages will be written to that stream rather than 'cerr' (the default).
-//..
+// ```
+// Then, we declare our `cmdLine` object.  This time, we pass it a stream, and
+// messages will be written to that stream rather than `cerr` (the default).
+// ```
         balcl::CommandLine cmdLine(specTable, bsl::cout);
-//..
-// Next, we call 'parse' (just like in Example 1):
-//..
+// ```
+// Next, we call `parse` (just like in Example 1):
+// ```
         if (cmdLine.parse(argc, argv)) {
             cmdLine.printUsage();
             return -1;                                                // RETURN
@@ -2107,51 +2129,51 @@ void checkExample3(const balcl::CommandLine& cmdLine)
 checkExample3(cmdLine);
 return 0;
 }
-//..
-// 'balcl::CommandLine' uses the following precedence to determine the value of
+// ```
+// `balcl::CommandLine` uses the following precedence to determine the value of
 // a command line option:
 //
-//: 1 Use the option value on the command-line (if one was supplied)
-//:
-//: 2 Use the option value supplied by an environment variable (if one was
-//:   supplied)
-//:
-//: 3 Use the default value (if one was supplied, or 'false' for booleans)
+// 1. Use the option value on the command-line (if one was supplied)
+//
+// 2. Use the option value supplied by an environment variable (if one was
+//    supplied)
+//
+// 3. Use the default value (if one was supplied, or `false` for booleans)
 //
 // Finally, if an option value is not supplied by either the command line or
 // environment, and there is no default value, any linked variable will be
-// unmodified, 'cmdLine.hasValue' for the option will return 'false', and the
-// behavior is undefined if 'cmdLine.the<TYPE>' for the option is called.
+// unmodified, `cmdLine.hasValue` for the option will return `false`, and the
+// behavior is undefined if `cmdLine.the<TYPE>` for the option is called.
 //
-// Note that 'cmdLine.isSpecified' will be 'true' only if an option was
+// Note that `cmdLine.isSpecified` will be `true` only if an option was
 // supplied by the command line or the environment.
 //
 // If an array options is set by an environment variable, the different
 // elements of the array are separated by spaces by default.
 //
 // All these calling sequences are equivalent:
-//..
+// ```
 //  $ mysort -r inputFile1 inputFile2 inputFile3
-//..
+// ```
 // or
-//..
+// ```
 //  $ mysort inputFile1 --reverse inputFile2 inputFile3
-//..
+// ```
 // or
-//..
+// ```
 //  $ mysort inputFile1 inputFile2 inputFile3 -r
-//..
+// ```
 // or the user can specify arguments through environment variables:
-//..
+// ```
 //  $ export MYSORT_REVERSE=true
 //  $ export MYSORT_FILES="inputFile1 inputFile2 inputFile3"
 //  $ mysort
-//..
+// ```
 // or as a combination of command line arguments and environment variables:
-//..
+// ```
 //  $ export MYSORT_FILES="inputFile1 inputFile2 inputFile3"
 //  $ mysort -r
-//..
+// ```
 // The '\' character is used as an escape character for array values provided
 // via an environment variable.  So, for example, if we needed to encode file
 // names that contain a space (' '), which is the element separator (by
@@ -2203,21 +2225,21 @@ void checkExample5(const balcl::CommandLine& cmdLine, int rc)
 //
 ///Example 4: Option Constraints
 // - - - - - - - - - - - - - - -
-// Suppose, we are again implementing 'mysort', and we want to introduce some
+// Suppose, we are again implementing `mysort`, and we want to introduce some
 // constraints on the values supplied for the variables.  In this example, we
 // will ensure that the supplied input files exist and are not directories, and
-// that 'fieldSeparator' is appropriate.
+// that `fieldSeparator` is appropriate.
 //
 // First, we write a validation function for the file name.  A validation
-// function supplied to 'balcl::CommandLine' takes an argument of a const
+// function supplied to `balcl::CommandLine` takes an argument of a const
 // pointer to the input option type (with the user provided value) and a stream
 // on which to write an error message, and the validation function returns a
-// 'bool' that is 'true' if the option is valid, and 'false' otherwise.
+// `bool` that is `true` if the option is valid, and `false` otherwise.
 //
-// Here, we implement a function to validate a file name, that returns 'true'
-// if the file exists and is a regular file, and 'false' otherwise (writing an
-// description of the error to the 'stream'):
-//..
+// Here, we implement a function to validate a file name, that returns `true`
+// if the file exists and is a regular file, and `false` otherwise (writing an
+// description of the error to the `stream`):
+// ```
     bool isValidFileName(const bsl::string *fileName, bsl::ostream& stream)
     {
         if (!bdls::FilesystemUtil::isRegularFile(*fileName, true)) {
@@ -2228,10 +2250,10 @@ void checkExample5(const balcl::CommandLine& cmdLine, int rc)
 
         return true;
     }
-//..
-// Then, we also want to make sure that the specified 'fieldSeparator' is
+// ```
+// Then, we also want to make sure that the specified `fieldSeparator` is
 // a non-whitespace printable ascii character, so we write a function for that:
-//..
+// ```
     bool isValidFieldSeparator(const char    *fieldSeparator,
                                bsl::ostream&  stream)
     {
@@ -2244,9 +2266,9 @@ void checkExample5(const balcl::CommandLine& cmdLine, int rc)
 
         return true;
     }
-//..
-// Next, we define 'main' and declare the variables to be configured:
-//..
+// ```
+// Next, we define `main` and declare the variables to be configured:
+// ```
     int main(int argc, const char **argv)
     {
         using balcl::Constraint;
@@ -2257,17 +2279,17 @@ void checkExample5(const balcl::CommandLine& cmdLine, int rc)
         bool                     reverse = false;
         char                     fieldSeparator;
         bsl::vector<bsl::string> files;
-//..
-// Notice that 'fieldSeparator' are in automatic storage with no constructor or
+// ```
+// Notice that `fieldSeparator` are in automatic storage with no constructor or
 // initial value.  We can safely use an uninitialized variable in the
-// 'specTable' below because the 'specTable' provides a default value for it,
+// `specTable` below because the `specTable` provides a default value for it,
 // which will be assigned to the variable if an option value is not provided on
-// the command line or through environment variables.  'reverse' has to be
-// initialized because no default for it is provided in 'specTable'.
+// the command line or through environment variables.  `reverse` has to be
+// initialized because no default for it is provided in `specTable`.
 //
-// Then, we declare our 'specTable', providing function pointers for our
-// constraint functions to the second argument of the 'TypeInfo' constructor.
-//..
+// Then, we declare our `specTable`, providing function pointers for our
+// constraint functions to the second argument of the `TypeInfo` constructor.
+// ```
         // option specification table
 
         static const balcl::OptionInfo specTable[] = {
@@ -2275,7 +2297,9 @@ void checkExample5(const balcl::CommandLine& cmdLine, int rc)
             "r|reverse",                             // tag
             "isReverse",                             // name
             "sort in reverse order",                 // description
-            TypeInfo(&reverse)                       // linked variable
+            TypeInfo(&reverse),                      // linked variable
+            OccurrenceInfo(),                        // default value
+            ""                                       // env variable name
           },
           {
             "f|field-separator",                     // tag
@@ -2283,7 +2307,8 @@ void checkExample5(const balcl::CommandLine& cmdLine, int rc)
             "field separator character",             // description
             TypeInfo(&fieldSeparator,                // linked variable
                      &isValidFieldSeparator),        // constraint
-            OccurrenceInfo('|')                      // default value
+            OccurrenceInfo('|'),
+            ""                                       // env variable name
           },
           {
             "",                                      // non-option
@@ -2291,8 +2316,9 @@ void checkExample5(const balcl::CommandLine& cmdLine, int rc)
             "input files to be sorted",              // description
             TypeInfo(&files, &isValidFileName),      // linked variable and
                                                      // constraint
-            OccurrenceInfo::e_REQUIRED               // at least one file
+            OccurrenceInfo::e_REQUIRED,              // at least one file
                                                      // required
+            ""                                       // env variable name
           }
         };
 //
@@ -2308,8 +2334,8 @@ checkExample5(cmdLine, rc);
 if (veryVerbose) cout << parseOss.view();
 return rc;
 }
-//..
-// If the constraint functions return 'false', 'cmdLine.parse' will return
+// ```
+// If the constraint functions return `false`, `cmdLine.parse` will return
 // non-zero, and the output will contain the message from the constraint
 // function followed by the usage message.
 
@@ -2317,7 +2343,7 @@ return rc;
 
 namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_5 {
 
-// BDE_VERIFY pragma: -FD01  // Avoid contract for 'main' below.
+// BDE_VERIFY pragma: -FD01  // Avoid contract for `main` below.
 
 void performTask(bsl::istream& input)
 {
@@ -2327,18 +2353,18 @@ void performTask(bsl::istream& input)
 }
 
 //
-///Example 5: Using 'bsl::optional' for Optional Command Line Parameters
+///Example 5: Using `bsl::optional` for Optional Command Line Parameters
 ///- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// We can use a 'bsl::optional' variables when providing optional command line
+// We can use a `bsl::optional` variables when providing optional command line
 // parameters.  Suppose we want to write a command line that takes an optional
 // input file, and if the file is not supplied, take input from a
-// 'bsl::stringstream'.
+// `bsl::stringstream`.
 //
 // To represent the optional file name parameter, we link a variable of type
-// 'bsl::optional<bsl::string>'.  In general, when linking a variable to an
-// option, we can choose to use 'bsl::optonal<TYPE>' in place of 'TYPE', for
-// any option type other than 'bool'.
-//..
+// `bsl::optional<bsl::string>`.  In general, when linking a variable to an
+// option, we can choose to use `bsl::optonal<TYPE>` in place of `TYPE`, for
+// any option type other than `bool`.
+// ```
     int main(int argc, const char **argv)
     {
         bsl::optional<bsl::string> optionalFileName;
@@ -2348,7 +2374,9 @@ void performTask(bsl::istream& input)
             "i|inputFile",                         // tag
             "filename",                            // name
             "name of input file",                  // description
-            balcl::TypeInfo(&optionalFileName)     // linked optional variable
+            balcl::TypeInfo(&optionalFileName),    // linked optional variable
+            balcl::OccurrenceInfo(),               // occurence info
+            ""                                     // env variable name
           }
         };
 
@@ -2357,10 +2385,10 @@ void performTask(bsl::istream& input)
             cmdLine.printUsage();
             return -1;                                                // RETURN
         }
-//..
-// Finally, we test whether 'optionalFileName' has been set, and if it has not
-// been set, take input from a prepared 'stringstream'.
-//..
+// ```
+// Finally, we test whether `optionalFileName` has been set, and if it has not
+// been set, take input from a prepared `stringstream`.
+// ```
         bsl::stringstream ss;
         bsl::istream *inStream = &ss;
 
@@ -2370,17 +2398,17 @@ void performTask(bsl::istream& input)
             inStream = &fileStream;
         }
         else {
-            // Prepare the 'stringstream'.
+            // Prepare the `stringstream`.
 
             ss << "The quick brown fox jumps over the lazy dog\n";
         }
 
         performTask(*inStream);
-//..
+// ```
 return 0;
 }
 
-// BDE_VERIFY pragma: -FD01  // Avoid contract for 'main' above.
+// BDE_VERIFY pragma: -FD01  // Avoid contract for `main` above.
 
 }  // close namespace BALCL_COMMANDLINE_USAGE_EXAMPLE_5
 
@@ -2388,12 +2416,13 @@ namespace {
 namespace u {
 
 typedef int (*MainFunc)(int, const char **);
+
+/// Return the valid of the `main` function (in this namespace) called with
+/// the specified `argc` and `argv`.  Output to `bsl::cout` and `bsl::cerr`
+/// is redirected to a temporary `bsl::ostringstream` before the call to
+/// `main` and restored afterwards.  Thus, the console output demonstrated
+/// by the example code is suppressed.
 int redirectedMain(int line, const char *cmdLine, MainFunc mainFunc)
-    // Return the valid of the 'main' function (in this namespace) called with
-    // the specified 'argc' and 'argv'.  Output to 'bsl::cout' and 'bsl::cerr'
-    // is redirected to a temporary 'bsl::ostringstream' before the call to
-    // 'main' and restored afterwards.  Thus, the console output demonstrated
-    // by the example code is suppressed.
 {
     char cmdBuf[1024];
     bsl::strcpy(cmdBuf, cmdLine);
@@ -2409,13 +2438,13 @@ int redirectedMain(int line, const char *cmdLine, MainFunc mainFunc)
     bdlma::LocalSequentialAllocator<8 * 1024>  ossOutAlloc;
     bsl::ostringstream                         ossOut(&ossOutAlloc);
 
-    cout.rdbuf(ossOut.rdbuf());  // Redirect 'cout'.
-    cerr.rdbuf(ossOut.rdbuf());  // Redirect 'cerr'.
+    cout.rdbuf(ossOut.rdbuf());  // Redirect `cout`.
+    cerr.rdbuf(ossOut.rdbuf());  // Redirect `cerr`.
 
     int rc = (*mainFunc)(argc, argv);
 
-    cout.rdbuf(outStreamBuf);    // Restore 'cout'.
-    cerr.rdbuf(errStreamBuf);    // Restore 'cerr'.
+    cout.rdbuf(outStreamBuf);    // Restore `cout`.
+    cerr.rdbuf(errStreamBuf);    // Restore `cerr`.
 
     if (veryVerbose) {
         cout << "line: " << line << ", parse rc: " << rc << endl;
@@ -2490,14 +2519,14 @@ int main(int argc, const char *argv[])
         // USAGE EXAMPLE 5
         //
         // Concern:
-        //: 1 That Usage Example 5 compiles and works properly.
+        // 1. That Usage Example 5 compiles and works properly.
         //
         // Plan:
-        //: 1 Call the simulated 'main' in the namespace of the usage example.
-        //:
-        //: 2 If 'veryVerbose' (meaning '3 < argc') and 'argv[3]' is a file
-        //:   name, then pass that file name to the '-i' option on the command
-        //:   line.
+        // 1. Call the simulated `main` in the namespace of the usage example.
+        //
+        // 2. If `veryVerbose` (meaning `3 < argc`) and `argv[3]` is a file
+        //    name, then pass that file name to the `-i` option on the command
+        //    line.
         // --------------------------------------------------------------------
 
         namespace TC = BALCL_COMMANDLINE_USAGE_EXAMPLE_5;
@@ -2506,7 +2535,7 @@ int main(int argc, const char *argv[])
                              "=======================\n";
 
         bsl::string cmdStr("myprog");
-        if (3 < argc) {                                 // 'veryVerbose' is set
+        if (3 < argc) {                                 // `veryVerbose` is set
             const char *maybeFileName = argv[3];
             if (bdls::FilesystemUtil::exists(maybeFileName)) {
                 cmdStr += " -i ";
@@ -2521,24 +2550,24 @@ int main(int argc, const char *argv[])
         // USAGE EXAMPLE 4
         //
         // Cencern:
-        //: 1 That Usage Example 4 compiles and works properly.
+        // 1. That Usage Example 4 compiles and works properly.
         //
         // Plan:
-        //: 1 Establish 2 strings: 'VALID_FN', the name of a valid plain file,
-        //:   and 'VALID_DN', the name of a valid directory.
-        //:
-        //: 2 Iterate through a table which provides command lines, expected
-        //:   values of options, and expected warnings (when a warning is
-        //:   expected, the expected option values are ignored).
-        //:
-        //: 3 Populate variables named 'exp*' in the namespace of the usage
-        //:   example with the expected values from the table, so that code in
-        //:   that namespace can compare them to the configured values.
-        //:
-        //: 4 Pass the command line from the table and the function ptr of the
-        //:   simulated 'main' to 'u::redirectedMain' which will parse the
-        //:   command line into 'argc', 'argv' variables, redirect 'cout' and
-        //:   'cerr', and call the simulated 'main'.
+        // 1. Establish 2 strings: `VALID_FN`, the name of a valid plain file,
+        //    and `VALID_DN`, the name of a valid directory.
+        //
+        // 2. Iterate through a table which provides command lines, expected
+        //    values of options, and expected warnings (when a warning is
+        //    expected, the expected option values are ignored).
+        //
+        // 3. Populate variables named `exp*` in the namespace of the usage
+        //    example with the expected values from the table, so that code in
+        //    that namespace can compare them to the configured values.
+        //
+        // 4. Pass the command line from the table and the function ptr of the
+        //    simulated `main` to `u::redirectedMain` which will parse the
+        //    command line into `argc`, `argv` variables, redirect `cout` and
+        //    `cerr`, and call the simulated `main`.
         // --------------------------------------------------------------------
 
         namespace TC = BALCL_COMMANDLINE_USAGE_EXAMPLE_4;
@@ -2567,9 +2596,9 @@ int main(int argc, const char *argv[])
             const char *d_message;
             const char *d_cmd;
         } DATA[] = {
-        //      V -- expected value of 'reverse'
-        //      |   V -- expected value of 'fieldSeparator'
-        //      |   |   V -- expected value of 'fileName' (non-option)
+        //      V -- expected value of `reverse`
+        //      |   V -- expected value of `fieldSeparator`
+        //      |   |   V -- expected value of `fileName` (non-option)
         //      |   |   |         V -- pattern expected to appear in streamed
         //      |   |   |         |    warning messsage (or 0 if no message)
         //      |   |   |         |  V -- command line
@@ -2606,19 +2635,19 @@ int main(int argc, const char *argv[])
         // USAGE EXAMPLE 3
         //
         // Concerns:
-        //: 1 Demonstrate usage of component without linked variables, using
-        //:   'the*', 'isSpecified', and 'numSpecified' accessors.
-        //:
-        //: 2 Also demonstrate setting arguments with environment variables.
+        // 1. Demonstrate usage of component without linked variables, using
+        //    `the*`, `isSpecified`, and `numSpecified` accessors.
+        //
+        // 2. Also demonstrate setting arguments with environment variables.
         //
         // Plan:
-        //: 1 Do an example based on exactly the same program as was done in
-        //:   Example 1, only using the other methods to set values and obtain
-        //:   configured argument state.
-        //:
-        //: 2 The expect values of the 'reverse' boolean option and the input
-        //:   files is always the same, so no expected values are configured in
-        //:   the table.
+        // 1. Do an example based on exactly the same program as was done in
+        //    Example 1, only using the other methods to set values and obtain
+        //    configured argument state.
+        //
+        // 2. The expect values of the `reverse` boolean option and the input
+        //    files is always the same, so no expected values are configured in
+        //    the table.
         //
         // Testing:
         //   USAGE EXAMPLE 3
@@ -2635,7 +2664,7 @@ int main(int argc, const char *argv[])
             const char *d_files;
             const char *d_cmd;
         } DATA[] = {
-        //      V -- 'MYSORT_REVERSE' environment variable value ("" for unset)
+        //      V -- `MYSORT_REVERSE` environment variable value ("" for unset)
         //      |       V -- 'MYSORT_FILES" environment variable value ("" for
         //      |       |    unset)
         //      |       |   V -- command line
@@ -2690,16 +2719,16 @@ int main(int argc, const char *argv[])
         // USAGE EXAMPLE 1
         //
         // Concerns:
-        //: 1 Demonstrate the use of the component with the absolute minimal
-        //:   functionality.
+        // 1. Demonstrate the use of the component with the absolute minimal
+        //    functionality.
         //
         // Plan:
-        //: 1 Do a test case involving all linked variables with no defaults in
-        //:   the 'specTable', all variables assigned to their default values
-        //:   in their definitions.
-        //:
-        //: 2 Check for correctness of values in code following the parse
-        //:   rather than specifying constraints in the 'specTable'.
+        // 1. Do a test case involving all linked variables with no defaults in
+        //    the `specTable`, all variables assigned to their default values
+        //    in their definitions.
+        //
+        // 2. Check for correctness of values in code following the parse
+        //    rather than specifying constraints in the `specTable`.
         //
         // Testing:
         //   USAGE EXAMPLE 1
@@ -2740,13 +2769,13 @@ int main(int argc, const char *argv[])
         // INITIALIZATION OF FIELDS WITH EMPTY CURLY BRACES
         //
         // Concern:
-        //: 1 Spectable is able to take empty curly braces initilizing
-        //:   'OccurenceInfo' or 'TypeInfo' on C++11 and beyond.
+        // 1. Spectable is able to take empty curly braces initilizing
+        //    `OccurenceInfo` or `TypeInfo` on C++11 and beyond.
         //
         // Plan:
-        //: 1 Create a spectable passing empty curly braces to the type info
-        //:   and occurrence info fields of 'OptionInfo' and verify that it
-        //:   compiles and functions correctly.
+        // 1. Create a spectable passing empty curly braces to the type info
+        //    and occurrence info fields of `OptionInfo` and verify that it
+        //    compiles and functions correctly.
         //
         // Testing:
         //   INITIALIZATION OF FIELDS WITH EMPTY CURLY BRACES
@@ -2756,7 +2785,7 @@ int main(int argc, const char *argv[])
                           "INITIALIZATION OF FIELDS WITH EMPTY CURLY BRACES\n"
                           "================================================\n";
 
-// Passing '{}' to a non-trivial default constructor in an aggregate
+// Passing `{}` to a non-trivial default constructor in an aggregate
 // initialization is supported in C++11 and later, but is technically not
 // supported in C++03.  However, the Sun compilers support this, and there is
 // production code that relies on this behavior, so we test it here for
@@ -2802,45 +2831,45 @@ int main(int argc, const char *argv[])
         // Environment Variables Overriden by Command Line, Always Checked
         //
         // Concerns:
-        //: 1 If an option is set by both the command line and the environment
-        //:   variable, the command line value takes precedence.
-        //:
-        //: 2 If both command line and environment values are provided, both
-        //:   are parsed for syntactic correctness, and if either fails, it
-        //:   results in 'parse' returning non-zero.
+        // 1. If an option is set by both the command line and the environment
+        //    variable, the command line value takes precedence.
+        //
+        // 2. If both command line and environment values are provided, both
+        //    are parsed for syntactic correctness, and if either fails, it
+        //    results in `parse` returning non-zero.
         //
         // Plan:
-        //: 1 Define 3 variables of 3 types and a spec table for setting all
-        //:   3 of them, with environment variable names.
-        //:
-        //: 2 Define non-default-constructed 'default values' for the 3
-        //:   variables, and a couple of other non-default-constructed values
-        //:   for the array variable.
-        //:
-        //: 3 Define a table with:
-        //:   o expected return value from 'parse'
-        //:
-        //:   o expected values of the 3 variables
-        //:
-        //:   o the command line (not including the program name)
-        //:
-        //:   o an index of which of 3 environment variables are to be set
-        //:
-        //:   o the string that the selected environment variable, if any, is
-        //:     to be set
-        //:
-        //: 4 Define a table setting the above values and iterate through it.
-        //:
-        //: 5 Set only the selected environment variable, if any, to the
-        //:   value indicated in the table.
-        //:
-        //: 6 Create a 'CommandLine' object with the spec table and call
-        //:   'parse'.  Observe that the return value of 'parse' was as
-        //:   expected, and if and only if the return value was non-zero, there
-        //:   was output streamed.
-        //:
-        //: 7 If the 'parse' call succeeded, confirm that the values of the
-        //:   3 variables was as expected.
+        // 1. Define 3 variables of 3 types and a spec table for setting all
+        //   3. of them, with environment variable names.
+        //
+        // 2. Define non-default-constructed `default values` for the 3
+        //    variables, and a couple of other non-default-constructed values
+        //    for the array variable.
+        //
+        // 3. Define a table with:
+        //    - expected return value from `parse`
+        //
+        //    - expected values of the 3 variables
+        //
+        //    - the command line (not including the program name)
+        //
+        //    - an index of which of 3 environment variables are to be set
+        //
+        //    - the string that the selected environment variable, if any, is
+        //      to be set
+        //
+        // 4. Define a table setting the above values and iterate through it.
+        //
+        // 5. Set only the selected environment variable, if any, to the
+        //    value indicated in the table.
+        //
+        // 6. Create a `CommandLine` object with the spec table and call
+        //    `parse`.  Observe that the return value of `parse` was as
+        //    expected, and if and only if the return value was non-zero, there
+        //    was output streamed.
+        //
+        // 7. If the `parse` call succeeded, confirm that the values of the
+        //   3. variables was as expected.
         // --------------------------------------------------------------------
 
         typedef bsl::vector<int> Array;
@@ -2892,23 +2921,23 @@ int main(int argc, const char *argv[])
 
         static const struct Data {
             int           d_line;
-            int           d_expRc;   // expected 'parse' return code
+            int           d_expRc;   // expected `parse` return code
             int           d_expI;    // expected int
             double        d_expD;    // expected double
             const Array&  d_expA;    // expected array
             const char   *d_cmdLine; // command line
             EnvVarSet     d_envIdx;  // env idx:
-                                     //: o -1: none
-                                     //: o  0: int
-                                     //: o  1: double
-                                     //: o  2: array
+                                     //  - -1: none
+                                     //  -  0: int
+                                     //  -  1: double
+                                     //  -  2: array
             const char   *d_envVal;  // environment variable value
         } DATA[] = {
         //    V -- line
         //    |   V -- exp return value
-        //    |   |   V -- exp 'myInt' value
-        //    |   |   |   V -- exp 'myDouble' value
-        //    |   |   |   |    V -- exp 'myArray' value
+        //    |   |   V -- exp `myInt` value
+        //    |   |   |   V -- exp `myDouble` value
+        //    |   |   |   |    V -- exp `myArray` value
         //    |   |   |   |    |   V -- command line (after prog name)
         //    |   |   |   |    |   |           V -- which env var
         //    V   V   V   V    V   V           V         V -- environment value
@@ -3033,31 +3062,31 @@ int main(int argc, const char *argv[])
         // PARSING ARRAY ENVIRONMENT VARIABLES
         //
         // Concern:
-        //: 1 That parsing arrays in environment variables handles the
-        //:   separator character properly.
-        //:
-        //: 2 That parsing arrays in environment variables handles the escape
-        //:   character properly.
+        // 1. That parsing arrays in environment variables handles the
+        //    separator character properly.
+        //
+        // 2. That parsing arrays in environment variables handles the escape
+        //    character properly.
         //
         // Plan:
-        //: 1 Create a spec table with a single optional option of type string
-        //:   array, that can be set by environment variable.
-        //:
-        //: 2 Have a table of string values of the environment variable, and
-        //:   arrays of 'const char *'s to the string values that are expected
-        //:   to be in the string array, if parsed correctly, and an array
-        //:   separator character which, if '\0' (an illegal value), means do
-        //:   not set it an let it defaullt to space.
-        //:
-        //: 3 Create a stream 'oss' that will record any output streamed by
-        //:   the command line parser, and use it to confirm that no output
-        //:   occurred while parsing.
-        //:
-        //: 4 Create a command line parser and call with an 'argv' with a
-        //:   program name and no command line arguments.
-        //:
-        //: 5 Confirm that the array has the expected number of elements with
-        //:   the expected values.
+        // 1. Create a spec table with a single optional option of type string
+        //    array, that can be set by environment variable.
+        //
+        // 2. Have a table of string values of the environment variable, and
+        //    arrays of `const char *`s to the string values that are expected
+        //    to be in the string array, if parsed correctly, and an array
+        //    separator character which, if '\0' (an illegal value), means do
+        //    not set it an let it defaullt to space.
+        //
+        // 3. Create a stream `oss` that will record any output streamed by
+        //    the command line parser, and use it to confirm that no output
+        //    occurred while parsing.
+        //
+        // 4. Create a command line parser and call with an `argv` with a
+        //    program name and no command line arguments.
+        //
+        // 5. Confirm that the array has the expected number of elements with
+        //    the expected values.
         //
         // Testing:
         //   PARSING ARRAY ENVIRONMENT VARIABLES
@@ -3090,7 +3119,7 @@ int main(int argc, const char *argv[])
             const char *d_envVal;
             const char *d_expElements[k_MAX_NUM_ELEMENTS + 1];
         } DATA[] = {
-        //        V -- success ('T') or failure ('F')
+        //        V -- success (`T`) or failure (`F`)
         //        |  V -- environment variable value
         //        V  V                    V -- null-terminated array val
             { L_, T, "woof meow arf",     { "woof", "meow", "arf", 0 } },
@@ -3146,46 +3175,46 @@ int main(int argc, const char *argv[])
         // CONCERN: READING ENVIRONMENT VARIABLES
         //
         // Concern:
-        //: 1 That 'parse' reads environment variables, if set, and if the
-        //:   corresponding option is not set on the command line.
-        //:
-        //: 2 That environment variables, if set, override default values.
-        //:
-        //: 3 Environment variables can be used to set optional or required
-        //:   options.
-        //:
-        //: 4 That linked variables are correctly set by environment variables
-        //:   when appropriate.
-        //:
-        //: 5 That when an option is set by environment variables, its
-        //:   'position' is -2.
+        // 1. That `parse` reads environment variables, if set, and if the
+        //    corresponding option is not set on the command line.
+        //
+        // 2. That environment variables, if set, override default values.
+        //
+        // 3. Environment variables can be used to set optional or required
+        //    options.
+        //
+        // 4. That linked variables are correctly set by environment variables
+        //    when appropriate.
+        //
+        // 5. That when an option is set by environment variables, its
+        //    `position` is -2.
         //
         // Plan:
-        //: 1 Create an 'OptionInfo' array with two 'string' options, a
-        //:   required one and an optional one, both with environment variable
-        //:   names.
-        //:
-        //: 2 Verify that neither of the environment variables are set.
-        //:
-        //: 3 Declare an array of 4 'argv' arrays of arguments with all 4
-        //:   possible combination of command-line arguments?
-        //:
-        //: 4 With the environment variables still unset, declare 4
-        //:   'CommandLine' objects using the declared 'OptionInfo' array.
-        //:
-        //: 5 Parse the 4 command line objects with the 4 'argv' arrays,
-        //:   observe that the objects parsed without required arguments fail
-        //:   to parse.
-        //:
-        //: 6 Verify that the state, post-parsing, is as expected.
-        //;
-        //: 7 Set the 2 environment variables.
-        //:
-        //: 8 In a new block, declare the 4 'CommandLine' objects again, and
-        //:   call parse on them with the 4 'argv' arrays.  This time, all 4
-        //:   parses should succeed.
-        //:
-        //: 9 Verify the state, post-parsing, is as expected.
+        // 1. Create an `OptionInfo` array with two `string` options, a
+        //    required one and an optional one, both with environment variable
+        //    names.
+        //
+        // 2. Verify that neither of the environment variables are set.
+        //
+        // 3. Declare an array of 4 `argv` arrays of arguments with all 4
+        //    possible combination of command-line arguments?
+        //
+        // 4. With the environment variables still unset, declare 4
+        //    `CommandLine` objects using the declared `OptionInfo` array.
+        //
+        // 5. Parse the 4 command line objects with the 4 `argv` arrays,
+        //    observe that the objects parsed without required arguments fail
+        //    to parse.
+        //
+        // 6. Verify that the state, post-parsing, is as expected.
+        //
+        // 7. Set the 2 environment variables.
+        //
+        // 8. In a new block, declare the 4 `CommandLine` objects again, and
+        //    call parse on them with the 4 `argv` arrays.  This time, all 4
+        //    parses should succeed.
+        //
+        // 9. Verify the state, post-parsing, is as expected.
         //
         // Testing:
         //   ENVIRONMENT VARIABLES
@@ -3338,33 +3367,33 @@ int main(int argc, const char *argv[])
       case 21: {
         // --------------------------------------------------------------------
         // DRQS 166843299
-        //   'balcl_commandline': runtime error observed.
+        //   `balcl_commandline`: runtime error observed.
         //
         // Concerns:
-        //: 1 The observed runtime error is (first) reproduced and is no longer
-        //:   observed in the updated component.
-        //:
-        //: 2 Flags specified with 'e_REQUIRED' behave the same as flags
-        //:   specified with 'e_OPTIONAL'.
-        //:
-        //: 3 Options with 'e_REQUIRED' are allowed for all option values.
+        // 1. The observed runtime error is (first) reproduced and is no longer
+        //    observed in the updated component.
+        //
+        // 2. Flags specified with `e_REQUIRED` behave the same as flags
+        //    specified with `e_OPTIONAL`.
+        //
+        // 3. Options with `e_REQUIRED` are allowed for all option values.
         //
         // Plan:
-        //: 1 Create a test case that demonstrated the problem (core dump)
-        //:   before the fix but now passes.  (C-1)
-        //:
-        //: 2 Create an option specification having two flags: one specified
-        //:   with 'e_REQUIRED', the other with 'e_OPTIONAL'.  Use the
-        //:   specification in two scenarios: one where the flags are supplied
-        //:   on the command line, the other where they are not.  Confirm that
-        //:   the flag with 'e_OPTIONAL' shows the expected value in both
-        //:   scenarios and the flag with 'e_REQUIRED' always shows a value
-        //:   that matches the other flag.  (C-2)
-        //:
-        //: 3 Create a series of option specifications where 'e_REQUIRED' is
-        //:   specified in each case while the option type takes on all allowed
-        //:   types.  Show that the 'isValidOptionSpecificationTable' function
-        //:   returns 'true' for each of these option specifications.  (C-3)
+        // 1. Create a test case that demonstrated the problem (core dump)
+        //    before the fix but now passes.  (C-1)
+        //
+        // 2. Create an option specification having two flags: one specified
+        //    with `e_REQUIRED`, the other with `e_OPTIONAL`.  Use the
+        //    specification in two scenarios: one where the flags are supplied
+        //    on the command line, the other where they are not.  Confirm that
+        //    the flag with `e_OPTIONAL` shows the expected value in both
+        //    scenarios and the flag with `e_REQUIRED` always shows a value
+        //    that matches the other flag.  (C-2)
+        //
+        // 3. Create a series of option specifications where `e_REQUIRED` is
+        //    specified in each case while the option type takes on all allowed
+        //    types.  Show that the `isValidOptionSpecificationTable` function
+        //    returns `true` for each of these option specifications.  (C-3)
         //
         // Testing:
         //   CONCERN: DRQS 166843299
@@ -3385,7 +3414,8 @@ int main(int argc, const char *argv[])
                     "isReverse",                 // name
                     "sort in reverse order",     // description
                     TypeInfo(Ot::k_BOOL),        // flag option
-                    OccurrenceInfo::e_REQUIRED   // occurrence required
+                    OccurrenceInfo::e_REQUIRED,  // occurrence required
+                    ""                           // env var name
                 }
             };
 
@@ -3400,7 +3430,7 @@ int main(int argc, const char *argv[])
         }
 
         if (veryVerbose) {
-            cout << "Flags with 'e_REQUIRED' or 'e_OPTIONAL' behave same."
+            cout << "Flags with `e_REQUIRED` or `e_OPTIONAL` behave same."
                  << endl;
         }
         {
@@ -3410,14 +3440,16 @@ int main(int argc, const char *argv[])
                     "requiredOption",            // name
                     "Oxymoron",                  // description
                     TypeInfo(Ot::k_BOOL),        // flag option
-                    OccurrenceInfo::e_REQUIRED   // occurrence required
+                    OccurrenceInfo::e_REQUIRED,  // occurrence required
+                    ""                           // env var name
                 }
               , {
                     "o|optional",                // tag
                     "optionalOption",            // name
                     "Redundant",                 // description
                     TypeInfo(Ot::k_BOOL),        // flag option
-                    OccurrenceInfo::e_OPTIONAL   // occurrence required
+                    OccurrenceInfo::e_OPTIONAL,  // occurrence required
+                    ""                           // env var name
                 }
             };
 
@@ -3443,7 +3475,7 @@ int main(int argc, const char *argv[])
         }
 
         if (veryVerbose) {
-            cout << "Check that 'e_REQUIRED' and be configured for each type."
+            cout << "Check that `e_REQUIRED` and be configured for each type."
                  << endl;
         }
         {
@@ -3474,6 +3506,7 @@ int main(int argc, const char *argv[])
                                              , "Flag description."
                                              , TYPE_INFO
                                              , OccurrenceInfo::e_REQUIRED
+                                             , ""
                                              };
                 if (veryVerbose) {
                     P_(i) P_(optInfo.d_typeInfo) P(optInfo.d_defaultInfo)
@@ -3491,62 +3524,62 @@ int main(int argc, const char *argv[])
         // TESTING OPTIONAL LINKED VARIABLES
         //
         // Concerns:
-        //: 1 Linked variables to 'bsl::optional' objects (optional linked
-        //:   variables) can be configured for each of the eight supported
-        //:   types.
-        //:
-        //: 2 Optional linked variables are left in a no-value state if
-        //:   associated options are not specified on the command line (input
-        //:   to the 'parse' method).
-        //:
-        //: 3 Optional linked variables are left with the expected value when
-        //:   the command line is populated with fields for the associated
-        //:   option.
-        //:
-        //: 4 Optional linked variables do not interfere with the operation of
-        //:   non-optional linked variables to the 17 supported option types.
-        //:
-        //: 5 The 'validate' method, called either explicitly or implicitly in
-        //:   the constructor, detects disallowed configurations of optional
-        //:   linked variables:
-        //:   o optional linked variables for "required" option.
-        //:   o optional linked variables with a default value.
-        //:   o optional linked variables for a 'bool' option (flag).
+        // 1. Linked variables to `bsl::optional` objects (optional linked
+        //    variables) can be configured for each of the eight supported
+        //    types.
+        //
+        // 2. Optional linked variables are left in a no-value state if
+        //    associated options are not specified on the command line (input
+        //    to the `parse` method).
+        //
+        // 3. Optional linked variables are left with the expected value when
+        //    the command line is populated with fields for the associated
+        //    option.
+        //
+        // 4. Optional linked variables do not interfere with the operation of
+        //    non-optional linked variables to the 17 supported option types.
+        //
+        // 5. The `validate` method, called either explicitly or implicitly in
+        //    the constructor, detects disallowed configurations of optional
+        //    linked variables:
+        //    - optional linked variables for "required" option.
+        //    - optional linked variables with a default value.
+        //    - optional linked variables for a `bool` option (flag).
         //
         // Plan:
-        //: 1 Create a specification table featuring options for each of the 17
-        //:   supported option types, each having a linked variable to the same
-        //:   type.  The 8 option types that allow links to 'bsl::optional'
-        //:   objects have a second option entry so there are 25 entries in
-        //:   total.  Use the specification table to construct a
-        //:   'balcl::CommandLine' object.  (C-1,4).
-        //:
-        //: 2 Confirm that each of the 'bsl::optional' objects are in a
-        //:   no-value state ('false == has_value()').  Initialize each of the
-        //:   other linked objects to a distinct non-default value except for
-        //:   the 'bool' option that is initialized to 'false'.  Construct
-        //:   command-line input in which *none* of the options defined in the
-        //:   specification table are mentioned and pass that input to the
-        //:   'parse' method.  Afterwards, confirm that each of the optional
-        //:   linked variables are still in a no-value state (i.e.,
-        //:   'false == has_value()') and that each of the other linked objects
-        //:   has their initial value.  (C-2, 4)
-        //:
-        //: 3 Construct command-line input having a field that specifies a
-        //:   value for each of the options having optional linked variables,
-        //:   each distinct from the initial value.  Pass that input to the
-        //:   'parse' method of a (freshly constructed) 'balcl::CommandLine'
-        //:   object.  Confirm that each of the linked variables has a value
-        //:   and that the value matches that expected based on the field input
-        //:   and that the non-'bsl::optional' linked object has its expected
-        //:   value.  (C-3, 4)
-        //:
-        //: 4 Create a specification table that intentionally defines the
-        //:   invalid combinations of optional linked variables and
-        //:   incompatible occurrence objects (i.e., 'e_REQUIRED' or having a
-        //:   default value).  Confirm that these specification fail the
-        //:   'validation' method and generate the expected error message.
-        //:   (C-5)
+        // 1. Create a specification table featuring options for each of the 17
+        //    supported option types, each having a linked variable to the same
+        //    type.  The 8 option types that allow links to `bsl::optional`
+        //    objects have a second option entry so there are 25 entries in
+        //    total.  Use the specification table to construct a
+        //    `balcl::CommandLine` object.  (C-1,4).
+        //
+        // 2. Confirm that each of the `bsl::optional` objects are in a
+        //    no-value state (`false == has_value()`).  Initialize each of the
+        //    other linked objects to a distinct non-default value except for
+        //    the `bool` option that is initialized to `false`.  Construct
+        //    command-line input in which *none* of the options defined in the
+        //    specification table are mentioned and pass that input to the
+        //    `parse` method.  Afterwards, confirm that each of the optional
+        //    linked variables are still in a no-value state (i.e.,
+        //    `false == has_value()`) and that each of the other linked objects
+        //    has their initial value.  (C-2, 4)
+        //
+        // 3. Construct command-line input having a field that specifies a
+        //    value for each of the options having optional linked variables,
+        //    each distinct from the initial value.  Pass that input to the
+        //    `parse` method of a (freshly constructed) `balcl::CommandLine`
+        //    object.  Confirm that each of the linked variables has a value
+        //    and that the value matches that expected based on the field input
+        //    and that the non-`bsl::optional` linked object has its expected
+        //    value.  (C-3, 4)
+        //
+        // 4. Create a specification table that intentionally defines the
+        //    invalid combinations of optional linked variables and
+        //    incompatible occurrence objects (i.e., `e_REQUIRED` or having a
+        //    default value).  Confirm that these specification fail the
+        //    `validation` method and generate the expected error message.
+        //    (C-5)
         //
         // Testing:
         //   TESTING OPTIONAL LINKED VARIABLES
@@ -3566,7 +3599,7 @@ int main(int argc, const char *argv[])
         ASSERT(!oLinkedTime    .has_value());
 
         // Initialize each with a non-default value.
-        linkedBool          =  false;  // 'bool' option requires 'false'
+        linkedBool          =  false;  // `bool` option requires `false`
         linkedChar          =  valueChar;
         linkedInt           =  valueInt;
         linkedInt64         =  valueInt64;
@@ -3588,12 +3621,13 @@ int main(int argc, const char *argv[])
                 "Name_"#LETTER,                                               \
                 "Description for "#LETTER,                                    \
                 TypeInfo(ADDRESS),                                            \
-                OccurrenceInfo::e_OPTIONAL                                    \
+                OccurrenceInfo::e_OPTIONAL,                                   \
+                ""                                                            \
             }                                                                 \
 
         const OptionInfo SPECS[] = {
 
-            // links to 'bsl::optional' objects
+            // links to `bsl::optional` objects
             OPTINFO_ENTRY(a, &oLinkedChar)
           , OPTINFO_ENTRY(b, &oLinkedInt)
           , OPTINFO_ENTRY(c, &oLinkedInt64)
@@ -3603,7 +3637,7 @@ int main(int argc, const char *argv[])
           , OPTINFO_ENTRY(g, &oLinkedDate)
           , OPTINFO_ENTRY(h, &oLinkedTime)
 
-            // links to non-'bsl::optional' objects
+            // links to non-`bsl::optional` objects
           , OPTINFO_ENTRY(i, &linkedBool)
           , OPTINFO_ENTRY(j, &linkedChar)
           , OPTINFO_ENTRY(k, &linkedInt)
@@ -3714,7 +3748,7 @@ int main(int argc, const char *argv[])
         const char *const populatedCommandLine[] = {
                "programName"
 
-               // options linked to 'bsl::optional' objects
+               // options linked to `bsl::optional` objects
              , "-a", "a"
              , "-b", "123654"
              , "-c", "987654321"
@@ -3724,8 +3758,8 @@ int main(int argc, const char *argv[])
              , "-g", "2007-08-22"
              , "-h", "08:06:04"
 
-               // scalar options linked to non-'bsl::optional' objects
-             , "-i"  // 'bool' option (flag)
+               // scalar options linked to non-`bsl::optional` objects
+             , "-i"  // `bool` option (flag)
              , "-j", "a"
              , "-k", "123654"
              , "-l", "987654321"
@@ -3735,7 +3769,7 @@ int main(int argc, const char *argv[])
              , "-p", "2007-08-22"
              , "-q", "08:06:04"
 
-               // array options linked to non-'bsl::optional' objects
+               // array options linked to non-`bsl::optional` objects
              , "-r", "a",                   "-r", "a"
              , "-s", "123654",              "-s", "123654"
              , "-t", "987654321",           "-t", "987654321"
@@ -3816,7 +3850,8 @@ int main(int argc, const char *argv[])
                               "Name_a",                        // name
                               "Description_a",                 // description
                               TypeInfo(&oLinkedInt),
-                              OccurrenceInfo::e_REQUIRED
+                              OccurrenceInfo::e_REQUIRED,
+                              ""                               // env var name
                           }  // optional link and "required".
                       }
             , "Link to 'bsl::optional' object disallowed "
@@ -3829,7 +3864,8 @@ int main(int argc, const char *argv[])
                               "Name_a",                        // name
                               "Description_a",                 // description
                               TypeInfo(&oLinkedString),
-                              OccurrenceInfo(bsl::string("default-string"))
+                              OccurrenceInfo(bsl::string("default-string")),
+                              ""                               // env var name
                           }  // optional link and default value
                       }
             , "Link to 'bsl::optional' object disallowed "
@@ -3898,49 +3934,49 @@ int main(int argc, const char *argv[])
       } break;
       case 18: {
         // --------------------------------------------------------------------
-        // TESTING 'printUsage'
+        // TESTING `printUsage`
         //
         // Concerns:
-        //: 1 The 'printUsage' method properly formats the given variables.
-        //:
-        //: 2 Names of flags are omitted.
-        //:
-        //: 3 Empty non-option argument tags are omitted.
-        //:
-        //: 4 All tags/names/descriptions are indented equally.
-        //:
-        //: 5 Tags/names/descriptions exceeding 80 characters are handled
-        //:   correctly.
-        //:
-        //: 6 Exceeding the limit of exactly 30 characters triggers the
-        //:   shifting mechanism.
-        //:
-        //: 7 All descriptions are shifted to a new line simultaneously (even
-        //:   if only one tag/name pair exceed the limit).
-        //:
-        //: 8 Exceeding the limit by the hidden 'e_FLAG' name does not
-        //:   trigger the mechanism.
-        //:
-        //: 9 Multiple description lines are indented equally.
-        //:
-        //:10 Overloads that do not accept a 'stream' argument write to
-        //:   'bsl::cerr'.
-        //:
-        //:11 After 'parse' returns successfully, 'argv[0]' is used in lieu of
-        //:   the default "programName" but the value supplied to the
-        //:   'printUsage" overloads that accept 'programName' always has
-        //:   precedence.
+        // 1. The `printUsage` method properly formats the given variables.
+        //
+        // 2. Names of flags are omitted.
+        //
+        // 3. Empty non-option argument tags are omitted.
+        //
+        // 4. All tags/names/descriptions are indented equally.
+        //
+        // 5. Tags/names/descriptions exceeding 80 characters are handled
+        //    correctly.
+        //
+        // 6. Exceeding the limit of exactly 30 characters triggers the
+        //    shifting mechanism.
+        //
+        // 7. All descriptions are shifted to a new line simultaneously (even
+        //    if only one tag/name pair exceed the limit).
+        //
+        // 8. Exceeding the limit by the hidden `e_FLAG` name does not
+        //    trigger the mechanism.
+        //
+        // 9. Multiple description lines are indented equally.
+        //
+        // 10. Overloads that do not accept a `stream` argument write to
+        //    `bsl::cerr`.
+        //
+        // 11. After `parse` returns successfully, `argv[0]` is used in lieu of
+        //    the default "programName" but the value supplied to the
+        //    `printUsage" overloads that accept `programName' always has
+        //    precedence.
         //
         // Plan:
-        //: 1 Set up a variety of variables and options and verify that
-        //:   'printUsage' formats them correctly.
-        //:
-        //: 2 Configure 'bsl::cerr' to write to a 'bsl::ostringstream' and
-        //:   confirm the expected results.  (C-10)
-        //:
-        //: 3 Invoke 'printUsage' both before and after 'parse' and via
-        //:   overloads that take a user-supplied value, and not.  Confirm
-        //:   expected result in each case.  (C-11)
+        // 1. Set up a variety of variables and options and verify that
+        //    `printUsage` formats them correctly.
+        //
+        // 2. Configure `bsl::cerr` to write to a `bsl::ostringstream` and
+        //    confirm the expected results.  (C-10)
+        //
+        // 3. Invoke `printUsage` both before and after `parse` and via
+        //    overloads that take a user-supplied value, and not.  Confirm
+        //    expected result in each case.  (C-11)
         //
         // Testing:
         //   void printUsage() const;
@@ -3949,7 +3985,7 @@ int main(int argc, const char *argv[])
         //   void printUsage(bsl::ostream& stream, const string& pName) const;
         // --------------------------------------------------------------------
 
-        if (verbose) cout << endl << "TESTING 'printUsage'" << endl
+        if (verbose) cout << endl << "TESTING `printUsage`" << endl
                                   << "====================" << endl;
 
         if (veryVerbose) cout << "Complex case\n";
@@ -3960,28 +3996,32 @@ int main(int argc, const char *argv[])
                 "isReverse",
                 "sort in reverse order",
                 balcl::TypeInfo(Ot::k_BOOL),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "i|insensitivetocase",
                 "isCaseInsensitive",
                 "be case insensitive while sorting",
                 balcl::TypeInfo(Ot::k_BOOL),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "u|uniq",
                 "isUniq",
                 "discard duplicate lines",
                 balcl::TypeInfo(Ot::k_BOOL),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "a|algorithm",
                 "sortAlgo",
                 "sorting algorithm",
                 balcl::TypeInfo(Ot::k_STRING),
-                balcl::OccurrenceInfo(bsl::string("quickSort"))
+                balcl::OccurrenceInfo(bsl::string("quickSort")),
+                ""
               },
               {
                 "o|outputfile",
@@ -3989,14 +4029,16 @@ int main(int argc, const char *argv[])
                 "output file with a very long option description so we can "
                 "see the line wrapping behavior",
                 balcl::TypeInfo(Ot::k_STRING),
-                balcl::OccurrenceInfo::e_REQUIRED
+                balcl::OccurrenceInfo::e_REQUIRED,
+                ""
               },
               {
                 "",
                 "fileList",
                 "files to be sorted",
                 balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                balcl::OccurrenceInfo::e_REQUIRED
+                balcl::OccurrenceInfo::e_REQUIRED,
+                ""
               }
             };
 
@@ -4069,7 +4111,7 @@ int main(int argc, const char *argv[])
 
             if (veryVerbose) {
                 cout
-                    << "After successful 'parse', 'argv[0]' is has precedence."
+                    << "After successful `parse`, `argv[0]` is has precedence."
                     << endl;
             }
 
@@ -4118,7 +4160,7 @@ int main(int argc, const char *argv[])
 
             if (veryVerbose) {
                 cout <<
-                "After successful 'parse', supplied name still has precedence."
+                "After successful `parse`, supplied name still has precedence."
                      << endl;
             }
 
@@ -4142,49 +4184,56 @@ int main(int argc, const char *argv[])
                 "woof",
                 "grrowll",
                 balcl::TypeInfo(Ot::k_BOOL),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "a|arf",
                 "arf",
                 "arrrrrrrrrrf",
                 balcl::TypeInfo(Ot::k_BOOL),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "meow",
                 "meow",
                 "merrrrower",
                 balcl::TypeInfo(Ot::k_BOOL),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "n|number",
                 "number",
                 "#",
                 balcl::TypeInfo(Ot::k_INT),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "s|size",
                 "size",
                 "size in bytes",
                 balcl::TypeInfo(Ot::k_INT),
-                balcl::OccurrenceInfo::e_REQUIRED
+                balcl::OccurrenceInfo::e_REQUIRED,
+                ""
               },
               {
                 "m|meters",
                 "meters",
                 "distance",
                 balcl::TypeInfo(Ot::k_INT),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
               {
                 "radius",
                 "radius",
                 "half diameter",
                 balcl::TypeInfo(Ot::k_INT),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               },
             };
 
@@ -4218,7 +4267,8 @@ int main(int argc, const char *argv[])
                 "isReverse",
                 "sort in reverse order",
                 balcl::TypeInfo(Ot::k_BOOL),
-                balcl::OccurrenceInfo()
+                balcl::OccurrenceInfo(),
+                ""
               }
             };
 
@@ -4242,9 +4292,9 @@ int main(int argc, const char *argv[])
         {
             // Descriptions are shifted to the new line, if total length of the
             // longest tag and longest name exceeds 15 characters.  Formally,
-            // the hardcoded value in the code is 30 ('k_NEW_LINE_LIMIT'
+            // the hardcoded value in the code is 30 (`k_NEW_LINE_LIMIT`
             // constant), but spaces and punctuation characters take 15 of
-            // them.  So we are testing scenarios, when 'tag + name' are less
+            // them.  So we are testing scenarios, when `tag + name` are less
             // than 15 characters, equal to 15 characters, and exceed 15
             // characters.
 
@@ -4257,21 +4307,24 @@ int main(int argc, const char *argv[])
                     "1234567890 1234567890 1234567890 1234567890"
                                          " 1234567890 1234567890",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "123",
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4301,21 +4354,24 @@ int main(int argc, const char *argv[])
                     "123456",    // length = 6
                     "1",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "123",
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4345,7 +4401,8 @@ int main(int argc, const char *argv[])
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                     "123456",     // length = 6
@@ -4353,14 +4410,16 @@ int main(int argc, const char *argv[])
                     "1234567890 1234567890 1234567890 1234567890"
                                          " 1234567890 1234567890",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4390,21 +4449,24 @@ int main(int argc, const char *argv[])
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                     "123456789",  // length = 9
                     "123456",     // length = 6
                     "1",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4434,14 +4496,16 @@ int main(int argc, const char *argv[])
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                     "123456",      // length = 6
@@ -4449,7 +4513,8 @@ int main(int argc, const char *argv[])
                     "1234567890 1234567890 1234567890 1234567890"
                               " 1234567890 1234567890 1234567890",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   }
 
                 };
@@ -4483,21 +4548,24 @@ int main(int argc, const char *argv[])
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                     "1234567890",  // length = 10
                     "123456",      // length = 6
                     "1",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
 
                 };
@@ -4535,21 +4603,24 @@ int main(int argc, const char *argv[])
                       "123",
                       "1",
                       balcl::TypeInfo(Ot::k_STRING),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                     "123",                             // length = 3
                     "123456789012345678901234567890",  // length = 30
                     "12",
                     balcl::TypeInfo(Ot::k_BOOL),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4579,21 +4650,24 @@ int main(int argc, const char *argv[])
                       "123",
                       "1",
                       balcl::TypeInfo(Ot::k_STRING),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                     "123456789012345678901234567890",  // length = 30
                     "1234",                            // length = 4
                     "12",
                     balcl::TypeInfo(Ot::k_BOOL),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4630,14 +4704,16 @@ int main(int argc, const char *argv[])
                       "123",
                       "1",
                       balcl::TypeInfo(Ot::k_STRING),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "123",  // length = 3 (tag)
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",              // length = 0
@@ -4645,7 +4721,8 @@ int main(int argc, const char *argv[])
                       "1234567890 1234567890 1234567890 1234567890"
                                            " 1234567890 1234567890",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4677,14 +4754,16 @@ int main(int argc, const char *argv[])
                       "123",
                       "1",
                       balcl::TypeInfo(Ot::k_STRING),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "123",  // length = 3 (tag)
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",
@@ -4692,7 +4771,8 @@ int main(int argc, const char *argv[])
                       "12345678901234567890 12345678901234567890 1234567890 "
                       "12345678901234567890 12345678901234567890 1234567890",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4728,21 +4808,24 @@ int main(int argc, const char *argv[])
                     "123",         // length = 3
                     "1",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "123",
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4782,21 +4865,24 @@ int main(int argc, const char *argv[])
                     "1234567890",  // length = 90
                     "1",
                     balcl::TypeInfo(Ot::k_STRING),
-                    balcl::OccurrenceInfo()
+                    balcl::OccurrenceInfo(),
+                    ""
                   },
                   {
                       "123",
                       "1234",
                       "12",
                       balcl::TypeInfo(Ot::k_BOOL),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   },
                   {
                       "",
                       "12345",
                       "123",
                       balcl::TypeInfo(Ot::k_STRING_ARRAY),
-                      balcl::OccurrenceInfo()
+                      balcl::OccurrenceInfo(),
+                      ""
                   }
                 };
 
@@ -4834,22 +4920,22 @@ int main(int argc, const char *argv[])
         // TESTING ABILITY TO INPUT VALUE FOR FLAG
         //
         // Concerns:
-        //: 1 'balcl::CommandLine' handles flags without values identically
-        //:   regardless of the tag's form.
-        //:
-        //: 2 'balcl::CommandLine' fails to parse value for the short tag form
-        //:   of flag.
-        //:
-        //: 3 'balcl::CommandLine' successfully parses value for the long tag
-        //:   form of flag, inputted using equal sign, but adds warning message
-        //:   to the log.
+        // 1. `balcl::CommandLine` handles flags without values identically
+        //    regardless of the tag's form.
+        //
+        // 2. `balcl::CommandLine` fails to parse value for the short tag form
+        //    of flag.
+        //
+        // 3. `balcl::CommandLine` successfully parses value for the long tag
+        //    form of flag, inputted using equal sign, but adds warning message
+        //    to the log.
         //
         // Plan:
-        //: 1 Set up a variety of flag representations and verify that
-        //:   'balcl::CommandLine' parses them in accordance with the
-        //:   specification.  Verify, that warning message is added, while
-        //:   'balcl::CommandLine' parses values for the long tag form of flag.
-        //:   (P-1..3)
+        // 1. Set up a variety of flag representations and verify that
+        //    `balcl::CommandLine` parses them in accordance with the
+        //    specification.  Verify, that warning message is added, while
+        //    `balcl::CommandLine` parses values for the long tag form of flag.
+        //    (P-1..3)
         //
         // Testing:
         //   TESTING ABILITY TO INPUT VALUE FOR FLAG
@@ -4858,7 +4944,6 @@ int main(int argc, const char *argv[])
         if (verbose) cout << endl
                           << "TESTING ABILITY TO INPUT VALUE FOR FLAG" << endl
                           << "=======================================" << endl;
-
 
         if (verbose) cout << "Test command line args in isolation.\n";
 
@@ -4869,8 +4954,8 @@ int main(int argc, const char *argv[])
         bool       aBool     = false;  // variable for the first flag's value
         bool       bBool     = false;  // variable for the second flag's value
 
-        const bool T         = true;   // 'true'  alias
-        const bool F         = false;  // 'false' alias
+        const bool T         = true;   // `true`  alias
+        const bool F         = false;  // `false` alias
         const bool NA        = false;  // not applicable
 
         const int  SUCCESS   =  0;     // successful parsing
@@ -4883,14 +4968,16 @@ int main(int argc, const char *argv[])
                 "Name_a",
                 "Description for a",
                 TypeInfo(&aBool),
-                OccurrenceInfo::e_OPTIONAL
+                OccurrenceInfo::e_OPTIONAL,
+                ""
             },
             {
                 "b|bBool",
                 "Name_b",
                 "Description for b",
                 TypeInfo(&bBool),
-                OccurrenceInfo::e_OPTIONAL
+                OccurrenceInfo::e_OPTIONAL,
+                ""
             },
         };
         enum { k_TAGS_NUM_A = sizeof SPEC_A / sizeof *SPEC_A };
@@ -5025,7 +5112,7 @@ int main(int argc, const char *argv[])
             int         d_line;                 // line
             int         d_expRes;               // expected parsing result
             const char *d_warning;
-            const char *d_argv1;                // value of 'argv[1]'
+            const char *d_argv1;                // value of `argv[1]`
             const char *d_envA;
             const char *d_envB;
             const bool  d_expValueA;
@@ -5128,7 +5215,7 @@ int main(int argc, const char *argv[])
                 putenvStrA += ENV_A;
 
                 if (e_WINDOWS && -1 == EXP_RESULT && putenvStrA.empty()) {
-                    continue;    // 'getenv' will return null
+                    continue;    // `getenv` will return null
                 }
 
                 u::setEnvironmentVariable("ABOOL", putenvStrA.c_str());
@@ -5141,7 +5228,7 @@ int main(int argc, const char *argv[])
                 putenvStrB += ENV_B;
 
                 if (e_WINDOWS && -1 == EXP_RESULT && putenvStrB.empty()) {
-                    continue;    // 'getenv' will return null
+                    continue;    // `getenv` will return null
                 }
 
                 u::setEnvironmentVariable("BBOOL", putenvStrB.c_str());
@@ -5196,25 +5283,25 @@ int main(int argc, const char *argv[])
       } break;
       case 16: {
         // --------------------------------------------------------------------
-        // TESTING NON-OPTION TOGGLE '--'
+        // TESTING NON-OPTION TOGGLE `--`
         //
         // Concerns:
-        //: 1 The use of '--' on the command line must stop the parsing of the
-        //:   options and everything afterwards, including strings that begin
-        //:   with '-...' must be parsed as a non-option argument value.
+        // 1. The use of `--` on the command line must stop the parsing of the
+        //    options and everything afterwards, including strings that begin
+        //    with `-...` must be parsed as a non-option argument value.
         //
         // Plan:
-        //: 1 Insert '--' at various places into a command line with the last
-        //:   non-option argument being multi-valued, measure the number of
-        //:   arguments that get assigned to that non-option, and verify that
-        //:   it is as expected.
+        // 1. Insert `--` at various places into a command line with the last
+        //    non-option argument being multi-valued, measure the number of
+        //    arguments that get assigned to that non-option, and verify that
+        //    it is as expected.
         //
         // Testing:
-        //   TESTING NON-OPTION TOGGLE '--'
+        //   TESTING NON-OPTION TOGGLE `--`
         // --------------------------------------------------------------------
 
         if (verbose) cout << endl
-                          << "TESTING NON-OPTION TOGGLE '--'" << endl
+                          << "TESTING NON-OPTION TOGGLE `--`" << endl
                           << "==============================" << endl;
 
         if (verbose) cout << "\n\tTesting non-option argument toggle." << endl;
@@ -5335,12 +5422,12 @@ int main(int argc, const char *argv[])
         // TESTING PARSING OF STRINGS
         //
         // Concerns:
-        //: 1 'balcl::CommandLine' must parse a string as raw, and not
-        //:   interpret escape sequences such as '.\bass' (on Windows) while
-        //:   replacing '\b' with a backspace.
+        // 1. `balcl::CommandLine` must parse a string as raw, and not
+        //    interpret escape sequences such as `.\bass` (on Windows) while
+        //    replacing '\b' with a backspace.
         //
         // Plan:
-        //: 1 We employ a Table-driven test.
+        // 1. We employ a Table-driven test.
         //
         // Testing:
         //   TESTING PARSING OF STRINGS
@@ -5403,13 +5490,13 @@ int main(int argc, const char *argv[])
         // TESTING ORDER OF ARGUMENTS
         //
         // Concerns:
-        //: 1 'balcl::CommandLine' must have the same value no matter what the
-        //:   order of the arguments is, except for multi-valued and for the
-        //:   '--' non-option argument toggle.
+        // 1. `balcl::CommandLine` must have the same value no matter what the
+        //    order of the arguments is, except for multi-valued and for the
+        //    `--` non-option argument toggle.
         //
         // Plan:
-        //: 1 Using a helper function that checks if two command lines have
-        //:   compatible orderings, permute example command lines.
+        // 1. Using a helper function that checks if two command lines have
+        //    compatible orderings, permute example command lines.
         //
         // Testing:
         //   TESTING ORDER OF ARGUMENTS
@@ -5422,7 +5509,7 @@ int main(int argc, const char *argv[])
         const int MAX_ARGC = 16;
 
         if (verbose)
-            cout << "\n\tTesting 'u::isCompatibleOrdering' helper." << endl;
+            cout << "\n\tTesting `u::isCompatibleOrdering` helper." << endl;
 
         static const struct {
             int          d_line;
@@ -5573,9 +5660,10 @@ int main(int argc, const char *argv[])
                     ASSERT(oss.view().empty());
 
                     bsl::ostringstream           oss2(&ta);
+
+                    // note: argv, not ARGV
                     int                          parseRet =
                                                     mY.parse(ARGC, argv, oss2);
-                        // note: argv, not ARGV
                     ASSERT(oss2.view().empty());
 
                     ASSERTV(LINE, SPEC_IDX, 0 == parseRet);
@@ -5598,12 +5686,12 @@ int main(int argc, const char *argv[])
         // TESTING MULTIPLY-SPECIFIED FLAGS
         //
         // Concerns:
-        //: 1 'balcl::CommandLine' must accept multiply-specified flags.
+        // 1. `balcl::CommandLine` must accept multiply-specified flags.
         //
         // Plan:
-        //: 1 Define a variety of arguments with multiply-specified flags mixed
-        //:   in with another options.  Make sure the 'numSpecified' call
-        //:   returns the proper number of occurrences.
+        // 1. Define a variety of arguments with multiply-specified flags mixed
+        //    in with another options.  Make sure the `numSpecified` call
+        //    returns the proper number of occurrences.
         //
         // Testing:
         //   TESTING MULTIPLY-SPECIFIED FLAGS
@@ -5622,7 +5710,7 @@ int main(int argc, const char *argv[])
             const int    d_expNumSpecified[MAX_SPEC_SIZE];
             const int    d_expLinkedInt;
         }         ARGS[] = {
-          // Depth refers to 'numSpecified'.
+          // Depth refers to `numSpecified`.
 
           // line  specIdx argc argv                  expNumSpecified expFValue
           // ----  ------- ---- ----                  --------------- ---------
@@ -5722,14 +5810,14 @@ int main(int argc, const char *argv[])
         // TESTING FLAGS BUNDLING
         //
         // Concerns:
-        //: 1 'balcl::CommandLine' must be able to parse bundled flags.
+        // 1. `balcl::CommandLine` must be able to parse bundled flags.
         //
         // Plan:
-        //: 1 Define a variety of arguments following some option
-        //:   specifications, and verify that they can be parsed successfully
-        //:   and that any linked variable specified as the last argument of
-        //:   the bundle (either in a separate argument or attached with
-        //:   "=value" to the bundle) is set properly.
+        // 1. Define a variety of arguments following some option
+        //    specifications, and verify that they can be parsed successfully
+        //    and that any linked variable specified as the last argument of
+        //    the bundle (either in a separate argument or attached with
+        //    "=value" to the bundle) is set properly.
         //
         // Testing:
         //   TESTING FLAGS BUNDLING
@@ -5823,49 +5911,49 @@ int main(int argc, const char *argv[])
         // TESTING INVALID OPTION SPECS
         //
         // Concerns:
-        //: 1 The 'balcl::CommandLine' constructors reject invalid option
-        //:   specifications.
-        //:
-        //:   1 Options can be invalid individually (e.g., an option having an
-        //:     ill-formed tag) and collectively (e.g., each option must have a
-        //:     unique tag).
-        //:
-        //:   2 Invalid options trigger an error message to the specified
-        //:     output stream (if any).  Valid option specifications do not
-        //:     generate an error message.
-        //:
-        //:   3 QoI: Invalid option specifications trigger invocation of the
-        //:     assertion failure handler in *all* build modes.
-        //:
-        //: 2 The 'isValidOptionSpecificationTable' class method concerns:
-        //:
-        //:   1 The return value correctly predicts acceptance (rejection)
-        //:     by the constructors.
-        //:
-        //:   2 Error messages obtained from the class methods must
-        //:     match those generated by the class constructor.
-        //:
-        //:   3 Given the same option specification, each overload of the
-        //:     class method has the same return value and (if it accepts an
-        //:     output stream) error message.
-        //:
-        //: 3 The error messages must correctly describe the error.
+        // 1. The `balcl::CommandLine` constructors reject invalid option
+        //    specifications.
+        //
+        //   1. Options can be invalid individually (e.g., an option having an
+        //      ill-formed tag) and collectively (e.g., each option must have a
+        //      unique tag).
+        //
+        //   2. Invalid options trigger an error message to the specified
+        //      output stream (if any).  Valid option specifications do not
+        //      generate an error message.
+        //
+        //   3. QoI: Invalid option specifications trigger invocation of the
+        //      assertion failure handler in *all* build modes.
+        //
+        // 2. The `isValidOptionSpecificationTable` class method concerns:
+        //
+        //   1. The return value correctly predicts acceptance (rejection)
+        //      by the constructors.
+        //
+        //   2. Error messages obtained from the class methods must
+        //      match those generated by the class constructor.
+        //
+        //   3. Given the same option specification, each overload of the
+        //      class method has the same return value and (if it accepts an
+        //      output stream) error message.
+        //
+        // 3. The error messages must correctly describe the error.
         //
         // Plan:
-        //: 1 Use table-driven testing to define option configurations known to
-        //:   be valid and not.
-        //:
-        //: 2 In exception builds, set the assertion failure handler to the
-        //:   'u::throwInvalidSpec' helper.  Catch the 'u::InvalidSpec'
-        //:   exceptions from the constructor and compare the messages posted
-        //:   to the constructor's 'stream' to the expected message.
-        //:
-        //: 3 Compare the results of the class methods to those generated by
-        //:   the constructor.
-        //:
-        //: 4 Use several ad-hoc tests to confirm that the overloads of
-        //:   'isValidOptionSpecificationTable' used for statically-initialized
-        //:   arrays produce the same results as the other other overloads.
+        // 1. Use table-driven testing to define option configurations known to
+        //    be valid and not.
+        //
+        // 2. In exception builds, set the assertion failure handler to the
+        //    `u::throwInvalidSpec` helper.  Catch the `u::InvalidSpec`
+        //    exceptions from the constructor and compare the messages posted
+        //    to the constructor's `stream` to the expected message.
+        //
+        // 3. Compare the results of the class methods to those generated by
+        //    the constructor.
+        //
+        // 4. Use several ad-hoc tests to confirm that the overloads of
+        //    `isValidOptionSpecificationTable` used for statically-initialized
+        //    arrays produce the same results as the other other overloads.
         //
         // Testing:
         //   TESTING INVALID OPTION SPECS
@@ -5989,11 +6077,12 @@ int main(int argc, const char *argv[])
 
             OptionInfo SPEC[] = {
               {
-                TAG,                 // non-option
-                "SomeValidName",     // name
-                "Some description",  // description
+                TAG,                           // non-option
+                "SomeValidName",               // name
+                "Some description",            // description
                 u::createTypeInfo(Ot::e_BOOL),
-                OccurrenceInfo::e_OPTIONAL
+                OccurrenceInfo::e_OPTIONAL,
+                ""                             // env var name
               }
             };
 
@@ -6029,7 +6118,7 @@ int main(int argc, const char *argv[])
         if (verbose) cout << "Testing invalid specs." << endl;
 
         TestConstraint::s_constraintValue = false;  // See constraint-violation
-                                                    // entry in 'DATA' below.
+                                                    // entry in `DATA` below.
 
         static const struct {
             int         d_line;
@@ -6044,7 +6133,8 @@ int main(int argc, const char *argv[])
                               "",                              // name
                               "Some description.",             // description
                               u::createTypeInfo(Ot::e_BOOL),
-                              OccurrenceInfo::e_OPTIONAL
+                              OccurrenceInfo::e_OPTIONAL,
+                              ""                               // env var name
                           }  // Invalid name
                       }
             , "Flags cannot have an empty tag."                              NL
@@ -6058,7 +6148,8 @@ int main(int argc, const char *argv[])
                               "SomeName",                      // name
                               "",                              // description
                               u::createTypeInfo(Ot::e_BOOL),
-                              OccurrenceInfo::e_OPTIONAL
+                              OccurrenceInfo::e_OPTIONAL,
+                              ""                               // env var name
                           }  // Invalid description
                       }
             , "Flags cannot have an empty tag."                              NL
@@ -6073,8 +6164,9 @@ int main(int argc, const char *argv[])
                               "SomeName",                      // name
                               "Some description",              // description
                               u::createTypeInfo(Ot::e_BOOL),
-                              OccurrenceInfo::e_OPTIONAL
-                          }  // Non-options cannot be of type 'bool'.
+                              OccurrenceInfo::e_OPTIONAL,
+                              ""                               // env var name
+                          }  // Non-options cannot be of type `bool`.
                       }
             , "Flags cannot have an empty tag."                              NL
               "The error occurred while validating the 1st option."          NL
@@ -6085,11 +6177,12 @@ int main(int argc, const char *argv[])
                               "",                                // non-option
                               "SomeName",                        // name
                               "Some description",                // description
-                              u::createTypeInfo(Ot::e_CHAR),     // type 'char'
+                              u::createTypeInfo(Ot::e_CHAR),     // type `char`
                               u::createOccurrenceInfo(
                                                     OccurrenceInfo::e_OPTIONAL,
-                                                    Ot::e_INT,  // type 'int'
-                                                    &valueInt)
+                                                    Ot::e_INT,  // type `int`
+                                                    &valueInt),
+                              ""                                // env var name
                           }  // Type of default value does not match type info.
                       }
 
@@ -6105,12 +6198,13 @@ int main(int argc, const char *argv[])
                               "Some description",                // description
                               u::createTypeInfo(Ot::e_INT,
                                                 0,        // no linked variable
-                                                false,    // so not 'optional'
+                                                false,    // so not `optional`
                                                 &testIntConstraint),
                               u::createOccurrenceInfo(
                                                     OccurrenceInfo::e_OPTIONAL,
-                                                    Ot::e_INT,  // type 'int'
-                                                    &valueInt)
+                                                    Ot::e_INT,  // type `int`
+                                                    &valueInt),
+                              ""                                 // env var
                           }  // The default value does not meet constraint.
                       }
             , "Constraint Functor: error message."                           NL
@@ -6166,14 +6260,16 @@ int main(int argc, const char *argv[])
                               "SomeCommonName",                  // name
                               "Some description",                // description
                               u::createTypeInfo(Ot::e_BOOL),
-                              OccurrenceInfo::e_OPTIONAL
+                              OccurrenceInfo::e_OPTIONAL,
+                              ""                                 // env var
                           },
                           {
                               "",                                // non-option
                               "SomeCommonName",                  // name
                               "Some description",                // description
                               u::createTypeInfo(Ot::e_BOOL),
-                              OccurrenceInfo::e_OPTIONAL
+                              OccurrenceInfo::e_OPTIONAL,
+                              ""                                 // env var
                           }
                       }  // Names must be unique.
             , "Flags cannot have an empty tag."                              NL
@@ -6192,14 +6288,16 @@ int main(int argc, const char *argv[])
                               u::createOccurrenceInfo(           // *optional*
                                                     OccurrenceInfo::e_OPTIONAL,
                                                     Ot::e_INT,
-                                                    &valueInt)
+                                                    &valueInt),
+                              ""                                 // env var
                           },
                           {
                               "",                                // non-option
                               "SomeCommonName2",                 // name
                               "Some description",                // description
                               u::createTypeInfo(Ot::e_INT),
-                              OccurrenceInfo::e_REQUIRED         // *required*
+                              OccurrenceInfo::e_REQUIRED,        // *required*
+                              ""                                 // env var
                           }
                       }  // Defaulted non-option argument cannot be followed by
                          // required non-options.
@@ -6353,7 +6451,8 @@ int main(int argc, const char *argv[])
                               "SomeName",                        // name
                               "Some description",                // description
                               u::createTypeInfo(Ot::e_BOOL),
-                              OccurrenceInfo::e_OPTIONAL
+                              OccurrenceInfo::e_OPTIONAL,
+                              ""                                // env var name
                           };
             const OptionInfo OI1 =
                           {
@@ -6361,7 +6460,8 @@ int main(int argc, const char *argv[])
                               "SomeOtherName",                   // name
                               "Some description",                // description
                               u::createTypeInfo(Ot::e_BOOL),
-                              OccurrenceInfo::e_OPTIONAL
+                              OccurrenceInfo::e_OPTIONAL,
+                              ""                                // env var name
                           };
 
                   OptionInfo table[] = { OI0, OI1 };
@@ -6391,17 +6491,17 @@ int main(int argc, const char *argv[])
         // TESTING ADDITIONAL MANIPULATORS
         //
         // Concerns:
-        //: 1 The two-parameter overload of the 'parse' method produces the
-        //:   same result as the three-parameter overload and sends the same
-        //:   error message to 'bsl::cerr'.
+        // 1. The two-parameter overload of the `parse` method produces the
+        //    same result as the three-parameter overload and sends the same
+        //    error message to `bsl::cerr`.
         //
         // Plan:
-        //: 1 Ad-hoc test: Using four identical test objects, exercise each of
-        //:   the two methods for a successful parse and an unsuccessful parse.
-        //:
-        //: 2 Use the 'rdbuf' idiom to capture the output to 'bsl::cerr' in an
-        //:   'bsl::ostringstream' object for comparison to the output of the
-        //:   three-argument overload.
+        // 1. Ad-hoc test: Using four identical test objects, exercise each of
+        //    the two methods for a successful parse and an unsuccessful parse.
+        //
+        // 2. Use the `rdbuf` idiom to capture the output to `bsl::cerr` in an
+        //    `bsl::ostringstream` object for comparison to the output of the
+        //    three-argument overload.
         //
         // Testing:
         //   int parse(int argc, const char *const argv[]);
@@ -6411,7 +6511,7 @@ int main(int argc, const char *argv[])
                           << "TESTING ADDITIONAL MANIPULATORS" << endl
                           << "===============================" << endl;
 
-        if (veryVerbose) cout << "'parse' Method: two-parameter overload"
+        if (veryVerbose) cout << "`parse` Method: two-parameter overload"
                               << endl;
         {
             const OptionInfo OI =
@@ -6420,6 +6520,7 @@ int main(int argc, const char *argv[])
                              , "description"              // description
                              , TypeInfo(Ot::k_BOOL)       // no linked variable
                              , OccurrenceInfo::e_OPTIONAL // occurrence
+                             , ""                         // env var name
                              };
 
             const OptionInfo TABLE[] = { OI };
@@ -6447,7 +6548,7 @@ int main(int argc, const char *argv[])
             bsl::ostringstream ossParseOk2;
 
             bsl::streambuf *errorStreamBuf = cerr.rdbuf();
-            cerr.rdbuf(ossParseOk2.rdbuf());  // Redirect 'cerr'.
+            cerr.rdbuf(ossParseOk2.rdbuf());  // Redirect `cerr`.
 
             int retParseZok3 = mZok3.parse(ARGCok, ARGVok, ossParseOk3);
             int retParseZok2 = mZok2.parse(ARGCok, ARGVok);
@@ -6462,7 +6563,7 @@ int main(int argc, const char *argv[])
             ASSERT( Zok2.isValid());
             ASSERT( Zok2.isParsed());
 
-            cerr.rdbuf(errorStreamBuf);  // Undo 'cerr' re-direction.
+            cerr.rdbuf(errorStreamBuf);  // Undo `cerr` re-direction.
 
             if (veryVeryVerbose) cout << "unsuccessful parse" << endl;
 
@@ -6482,7 +6583,7 @@ int main(int argc, const char *argv[])
             bsl::ostringstream ossParseNg3;
             bsl::ostringstream ossParseNg2;
 
-            cerr.rdbuf(ossParseNg2.rdbuf());  // Redirect 'cerr'.
+            cerr.rdbuf(ossParseNg2.rdbuf());  // Redirect `cerr`.
 
             int  retParseZng3 = mZng3.parse(ARGCng, ARGVng, ossParseNg3);
             int  retParseZng2 = mZng2.parse(ARGCng, ARGVng);
@@ -6499,7 +6600,7 @@ int main(int argc, const char *argv[])
 
             ASSERT(ossParseNg3.str() == ossParseNg2.str());
 
-            cerr.rdbuf(errorStreamBuf);  // Undo 'cerr' re-direction.
+            cerr.rdbuf(errorStreamBuf);  // Undo `cerr` re-direction.
         }
       } break;
       case 9: {
@@ -6507,31 +6608,31 @@ int main(int argc, const char *argv[])
         // TESTING ADDITIONAL ACCESSORS
         //
         // Concerns:
-        //: 1 Each accessor returns the expected value.
-        //:
-        //: 2 Each accessor returns values that are consistent with the others.
-        //:   For example, when a 'numSpecified' returns non-zero, the
-        //:   'isSpecified' accessors return 'true'.
-        //:
-        //: 3 QoI: Asserted precondition violations are detected when enabled.
+        // 1. Each accessor returns the expected value.
+        //
+        // 2. Each accessor returns values that are consistent with the others.
+        //    For example, when a `numSpecified` returns non-zero, the
+        //    `isSpecified` accessors return `true`.
+        //
+        // 3. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Use a table-driven approach based on option configurations and
-        //:   input values obtained from the 'u::generateTestData' and
-        //:   'u::generateParseInput' helper functions, respectively.
-        //:
-        //: 2 Accessors that return option values are tested in cases where
-        //:   the options configuration defines a default value.  Those
-        //:   default values are defined in this test framework in regularly
-        //:   named static variables at file scope that are readily compared
-        //:   to the values returned by the accessors.
-        //:
-        //:   o Boolean options (a.k.a.  "flags") are disallowed default values
-        //:     and are tested for consistency with the results of
-        //:     'isSpecified' method.
-        //:
-        //: 3 Do negative tests of defensive checks using 'BSLS_ASSERTTEST_*'
-        //:   macros.  (C-2)
+        // 1. Use a table-driven approach based on option configurations and
+        //    input values obtained from the `u::generateTestData` and
+        //    `u::generateParseInput` helper functions, respectively.
+        //
+        // 2. Accessors that return option values are tested in cases where
+        //    the options configuration defines a default value.  Those
+        //    default values are defined in this test framework in regularly
+        //    named static variables at file scope that are readily compared
+        //    to the values returned by the accessors.
+        //
+        //    - Boolean options (a.k.a.  "flags") are disallowed default values
+        //      and are tested for consistency with the results of
+        //      `isSpecified` method.
+        //
+        // 3. Do negative tests of defensive checks using `BSLS_ASSERTTEST_*`
+        //    macros.  (C-2)
         //
         // Testing:
         //   ~CommandLineOptionsHandle();
@@ -6661,8 +6762,8 @@ int main(int argc, const char *argv[])
                 }
 
                 {
-                    // Confirm non-successful returns of 'index' and
-                    // 'hasOption'.
+                    // Confirm non-successful returns of `index` and
+                    // `hasOption`.
                     ASSERT(-1    == OH.index(""));                    // ACTION
                     ASSERT(-1    == OH.index("XXX"));                 // ACTION
                     ASSERT(false == Z.hasOption(bsl::string("")));    // ACTION
@@ -6833,8 +6934,8 @@ int main(int argc, const char *argv[])
 
         bsl::size_t typeTallySize = typeTally.size();
         ASSERT(typeTallySize == NUM_TYPES
-                                   -1 // 'e_VOID'
-                                   -1 // 'e_BOOL'
+                                   -1 // `e_VOID`
+                                   -1 // `e_BOOL`
                                    );
 
         if (veryVerbose) cout << "Negative Testing" << endl;
@@ -6845,6 +6946,7 @@ int main(int argc, const char *argv[])
                              , "description"#ALIAS                            \
                              , TypeInfo(Ot::k_##TYPE)                         \
                              , OccurrenceInfo(value##ALIAS)                   \
+                             , ""                                             \
                              }                                                \
 
             const OptionInfo TABLE[] = {
@@ -6853,6 +6955,7 @@ int main(int argc, const char *argv[])
                              , "descriptionBool"          // description
                              , TypeInfo(Ot::k_BOOL)       // no linked variable
                              , OccurrenceInfo::e_OPTIONAL // occurrence
+                             , ""                         // env var name
                              }
 
                            , ENTRY(CHAR,         Char)
@@ -6886,7 +6989,7 @@ int main(int argc, const char *argv[])
 
             const OptionInfo * const OIP = TABLE;
 
-            // Create a valid object, 'Z'
+            // Create a valid object, `Z`
 
             const char * const ARGV[] = { "progname" };
             const int          ARGC   = sizeof ARGV / sizeof *ARGV;
@@ -7124,7 +7227,7 @@ int main(int argc, const char *argv[])
                 ASSERT_FAIL(OH.theDateArray    ("nameTimeArray"    ));
                 ASSERT_FAIL(OH.theTimeArray    ("nameBool"         ));
 
-                // The 'the' (accessor) method template.
+                // The `the` (accessor) method template.
 
 #define THE_PASS(ENUM, ALIAS)                                                 \
     ASSERT_PASS(OH.the<Ot::EnumToType<ENUM>::type>("name"#ALIAS));            \
@@ -7231,9 +7334,9 @@ int main(int argc, const char *argv[])
             typedef bsl::vector<bdlt::Time>         TimeArray;
 
             // Specification table:
-            //: o all supported types
-            //: o each optional
-            //: o no default values
+            //  - all supported types
+            //  - each optional
+            //  - no default values
             balcl::OptionInfo specTable[] = {
               {
                 "a|aLongTag"
@@ -7241,6 +7344,7 @@ int main(int argc, const char *argv[])
               , "description:  Bool"
               , TypeInfo(Ot::k_BOOL)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "b|bLongTag"
@@ -7248,6 +7352,7 @@ int main(int argc, const char *argv[])
               , "description:  Char"
               , TypeInfo(Ot::k_CHAR)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "c|cLongTag"
@@ -7255,6 +7360,7 @@ int main(int argc, const char *argv[])
               , "description:  Int"
               , TypeInfo(Ot::k_INT)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "d|dLongTag"
@@ -7262,6 +7368,7 @@ int main(int argc, const char *argv[])
               , "description:  Int64"
               , TypeInfo(Ot::k_INT64)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "e|eLongTag"
@@ -7269,6 +7376,7 @@ int main(int argc, const char *argv[])
               , "description:  Double"
               , TypeInfo(Ot::k_DOUBLE)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "f|fLongTag"
@@ -7276,6 +7384,7 @@ int main(int argc, const char *argv[])
               , "description:  String"
               , TypeInfo(Ot::k_STRING)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "g|gLongTag"
@@ -7283,6 +7392,7 @@ int main(int argc, const char *argv[])
               , "description:  Datetime"
               , TypeInfo(Ot::k_DATETIME)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "h|hLongTag"
@@ -7290,6 +7400,7 @@ int main(int argc, const char *argv[])
               , "description:  Date"
               , TypeInfo(Ot::k_DATE)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "i|iLongTag"
@@ -7297,6 +7408,7 @@ int main(int argc, const char *argv[])
               , "description:  Time"
               , TypeInfo(Ot::k_TIME)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "j|jLongTag"
@@ -7304,6 +7416,7 @@ int main(int argc, const char *argv[])
               , "description:  CharArray"
               , TypeInfo(Ot::k_CHAR_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "k|kLongTag"
@@ -7311,6 +7424,7 @@ int main(int argc, const char *argv[])
               , "description:  IntArray"
               , TypeInfo(Ot::k_INT_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "l|lLongTag"
@@ -7318,6 +7432,7 @@ int main(int argc, const char *argv[])
               , "description:  Int64Array"
               , TypeInfo(Ot::k_INT64_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "m|mLongTag"
@@ -7325,6 +7440,7 @@ int main(int argc, const char *argv[])
               , "description:  DoubleArray"
               , TypeInfo(Ot::k_DOUBLE_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "n|nLongTag"
@@ -7332,6 +7448,7 @@ int main(int argc, const char *argv[])
               , "description:  StringArray"
               , TypeInfo(Ot::k_STRING_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "o|oLongTag"
@@ -7339,6 +7456,7 @@ int main(int argc, const char *argv[])
               , "description:  DatetimeArray"
               , TypeInfo(Ot::k_DATETIME_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "p|pLongTag"
@@ -7346,6 +7464,7 @@ int main(int argc, const char *argv[])
               , "description:  DateArray"
               , TypeInfo(Ot::k_DATE_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "r|rLongTag"
@@ -7353,6 +7472,7 @@ int main(int argc, const char *argv[])
               , "description:  TimeArray"
               , TypeInfo(Ot::k_TIME_ARRAY)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             };
 
@@ -7380,7 +7500,7 @@ int main(int argc, const char *argv[])
             ASSERT(X.isParsed());
             ASSERT(X.isValid());
 
-            // Test Handle accessors.  Use 'specifiedOptions' so we can have a
+            // Test Handle accessors.  Use `specifiedOptions` so we can have a
             // boolean option without a value.
             OptionsHandle SH = X.specifiedOptions();
             ASSERT(numSpecTable == SH.numOptions());
@@ -7435,7 +7555,7 @@ int main(int argc, const char *argv[])
                     ASSERT_FAIL(SH.the<Bool>(name));
                     ASSERT_FAIL(SH.theBool(name));
                     ASSERT_PASS(X .theBool(bsl::string(name)));
-                        // No flag so the bool option is 'false'.
+                        // No flag so the bool option is `false`.
                   } break;
                   case Ot::e_CHAR: {
                     // Good Type; bad arguments
@@ -7745,8 +7865,8 @@ int main(int argc, const char *argv[])
             }
 
             // Specification table:
-            //: o all supported types
-            //: o each type has a default value (except 'bool', of course).
+            //  - all supported types
+            //  - each type has a default value (except `bool`, of course).
 
             balcl::OptionInfo specTable2[] = {
               {
@@ -7755,6 +7875,7 @@ int main(int argc, const char *argv[])
               , "description:  Bool"
               , TypeInfo(Ot::k_BOOL)
               , OccurrenceInfo::e_OPTIONAL
+              , ""
               }
             , {
                 "b|bLongTag"
@@ -7762,6 +7883,7 @@ int main(int argc, const char *argv[])
               , "description:  Char"
               , TypeInfo(Ot::k_CHAR)
               , OccurrenceInfo(Char())
+              , ""
               }
             , {
                 "c|cLongTag"
@@ -7769,6 +7891,7 @@ int main(int argc, const char *argv[])
               , "description:  Int"
               , TypeInfo(Ot::k_INT)
               , OccurrenceInfo(Int())
+              , ""
               }
             , {
                 "d|dLongTag"
@@ -7776,6 +7899,7 @@ int main(int argc, const char *argv[])
               , "description:  Int64"
               , TypeInfo(Ot::k_INT64)
               , OccurrenceInfo(Int64())
+              , ""
               }
             , {
                 "e|eLongTag"
@@ -7783,6 +7907,7 @@ int main(int argc, const char *argv[])
               , "description:  Double"
               , TypeInfo(Ot::k_DOUBLE)
               , OccurrenceInfo(Double())
+              , ""
               }
             , {
                 "f|fLongTag"
@@ -7790,6 +7915,7 @@ int main(int argc, const char *argv[])
               , "description:  String"
               , TypeInfo(Ot::k_STRING)
               , OccurrenceInfo(String())
+              , ""
               }
             , {
                 "g|gLongTag"
@@ -7797,6 +7923,7 @@ int main(int argc, const char *argv[])
               , "description:  Datetime"
               , TypeInfo(Ot::k_DATETIME)
               , OccurrenceInfo(Datetime())
+              , ""
               }
             , {
                 "h|hLongTag"
@@ -7804,6 +7931,7 @@ int main(int argc, const char *argv[])
               , "description:  Date"
               , TypeInfo(Ot::k_DATE)
               , OccurrenceInfo(Date())
+              , ""
               }
             , {
                 "i|iLongTag"
@@ -7811,6 +7939,7 @@ int main(int argc, const char *argv[])
               , "description:  Time"
               , TypeInfo(Ot::k_TIME)
               , OccurrenceInfo(Time())
+              , ""
               }
             , {
                 "j|jLongTag"
@@ -7818,6 +7947,7 @@ int main(int argc, const char *argv[])
               , "description:  CharArray"
               , TypeInfo(Ot::k_CHAR_ARRAY)
               , OccurrenceInfo(CharArray())
+              , ""
               }
             , {
                 "k|kLongTag"
@@ -7825,6 +7955,7 @@ int main(int argc, const char *argv[])
               , "description:  IntArray"
               , TypeInfo(Ot::k_INT_ARRAY)
               , OccurrenceInfo(IntArray())
+              , ""
               }
             , {
                 "l|lLongTag"
@@ -7832,6 +7963,7 @@ int main(int argc, const char *argv[])
               , "description:  Int64Array"
               , TypeInfo(Ot::k_INT64_ARRAY)
               , OccurrenceInfo(Int64Array())
+              , ""
               }
             , {
                 "m|mLongTag"
@@ -7839,6 +7971,7 @@ int main(int argc, const char *argv[])
               , "description:  DoubleArray"
               , TypeInfo(Ot::k_DOUBLE_ARRAY)
               , OccurrenceInfo(DoubleArray())
+              , ""
               }
             , {
                 "n|nLongTag"
@@ -7846,6 +7979,7 @@ int main(int argc, const char *argv[])
               , "description:  StringArray"
               , TypeInfo(Ot::k_STRING_ARRAY)
               , OccurrenceInfo(StringArray())
+              , ""
               }
             , {
                 "o|oLongTag"
@@ -7853,6 +7987,7 @@ int main(int argc, const char *argv[])
               , "description:  DatetimeArray"
               , TypeInfo(Ot::k_DATETIME_ARRAY)
               , OccurrenceInfo(DatetimeArray())
+              , ""
               }
             , {
                 "p|pLongTag"
@@ -7860,6 +7995,7 @@ int main(int argc, const char *argv[])
               , "description:  DateArray"
               , TypeInfo(Ot::k_DATE_ARRAY)
               , OccurrenceInfo(DateArray())
+              , ""
               }
             , {
                 "r|rLongTag"
@@ -7867,6 +8003,7 @@ int main(int argc, const char *argv[])
               , "description:  TimeArray"
               , TypeInfo(Ot::k_TIME_ARRAY)
               , OccurrenceInfo(TimeArray())
+              , ""
               }
             };
 
@@ -8049,7 +8186,7 @@ int main(int argc, const char *argv[])
             }
         }
 
-        if (veryVerbose) cout << "Additional tests 'position'/'positions'"
+        if (veryVerbose) cout << "Additional tests `position`/`positions`"
                               << endl;
         {
             // Specify allowed options.
@@ -8060,6 +8197,7 @@ int main(int argc, const char *argv[])
                  , "Description for a"
                  , TypeInfo(Ot::k_BOOL)
                  , OccurrenceInfo::e_OPTIONAL
+                 , ""
                  }
 
                , { "b|bLong"
@@ -8067,6 +8205,7 @@ int main(int argc, const char *argv[])
                  , "Description for b"
                  , TypeInfo(Ot::k_BOOL)
                  , OccurrenceInfo::e_OPTIONAL
+                 , ""
                  }
 
                , { "c|cLong"
@@ -8074,24 +8213,28 @@ int main(int argc, const char *argv[])
                  , "Description for c"
                  , TypeInfo(Ot::k_INT)
                  , OccurrenceInfo::e_OPTIONAL
+                 , ""
                  }
                , { "d|dLong"
                  , "dName"
                  , "Description for d"
                  , TypeInfo(Ot::k_INT_ARRAY)
                  , OccurrenceInfo::e_OPTIONAL
+                 , ""
                  }
                , { ""    // non-option
                  , "eName"
                  , "Description for e"
                  , TypeInfo(Ot::k_STRING)
                  , OccurrenceInfo::e_OPTIONAL
+                 , ""
                  }
                , { ""    // array non-option, must be last
                  , "fName"
                  , "Description for f"
                  , TypeInfo(Ot::k_STRING_ARRAY)
                  , OccurrenceInfo::e_OPTIONAL
+                 , ""
                  }
             };
 
@@ -8099,7 +8242,7 @@ int main(int argc, const char *argv[])
 
             ASSERT(Obj::isValidOptionSpecificationTable(TABLE));
 
-            // Retain 'OptionInfo' data in map for convenient reference later.
+            // Retain `OptionInfo` data in map for convenient reference later.
 
             typedef bsl::map<bsl::string, OptionInfo> OptionInfoMap;
 
@@ -8346,40 +8489,40 @@ int main(int argc, const char *argv[])
         // TESTING ADDITIONAL CONSTRUCTORS
         //
         // Concerns:
-        //: 1 Each of the additional constructors creates objects equal to
-        //:   those created by the "Primary Manipulator" constructor (see TC
-        //:   3).
-        //:
-        //: 2 Each of the additional constructors allows the explicit
-        //:   specification of an object allocator, no specification, or
-        //:   0-specification.
-        //:
-        //: 3 Each of the additional constructors are exception-safe.
+        // 1. Each of the additional constructors creates objects equal to
+        //    those created by the "Primary Manipulator" constructor (see TC
+        //    3).
+        //
+        // 2. Each of the additional constructors allows the explicit
+        //    specification of an object allocator, no specification, or
+        //    0-specification.
+        //
+        // 3. Each of the additional constructors are exception-safe.
         //
         // Plan:
-        //: 1 Use the "footprint" idiom to exercise each of the additional five
-        //:   constructors by each of their three allowed invocations: no
-        //:   specified allocator, a 0-specified allocator, and an explicitly
-        //:   specified allocator.
-        //:
-        //:   1 Where necessary to avoid ambiguity or inadvertent invocation of
-        //:     and unintended constructor, supply the 0-specified allocator as
-        //:     a allocator pointer, not as an 'int' value.  (C-2).
-        //:
-        //:   2 Use the 'allocator' accessor to confirm that the object has the
-        //:     intended allocator.  (C-2)
-        //:
-        //: 2 Use the 'BSLMA_TESTALLOCATOR_EXCEPTION_TEST_*' macros to confirm
-        //:   that memory allocation is exception safe.  (C-3)
-        //:
-        //:   o Note that the last time through this macro loop corresponds to
-        //:     the "normal" (no exception) test case.
-        //:
-        //: 3 Compare each created object with a reference object created using
-        //:   the Primary Manipulator constructor.  For a meaningful
-        //:   comparison, invoke the 'parse' method of each created test object
-        //:   with the same input that is passed to the reference object.
-        //:   (C-1)
+        // 1. Use the "footprint" idiom to exercise each of the additional five
+        //    constructors by each of their three allowed invocations: no
+        //    specified allocator, a 0-specified allocator, and an explicitly
+        //    specified allocator.
+        //
+        //   1. Where necessary to avoid ambiguity or inadvertent invocation of
+        //      and unintended constructor, supply the 0-specified allocator as
+        //      a allocator pointer, not as an `int` value.  (C-2).
+        //
+        //   2. Use the `allocator` accessor to confirm that the object has the
+        //      intended allocator.  (C-2)
+        //
+        // 2. Use the `BSLMA_TESTALLOCATOR_EXCEPTION_TEST_*` macros to confirm
+        //    that memory allocation is exception safe.  (C-3)
+        //
+        //    - Note that the last time through this macro loop corresponds to
+        //      the "normal" (no exception) test case.
+        //
+        // 3. Compare each created object with a reference object created using
+        //    the Primary Manipulator constructor.  For a meaningful
+        //    comparison, invoke the `parse` method of each created test object
+        //    with the same input that is passed to the reference object.
+        //    (C-1)
         //
         // Testing:
         //   CommandLine(const Oi (&table)[LEN], ostream& stream, *bA = 0);
@@ -8398,7 +8541,8 @@ int main(int argc, const char *argv[])
                                 "fileList",              // name
                                 "files to be sorted",    // description
                                 balcl::TypeInfo(&files), // link
-                                balcl::OccurrenceInfo()  // occurrence
+                                balcl::OccurrenceInfo(), // occurrence
+                                ""                       // env var name
                               };
 
               OptionInfo table[] = { OI };
@@ -8534,61 +8678,61 @@ int main(int argc, const char *argv[])
         // COPY ASSIGNMENT
         //
         // Concerns:
-        //: 1 The two operators have the expected signatures.
-        //:
-        //: 2 One object can be assigned to another irrespective of the (valid)
-        //:   state of each of those objects.
-        //:
-        //:   1 Objects in parsed and unparsed states can be assigned to each
-        //:     other.
-        //:
-        //: 3 Alias-safety: An object an be assigned to itself.
-        //:
-        //:   1 QoI: Self-assignment does not allocate.
-        //:
-        //: 4 The allocator of the assigned-to object ('lhs') is preserved.
-        //:
-        //: 5 The assignment operation returns a reference to the 'lhs' object.
-        //:
-        //: 6 The operation does not change the 'rhs'.
+        // 1. The two operators have the expected signatures.
         //
-        //: 7 QoI: Asserted precondition violations are detected when enabled.
+        // 2. One object can be assigned to another irrespective of the (valid)
+        //    state of each of those objects.
+        //
+        //   1. Objects in parsed and unparsed states can be assigned to each
+        //      other.
+        //
+        // 3. Alias-safety: An object an be assigned to itself.
+        //
+        //   1. QoI: Self-assignment does not allocate.
+        //
+        // 4. The allocator of the assigned-to object (`lhs`) is preserved.
+        //
+        // 5. The assignment operation returns a reference to the `lhs` object.
+        //
+        // 6. The operation does not change the `rhs`.
+        //
+        // 7. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Use the "pointer-to-method" idiom to have the compiler check the
-        //:   signature.  (C-1)
-        //:
-        //: 2 For a representative set of objects assign each object with
-        //:   itself and to every other object in the set.
-        //:   The representative set used is
-        //:   obtained user the 'u::generateTestData' helper function.
-        //:   Every 5th entry is tested to keep the cross product to a
-        //:   manageable size.  (C-2)
-        //:
-        //: 3 Use different (test) allocators for 'lhs' and 'rhs' objects.
-        //:   Confirm that the 'lhs' object retains its original allocator.
-        //:   (C-3)
-        //:
-        //: 4 Use 'bslma::TestAllocatorMonitor' objects to confirm that no
-        //:   memory is allocated.  (C-4)
-        //:
-        //: 5 Compare the address of the returned value (a reference, as shown
-        //:   in P-1) to the address of the 'lhs'.  (C-5)
-        //:
-        //: 6 Create a duplicate of the 'rhs' object that is not used in the
-        //:   assignment operation.  Confirm that the 'rhs' compares equal to
-        //:   this spare object both before and after the assignment operation.
-        //:
-        //: 7 For each option configuration, create 'lhs' and 'rhs' objects
-        //:   in the parsed and unparsed state.  Test all four combinations
-        //:   of assignments between parsed and unparsed objects.
-        //:
-        //:   1 As all unparsed objects compare unequal, meaningful comparison
-        //:     changing them to a parsed state by invoking the 'parse' method
-        //:     with the same (valid) arguments.  (C-2.1)
-        //:
-        //: 8 Do negative tests of defensive checks using 'BSLS_ASSERTTEST_*'
-        //:   macros.  (C-7)
+        // 1. Use the "pointer-to-method" idiom to have the compiler check the
+        //    signature.  (C-1)
+        //
+        // 2. For a representative set of objects assign each object with
+        //    itself and to every other object in the set.
+        //    The representative set used is
+        //    obtained user the `u::generateTestData` helper function.
+        //    Every 5th entry is tested to keep the cross product to a
+        //    manageable size.  (C-2)
+        //
+        // 3. Use different (test) allocators for `lhs` and `rhs` objects.
+        //    Confirm that the `lhs` object retains its original allocator.
+        //    (C-3)
+        //
+        // 4. Use `bslma::TestAllocatorMonitor` objects to confirm that no
+        //    memory is allocated.  (C-4)
+        //
+        // 5. Compare the address of the returned value (a reference, as shown
+        //    in P-1) to the address of the `lhs`.  (C-5)
+        //
+        // 6. Create a duplicate of the `rhs` object that is not used in the
+        //    assignment operation.  Confirm that the `rhs` compares equal to
+        //    this spare object both before and after the assignment operation.
+        //
+        // 7. For each option configuration, create `lhs` and `rhs` objects
+        //    in the parsed and unparsed state.  Test all four combinations
+        //    of assignments between parsed and unparsed objects.
+        //
+        //   1. As all unparsed objects compare unequal, meaningful comparison
+        //      changing them to a parsed state by invoking the `parse` method
+        //      with the same (valid) arguments.  (C-2.1)
+        //
+        // 8. Do negative tests of defensive checks using `BSLS_ASSERTTEST_*`
+        //    macros.  (C-7)
         //
         // Testing:
         //   CommandLine& operator=(const CommandLine& rhs);
@@ -8698,7 +8842,7 @@ int main(int argc, const char *argv[])
             for (int n2 = 0; n2 < 4; ++n2) {
             for (int i2 = 0; i2 < (n2 ? NUM_OPTIONS - n2 : 1); i2 += DELTA) {
 
-                // Prepare 'rhs' objects, unparsed and parsed.
+                // Prepare `rhs` objects, unparsed and parsed.
 
                 bslma::TestAllocator saX("suppliedX", veryVeryVeryVerbose);
                 bslma::TestAllocator saY("suppliedY", veryVeryVeryVerbose);
@@ -8718,7 +8862,7 @@ int main(int argc, const char *argv[])
                 ASSERT(ossErrPX.str().empty());
                 ASSERT( PX.isParsed());
 
-                // Prepare 'lhs' objects, unparsed and parsed.
+                // Prepare `lhs` objects, unparsed and parsed.
 
                 OptionInfo        specTable2[4];
                 const OptionInfo *SPEC_TABLE2 = specTable2;
@@ -8876,6 +9020,7 @@ int main(int argc, const char *argv[])
                              , "description"              // description
                              , TypeInfo(Ot::k_BOOL)       // no linked variable
                              , OccurrenceInfo::e_OPTIONAL // occurrence
+                             , ""                         // env var name
                              };
 
             const OptionInfo TABLE[] = { OI };
@@ -8886,7 +9031,7 @@ int main(int argc, const char *argv[])
 
             const OptionInfo * const OIP = TABLE;
 
-            // Create a valid object, 'Zok'
+            // Create a valid object, `Zok`
 
             const char * const ARGVok[] = { "progname" };
             const int          ARGCok   = sizeof ARGVok / sizeof *ARGVok;
@@ -8904,7 +9049,7 @@ int main(int argc, const char *argv[])
             ASSERT( Zok.isValid());
             ASSERT( Zok.isParsed());
 
-            // Create an invalid object, 'Zng'
+            // Create an invalid object, `Zng`
 
             const char * const ARGVng[] = { "progname"
                                           , "--some-invalid-option"
@@ -8937,66 +9082,66 @@ int main(int argc, const char *argv[])
         // COPY CONSTRUCTOR
         //
         // Concerns:
-        //: 1 Equality: The copy constructor creates a new object that compares
-        //:   equal to the original object, irrespective of the state of the
-        //:   original object:
-        //:
-        //:   1 'original.isParsed()': the copy 'isParsed()' and compares equal
-        //:     to the original.
-        //:
-        //:   2 '!original.isParsed()': the copy is '!isParsed()' and if the
-        //:     copy and the original are parsed using the same arguments, the
-        //:     resulting objects compare equal.
-        //:
-        //: 2 Allocators:
-        //:   1 The allocator of the created object depends on its constructor
-        //:     argument (not the allocator of the original object).
-        //:
-        //:   2 If the allocator argument of the object is 0 or not specified,
-        //:     the new object uses the default allocator, otherwise, the
-        //:     specified allocator is used.
-        //:
-        //:   3 The constructor is exception safe.
-        //:
-        //: 3 The original object is unchanged when copied.
-        //:
-        //: 4 QoI: Asserted precondition violations are detected when enabled.
+        // 1. Equality: The copy constructor creates a new object that compares
+        //    equal to the original object, irrespective of the state of the
+        //    original object:
+        //
+        //   1. `original.isParsed()`: the copy `isParsed()` and compares equal
+        //      to the original.
+        //
+        //   2. `!original.isParsed()`: the copy is `!isParsed()` and if the
+        //      copy and the original are parsed using the same arguments, the
+        //      resulting objects compare equal.
+        //
+        // 2. Allocators:
+        //   1. The allocator of the created object depends on its constructor
+        //      argument (not the allocator of the original object).
+        //
+        //   2. If the allocator argument of the object is 0 or not specified,
+        //      the new object uses the default allocator, otherwise, the
+        //      specified allocator is used.
+        //
+        //   3. The constructor is exception safe.
+        //
+        // 3. The original object is unchanged when copied.
+        //
+        // 4. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plans:
-        //: 1 Do table-driven testing using the tables described in {Input
-        //:   Tables} and the 'u::generateTestData' helper function.  Construct
-        //:   two objects for each combination of input.  One is passed to the
-        //:   copy constructor (the "original" object) the other is unused.
-        //:   Confirm that the original remains the same as the unused object.
-        //:   (C-3)
-        //:
-        //: 2 Use 'operator==' to confirm the equality of the new object
-        //:   when they are in the parsed state.  (C-1).
-        //:
-        //: 3 Repeat each test for the cases of an unspecified allocator, a
-        //:   0-allocator, and an explicitly supplied allocator.  (C-2.1)
+        // 1. Do table-driven testing using the tables described in {Input
+        //    Tables} and the `u::generateTestData` helper function.  Construct
+        //    two objects for each combination of input.  One is passed to the
+        //    copy constructor (the "original" object) the other is unused.
+        //    Confirm that the original remains the same as the unused object.
+        //    (C-3)
         //
-        //:   1 Confirm the allocator of the new object using the 'allocator'
-        //:     accessor.  (C-2.2)
-        //:
-        //:   2 Use 'bslma::TestAllocatorMonitor' objects to confirm that
-        //:     memory allocation, when expected, occurs in the expected
-        //:     allocator, and no allocation occurs from the "other" allocator.
-        //:
-        //:   3 Use the 'BSLMA_TESTALLOCATOR_EXCEPTION_TEST_*' macros to
-        //:     confirm that memory allocation is exception safe.
-        //:
-        //:     o Note that the last time through this macro loop corresponds
-        //:       to the "normal" (no exception) test case.
+        // 2. Use `operator==` to confirm the equality of the new object
+        //    when they are in the parsed state.  (C-1).
         //
-        //: 4 Repeat each test for an original object in an unparsed state
-        //:   and in an unparsed state.  For the unparsed tests invoke the
-        //:   'parse' methods of original and copy with identical, valid
-        //:   arguments so a meaningful comparison can be done.  (Recall that
-        //:   comparisons in an unparsed state always fail.)
-        //:
-        //: 5 Do negative tests of defensive checks using 'BSLS_ASSERTTEST_*'
-        //:   macros.  (C-4)
+        // 3. Repeat each test for the cases of an unspecified allocator, a
+        //    0-allocator, and an explicitly supplied allocator.  (C-2.1)
+        //
+        //   1. Confirm the allocator of the new object using the `allocator`
+        //      accessor.  (C-2.2)
+        //
+        //   2. Use `bslma::TestAllocatorMonitor` objects to confirm that
+        //      memory allocation, when expected, occurs in the expected
+        //      allocator, and no allocation occurs from the "other" allocator.
+        //
+        //   3. Use the `BSLMA_TESTALLOCATOR_EXCEPTION_TEST_*` macros to
+        //      confirm that memory allocation is exception safe.
+        //
+        //      - Note that the last time through this macro loop corresponds
+        //        to the "normal" (no exception) test case.
+        //
+        // 4. Repeat each test for an original object in an unparsed state
+        //    and in an unparsed state.  For the unparsed tests invoke the
+        //    `parse` methods of original and copy with identical, valid
+        //    arguments so a meaningful comparison can be done.  (Recall that
+        //    comparisons in an unparsed state always fail.)
+        //
+        // 5. Do negative tests of defensive checks using `BSLS_ASSERTTEST_*`
+        //    macros.  (C-4)
         //
         // Testing:
         //   CommandLine(const CommandLine& original, *bA = 0);
@@ -9072,7 +9217,7 @@ int main(int argc, const char *argv[])
                 int  completeExceptionCount = 0;
                 Obj *objPtr                 = 0;
 
-                // Create an unparsed "original", 'Z'.
+                // Create an unparsed "original", `Z`.
 
                 Obj mZ(SPEC_TABLE, n, &scratch);  const Obj& Z = mZ;
                 ASSERT(!Z.isParsed()); ASSERT(Z.isValid());
@@ -9116,7 +9261,7 @@ int main(int argc, const char *argv[])
                 // Vet the object value.
                 ASSERT(Z == UX);
 
-                // Vet the original object ('Z') state.
+                // Vet the original object (`Z`) state.
                 ASSERT(Z             == ZZ);
                 ASSERT(Z.allocator() == ZZ.allocator());
 
@@ -9125,7 +9270,7 @@ int main(int argc, const char *argv[])
                 ASSERTV(CONFIG,  oam.isInUseSame());
                 ASSERTV(CONFIG, noam.isInUseSame());
 
-                // Now, copy the (now parsed) original, 'Z'.
+                // Now, copy the (now parsed) original, `Z`.
 
                 ASSERT( Z.isParsed());
 
@@ -9154,7 +9299,7 @@ int main(int argc, const char *argv[])
                 // Vet the object value.
                 ASSERT(Z == PX);
 
-                // Vet the original object ('Z') state again.
+                // Vet the original object (`Z`) state again.
                 ASSERT(Z             == ZZ);
                 ASSERT(Z.allocator() == ZZ.allocator());
 
@@ -9175,6 +9320,7 @@ int main(int argc, const char *argv[])
                              , "description"              // description
                              , TypeInfo(Ot::k_BOOL)       // no linked variable
                              , OccurrenceInfo::e_OPTIONAL // occurrence
+                             , ""                         // env var name
                              };
 
             const OptionInfo TABLE[] = { OI };
@@ -9185,7 +9331,7 @@ int main(int argc, const char *argv[])
 
             const OptionInfo * const OIP = TABLE;
 
-            // Create a valid object, 'Zok'
+            // Create a valid object, `Zok`
 
             const char * const ARGVok[] = { "progname" };
             const int          ARGCok   = sizeof ARGVok / sizeof *ARGVok;
@@ -9203,7 +9349,7 @@ int main(int argc, const char *argv[])
             ASSERT( Zok.isValid());
             ASSERT( Zok.isParsed());
 
-            // Create an invalid object, 'Zng'
+            // Create an invalid object, `Zng`
 
             const char * const ARGVng[] = { "progname"
                                           , "--some-invalid-option"
@@ -9232,98 +9378,98 @@ int main(int argc, const char *argv[])
       case 5: {
         // --------------------------------------------------------------------
         // EQUALITY-COMPARISON OPERATORS
-        //   Ensure that '==' and '!=' are the operational definition of value.
+        //   Ensure that `==` and `!=` are the operational definition of value.
         //
         // Concerns:
-        //: 1 Salient Members:
-        //:
-        //:   1 Two objects, 'X' and 'Y', compare equal if and only if both:
-        //:     o both accept the same options
-        //:     o are both in the parsed state
-        //:     o both hold the same option values
-        //:
-        //:   2 The object's allocator is not salient.
-        //:
-        //: 2 Mathematical Properties:
-        //:
-        //:   1 The operators provide the property of identity:
-        //:     o 'true  == (X == X)'
-        //:     o 'false == (X != X)'
-        //:
-        //:   2 The operators provide the property of commutativity:
-        //:     o 'X == Y' if and only if 'Y == X'
-        //:     o 'X != Y' if and only if 'Y != X'
-        //:
-        //:   3 Each of these two operators is the inverse of the other:
-        //:     o 'X != Y' if and only if '!(X == Y)'
-        //:
-        //: 3 Non-modifiable objects can be compared (i.e., 'const' objects and
-        //:   'const' references).
-        //:
-        //: 4 The two operators have standard signatures and return types.
+        // 1. Salient Members:
         //
-        //: 5 No memory allocation occurs as a result of comparison (e.g., the
-        //:   arguments are not passed by value).
-        //:
-        //: 6 An 'balcl::CommandLine' object in a unparsed state does not
-        //:   compare equal to any other, not even itself.
-        //:
-        //: 7 Comparisons between option handles match those of the (parsed)
-        //:   objects from which the handles are obtained.  The results should
-        //:   be the same for handles obtained using the 'options' and the
-        //:   'specifiedOptions' methods.
+        //   1. Two objects, `X` and `Y`, compare equal if and only if both:
+        //      - both accept the same options
+        //      - are both in the parsed state
+        //      - both hold the same option values
+        //
+        //   2. The object's allocator is not salient.
+        //
+        // 2. Mathematical Properties:
+        //
+        //   1. The operators provide the property of identity:
+        //      - `true  == (X == X)`
+        //      - `false == (X != X)`
+        //
+        //   2. The operators provide the property of commutativity:
+        //      - `X == Y` if and only if `Y == X`
+        //      - `X != Y` if and only if `Y != X`
+        //
+        //   3. Each of these two operators is the inverse of the other:
+        //      - `X != Y` if and only if `!(X == Y)`
+        //
+        // 3. Non-modifiable objects can be compared (i.e., `const` objects and
+        //    `const` references).
+        //
+        // 4. The two operators have standard signatures and return types.
+        //
+        // 5. No memory allocation occurs as a result of comparison (e.g., the
+        //    arguments are not passed by value).
+        //
+        // 6. An `balcl::CommandLine` object in a unparsed state does not
+        //    compare equal to any other, not even itself.
+        //
+        // 7. Comparisons between option handles match those of the (parsed)
+        //    objects from which the handles are obtained.  The results should
+        //    be the same for handles obtained using the `options` and the
+        //    `specifiedOptions` methods.
         //
         // Plan:
-        //: 1 Use the respective addresses of 'operator==' and 'operator!=' to
-        //:   initialize function pointers having the appropriate signatures
-        //:   and return types for the two homogeneous, free
-        //:   equality-comparison operators defined in this component.
-        //:   (C-3..4)
-        //:
-        //: 2 Use the 'u::generateTestData' helper to generate a large table of
-        //:   unique option configurations.  Use the cross product of those
-        //:   configurations to create 'balcl::CommandLine' objects.
-        //:
-        //:   o Note that a complete cross product was impractically large
-        //:     (about 250,000) so every fifth entry was chosen bringing that
-        //:     count to about 10,000.
-        //:
-        //: 3 For each test of equality, create a parallel test that checks
-        //:   inequality (the inverse operator), and (when the two arguments
-        //:   are different) also create a test case where the two arguments
-        //:   are switched (showing commutativity).  (C-2)
-        //:
-        //: 4 Repeat each test of two distinct objects.  In one have the object
-        //:   share an object allocator, in the other have them use different
-        //:   allocators.  Confirm that the results are the same.
-        //:
-        //: 5 Compare each (unique) test object to itself can confirm that it
-        //:   fails in the unparsed state and passes in the parsed state.
-        //:
-        //: 7 Repeat each test of two distinct objects so that one, the other,
-        //:   and both are in unparsed states.  Confirm that all such tests are
-        //:   failed.
-        //:
-        //: 8 Confirm that tests of two distinct objects that are both in a
-        //:   parsed state compare equal only if they are created from the same
-        //:   table entries.
-        //:
-        //: 7 Shadow each comparison between parsed objects with analogous
-        //:   comparisons between option handles obtained from those objects.
-        //:   Each option handle comparison is done for handles obtained using
-        //:   both the 'options' and 'specifiedOptions' methods.  (C-7)
-        //:
-        //:   o This a "bootstrap" test of the 'CommandLineOptionsHandle' type
-        //:     (done here to avoid duplication of the equality testing
-        //:     framework).  Tests of this type are completed in TC 9.
-        //:
-        //:   o Equality comparison of 'CommandLineOptionsHandle' objects have
-        //:     an internal precondition (and defensive check) that they refer
-        //:     to 'CommandLine' objects in a parsed state.  Negative testing
-        //:     of this defensive check is impractical because creation of such
-        //:     handles is guarded by the defensive checks the 'CommandLine'
-        //:     methods 'options' and 'specifiedOptions'.  Those are tested in
-        //:     TC 9.
+        // 1. Use the respective addresses of `operator==` and `operator!=` to
+        //    initialize function pointers having the appropriate signatures
+        //    and return types for the two homogeneous, free
+        //    equality-comparison operators defined in this component.
+        //    (C-3..4)
+        //
+        // 2. Use the `u::generateTestData` helper to generate a large table of
+        //    unique option configurations.  Use the cross product of those
+        //    configurations to create `balcl::CommandLine` objects.
+        //
+        //    - Note that a complete cross product was impractically large
+        //      (about 250,000) so every fifth entry was chosen bringing that
+        //      count to about 10,000.
+        //
+        // 3. For each test of equality, create a parallel test that checks
+        //    inequality (the inverse operator), and (when the two arguments
+        //    are different) also create a test case where the two arguments
+        //    are switched (showing commutativity).  (C-2)
+        //
+        // 4. Repeat each test of two distinct objects.  In one have the object
+        //    share an object allocator, in the other have them use different
+        //    allocators.  Confirm that the results are the same.
+        //
+        // 5. Compare each (unique) test object to itself can confirm that it
+        //    fails in the unparsed state and passes in the parsed state.
+        //
+        // 7. Repeat each test of two distinct objects so that one, the other,
+        //    and both are in unparsed states.  Confirm that all such tests are
+        //    failed.
+        //
+        // 8. Confirm that tests of two distinct objects that are both in a
+        //    parsed state compare equal only if they are created from the same
+        //    table entries.
+        //
+        // 7. Shadow each comparison between parsed objects with analogous
+        //    comparisons between option handles obtained from those objects.
+        //    Each option handle comparison is done for handles obtained using
+        //    both the `options` and `specifiedOptions` methods.  (C-7)
+        //
+        //    - This a "bootstrap" test of the `CommandLineOptionsHandle` type
+        //      (done here to avoid duplication of the equality testing
+        //      framework).  Tests of this type are completed in TC 9.
+        //
+        //    - Equality comparison of `CommandLineOptionsHandle` objects have
+        //      an internal precondition (and defensive check) that they refer
+        //      to `CommandLine` objects in a parsed state.  Negative testing
+        //      of this defensive check is impractical because creation of such
+        //      handles is guarded by the defensive checks the `CommandLine`
+        //      methods `options` and `specifiedOptions`.  Those are tested in
+        //      TC 9.
         //
         // Testing:
         //   bool operator==(const CommandLine& lhs, const CommandLine& rhs);
@@ -9413,7 +9559,7 @@ int main(int argc, const char *argv[])
 
             ASSERT(samPX.isTotalSame());
 
-            // Identity tests for handles obtained from 'X' (now parsed).
+            // Identity tests for handles obtained from `X` (now parsed).
 
             const OptionsHandle OH = X.         options();
             const OptionsHandle SH = X.specifiedOptions();
@@ -9454,8 +9600,8 @@ int main(int argc, const char *argv[])
                     if (veryVerbose) { T_ T_ T_  P(k) }
 
                     bslma::TestAllocator *saY = k % 2
-                                              ? &sa1  //     same as 'X'
-                                              : &sa2; // not same as 'X'
+                                              ? &sa1  //     same as `X`
+                                              : &sa2; // not same as `X`
 
                     Obj mY(SPEC_TABLE2, n2, saY);  const Obj& Y = mY;
 
@@ -9489,8 +9635,8 @@ int main(int argc, const char *argv[])
                     if (veryVerbose) { T_ T_ T_  P(k) }
 
                     bslma::TestAllocator *saY = k % 2
-                                              ? &sa1  //     same as 'X'
-                                              : &sa2; // not same as 'X'
+                                              ? &sa1  //     same as `X`
+                                              : &sa2; // not same as `X`
 
                     Obj mY(SPEC_TABLE2, n2, saY);  const Obj& Y = mY;
 
@@ -9519,7 +9665,7 @@ int main(int argc, const char *argv[])
 
                     ASSERT(samY.isTotalSame());
 
-                    // Tests for handles obtained from 'X' and 'Y'.
+                    // Tests for handles obtained from `X` and `Y`.
 
                     const OptionsHandle OHX = X.         options();
                     const OptionsHandle SHX = X.specifiedOptions();
@@ -9554,35 +9700,35 @@ int main(int argc, const char *argv[])
         // PRINT AND OUTPUT OPERATOR
         //
         // Concerns:
-        //: 1 The 'print' method writes to the specified 'ostream' in the
-        //:   expected format.
-        //:
-        //: 2 'operator<<' produces the same results as 'print' when level and
-        //:   spaces-per-level arguments have their default value.
-        //:
-        //: 3 The return values of 'print' and 'operator<<' reference the
-        //:   stream argument.
-        //:
-        //: 4 The signature and return types of 'print' and 'operator<<' are
-        //:   standard.
-        //:
-        //: 5 The 'level' and 'spacesPerLevel' parameters have the correct
-        //:   default values.
-        //:
-        //: 6 The methods show the expected behaviors for objects in both
-        //:   parsed and unparsed states.
+        // 1. The `print` method writes to the specified `ostream` in the
+        //    expected format.
+        //
+        // 2. `operator<<` produces the same results as `print` when level and
+        //    spaces-per-level arguments have their default value.
+        //
+        // 3. The return values of `print` and `operator<<` reference the
+        //    stream argument.
+        //
+        // 4. The signature and return types of `print` and `operator<<` are
+        //    standard.
+        //
+        // 5. The `level` and `spacesPerLevel` parameters have the correct
+        //    default values.
+        //
+        // 6. The methods show the expected behaviors for objects in both
+        //    parsed and unparsed states.
         //
         // Plan:
-        //: 1 Use the "function address" idiom to confirm the signatures.
+        // 1. Use the "function address" idiom to confirm the signatures.
         //
-        //: 2 Confirm that 'bdlb::HasPrintMethod<TypeInfo>::value' is 'true'
-        //:   using a compile-time assertion at file scope.
-        //:
-        //: 3 Run tests for objects in both parsed and unparsed states.
-        //:
-        //: 4 Use 'u::normalizeIndentation' helper function to confirm that
-        //:   output using non-default values of 'level' and 'spacesPerLevel'
-        //:   have those indentations and are otherwise the same.
+        // 2. Confirm that `bdlb::HasPrintMethod<TypeInfo>::value` is `true`
+        //    using a compile-time assertion at file scope.
+        //
+        // 3. Run tests for objects in both parsed and unparsed states.
+        //
+        // 4. Use `u::normalizeIndentation` helper function to confirm that
+        //    output using non-default values of `level` and `spacesPerLevel`
+        //    have those indentations and are otherwise the same.
         //
         // Testing:
         //   ostream& print(ostream& stream, int level = 0, int spl = 4) const;
@@ -9772,88 +9918,88 @@ int main(int argc, const char *argv[])
         // PRIMARY MANIPULATORS, BASIC ASSESSORS, AND DTOR
         //
         // Concerns:
-        //: 1 Constructor
-        //:
-        //:   1 An object allocator can be specified, a 0-specified allocator
-        //:     specified, or no allocator can be specified.
-        //:
-        //:   2 The create object behaves as expected irrespective of how the
-        //:     allocator is specified.
-        //:
-        //:   3 Initially, the object state is
-        //:     'false == isValid() == isParsed()'.
+        // 1. Constructor
         //
-        //:  4 Constructor arguments can be 'const'-qualified (except for the
-        //:    allocator argument).
-        //:
-        //: 2 Allocators
-        //:
-        //:   1 The expected allocators are used.
-        //:
-        //:   2 Allocation is exception safe.
-        //:
-        //:   3 The 'bslma::UsesBslmaAllocator' trait is set for this class.
-        //:
-        //: 3 Basic Accessors
-        //:
-        //:   1 The return status of the 'parse' method indicates success when
-        //:     given command options valid for the defined options, and
-        //:     indicates failure otherwise.
-        //:
-        //:  2 Accessors are 'const'-qualified.
-        //:
-        //:  3 The accessors 'isParsed' and 'isValid' how the expected state
-        //:    of the object.
-        //:
-        //:  4 Accessor arguments can be 'const'-qualified.
-        //:
-        //: 4 QoI: Asserted precondition violations are detected when enabled.
+        //   1. An object allocator can be specified, a 0-specified allocator
+        //      specified, or no allocator can be specified.
+        //
+        //   2. The create object behaves as expected irrespective of how the
+        //      allocator is specified.
+        //
+        //   3. Initially, the object state is
+        //      `false == isValid() == isParsed()`.
+        //
+        //  4. Constructor arguments can be `const`-qualified (except for the
+        //     allocator argument).
+        //
+        // 2. Allocators
+        //
+        //   1. The expected allocators are used.
+        //
+        //   2. Allocation is exception safe.
+        //
+        //   3. The `bslma::UsesBslmaAllocator` trait is set for this class.
+        //
+        // 3. Basic Accessors
+        //
+        //   1. The return status of the `parse` method indicates success when
+        //      given command options valid for the defined options, and
+        //      indicates failure otherwise.
+        //
+        //  2. Accessors are `const`-qualified.
+        //
+        //  3. The accessors `isParsed` and `isValid` how the expected state
+        //     of the object.
+        //
+        //  4. Accessor arguments can be `const`-qualified.
+        //
+        // 4. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Use 'u::generateTestData' to create a table of valid option
-        //:   configurations and command-line arguments corresponding to each
-        //:   option.  For each element in the generated table in the grange
-        //:   '0 < numBaseOptions', create configurations having 0, 1, 2, and 3
-        //:   options.
-        //:
-        //: 2 For each configuration create an 'balcl::CommandLine' object
-        //:   three different ways: specifying an object allocator, not
-        //:   specifying and specifying a 0-allocator.
-        //:
-        //: 3 The 'parse' manipulator is tested by creating the test object
-        //:   twice.  The 'parse' method of the first is invoked using valid
-        //:   command-line options.  The second is invoked using command-line
-        //:   options that have been crudely invalidated.
-        //:
-        //:   1 Note that two objects are required because invoking 'parse'
-        //:     more than once on these objects is disallowed.
-        //:
-        //:   2 Confirm the expected return value of 'parse'.
+        // 1. Use `u::generateTestData` to create a table of valid option
+        //    configurations and command-line arguments corresponding to each
+        //    option.  For each element in the generated table in the grange
+        //    `0 < numBaseOptions`, create configurations having 0, 1, 2, and 3
+        //    options.
         //
-        //:   3 Use accessors to confirm the expected state of the object.
-        //:
-        //: 4 Basic accessors:
-        //:
-        //:   1 Always invoke the basic accessors on a 'const' reference to the
-        //:     to the object under test.  If the accessors are not
-        //:     'const'-qualified, the test driver does not compile.
-        //:
-        //:   2 Pass accessor allocator arguments by 'const' reference.  If the
-        //:     arguments are not 'const'-qualified, the test driver does not
-        //:     compile.
-        //:
-        //: 5 Use 'bslma::TestAllocatorMonitor' objects to confirm allocations
-        //:   from the intended allocators.
+        // 2. For each configuration create an `balcl::CommandLine` object
+        //    three different ways: specifying an object allocator, not
+        //    specifying and specifying a 0-allocator.
         //
-        //:   1 Confirm that
-        //:     'bslma::UsesBslmaAllocator<balcl::CommandLine>::value' is
-        //:     'true' in a compile-time assertion at file scope.
+        // 3. The `parse` manipulator is tested by creating the test object
+        //    twice.  The `parse` method of the first is invoked using valid
+        //    command-line options.  The second is invoked using command-line
+        //    options that have been crudely invalidated.
         //
-        //:   2 Use 'BSLMA_TESTALLOCATOR_EXCEPTION*' macros to check
-        //:     allocations in the presence of exceptions.
-        //:
-        //: 6 Negative testing of precondition tests are addressed in
-        //:   TC 11 (TESTING INVALID OPTION SPECS).  (C-4)
+        //   1. Note that two objects are required because invoking `parse`
+        //      more than once on these objects is disallowed.
+        //
+        //   2. Confirm the expected return value of `parse`.
+        //
+        //   3. Use accessors to confirm the expected state of the object.
+        //
+        // 4. Basic accessors:
+        //
+        //   1. Always invoke the basic accessors on a `const` reference to the
+        //      to the object under test.  If the accessors are not
+        //      `const`-qualified, the test driver does not compile.
+        //
+        //   2. Pass accessor allocator arguments by `const` reference.  If the
+        //      arguments are not `const`-qualified, the test driver does not
+        //      compile.
+        //
+        // 5. Use `bslma::TestAllocatorMonitor` objects to confirm allocations
+        //    from the intended allocators.
+        //
+        //   1. Confirm that
+        //      `bslma::UsesBslmaAllocator<balcl::CommandLine>::value` is
+        //      `true` in a compile-time assertion at file scope.
+        //
+        //   2. Use `BSLMA_TESTALLOCATOR_EXCEPTION*` macros to check
+        //      allocations in the presence of exceptions.
+        //
+        // 6. Negative testing of precondition tests are addressed in
+        //    TC 11 (TESTING INVALID OPTION SPECS).  (C-4)
         //
         // Testing:
         //   CommandLine(const Oi *table, int len, *bA = 0);
@@ -10019,26 +10165,26 @@ int main(int argc, const char *argv[])
       } break;
       case 2: {
         // --------------------------------------------------------------------
-        // TESTING 'u::parseCommandLine' TESTING UTILITY
+        // TESTING `u::parseCommandLine` TESTING UTILITY
         //   Exercise the basic functionality.
         //
         // Concerns:
-        //: 1 That the 'u::parseCommandLine' testing utility function separates
-        //:   a command line as needed into its 'argc' and 'argv'.
+        // 1. That the `u::parseCommandLine` testing utility function separates
+        //    a command line as needed into its `argc` and `argv`.
         //
         // Plan:
-        //: 1 It is enough to test with zero, one, or two arguments on the
-        //:   command line, and test with various spacing and separation
-        //:   characters.  For orthogonal perturbations, add a header or a
-        //:   trailer or both.
+        // 1. It is enough to test with zero, one, or two arguments on the
+        //    command line, and test with various spacing and separation
+        //    characters.  For orthogonal perturbations, add a header or a
+        //    trailer or both.
         //
         // Testing:
-        //   TESTING 'u::parseCommandLine' TESTING UTILITY
+        //   TESTING `u::parseCommandLine` TESTING UTILITY
         // --------------------------------------------------------------------
 
         if (verbose) cout
                     << endl
-                    << "TESTING 'u::parseCommandLine' TESTING UTILITY" << endl
+                    << "TESTING `u::parseCommandLine` TESTING UTILITY" << endl
                     << "=============================================" << endl;
 
         const char *ONECMD[] = { "oneCommand" };
@@ -10173,11 +10319,11 @@ int main(int argc, const char *argv[])
         //   Exercise the basic functionality.
         //
         // Concerns:
-        //: 1 Basic functionality must work as advertised for most common usage
-        //:   of this component.
+        // 1. Basic functionality must work as advertised for most common usage
+        //    of this component.
         //
         // Plan:
-        //: 1 Various ad hoc use of this component.
+        // 1. Various ad hoc use of this component.
         //
         // Testing:
         //   BREATHING TEST
@@ -10197,49 +10343,53 @@ int main(int argc, const char *argv[])
 
         balcl::OptionInfo specTable[] = {
           {
-            "f|flag",                                        // tag
-            "genericFlag",                                   // name
-            "provide generic option for breathing test",     // description
+            "f|flag",                                     // tag
+            "genericFlag",                                // name
+            "provide generic option for breathing test",  // description
             balcl::TypeInfo(balcl::OptionType::k_BOOL),   // no linked variable
-            balcl::OccurrenceInfo::e_REQUIRED             // occurrence info
+            balcl::OccurrenceInfo::e_REQUIRED,            // occurrence info
+            ""                                            // env var name
           },
           {
-            "s|long-option-with-dashes",                     // tag
-            "longOptionValue",                               // name
-            "provide generic option for breathing test",     // description
+            "s|long-option-with-dashes",                  // tag
+            "longOptionValue",                            // name
+            "provide generic option for breathing test",  // description
             balcl::TypeInfo(balcl::OptionType::k_INT_ARRAY),
                                                           // no linked variable
-            balcl::OccurrenceInfo::e_REQUIRED // occurrence info
+            balcl::OccurrenceInfo::e_REQUIRED,            // occurrence info
+            ""                                            // env var name
           },
           {
-            "long-option-only",                              // tag
-            "longOptionOnlyValue",                           // name
-            "provide generic option for breathing test",     // description
-            balcl::TypeInfo(&longOptionOnlyValue), // linked variable
-            balcl::OccurrenceInfo::e_HIDDEN   // occurrence info
+            "long-option-only",                           // tag
+            "longOptionOnlyValue",                        // name
+            "provide generic option for breathing test",  // description
+            balcl::TypeInfo(&longOptionOnlyValue),        // linked variable
+            balcl::OccurrenceInfo::e_HIDDEN,              // occurrence info
+            ""                                            // env var name
           },
           {
-            "",                                              // tag
-            "nonOptionValue1",                               // name
-            "provide generic option for breathing test",     // description
-            balcl::TypeInfo(&nonOptionValue1),     // linked variable
-            balcl::OccurrenceInfo::e_REQUIRED // occurrence info
+            "",                                           // tag
+            "nonOptionValue1",                            // name
+            "provide generic option for breathing test",  // description
+            balcl::TypeInfo(&nonOptionValue1),            // linked variable
+            balcl::OccurrenceInfo::e_REQUIRED,            // occurrence info
+            ""                                            // env var name
           },
           {
             "",                                           // tag
             "nonOptionValue2",                            // name
             "provide generic option for breathing test",  // description
-            balcl::TypeInfo(&nonOptionValue2),  // linked variable
-            balcl::OccurrenceInfo(defaultNonOptionValue)
-                                                          // occurrence info
+            balcl::TypeInfo(&nonOptionValue2),            // linked variable
+            balcl::OccurrenceInfo(defaultNonOptionValue), // occurrence info
+            ""                                            // env var name
           },
           {
             "",                                           // tag
             "nonOptionValue3",                            // name
             "provide generic option for breathing test",  // description
-            balcl::TypeInfo(&nonOptionValue3),  // linked variable
-            balcl::OccurrenceInfo(defaultNonOptionValue)
-                                                          // occurrence info
+            balcl::TypeInfo(&nonOptionValue3),            // linked variable
+            balcl::OccurrenceInfo(defaultNonOptionValue), // occurrence info
+            ""                                            // env var name
           }
         };
         enum { numSpecTable = sizeof specTable / sizeof *specTable };

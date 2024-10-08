@@ -13,43 +13,43 @@ BSLS_IDENT("$Id: $")
 //
 //@SEE_ALSO: bsl+bslhdrs
 //
-
+//
 //@DESCRIPTION: This component is for internal use only.  Please include
-// '<bsl_iomanip.h>' instead.
+// `<bsl_iomanip.h>` instead.
 //
 // This component exists to provide BSL implementations for facilities in the
-// standard <iomanip> header.  While most of the facilities in 'bsl_iomanip.h'
+// standard <iomanip> header.  While most of the facilities in `bsl_iomanip.h`
 // are simply aliases to the platform standard library, some of them need BSL
 // specific implementations.  For example, this component provides
-// implementations for 'bsl::quoted' overloads that accept 'bsl::basic_string'
-// and proprietary 'bsl::string_view' objects.
+// implementations for `bsl::quoted` overloads that accept `bsl::basic_string`
+// and proprietary `bsl::string_view` objects.
 //
 ///Usage
 ///-----
 // This section illustrates intended use of this component.
 //
-///Example 1: Basic Use of 'bsl::quoted'
+///Example 1: Basic Use of `bsl::quoted`
 ///- - - - - - - - - - - - - - - - - - -
 // Suppose we want to serialize some data into JSON.
 //
-// First, we define a struct, 'Employee', to contain the data:
-//..
+// First, we define a struct, `Employee`, to contain the data:
+// ```
 //  struct Employee {
 //      bsl::string d_firstName;
 //      bsl::string d_lastName;
 //      int         d_age;
 //  };
-//..
-// Then, we create an 'Employee' object and populate it with data:
-//..
+// ```
+// Then, we create an `Employee` object and populate it with data:
+// ```
 //  Employee john;
 //  john.d_firstName = "John";
 //  john.d_lastName  = "Doe";
 //  john.d_age       = 20;
-//..
+// ```
 //  Now, we create an output stream and manually construct the JSON string
-//  using 'bsl::quoted':
-//..
+//  using `bsl::quoted`:
+// ```
 //  bsl::stringstream ss;
 //  ss << '{' << '\n';
 //  ss << bsl::quoted("firstName");
@@ -64,24 +64,24 @@ BSLS_IDENT("$Id: $")
 //  ss << ':';
 //  ss << john.d_age;
 //  ss << '\n' << '}';
-//..
+// ```
 //  Finally, we check out the JSON string:
-//..
+// ```
 //  bsl::string expected = "{\n"
 //                         "\"firstName\":\"John\",\n"
 //                         "\"lastName\":\"Doe\",\n"
 //                         "\"age\":20\n"
 //                         "}";
 //  assert(expected == ss.str());
-//..
+// ```
 //  The output should look like:
-//..
+// ```
 //  {
 //  "firstName":"John",
 //  "lastName":"Doe",
 //  "age":20
 //  }
-//..
+// ```
 
 #include <bslstl_string.h>
 #include <bslstl_stringview.h>
@@ -173,68 +173,71 @@ namespace bslstl {
                     // class IoManip_QuotedStringFormatter
                     // ===================================
 
+/// Private class: do not use outside of `bslstl_iomanip.h` header.  This
+/// private class provides a temporary storage that can be extracted to/from
+/// a stream and provides data to the standard implementation of the
+/// `quoted` function.  Note that this class does not contain the storage
+/// itself, but only points to an external object.  Note that
+/// `QuotedStringViewFormatter` is designed so that its objects are returned
+/// as temporary objects (of opaque type) from 'bsl::quoted`, and then
+/// passed to a streaming operator; it serves as a temporary proxy for a
+/// string value.
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS, class t_ALLOC>
 class IoManip_QuotedStringFormatter {
-    // Private class: do not use outside of 'bslstl_iomanip.h' header.  This
-    // private class provides a temporary storage that can be extracted to/from
-    // a stream and provides data to the standard implementation of the
-    // 'quoted' function.  Note that this class does not contain the storage
-    // itself, but only points to an external object.  Note that
-    // 'QuotedStringViewFormatter' is designed so that its objects are returned
-    // as temporary objects (of opaque type) from 'bsl::quoted`, and then
-    // passed to a streaming operator; it serves as a temporary proxy for a
-    // string value.
 
     // DATA
+
+    // string for quoting (held, not owned)
     bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC> *d_str_p;
-        // string for quoting (held, not owned)
 
+    // delimiter
     t_CHAR_TYPE                                             d_delim;
-        // delimiter
 
+    // escape character
     t_CHAR_TYPE                                             d_escape;
-        // escape character
 
   public:
     // CREATORS
+
+    /// Create an object pointing to the specified `str` and having the
+    /// optionally specified `delim` and `escape` characters.
     explicit IoManip_QuotedStringFormatter(
                bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC> *str,
                t_CHAR_TYPE                                             delim =
                                                               t_CHAR_TYPE('"'),
                t_CHAR_TYPE                                             escape =
                                                             t_CHAR_TYPE('\\'));
-        // Create an object pointing to the specified 'str' and having the
-        // optionally specified 'delim' and 'escape' characters.
 
     // ACCESSORS
+
+    /// Return the delimiter character.
     t_CHAR_TYPE delim() const;
-        // Return the delimiter character.
 
+    /// Return the escape character.
     t_CHAR_TYPE escape() const;
-        // Return the escape character.
 
+    /// Return a reference providing modifiable access to the underlying
+    /// string.  Note that this operation provides modifiable access to the
+    /// string because this type is designed so that its objects are created
+    /// as temporary objects that proxy an underlying string (see class
+    /// documentation).
     bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC> *str() const;
-        // Return a reference providing modifiable access to the underlying
-        // string.  Note that this operation provides modifiable access to the
-        // string because this type is designed so that its objects are created
-        // as temporary objects that proxy an underlying string (see class
-        // documentation).
 };
 
                   // =======================================
                   // class IoManip_QuotedStringViewFormatter
                   // =======================================
 
+/// Private class: do not use outside of `bslstl_iomanip.h` header.  This
+/// private class provides a temporary storage that can be extracted to a
+/// stream and provides data to the standard implementation of the `quoted`
+/// function.  Note that `QuotedStringViewFormatter` is designed to be
+/// returned as a temporary object (of opaque type) from 'bsl::quoted`, and
+/// passed to a streaming operator; it serves as a temporary proxy for a
+/// string value.  Also note that this value is copied to `bsl::string` data
+/// member that is owned by the object of this class.
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS>
 class IoManip_QuotedStringViewFormatter {
-    // Private class: do not use outside of 'bslstl_iomanip.h' header.  This
-    // private class provides a temporary storage that can be extracted to a
-    // stream and provides data to the standard implementation of the 'quoted'
-    // function.  Note that 'QuotedStringViewFormatter' is designed to be
-    // returned as a temporary object (of opaque type) from 'bsl::quoted`, and
-    // passed to a streaming operator; it serves as a temporary proxy for a
-    // string value.  Also note that this value is copied to 'bsl::string' data
-    // member that is owned by the object of this class.
 
     // DATA
     bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS> d_str;     // string for
@@ -247,56 +250,59 @@ class IoManip_QuotedStringViewFormatter {
 
   public:
     // CREATORS
+
+    /// Create an object having the value of the specified `strView` and the
+    /// optionally specified `delim` and `escape` characters.
     explicit IoManip_QuotedStringViewFormatter(
              const bsl::basic_string_view<t_CHAR_TYPE, t_CHAR_TRAITS>& strView,
              t_CHAR_TYPE                                               delim =
                                                               t_CHAR_TYPE('"'),
              t_CHAR_TYPE                                               escape =
                                                             t_CHAR_TYPE('\\'));
-        // Create an object having the value of the specified 'strView' and the
-        // optionally specified 'delim' and 'escape' characters.
 
     // ACCESSORS
+
+    /// Return a reference providing modifiable access to the character
+    /// buffer of the underlying string.
     const t_CHAR_TYPE *data() const;
-        // Return a reference providing modifiable access to the character
-        // buffer of the underlying string.
 
+    /// Return the delimiter character.
     t_CHAR_TYPE delim() const;
-        // Return the delimiter character.
 
+    /// Return the escape character.
     t_CHAR_TYPE escape() const;
-        // Return the escape character.
 };
 
 // FREE FUNCTIONS
+
+/// Read quoted string from the specified `input` stream into the underlying
+/// string of the specified `object`.  Note that the `object` here is
+/// `const` because the `QuotedStringFormatter` is designed to be returned
+/// as a temporary object from 'bsl::quoted`, serving as a proxy for the
+/// underlying string.
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS, class t_ALLOC>
 std::basic_istream<t_CHAR_TYPE, t_CHAR_TRAITS>& operator>>(
                        std::basic_istream<t_CHAR_TYPE, t_CHAR_TRAITS>& input,
                        const IoManip_QuotedStringFormatter<t_CHAR_TYPE,
                                                            t_CHAR_TRAITS,
                                                            t_ALLOC>&   object);
-    // Read quoted string from the specified 'input' stream into the underlying
-    // string of the specified 'object'.  Note that the 'object' here is
-    // 'const' because the 'QuotedStringFormatter' is designed to be returned
-    // as a temporary object from 'bsl::quoted`, serving as a proxy for the
-    // underlying string.
 
+/// Write the value of the specified `object` to the specified `output`
+/// stream.
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS, class t_ALLOC>
 std::basic_ostream<t_CHAR_TYPE, t_CHAR_TRAITS>& operator<<(
                        std::basic_ostream<t_CHAR_TYPE, t_CHAR_TRAITS>& output,
                        const IoManip_QuotedStringFormatter<t_CHAR_TYPE,
                                                            t_CHAR_TRAITS,
                                                            t_ALLOC>&   object);
-    // Write the value of the specified 'object' to the specified 'output'
-    // stream.
 
+/// Write the value of the specified `object` to the specified `output`
+/// stream.
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS>
 std::basic_ostream<t_CHAR_TYPE, t_CHAR_TRAITS>& operator<<(
                std::basic_ostream<t_CHAR_TYPE, t_CHAR_TRAITS>&         output,
                const IoManip_QuotedStringViewFormatter<t_CHAR_TYPE,
                                                        t_CHAR_TRAITS>& object);
-    // Write the value of the specified 'object' to the specified 'output'
-    // stream.
 
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
 }  // close package namespace
@@ -304,6 +310,12 @@ std::basic_ostream<t_CHAR_TYPE, t_CHAR_TRAITS>& operator<<(
 
 namespace bsl {
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+/// Return an object, containing quoted version of the specified `value`
+/// obtained using the optionally specified `delim` and `escape` characters,
+/// and that can be inserted to output stream.
+/// Return an object, containing quoted version of the specified `value`
+/// obtained using the optionally specified `delim` and `escape` characters,
+/// and that can be inserted to output stream.
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS, class t_ALLOC>
 decltype(auto)
 quoted(const bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC>& value,
@@ -311,10 +323,13 @@ quoted(const bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC>& value,
                                                               t_CHAR_TYPE('"'),
        t_CHAR_TYPE                                                   escape =
                                                             t_CHAR_TYPE('\\'));
-    // Return an object, containing quoted version of the specified 'value'
-    // obtained using the optionally specified 'delim' and 'escape' characters,
-    // and that can be inserted to output stream.
 
+/// Return an object, containing quoted version of the specified `value`
+/// obtained using the optionally specified `delim` and `escape` characters,
+/// and that can be inserted to output (or extracted from input) stream.
+/// Return an object, containing quoted version of the specified `value`
+/// obtained using the optionally specified `delim` and `escape` characters,
+/// and that can be inserted to output (or extracted from input) stream.
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS, class t_ALLOC>
 BloombergLP::bslstl::IoManip_QuotedStringFormatter<t_CHAR_TYPE,
                                                     t_CHAR_TRAITS,
@@ -324,9 +339,6 @@ quoted(bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC>& value,
                                                               t_CHAR_TYPE('"'),
        t_CHAR_TYPE                                             escape =
                                                             t_CHAR_TYPE('\\'));
-    // Return an object, containing quoted version of the specified 'value'
-    // obtained using the optionally specified 'delim' and 'escape' characters,
-    // and that can be inserted to output (or extracted from input) stream.
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
 template <class t_CHAR_TYPE, class t_CHAR_TRAITS>
@@ -498,9 +510,6 @@ bsl::quoted(
           const bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC>& value,
           t_CHAR_TYPE                                                   delim,
           t_CHAR_TYPE                                                   escape)
-    // Return an object, containing quoted version of the specified 'value'
-    // obtained using the optionally specified 'delim' and 'escape' characters,
-    // and that can be inserted to output stream.
 {
     return bsl::quoted(value.c_str(), delim, escape);
 }
@@ -512,9 +521,6 @@ BloombergLP::bslstl::IoManip_QuotedStringFormatter<t_CHAR_TYPE,
 bsl::quoted(bsl::basic_string<t_CHAR_TYPE, t_CHAR_TRAITS, t_ALLOC>& value,
             t_CHAR_TYPE                                             delim,
             t_CHAR_TYPE                                             escape)
-    // Return an object, containing quoted version of the specified 'value'
-    // obtained using the optionally specified 'delim' and 'escape' characters,
-    // and that can be inserted to output (or extracted from input) stream.
 {
     return BloombergLP::bslstl::IoManip_QuotedStringFormatter<t_CHAR_TYPE,
                                                               t_CHAR_TRAITS,

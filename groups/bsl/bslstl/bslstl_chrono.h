@@ -10,28 +10,28 @@ BSLS_IDENT("$Id: $")
 //@CANONICAL_HEADER: bsl_chrono.h
 //
 //@DESCRIPTION: This component is for internal use only. Please include
-// '<bsl_chrono.h>' directly.  This component imports symbols declared in the
+// `<bsl_chrono.h>` directly.  This component imports symbols declared in the
 // <chrono> header file implemented in the standard library provided by the
 // compiler vendor.
 //
 ///User-defined literals
 ///---------------------
 // This component provides a set of user-defined literals (UDL) to form
-// 'bsl::chrono::duration' objects with various duration periods such as hours,
+// `bsl::chrono::duration` objects with various duration periods such as hours,
 // minutes, seconds, milliseconds, microseconds and nanoseconds.  The
-// ud-suffixes are preceded with the '_' symbol to distinguish between the
-// 'bsl'-chrono's UDLs and the 'std'-chrono's UDLs introduced in the C++14
-// standard and implemented in the standard library.  Note that 'bsl'-chrono's
-// UDLs, unlike the 'std'-chrono's UDLs, can be used in a client's code if the
+// ud-suffixes are preceded with the `_` symbol to distinguish between the
+// `bsl`-chrono's UDLs and the `std`-chrono's UDLs introduced in the C++14
+// standard and implemented in the standard library.  Note that `bsl`-chrono's
+// UDLs, unlike the `std`-chrono's UDLs, can be used in a client's code if the
 // current compiler supports the C++11 standard.
 //
-// Also note that 'bsl'-chrono's UDL operators are declared in the
-// 'bsl::literals::chrono_literals' namespace, where 'literals' and
-// 'chrono_literals' are inline namespaces.  Access to these operators can be
-// gained with either 'using namespace bsl::literals',
-// 'using namespace bsl::chrono_literals' or
-// 'using namespace bsl::literals::chrono_literals'.  But we recommend
-// 'using namespace bsl::chrono_literals' to minimize the scope of the using
+// Also note that `bsl`-chrono's UDL operators are declared in the
+// `bsl::literals::chrono_literals` namespace, where `literals` and
+// `chrono_literals` are inline namespaces.  Access to these operators can be
+// gained with either `using namespace bsl::literals`,
+// `using namespace bsl::chrono_literals` or
+// `using namespace bsl::literals::chrono_literals`.  But we recommend
+// `using namespace bsl::chrono_literals` to minimize the scope of the using
 // declaration.
 //
 ///C++20 Calendar/TZ feature on Windows
@@ -43,11 +43,11 @@ BSLS_IDENT("$Id: $")
 // Windows, leap seconds and time zones (which change over time) require OS
 // support that was added to Windows 10.  Specifically, updating the leap
 // second database requires Windows 10 version 1809 or later, and time zones
-// require 'icu.dll' which is provided by Windows 10 version 1903/19H1 or
+// require `icu.dll` which is provided by Windows 10 version 1903/19H1 or
 // later.  This applies to both client and server OSes; note that Windows
 // Server 2019 is based on Windows 10 version 1809."
 //
-// If the feature is used on a host that doesn't provide 'icu.dll', an
+// If the feature is used on a host that doesn't provide `icu.dll`, an
 // exception with "The specified module could not be found." message will be
 // thrown.  That is why this feature is disabled by default on Windows.
 //
@@ -55,31 +55,32 @@ BSLS_IDENT("$Id: $")
 ///-----
 // In this section we show intended use of this component.
 //
-///Example 1: Basic 'bsl'-chrono's UDLs Usage
+///Example 1: Basic `bsl`-chrono's UDLs Usage
 /// - - - - - - - - - - - - - - - - - - - - -
 // This example demonstrates basic use of user-defined literal operators.
 //
-// First, we provide an access to 'bsl'-chrono's UDLs.
-//..
-//  using namespace bsl::chrono_literals;
-//..
+// First, we provide an access to `bsl`-chrono's UDLs.
+// ```
+// using namespace bsl::chrono_literals;
+// ```
 // Then, we construct two duration objects that represent a 24-hours and a half
-// an hour time intervals using 'operator "" _h'.
-//..
-//  auto hours_in_a_day = 24_h;
-//  auto halfhour       = 0.5_h;
-//..
-// Finally, stream the two objects to 'stdout':
-//..
-//  printf("one day is %lld hours\n", hours_in_a_day.count());
-//  printf("half an hour is %.1f hours\n",
-//         static_cast<double>(halfhour.count()));
-//..
-// The streaming operator produces output in the following format on 'stdout':
-//..
-//  one day is 24 hours
-//  half an hour is 0.5 hours
-//..
+// an hour time intervals using `operator "" _h`.
+// ```
+// auto hours_in_a_day = 24_h;
+// auto halfhour       = 0.5_h;
+// ```
+// Finally, stream the two objects to `stdout`:
+// ```
+// printf("one day is %lld hours\n",
+//        static_cast<long long>(hours_in_a_day.count()));
+// printf("half an hour is %.1f hours\n",
+//        static_cast<double>(halfhour.count()));
+// ```
+// The streaming operator produces output in the following format on `stdout`:
+// ```
+// one day is 24 hours
+// half an hour is 0.5 hours
+// ```
 
 #include <bslscm_version.h>
 
@@ -118,11 +119,11 @@ namespace bsl {
         using std::chrono::nanoseconds;
 
 #if defined(BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY)
+        /// This template variable represents the result value of the
+        /// `std::chrono::treat_as_floating_point` meta-function.
         template <class TYPE>
         constexpr bool treat_as_floating_point_v =
                       std::chrono::treat_as_floating_point<TYPE>::value;
-            // This template variable represents the result value of the
-            // 'std::chrono::treat_as_floating_point' meta-function.
 #endif
 
 #if defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
@@ -254,58 +255,58 @@ inline namespace chrono_literals {
 inline namespace literals {
 inline namespace chrono_literals {
 
+    /// Create a `bsl::chrono::duration` object having the
+    /// `bsl::ratio<3600, 1>` duration period and initialized with the
+    /// specified `hrs` number of hours.
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::hours operator "" _h(unsigned long long hrs);
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::duration<long double, bsl::ratio<3600, 1>> operator "" _h(
                                                               long double hrs);
-       // Create a 'bsl::chrono::duration' object having the
-       // 'bsl::ratio<3600, 1>' duration period and initialized with the
-       // specified 'hrs' number of hours.
 
+    /// Create a `bsl::chrono::duration` object having the
+    /// `bsl::ratio<60, 1>` duration period and initialized with the
+    /// specified `mins` number of minutes.
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::minutes operator "" _min(unsigned long long mins);
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::duration<long double, bsl::ratio<60, 1>> operator "" _min(
                                                              long double mins);
-       // Create a 'bsl::chrono::duration' object having the
-       // 'bsl::ratio<60, 1>' duration period and initialized with the
-       // specified 'mins' number of minutes.
 
+    /// Create a `bsl::chrono::duration` object having the `bsl::ratio<1>`
+    /// duration period and initialized with the specified `secs` number of
+    /// seconds.
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::seconds operator "" _s(unsigned long long secs);
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::duration<long double> operator "" _s(long double secs);
-        // Create a 'bsl::chrono::duration' object having the 'bsl::ratio<1>'
-        // duration period and initialized with the specified 'secs' number of
-        // seconds.
 
+    /// Create a `bsl::chrono::duration` object having the
+    /// `bsl::milli` duration period and initialized with the specified `ms`
+    /// number of milliseconds.
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::milliseconds operator "" _ms(unsigned long long ms);
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::duration<long double, bsl::milli> operator "" _ms(
                                                                long double ms);
-       // Create a 'bsl::chrono::duration' object having the
-       // 'bsl::milli' duration period and initialized with the specified 'ms'
-       // number of milliseconds.
 
+    /// Create a `bsl::chrono::duration` object having the
+    /// `bsl::micro` duration period and initialized with the specified `us`
+    /// number of microseconds.
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::microseconds operator "" _us(unsigned long long us);
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::duration<long double, bsl::micro> operator "" _us(
                                                                long double us);
-       // Create a 'bsl::chrono::duration' object having the
-       // 'bsl::micro' duration period and initialized with the specified 'us'
-       // number of microseconds.
 
+    /// Create a `bsl::chrono::duration` object having the `bsl::nano`
+    /// duration period and initialized with the specified `ns` number of
+    /// microseconds.
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::nanoseconds operator "" _ns(unsigned long long ns);
     BSLS_KEYWORD_CONSTEXPR
     bsl::chrono::duration<long double, bsl::nano> operator "" _ns(
                                                                long double ns);
-       // Create a 'bsl::chrono::duration' object having the 'bsl::nano'
-       // duration period and initialized with the specified 'ns' number of
-       // microseconds.
 
 }  // close chrono_literals namespace
 }  // close literals namespace

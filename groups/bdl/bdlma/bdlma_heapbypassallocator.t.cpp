@@ -1,27 +1,19 @@
 // bdlma_heapbypassallocator.t.cpp                                    -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlma_heapbypassallocator.h>
 
 #include <bslim_testutil.h>
 
 #include <bdlf_bind.h>
+
 #include <bslmt_barrier.h>
 #include <bslmt_threadgroup.h>
 #include <bslmt_threadutil.h>
 
 #include <bsls_review.h>
 
+#include <bsl_cstdlib.h>    // `atoi`
+#include <bsl_cstring.h>    // `memcmp`
 #include <bsl_iostream.h>
-
-#include <bsl_cstdlib.h>    // 'atoi'
-#include <bsl_cstring.h>    // 'memcmp'
 #include <bsl_set.h>
 #include <bsl_vector.h>
 
@@ -86,12 +78,13 @@ void aSsErT(int c, const char *s, int i)
 //=============================================================================
 //                  GLOBAL HELPER FUNCTIONS FOR TESTING
 //-----------------------------------------------------------------------------
+
+/// Wait for the specified `barrier`, then use the specified
+/// `bypassAllocator` to perform a series of small allocations.  Verify that
+/// the allocated addresses are unique and that their memory has not been
+/// corrupted by another thread.
 static void concurrent(bdlma::HeapBypassAllocator *bypassAllocator,
                        bslmt::Barrier             *barrier)
-    // Wait for the specified 'barrier', then use the specified
-    // 'bypassAllocator' to perform a series of small allocations.  Verify that
-    // the allocated addresses are unique and that their memory has not been
-    // corrupted by another thread.
 {
     // Allocate a bunch of individual bytes
     bsl::vector<void *> addrs(1024096);
@@ -126,7 +119,7 @@ int main(int argc, char *argv[])
     int test = argc > 1 ? bsl::atoi(argv[1]) : 0;
     int verbose = argc > 2;
 
-    // CONCERN: 'BSLS_REVIEW' failures should lead to test failures.
+    // CONCERN: `BSLS_REVIEW` failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
     switch (test) { case 0:
@@ -135,10 +128,10 @@ int main(int argc, char *argv[])
         // CONCURRENCY TEST
         //
         // Concerns:
-        //: 1 Concurrent allocation is safe.
+        // 1. Concurrent allocation is safe.
         //
         // Plan:
-        //: 1 Create a heap bypass allocator, do some allocations from multiple
+        // 1. Create a heap bypass allocator, do some allocations from multiple
         //    threads at once, and verify the addresses are unique and non-
         //    overlapping.  (C-1)
         //
@@ -171,7 +164,7 @@ int main(int argc, char *argv[])
 ///-----
 // Here we allocate some memory using a heap bypass allocator, then write to
 // that memory, then read from it and verify the values written are preserved.
-//..
+// ```
     {
         enum {
             k_LENGTH       = 10 * 1000,
@@ -179,17 +172,17 @@ int main(int argc, char *argv[])
         };
 
         bdlma::HeapBypassAllocator hbpa;
-//..
+// ```
 // First, we allocate some segments:
-//..
+// ```
         char *segments[k_NUM_SEGMENTS];
         for (int i = 0; i < k_NUM_SEGMENTS; ++i) {
             segments[i] = static_cast<char *>(hbpa.allocate(k_LENGTH));
             BSLS_ASSERT(segments[i]);
         }
-//..
+// ```
 // Next, we write to the segments:
-//..
+// ```
         char c = 'a';
         for (int i = 0; i < k_NUM_SEGMENTS; ++i) {
             char *segment = segments[i];
@@ -198,10 +191,10 @@ int main(int argc, char *argv[])
                 segment[j] = c;
             }
         }
-//..
+// ```
 // Finally, we read from the segments and verify the written data is still
 // there:
-//..
+// ```
         c = 'a';
         for (int i = 0; i < k_NUM_SEGMENTS; ++i) {
             char *segment = segments[i];
@@ -210,33 +203,33 @@ int main(int argc, char *argv[])
                 BSLS_ASSERT(segment[j] == c);  (void)segment;
             }
         }
-//..
-// Memory is released upon destruction of object 'hbpa' when it goes out of
+// ```
+// Memory is released upon destruction of object `hbpa` when it goes out of
 // scope.
-//..
+// ```
     }
-//..
+// ```
       } break;
       case 1: {
         // --------------------------------------------------------------------
         // BREATHING TEST
         //
         // Concerns:
-        //: 1 Exercise heap bypass allocator basic functionality.
+        // 1. Exercise heap bypass allocator basic functionality.
         //
         // Plan:
-        //: 1 Create a heap bypass allocator, do some allocations, then destroy
-        //:   the object.  (C-1)
-        //:
-        //: 2 Verify that allocating 0 bytes results in null.  (C-1)
-        //:
-        //: 3 Verify that 'replenishHint' is not ignored.  (C-1)
-        //:
-        //: 4 Verify that allocating just beyond the initial chunk size works.
-        //:   (C-1)
-        //:
-        //: 5 Verify a single call to 'allocate' that exceeds the suggested
-        //:   chunk size is able to be satisfied.  (C-1)
+        // 1. Create a heap bypass allocator, do some allocations, then destroy
+        //    the object.  (C-1)
+        //
+        // 2. Verify that allocating 0 bytes results in null.  (C-1)
+        //
+        // 3. Verify that `replenishHint` is not ignored.  (C-1)
+        //
+        // 4. Verify that allocating just beyond the initial chunk size works.
+        //    (C-1)
+        //
+        // 5. Verify a single call to `allocate` that exceeds the suggested
+        //    chunk size is able to be satisfied.  (C-1)
         //
         // Testing
         //   CONCERN: The object is able to perform basic allocations.
@@ -302,7 +295,7 @@ int main(int argc, char *argv[])
         }
 
         {
-            // Ensure 'replenishHint' is not ignored
+            // Ensure `replenishHint` is not ignored
             bdlma::HeapBypassAllocator allocator0(64000);
             bdlma::HeapBypassAllocator allocator1(64000);
 

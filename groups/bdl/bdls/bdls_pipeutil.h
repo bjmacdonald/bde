@@ -1,12 +1,4 @@
 // bdls_pipeutil.h                                                    -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #ifndef INCLUDED_BDLS_PIPEUTIL
 #define INCLUDED_BDLS_PIPEUTIL
 
@@ -20,33 +12,33 @@ BSLS_IDENT("$Id: $")
 //
 //@SEE_ALSO: balb_pipecontrolchannel
 //
-//@DESCRIPTION: This component, 'bdls::PipeUtil', provides portable utility
+//@DESCRIPTION: This component, `bdls::PipeUtil`, provides portable utility
 // methods for named pipes.
 //
 ///Pipe Atomicity
-/// - - - - - - -
+///--------------
 // Applications that expect multiple writers to a single pipe must should be
 // aware that message content might be corrupted (interleaved) unless:
 //
-//: 1 Each message is written to the pipe in a single 'write' system call.
-//: 2 The length of each message is less than 'PIPE_BUF' (the limit for
-//:   guaranteed atomicity).
+// 1. Each message is written to the pipe in a single `write` system call.
+// 2. The length of each message is less than `PIPE_BUF` (the limit for
+//    guaranteed atomicity).
 //
-// The value 'PIPE_BUF' depends on the platform:
-//..
-//   +------------------------------+------------------+
-//   | Platform                     | PIPE_BUF (bytes) |
-//   +------------------------------+------------------+
-//   | POSIX (minimum requirement)) |    512           |
-//   | IBM                          | 32,768           |
-//   | SUN                          | 32,768           |
-//   | Linux                        | 65,536           |
-//   | Windows                      | 65,536           |
-//   +------------------------------+------------------+
-//..
+// The value `PIPE_BUF` depends on the platform:
+// ```
+//  +------------------------------+------------------+
+//  | Platform                     | PIPE_BUF (bytes) |
+//  +------------------------------+------------------+
+//  | POSIX (minimum requirement)) |    512           |
+//  | IBM                          | 32,768           |
+//  | SUN                          | 32,768           |
+//  | Linux                        | 65,536           |
+//  | Windows                      | 65,536           |
+//  +------------------------------+------------------+
+// ```
 //
-// Also note that Linux allows the 'PIPE_BUF' size to be changed via the
-// 'fcntl' system call.
+// Also note that Linux allows the `PIPE_BUF` size to be changed via the
+// `fcntl` system call.
 
 #include <bdlscm_version.h>
 
@@ -58,15 +50,32 @@ BSLS_IDENT("$Id: $")
 #include <string>           // 'std::string', 'std::pmr::string'
 
 namespace BloombergLP {
-
 namespace bdls {
+
                               // ===============
                               // struct PipeUtil
                               // ===============
-struct PipeUtil {
-    // This struct contains utility methods for platform-independent named pipe
-    // operations.
 
+/// This struct contains utility methods for platform-independent named pipe
+/// operations.
+struct PipeUtil {
+
+    /// Load into the specified `pipeName` the system-dependent canonical pipe
+    /// name corresponding to the specified `baseName`.  Return 0 on success,
+    /// and a nonzero value if `baseName` cannot be part of a pipe name on this
+    /// system.
+    ///
+    /// On Unix systems, the canonical name is defined by prefixing `baseName`
+    /// with the directory specified by the `SOCKDIR` environment variable if
+    /// it is set, otherwise with the directory specified by the `TMPDIR`
+    /// environment variable if it is set, and otherwise by the current
+    /// directory.
+    ///
+    /// On Windows systems, the canonical name is defined by prefixing
+    /// `baseName` with "\\.\pipe\".
+    ///
+    /// Finally, any uppercase characters in `baseName` are converted to lower
+    /// case in the canonical name.
     static int makeCanonicalName(bsl::string             *pipeName,
                                  const bsl::string_view&  baseName);
     static int makeCanonicalName(std::string             *pipeName,
@@ -75,43 +84,26 @@ struct PipeUtil {
     static int makeCanonicalName(std::pmr::string        *pipeName,
                                  const bsl::string_view&  baseName);
 #endif
-        // Load into the specified 'pipeName' the system-dependent canonical
-        // pipe name corresponding to the specified 'baseName'.  Return 0 on
-        // success, and a nonzero value if 'baseName' cannot be part of a pipe
-        // name on this system.
-        //
-        // On Unix systems, the canonical name is defined by prefixing
-        // 'baseName' with the directory specified by the 'SOCKDIR' environment
-        // variable if it is set, otherwise with the directory specified by the
-        // 'TMPDIR' environment variable if it is set, and otherwise by the
-        // current directory.
-        //
-        // On Windows systems, the canonical name is defined by prefixing
-        // 'baseName' with "\\.\pipe\".
-        //
-        // Finally, any uppercase characters in 'baseName' are converted to
-        // lower case in the canonical name.
 
+    /// Send the specified `message` to the pipe with the specified UTF-8
+    /// `pipeName`.  Return 0 on success, and a nonzero value otherwise.
+    /// `message is output in a single `write' operation; consequently,
+    /// messages that do not exceed the `PIPE_BUF` value (see
+    /// [](#Pipe Atomicity) will not be interleaved even when multiple
+    /// concurrent processes are writing to `pipeName`.  The behavior is
+    /// undefined unless `pipeName` is a valid UTF-8 string.
     static int send(const bsl::string_view& pipeName,
                     const bsl::string_view& message);
-        // Send the specified 'message' to the pipe with the specified UTF-8
-        // 'pipeName'.  Return 0 on success, and a nonzero value otherwise.
-        // 'message is output in a single 'write' operation; consequently,
-        // messages that do not exceed the 'PIPE_BUF' value (see {Pipe
-        // Atomicity}) will not be interleaved even when multiple concurrent
-        // processes are writing to 'pipeName'.  The behavior is undefined
-        // unless 'pipeName' is a valid UTF-8 string.
 
+    /// Return `true` if the pipe with the specified UTF-8 `pipeName` exists,
+    /// the calling process has permission to write to it, and some process is
+    /// able to read the bytes written to it, and `false` otherwise.  On
+    /// Windows, this function may block and may write an "empty message",
+    /// consisting of a single newline.  The behavior is undefined unless
+    /// `pipeName` is a valid UTF-8 string.  Note that even though a process
+    /// might have the pipe open for reading, this function might still return
+    /// `false` because there are not sufficient resources available.
     static bool isOpenForReading(const bsl::string_view& pipeName);
-        // Return 'true' if the pipe with the specified UTF-8 'pipeName'
-        // exists, the calling process has permission to write to it, and some
-        // process is able to read the bytes written to it, and 'false'
-        // otherwise.  On Windows, this function may block and may write an
-        // "empty message", consisting of a single newline.  The behavior is
-        // undefined unless 'pipeName' is a valid UTF-8 string.  Note that even
-        // though a process might have the pipe open for reading, this function
-        // might still return 'false' because there are not sufficient
-        // resources available.
 };
 
 }  // close package namespace

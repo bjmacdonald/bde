@@ -5,20 +5,20 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide an exception class thrown by 'bsl::optional'.
+//@PURPOSE: Provide an exception class thrown by `bsl::optional`.
 //
 //@CLASSES:
-//  bsl::bad_optional_access: exception type thrown by 'bsl::optional'
+//  bsl::bad_optional_access: exception type thrown by `bsl::optional`
 //
 //@CANONICAL_HEADER: bsl_optional.h
 //
 //@SEE_ALSO: bslstl_optional, bslstl_stdexceptionutil
 //
-//@DESCRIPTION: This component provides a 'bsl::bad_optional_access' exception
-// class.  This exception is thrown by 'bsl::optional::value' when accessing a
-// 'bsl::optional' object that does not contain a value.  If 'std::optional'
-// implementation is available, 'bsl::bad_optional_access' is an alias to
-// 'std::bad_optional_access'.
+//@DESCRIPTION: This component provides a `bsl::bad_optional_access` exception
+// class.  This exception is thrown by `bsl::optional::value` when accessing a
+// `bsl::optional` object that does not contain a value.  If `std::optional`
+// implementation is available, `bsl::bad_optional_access` is an alias to
+// `std::bad_optional_access`.
 //
 
 #include <bslscm_version.h>
@@ -46,21 +46,23 @@ typedef std::bad_optional_access bad_optional_access;
 class bad_optional_access : public std::exception {
   public:
     // CREATORS
+
+    /// Create a `bad_optional_access` object.  Note that this function is
+    /// explicitly user-declared, to make it simple to declare `const`
+    /// objects of this type.
     bad_optional_access() BSLS_KEYWORD_NOEXCEPT;
-        // Create a 'bad_optional_access' object.  Note that this function is
-        // explicitly user-declared, to make it simple to declare 'const'
-        // objects of this type.
 
     // ACCESSORS
+
+    /// Return a pointer to the string literal "bad_optional_access", with a
+    /// storage duration of the lifetime of the program.  Note that the
+    /// caller should *not* attempt to free this memory.  Note that the
+    /// `bsls_exceptionutil` macro `BSLS_NOTHROW_SPEC` is deliberately not
+    /// used here, as a number of standard libraries declare `what` in the
+    /// base `exception` class explicitly with the no-throw specification,
+    /// even in a build that may not recognize exceptions.
     const char *what() const BSLS_EXCEPTION_VIRTUAL_NOTHROW
                                                          BSLS_KEYWORD_OVERRIDE;
-        // Return a pointer to the string literal "bad_optional_access", with a
-        // storage duration of the lifetime of the program.  Note that the
-        // caller should *not* attempt to free this memory.  Note that the
-        // 'bsls_exceptionutil' macro 'BSLS_NOTHROW_SPEC' is deliberately not
-        // used here, as a number of standard libraries declare 'what' in the
-        // base 'exception' class explicitly with the no-throw specification,
-        // even in a build that may not recognize exceptions.
 };
 
 // ============================================================================

@@ -15,8 +15,8 @@ bbs_setup_target_uor(${target})
 # Custom tweaks for individual packages
 target_compile_options(bdlde-iface
                        PRIVATE
-                           "$<$<AND:$<PLATFORM_ID:Darwin>,$<STREQUAL:${CMAKE_HOST_SYSTEM_PROCESSOR},x86_64>>:-msse4.2>"
-                           "$<$<PLATFORM_ID:Linux>:-msse4.2>"
+                           "$<$<AND:$<PLATFORM_ID:Darwin>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>>:-msse4.2>"
+                           "$<$<AND:$<PLATFORM_ID:Linux>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>>:-msse4.2>"
                            "$<$<PLATFORM_ID:SunOs>:-xarch=sparc4>"
 )
 
@@ -26,7 +26,7 @@ target_compile_options(bdlde-iface
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(bdlf INTERFACE /bigobj)
     target_compile_options(bdlcc INTERFACE /bigobj)
+    target_link_libraries(bdlb-iface PRIVATE bcrypt)
 endif()
 
 add_extra_libs(bdls INTERFACE)
-

@@ -26,118 +26,118 @@ BSLS_IDENT("$Id: $")
 // platform.  Many of the macros defined in this component are configured
 // automatically at compile-time; compile-time switches are used to configure
 // the rest.  Note that compiler capabilities are better determined through the
-// 'bsls_compilerfeatures' and 'bsls_libraryfeatures' components; this
+// `bsls_compilerfeatures` and `bsls_libraryfeatures` components; this
 // component focuses on just identifying the tool chain.
 //
-// Note that, for brevity, the '@' character in the following (alphabetically
-// organized) tables is used to represent the characters 'BSLS_PLATFORM' --
-// e.g., '@_OS_UNIX' represents 'BSLS_PLATFORM_OS_UNIX':
-//..
-//  =============================================================
-//                           OPERATING SYSTEM
-//  -------------------------------------------------------------
-//  Type                Subtype                 Version
-//  -----------------   -------------------     -----------------
-//  @_OS_UNIX           @_OS_AIX                @_OS_VER_MAJOR
-//                      @_OS_LINUX              @_OS_VER_MINOR
-//                      @_OS_FREEBSD
-//                      @_OS_SOLARIS
-//                      @_OS_SUNOS
-//                      @_OS_CYGWIN
-//                      @_OS_DARWIN
+// Note that, for brevity, the `@` character in the following (alphabetically
+// organized) tables is used to represent the characters `BSLS_PLATFORM` --
+// e.g., `@_OS_UNIX` represents `BSLS_PLATFORM_OS_UNIX`:
+// ```
+// =============================================================
+//                          OPERATING SYSTEM
+// -------------------------------------------------------------
+// Type                Subtype                 Version
+// -----------------   -------------------     -----------------
+// @_OS_UNIX           @_OS_AIX                @_OS_VER_MAJOR
+//                     @_OS_LINUX              @_OS_VER_MINOR
+//                     @_OS_FREEBSD
+//                     @_OS_SOLARIS
+//                     @_OS_SUNOS
+//                     @_OS_CYGWIN
+//                     @_OS_DARWIN
 //
-//  @_OS_WINDOWS        @_OS_WINNT
-//                      @_OS_WIN9X
-//                      @_OS_WIN2K
-//                      @_OS_WINXP
-//                      @_OS_WINS03
-//                      @_OS_WINS08 -- alias to Vista
-//                      @_OS_WINVISTA
-//                      @_OS_WIN7
-//                      @_OS_WIN8
-//                      @_OS_WINBLUE
-//                      @_OS_WIN10
+// @_OS_WINDOWS        @_OS_WINNT
+//                     @_OS_WIN9X
+//                     @_OS_WIN2K
+//                     @_OS_WINXP
+//                     @_OS_WINS03
+//                     @_OS_WINS08 -- alias to Vista
+//                     @_OS_WINVISTA
+//                     @_OS_WIN7
+//                     @_OS_WIN8
+//                     @_OS_WINBLUE
+//                     @_OS_WIN10
 //
 // Please see also {Windows Subtypes Explained}.
 //
-//  ============================================================
-//                              PROCESSOR
-//  ------------------------------------------------------------
-//  Instruction Set     Width                   Version
-//  -----------------   ------------------      ----------------
-//  @_CPU_88000         @_CPU_32_BIT            @_CPU_VER_MAJOR
-//  @_CPU_ALPHA         @_CPU_64_BIT
-//  @_CPU_HPPA
-//  @_CPU_X86
-//  @_CPU_IA64
-//  @_CPU_X86_64
-//  @_CPU_MIPS
-//  @_CPU_POWERPC
-//  @_CPU_SPARC
-//  @_CPU_ARM
+// ============================================================
+//                             PROCESSOR
+// ------------------------------------------------------------
+// Instruction Set     Width                   Version
+// -----------------   ------------------      ----------------
+// @_CPU_88000         @_CPU_32_BIT            @_CPU_VER_MAJOR
+// @_CPU_ALPHA         @_CPU_64_BIT
+// @_CPU_HPPA
+// @_CPU_X86
+// @_CPU_IA64
+// @_CPU_X86_64
+// @_CPU_MIPS
+// @_CPU_POWERPC
+// @_CPU_SPARC
+// @_CPU_ARM
 //
-//  =============================================================
-//                              COMPILER
-//  -------------------------------------------------------------
-//  Vendor              Version
-//  -----------------   ------------------
-//  @_CMP_CLANG         @_CMP_VERSION
-//  @_CMP_EDG           @_CMP_VER_MAJOR (deprecated)
-//  @_CMP_GNU
-//  @_CMP_HP
-//  @_CMP_IBM
-//  @_CMP_MSVC
-//  @_CMP_SUN
+// =============================================================
+//                             COMPILER
+// -------------------------------------------------------------
+// Vendor              Version
+// -----------------   ------------------
+// @_CMP_CLANG         @_CMP_VERSION
+// @_CMP_EDG           @_CMP_VER_MAJOR (deprecated)
+// @_CMP_GNU
+// @_CMP_HP
+// @_CMP_IBM
+// @_CMP_MSVC
+// @_CMP_SUN
 //
-//  =============================================================
+// =============================================================
 //
-//  =============================================================
-//        ENSURE A COMPILER ERROR FOR UNSUPPORTED PLATFORMS
+// =============================================================
+//       ENSURE A COMPILER ERROR FOR UNSUPPORTED PLATFORMS
 // --------------------------------------------------------------
-//  Macro
-//  ---------------
+// Macro
+// ---------------
 // @_COMPILER_ERROR
 //
-//  =============================================================
+// =============================================================
 //
-//  =============================================================
-//                              INLINING
-//  -------------------------------------------------------------
-//  Macro
-//  -----------------
-//  @_AGGRESSIVE_INLINE
+// =============================================================
+//                             INLINING
+// -------------------------------------------------------------
+// Macro
+// -----------------
+// @_AGGRESSIVE_INLINE
 //
-//  =============================================================
-//..
+// =============================================================
+// ```
 // These macros are configured automatically, where possible.  At a minimum,
-// the generic operating system type (i.e., either 'BSLS_PLATFORM_OS_UNIX' or
-// 'BSLS_PLATFORM_OS_WINDOWS') is defined along with exactly one processor
-// macro (e.g., 'BSLS_PLATFORM_CPU_SPARC') and exactly one compiler macro
-// (e.g., 'BSLS_PLATFORM_CMP_SUN').  Clients may need to supply additional
-// macros (controlled via the '-D' option of a compiler) if further
+// the generic operating system type (i.e., either `BSLS_PLATFORM_OS_UNIX` or
+// `BSLS_PLATFORM_OS_WINDOWS`) is defined along with exactly one processor
+// macro (e.g., `BSLS_PLATFORM_CPU_SPARC`) and exactly one compiler macro
+// (e.g., `BSLS_PLATFORM_CMP_SUN`).  Clients may need to supply additional
+// macros (controlled via the `-D` option of a compiler) if further
 // discrimination is required (e.g., based on sub-type or version of a specific
 // operating system, processor, or compiler).  Note that supplying a minor
 // version number implies that the major version is also defined.
 //
 ///Aggressive Inlining
 ///-------------------
-// The aggressive inlining macro 'BSLS_PLATFORM_AGGRESSIVE_INLINE' is defined
-// as the 'inline' keyword on all compilers except 'BSLS_PLATFORM_CMP_IBM' and
-// 'BSLS_PLATFORM_CMP_SUN', where it is left empty.  This is required for some
+// The aggressive inlining macro `BSLS_PLATFORM_AGGRESSIVE_INLINE` is defined
+// as the `inline` keyword on all compilers except `BSLS_PLATFORM_CMP_IBM` and
+// `BSLS_PLATFORM_CMP_SUN`, where it is left empty.  This is required for some
 // of our legacy applications where substantially growing the text size is not
-// possible.  Even on those platforms, the symbol will be defined as 'inline'
-// if 'BDE_BUILD_TARGET_AGGRESSIVE_INLINE' is passed in via the '-D' option of
+// possible.  Even on those platforms, the symbol will be defined as `inline`
+// if `BDE_BUILD_TARGET_AGGRESSIVE_INLINE` is passed in via the `-D` option of
 // the compiler.
 //
 ///Forcing a Compiler Error
 ///------------------------
-// The compiler-error triggering macro 'BSLS_PLATFORM_COMPILER_ERROR' is
+// The compiler-error triggering macro `BSLS_PLATFORM_COMPILER_ERROR` is
 // defined to a sequence of tokens that guarantees a compilation error on every
 // supported compiler.  This is necessary because not all compilers will
-// respect the fairly obvious goal of the '#error' preprocessor directive even
+// respect the fairly obvious goal of the `#error` preprocessor directive even
 // though they support it, and just issue a warning (claiming that the C++
 // standard does not make a difference between a warning and an error, it knows
-// only about diagnostic messages).  Code using 'bsls_platform' macros will
+// only about diagnostic messages).  Code using `bsls_platform` macros will
 // often want to prevent compilation for unsupported platforms, hence this
 // component provides a macro that can be used to ensure that.
 //
@@ -146,21 +146,21 @@ BSLS_IDENT("$Id: $")
 // Windows Subtypes describe what API variation the code is built to target,
 // not the actual operating system it will run on, with the following mapping
 // between the macro names and Windows API versions:
-//..
-//  MACRO           Targeted API Version & Notes   Officially supported?
-//  -------------   ----------------------------   ---------------------
-//  @_OS_WINNT      NT 4.0                         NO
-//  @_OS_WIN9X      95, 98, ME                     NO
-//  @_OS_WIN2K      2000                           NO
-//  @_OS_WINXP      XP                             NO
-//  @_OS_WINS03     Server 2003                    NO
-//  @_OS_WINS08     Server 2008, same as Vista     yes
-//  @_OS_WINVISTA   Vista                          yes
-//  @_OS_WIN7       7                              yes
-//  @_OS_WIN8       8                              yes
-//  @_OS_WINBLUE    8.1                            yes
-//  @_OS_WIN10      10                             yes
-//..
+// ```
+// MACRO           Targeted API Version & Notes   Officially supported?
+// -------------   ----------------------------   ---------------------
+// @_OS_WINNT      NT 4.0                         NO
+// @_OS_WIN9X      95, 98, ME                     NO
+// @_OS_WIN2K      2000                           NO
+// @_OS_WINXP      XP                             NO
+// @_OS_WINS03     Server 2003                    NO
+// @_OS_WINS08     Server 2008, same as Vista     yes
+// @_OS_WINVISTA   Vista                          yes
+// @_OS_WIN7       7                              yes
+// @_OS_WIN8       8                              yes
+// @_OS_WINBLUE    8.1                            yes
+// @_OS_WIN10      10                             yes
+// ```
 // Note that Vista is the default targeted API.
 //
 ///Usage
@@ -170,50 +170,50 @@ BSLS_IDENT("$Id: $")
 // communications framework would need to operate differently on a platform
 // having a Windows operating system than on one having a Unix one (but it is
 // probably unnecessary to distinguish between their respective versions):
-//..
-//  // my_socket.h
-//  #include <bsls_platform.h>
+// ```
+// // my_socket.h
+// #include <bsls_platform.h>
 //
-//  #ifdef BSLS_PLATFORM_OS_WINDOWS
-//      #ifndef INCLUDED_WINSOCK2
-//      #include <winsock2.h>
-//      #define INCLUDED_WINSOCK2
-//      #endif
-//  #endif
+// #ifdef BSLS_PLATFORM_OS_WINDOWS
+//     #ifndef INCLUDED_WINSOCK2
+//     #include <winsock2.h>
+//     #define INCLUDED_WINSOCK2
+//     #endif
+// #endif
 //
-//  class my_Socket {
+// class my_Socket {
 //
-//  #ifdef BSLS_PLATFORM_OS_WINDOWS
-//      SOCKET d_socketObject;  // Windows SOCKET handle
-//  #else
-//      int d_socketObject;     // Unix socket descriptor
-//  #endif
+// #ifdef BSLS_PLATFORM_OS_WINDOWS
+//     SOCKET d_socketObject;  // Windows SOCKET handle
+// #else
+//     int d_socketObject;     // Unix socket descriptor
+// #endif
 //
-//  // ...
+// // ...
 //
-//  };
-//..
+// };
+// ```
 // Certain compile-time constants are also provided as preprocessor macros that
 // encapsulate the capability of determining whether a machine is big-endian or
 // little-endian across all supported platforms:
-//..
-//  BSLS_PLATFORM_IS_BIG_ENDIAN
-//  BSLS_PLATFORM_IS_LITTLE_ENDIAN
-//..
+// ```
+// BSLS_PLATFORM_IS_BIG_ENDIAN
+// BSLS_PLATFORM_IS_LITTLE_ENDIAN
+// ```
 // These macros are useful for writing platform-independent code, such as a
-// function that converts the bytes in a 'short' to network byte order (which
+// function that converts the bytes in a `short` to network byte order (which
 // is consistent with big-endian):
-//..
-//  short convertToNetworkByteOrder(short input)
-//      // Return the specified 'input' in network byte order.
-//  {
-//  #ifdef BSLS_PLATFORM_IS_BIG_ENDIAN
-//      return input;
-//  #else
-//      return ((input >> 8) & 0xFF) | ((input & 0xFF) << 8);
-//  #endif
-//  }
-//..
+// ```
+// short convertToNetworkByteOrder(short input)
+//     // Return the specified 'input' in network byte order.
+// {
+// #ifdef BSLS_PLATFORM_IS_BIG_ENDIAN
+//     return input;
+// #else
+//     return ((input >> 8) & 0xFF) | ((input & 0xFF) << 8);
+// #endif
+// }
+// ```
 
 #ifdef __cplusplus
 namespace BloombergLP {
@@ -265,8 +265,8 @@ struct bsls_Platform_Assert;
     #define BSLS_PLATFORM_CMP_VERSION __xlC__
 
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
+    /// @DEPRECATED: use 'BSLS_PLATFORM_CMP_IBM' instead.
     #define BSLS_PLATFORM_CMP_AIX                                             1
-         // DEPRECATED: use 'BSLS_PLATFORM_CMP_IBM' instead.
 #endif // BDE_OMIT_INTERNAL_DEPRECATED
 
     // which OS -- this compiler should only be used on AIX
@@ -415,6 +415,20 @@ struct bsls_Platform_Assert;
     #elif defined(_M_MRX000)
         #define BSLS_PLATFORM_CPU_MIPS                                        1
         #define BSLS_PLATFORM_CPU_VER_MAJOR _M_MRX000
+    #elif defined(_M_ARM)
+        #define BSLS_PLATFORM_CPU_ARM                                         1
+        #define BSLS_PLATFORM_CPU_32_BIT                                      1
+
+        // MSVC doesn't provide macros for differentiating version, but the
+        // minimum supported one is ARMv7
+        #define BSLS_PLATFORM_CPU_ARM_V7                                      1
+    #elif defined(_M_ARM64)
+        #define BSLS_PLATFORM_CPU_ARM                                         1
+        #define BSLS_PLATFORM_CPU_64_BIT                                      1
+
+        // MSVC doesn't provide macros for differentiating version, but the
+        // minimum supported one is ARMv7
+        #define BSLS_PLATFORM_CPU_ARM_V7                                      1
     #else
         #error "Unable to identify CPU on which the MSVC compiler is running."
         BSLS_PLATFORM_COMPILER_ERROR;
@@ -531,9 +545,9 @@ struct bsls_Platform_Assert;
         #else
             #define BSLS_PLATFORM_CPU_SPARC_32                                1
         #endif
-    #elif defined(__arm__) || defined(__arm64__)
+    #elif defined(__arm__) || defined(__arm64__) || defined(__aarch64__)
         #define BSLS_PLATFORM_CPU_ARM                                         1
-        #if defined(__arm64__)
+        #if defined(__arm64__) || defined(__aarch64__)
             #define BSLS_PLATFORM_CPU_64_BIT                                  1
         #endif
         #if defined(__ARM_ARCH)
@@ -746,8 +760,8 @@ struct bsls_Platform_Assert;
 #endif
 
 #ifdef BSLS_PLATFORM_CMP_VERSION
+/// This deprecated macro is defined for backwards compatibility only.
 #define BSLS_PLATFORM_CMP_VER_MAJOR  BSLS_PLATFORM_CMP_VERSION
-    // This deprecated macro is defined for backwards compatibility only.
 #endif
 // ----------------------------------------------------------------------------
 
@@ -807,9 +821,11 @@ struct bsls_Platform_Assert;
 // detect whether most x86 instruction set extensions are enabled.
 
 #if defined(_MSC_VER)
-    #define BSLS_PLATFORM_CPU_SSE                                             1
-    #define BSLS_PLATFORM_CPU_SSE2                                            1
-    #define BSLS_PLATFORM_CPU_SSE3                                            1
+    #if !defined(BSLS_PLATFORM_CPU_ARM)
+        #define BSLS_PLATFORM_CPU_SSE                                             1
+        #define BSLS_PLATFORM_CPU_SSE2                                            1
+        #define BSLS_PLATFORM_CPU_SSE3                                            1
+    #endif
 #elif defined(__clang__) || defined(__GNUC__) || defined(__EDG__)
     #if defined(__SSE__)
         #define BSLS_PLATFORM_CPU_SSE                                         1
@@ -935,8 +951,8 @@ namespace bsls {
                                 // Platform
                                 // ========
 
+/// Namespace for platform-trait definitions.
 struct Platform {
-    // Namespace for platform-trait definitions.
 
                                   // OS TYPES
 
@@ -1083,15 +1099,15 @@ struct Platform {
                          // ======================
 
 #ifdef __cplusplus
+/// This alias is defined for backward compatibility.
 typedef bsls::Platform bdes_Platform;
-    // This alias is defined for backward compatibility.
 #endif  // __cplusplus
 
 #endif // BDE_OMIT_INTERNAL_DEPRECATED
 
 #ifdef __cplusplus
+/// This alias is defined for backward compatibility.
 typedef bsls::Platform bsls_Platform;
-    // This alias is defined for backward compatibility.
 #endif
 
 #endif  // BDE_OPENSOURCE_PUBLICATION -- BACKWARD_COMPATIBILITY

@@ -5,25 +5,25 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a win32 implementation of 'bslmt::Mutex'.
+//@PURPOSE: Provide a win32 implementation of `bslmt::Mutex`.
 //
 //@CLASSES:
 //  bslmt::MutexImpl<Platform::Win32Threads>: win32 specialization
 //
 //@SEE_ALSO: bslmt_mutex
 //
-//@DESCRIPTION: This component provides an implementation of 'bslmt::Mutex' for
-// Windows (win32), 'bslmt::MutexImpl<Platform::Win32Threads>', via the
+//@DESCRIPTION: This component provides an implementation of `bslmt::Mutex` for
+// Windows (win32), `bslmt::MutexImpl<Platform::Win32Threads>`, via the
 // template specialization:
-//..
-//  bslmt::MutexImpl<Platform::Win32Threads>
-//..
+// ```
+// bslmt::MutexImpl<Platform::Win32Threads>
+// ```
 // This template class should not be used (directly) by client code.  Clients
-// should instead use 'bslmt::Mutex'.
+// should instead use `bslmt::Mutex`.
 //
 ///Usage
 ///-----
-// This component is an implementation detail of 'bslmt' and is *not* intended
+// This component is an implementation detail of `bslmt` and is *not* intended
 // for direct client use.  It is subject to change without notice.  As such, a
 // usage example is not provided.
 
@@ -75,13 +75,13 @@ class MutexImpl;
                  // class MutexImpl<Platform::Win32Threads>
                  // =======================================
 
+/// This class provides a full specialization of `MutexImpl` for Windows.
+/// It provides an efficient proxy for Windows critical sections, and
+/// related operations.  Note that the mutex implemented in this class is
+/// *not* error checking, and is non-recursive.
+/// TYPES
 template <>
 class MutexImpl<Platform::Win32Threads> {
-    // This class provides a full specialization of 'MutexImpl' for Windows.
-    // It provides an efficient proxy for Windows critical sections, and
-    // related operations.  Note that the mutex implemented in this class is
-    // *not* error checking, and is non-recursive.
-    // TYPES
 
   public:
     enum {
@@ -116,42 +116,43 @@ class MutexImpl<Platform::Win32Threads> {
 
   public:
     // PUBLIC TYPES
+
+    /// The underlying OS-level type.  Exposed so that other bslmt components
+    /// can operate directly on this mutex.
     typedef _RTL_CRITICAL_SECTION NativeType;
-       // The underlying OS-level type.  Exposed so that other bslmt components
-       // can operate directly on this mutex.
 
     // CREATORS
-    MutexImpl();
-        // Create a mutex initialized to an unlocked state.
 
+    /// Create a mutex initialized to an unlocked state.
+    MutexImpl();
+
+    /// Destroy this mutex object.
     ~MutexImpl();
-        // Destroy this mutex object.
 
     // MANIPULATORS
+
+    /// Acquire a lock on this mutex object.  If this object is currently
+    /// locked, then suspend execution of the current thread until a lock
+    /// can be acquired.  Note that the behavior is undefined if the calling
+    /// thread already owns the lock on this mutex, and will likely result
+    /// in a deadlock.
     void lock();
-        // Acquire a lock on this mutex object.  If this object is currently
-        // locked, then suspend execution of the current thread until a lock
-        // can be acquired.  Note that the behavior is undefined if the calling
-        // thread already owns the lock on this mutex, and will likely result
-        // in a deadlock.
 
+    /// Return a reference to the modifiable OS-level mutex underlying this
+    /// object.  This method is intended only to support other bslmt
+    /// components that must operate directly on this mutex.
     NativeType& nativeMutex();
-        // Return a reference to the modifiable OS-level mutex underlying this
-        // object.  This method is intended only to support other bslmt
-        // components that must operate directly on this mutex.
 
+    /// Attempt to acquire a lock on this mutex object.  Return 0 on
+    /// success, and a non-zero value of this object is already locked, or
+    /// if an error occurs.
     int tryLock();
-        // Attempt to acquire a lock on this mutex object.  Return 0 on
-        // success, and a non-zero value of this object is already locked, or
-        // if an error occurs.
 
+    /// Release a lock on this mutex that was previously acquired through a
+    /// successful call to `lock`, or `tryLock`.  The behavior is undefined,
+    /// unless the calling thread currently owns the lock on this mutex.
     void unlock();
-        // Release a lock on this mutex that was previously acquired through a
-        // successful call to 'lock', or 'tryLock'.  The behavior is undefined,
-        // unless the calling thread currently owns the lock on this mutex.
 };
-
-}  // close package namespace
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -163,14 +164,14 @@ class MutexImpl<Platform::Win32Threads> {
 
 // CREATORS
 inline
-bslmt::MutexImpl<bslmt::Platform::Win32Threads>::MutexImpl()
+MutexImpl<bslmt::Platform::Win32Threads>::MutexImpl()
 {
     InitializeCriticalSectionAndSpinCount(
           reinterpret_cast<_RTL_CRITICAL_SECTION *>(d_lock), k_SPIN_COUNT);
 }
 
 inline
-bslmt::MutexImpl<bslmt::Platform::Win32Threads>::~MutexImpl()
+MutexImpl<bslmt::Platform::Win32Threads>::~MutexImpl()
 {
     DeleteCriticalSection(
         reinterpret_cast<_RTL_CRITICAL_SECTION*>(d_lock));
@@ -178,33 +179,34 @@ bslmt::MutexImpl<bslmt::Platform::Win32Threads>::~MutexImpl()
 
 // MANIPULATORS
 inline
-void bslmt::MutexImpl<bslmt::Platform::Win32Threads>::lock()
+void MutexImpl<bslmt::Platform::Win32Threads>::lock()
 {
     EnterCriticalSection(
         reinterpret_cast<_RTL_CRITICAL_SECTION*>(d_lock));
 }
 
 inline
-bslmt::MutexImpl<bslmt::Platform::Win32Threads>::NativeType&
-bslmt::MutexImpl<bslmt::Platform::Win32Threads>::nativeMutex()
+MutexImpl<bslmt::Platform::Win32Threads>::NativeType&
+MutexImpl<bslmt::Platform::Win32Threads>::nativeMutex()
 {
     return *reinterpret_cast<_RTL_CRITICAL_SECTION*>(d_lock);
 }
 
 inline
-int bslmt::MutexImpl<bslmt::Platform::Win32Threads>::tryLock()
+int MutexImpl<bslmt::Platform::Win32Threads>::tryLock()
 {
     return !TryEnterCriticalSection(
         reinterpret_cast<_RTL_CRITICAL_SECTION*>(d_lock));
 }
 
 inline
-void bslmt::MutexImpl<bslmt::Platform::Win32Threads>::unlock()
+void MutexImpl<bslmt::Platform::Win32Threads>::unlock()
 {
     LeaveCriticalSection(
         reinterpret_cast<_RTL_CRITICAL_SECTION*>(d_lock));
 }
 
+}  // close package namespace
 }  // close enterprise namespace
 
 #endif // BSLMT_PLATFORM_WIN32_THREADS

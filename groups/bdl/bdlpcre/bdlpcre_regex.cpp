@@ -28,6 +28,8 @@ BSLS_IDENT_RCSID(bdlpcre2_regex_cpp,"$Id$ $CSID$")
 #include <bsls_exceptionutil.h>
 #include <bsls_platform.h>
 
+#include <bsl_climits.h>    // 'INT_MAX'
+#include <bsl_cmath.h>      // 'abs'
 #include <bsl_cstring.h>
 #include <bsl_new.h>        // placement 'new' syntax
 
@@ -74,44 +76,40 @@ false;
 true;
 #endif
 
+enum {
+    k_INTERNAL_ERROR = INT_MIN
+};
+
                         // ===================
                         // class RegEx_ImpUtil
                         // ===================
 
+/// This `struct` provides a namespace for `RegEx` implementation utilities.
 struct RegEx_ImpUtil {
-    // This 'struct' provides a namespace for 'RegEx' implementation utilities.
-
-    // TYPES
-    enum {
-        // Enumeration used to distinguish among results of match operations.
-        k_SUCCESS                 =  0,
-        k_DEPTH_LIMIT_FAILURE     =  1,
-        k_JIT_STACK_LIMIT_FAILURE =  2,
-        k_FAILURE                 = -1
-    };
 
     // CLASS METHODS
+
+    /// Assign a newly created pair of the specified `offset` and
+    /// `length` to the specified `value`.  Note that the specified
+    /// `subject` is unused in this overload.
     static
     void assign(bsl::pair<size_t, size_t> *value,
                 const char                *subject,
                 size_t                     offset,
                 size_t                     length)
-        // Assign a newly created pair of the specified 'offset' and
-        // 'length' to the specified 'value'.  Note that the specified
-        // 'subject' is unused in this overload.
     {
         (void)subject;
         *value =  bsl::make_pair(offset, length);
     }
 
+    /// Assign a newly created `bsl::string_view` object having the
+    /// specified `subject`, `offset`, and `length` to the specified
+    /// `value`.
     static
     void assign(bsl::string_view *value,
                 const char       *subject,
                 size_t            offset,
                 size_t            length)
-        // Assign a newly created 'bsl::string_view' object having the
-        // specified 'subject', 'offset', and 'length' to the specified
-        // 'value'.
     {
         *value = (length != 0) ? bsl::string_view(subject + offset, length)
                                : bsl::string_view();
@@ -122,8 +120,8 @@ struct RegEx_ImpUtil {
                         // struct NOP
                         // ==========
 
+/// NOP functor for `RegEx::match` that does not return the result of match.
 struct NOP {
-    // NOP functor for 'RegEx::match' that does not return the result of match.
 
     // ACCESSORS
     void operator()(const char *, PCRE2_SIZE *, unsigned int) const
@@ -135,10 +133,10 @@ struct NOP {
                         // class DataExtractor
                         // ===================
 
+/// This functor extracts the result of a match and assigns it to a
+/// variable of the DATA (template parameter) type.
 template <class DATA>
 class DataExtractor {
-    // This functor extracts the result of a match and assigns it to a
-    // variable of the DATA (template parameter) type.
 
     // DATA
     DATA *d_data_p;
@@ -171,10 +169,10 @@ class DataExtractor {
                         // class VectorExtractor
                         // =====================
 
+/// This functor extracts the result of a match and assigns it to a variable
+/// of the VECTOR (template parameter) type.
 template <class VECTOR>
 class VectorExtractor {
-    // This functor extracts the result of a match and assigns it to a variable
-    // of the VECTOR (template parameter) type.
 
     // DATA
     VECTOR *d_vector_p;
@@ -210,9 +208,9 @@ class VectorExtractor {
                         // struct RegEx_MatchContextData
                         // =============================
 
+/// This is a component-local POD `struct` that holds the pointers to the
+/// buffers used by the PCRE2 match API.
 struct RegEx_MatchContextData {
-    // This is a component-local POD 'struct' that holds the pointers to the
-    // buffers used by the PCRE2 match API.
 
   public:
     // DATA
@@ -225,8 +223,8 @@ struct RegEx_MatchContextData {
                         // class RegEx_MatchContext
                         // ========================
 
+/// This class manages opaque buffers used by PCRE2 match API.
 class RegEx_MatchContext {
-    // This class manages opaque buffers used by PCRE2 match API.
 
     // PRIVATE TYPES
     typedef bslmt::ThreadUtil::Handle  ThreadHandle;
@@ -242,48 +240,52 @@ class RegEx_MatchContext {
 
   private:
     // PRIVATE ACCESSORS
-    int allocateMatchContext(RegEx_MatchContextData *matchContextData) const;
-        // Allocate PCRE2 match data buffers and load them into the specified
-        // 'matchContextData'.
 
+    /// Allocate PCRE2 match data buffers and load them into the specified
+    /// `matchContextData`.
+    int allocateMatchContext(RegEx_MatchContextData *matchContextData) const;
+
+    /// Deallocate PCRE2 match data buffers pointed to by the specified
+    /// `matchContextData`.
     void deallocateMatchContext(RegEx_MatchContextData *matchContextData)
                                                                          const;
-        // Deallocate PCRE2 match data buffers pointed to by the specified
-        // 'matchContextData'.
 
   public:
     // CREATORS
-    RegEx_MatchContext();
-        // Create a 'RegEx_MatchContext' object.
 
+    /// Create a `RegEx_MatchContext` object.
+    RegEx_MatchContext();
+
+    /// Destroy this object.
     ~RegEx_MatchContext();
-        // Destroy this object.
 
     // MANIPULATORS
+
+    /// Initialize the object to provide data buffers for the PCRE2 match
+    /// API for the specified `pcre2Context`, `patternCode, `depthLimit',
+    /// and `jitStackSize`. Return 0 on success and non-zero value if the
+    /// data buffers cannot be allocated.
     int initialize(pcre2_general_context *pcre2Context,
                    pcre2_code            *patternCode,
                    int                    depthLimit,
                    size_t                 jitStackSize);
-        // Initialize the object to provide data buffers for the PCRE2 match
-        // API for the specified 'pcre2Context', 'patternCode, 'depthLimit',
-        // and 'jitStackSize'. Return 0 on success and non-zero value if the
-        // data buffers cannot be allocated.
 
+    /// Change the match depth limit in the match data buffers to the
+    /// specified `depthLimit`.
     void setDepthLimit(int depthLimit);
-        // Change the match depth limit in the match data buffers to the
-        // specified 'depthLimit'.
 
     // ACCESSORS
-    int acquireMatchContext(RegEx_MatchContextData *matchContextData) const;
-        // Acquire the match data buffers for the current thread and load the
-        // specified 'matchContextData' with the pointers to the match data
-        // buffers.  The behavior is undefined unless 'matchContextData' is a
-        // valid pointer.
 
+    /// Acquire the match data buffers for the current thread and load the
+    /// specified `matchContextData` with the pointers to the match data
+    /// buffers.  The behavior is undefined unless `matchContextData` is a
+    /// valid pointer.
+    int acquireMatchContext(RegEx_MatchContextData *matchContextData) const;
+
+    /// Release the match data buffers pointed to by the specified
+    /// `matchContextData`.  The behavior is undefined unless
+    /// `matchContextData` is a valid pointer.
     void releaseMatchContext(RegEx_MatchContextData *matchContextData) const;
-        // Release the match data buffers pointed to by the specified
-        // 'matchContextData'.  The behavior is undefined unless
-        // 'matchContextData' is a valid pointer.
 };
 
                         // ------------------
@@ -321,7 +323,7 @@ RegEx_MatchContext::allocateMatchContext(
                                                           0);
 
     if (0 == matchData_p) {
-        return RegEx_ImpUtil::k_FAILURE;                              // RETURN
+        return k_INTERNAL_ERROR;                                      // RETURN
     }
 
     // Match context
@@ -330,7 +332,7 @@ RegEx_MatchContext::allocateMatchContext(
 
     if (0 == matchContext_p) {
         pcre2_match_data_free(matchData_p);
-        return RegEx_ImpUtil::k_FAILURE;                              // RETURN
+        return k_INTERNAL_ERROR;                                      // RETURN
     }
 
     pcre2_set_match_limit(matchContext_p, d_depthLimit);
@@ -345,7 +347,7 @@ RegEx_MatchContext::allocateMatchContext(
         if (0 == jitStack_p) {
             pcre2_match_context_free(matchContext_p);
             pcre2_match_data_free(matchData_p);
-            return RegEx_ImpUtil::k_FAILURE;                          // RETURN
+            return k_INTERNAL_ERROR;                                  // RETURN
         }
         pcre2_jit_stack_assign(matchContext_p, 0, jitStack_p);
     }
@@ -354,7 +356,7 @@ RegEx_MatchContext::allocateMatchContext(
     matchContextData->d_matchContext_p = matchContext_p;
     matchContextData->d_jitStack_p     = jitStack_p;
 
-    return RegEx_ImpUtil::k_SUCCESS;
+    return 0;
 }
 
 void
@@ -406,7 +408,7 @@ RegEx_MatchContext::acquireMatchContext(
 
     if (bslmt::ThreadUtil::isEqual(d_mainThread, bslmt::ThreadUtil::self())) {
         *matchContextData = d_mainThreadMatchData;
-        return RegEx_ImpUtil::k_SUCCESS;                              // RETURN
+        return RegEx::k_STATUS_SUCCESS;                               // RETURN
     }
 
     return allocateMatchContext(matchContextData);
@@ -500,7 +502,7 @@ int RegEx::prepareImp(char       *errorMessage,
 
         *errorOffset = errorOffsetFromPcre2;
 
-        return RegEx_ImpUtil::k_FAILURE;                              // RETURN
+        return k_INTERNAL_ERROR;                                      // RETURN
     }
 
     if (flags & k_FLAG_JIT && isJitAvailable()) {
@@ -512,16 +514,14 @@ int RegEx::prepareImp(char       *errorMessage,
 
             *errorOffset = 0;
 
-            return RegEx_ImpUtil::k_FAILURE;                          // RETURN
+            return k_INTERNAL_ERROR;                                  // RETURN
         }
     }
 
-    if (RegEx_ImpUtil::k_SUCCESS != d_matchContext->initialize(
-                                                              d_pcre2Context_p,
-                                                              patternCode,
-                                                              d_depthLimit,
-                                                              d_jitStackSize))
-    {
+    if (k_STATUS_SUCCESS != d_matchContext->initialize(d_pcre2Context_p,
+                                                       patternCode,
+                                                       d_depthLimit,
+                                                       d_jitStackSize)) {
         pcre2_code_free(patternCode);
         bsl::strncpy(errorMessage,
                      "Unable to create match contexts.",
@@ -529,14 +529,14 @@ int RegEx::prepareImp(char       *errorMessage,
 
         *errorOffset = 0;
 
-        return RegEx_ImpUtil::k_FAILURE;                              // RETURN
+        return k_INTERNAL_ERROR;                                      // RETURN
     }
 
     // Set the data members and set the object to the "prepared" state.
 
     d_patternCode_p = patternCode;
 
-    return RegEx_ImpUtil::k_SUCCESS;
+    return k_STATUS_SUCCESS;
 }
 
 // PRIVATE ACCESSORS
@@ -554,13 +554,13 @@ int RegEx::matchImp(const RESULT_EXTRACTOR&  extractor,
     RegEx_MatchContextData matchContextData;
 
     if (0 != d_matchContext->acquireMatchContext(&matchContextData)) {
-        return RegEx_ImpUtil::k_FAILURE;                              // RETURN
+        return k_INTERNAL_ERROR;                                      // RETURN
     }
 
     const unsigned char *actualSubject =
                 reinterpret_cast<const unsigned char*>(subject ? subject : "");
 
-    int rc = RegEx_ImpUtil::k_SUCCESS;
+    int rc = k_STATUS_SUCCESS;
     int rcPcre2;
 
     if (skipUTF8Validation || !(d_flags & k_FLAG_UTF8)) {
@@ -591,15 +591,68 @@ int RegEx::matchImp(const RESULT_EXTRACTOR&  extractor,
                                       matchContextData.d_matchContext_p);
     }
 
-    if (PCRE2_ERROR_MATCHLIMIT == rcPcre2) {
-        rc = RegEx_ImpUtil::k_DEPTH_LIMIT_FAILURE;
-    } else if (PCRE2_ERROR_JIT_STACKLIMIT == rcPcre2) {
-        rc = RegEx_ImpUtil::k_JIT_STACK_LIMIT_FAILURE;
-    } else if (0 > rcPcre2) {
-        rc = RegEx_ImpUtil::k_FAILURE;
+    switch (rcPcre2) {
+      case PCRE2_ERROR_MATCHLIMIT: {
+        rc = k_STATUS_DEPTH_LIMIT_FAILURE;
+      } break;
+      case PCRE2_ERROR_JIT_STACKLIMIT: {
+        rc = k_STATUS_JIT_STACK_LIMIT_FAILURE;
+      } break;
+      case PCRE2_ERROR_NOMATCH: {
+        rc = k_STATUS_NO_MATCH;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR1:
+      case PCRE2_ERROR_UTF8_ERR2:
+      case PCRE2_ERROR_UTF8_ERR3:
+      case PCRE2_ERROR_UTF8_ERR4:
+      case PCRE2_ERROR_UTF8_ERR5: {
+        rc = k_STATUS_UTF8_TRUNCATED_CHARACTER_FAILURE;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR6:
+      case PCRE2_ERROR_UTF8_ERR7:
+      case PCRE2_ERROR_UTF8_ERR8:
+      case PCRE2_ERROR_UTF8_ERR9:
+      case PCRE2_ERROR_UTF8_ERR10: {
+        rc = k_STATUS_UTF8_SIGNIFICANT_BITS_VALUE_FAILURE;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR11:
+      case PCRE2_ERROR_UTF8_ERR12: {
+        rc = k_STATUS_UTF8_5_OR_6_BYTES_CHARACTER_FAILURE;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR13: {
+        rc = k_STATUS_UTF8_4_BYTES_CHARACTER_RANGE_FAILURE;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR14: {
+        rc = k_STATUS_UTF8_3_BYTES_CHARACTER_RANGE_FAILURE;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR15:
+      case PCRE2_ERROR_UTF8_ERR16:
+      case PCRE2_ERROR_UTF8_ERR17:
+      case PCRE2_ERROR_UTF8_ERR18:
+      case PCRE2_ERROR_UTF8_ERR19: {
+        rc = k_STATUS_UTF8_OVERLONG_CHARACTER_FAILURE;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR20: {
+        rc = k_STATUS_UTF8_FIRST_BYTE_SIGNIFICANT_BITS_FAILURE;
+      } break;
+      case PCRE2_ERROR_UTF8_ERR21: {
+        rc = k_STATUS_UTF8_FIRST_BYTE_WRONG_VALUE_FAILURE;
+      } break;
+      default: {
+        if (rcPcre2 < 0) {
+            // The error codes returned by the PCRE library have negative
+            // values.  Their reflections in the BDE library are positive. So
+            // for unhandled errors we add a fairly large number. Firstly, this
+            // will bring them to a positive value; secondly, it will allow us
+            // to avoid duplicates; and thirdly, we will be able to obtain the
+            // original PCRE error code through simple calculations.
+
+            rc = abs(rcPcre2) + 10000;
+        }
+      }
     }
 
-    if (RegEx_ImpUtil::k_SUCCESS == rc) {
+    if (k_STATUS_SUCCESS == rc) {
         extractor(subject,
                   pcre2_get_ovector_pointer(matchContextData.d_matchData_p),
                   pcre2_get_ovector_count(matchContextData.d_matchData_p));
@@ -683,7 +736,7 @@ int RegEx::replaceImp(STRING                  *result,
     RegEx_MatchContextData matchContextData;
 
     if (0 != d_matchContext->acquireMatchContext(&matchContextData)) {
-        return RegEx_ImpUtil::k_FAILURE;                              // RETURN
+        return k_INTERNAL_ERROR;                                      // RETURN
     }
 
     unsigned int pcreFlags = 0;
@@ -725,7 +778,7 @@ int RegEx::replaceImp(STRING                  *result,
     if (rcPcre2 >= 0) {
         result->resize(bufferLength);
     } else {
-        rc           = RegEx_ImpUtil::k_FAILURE;
+        rc           = k_INTERNAL_ERROR;
         *errorOffset = PCRE2_UNSET == static_cast<size_t>(rcPcre2)
                        ? -1 : static_cast<int>(bufferLength);
     }
@@ -741,7 +794,7 @@ bool RegEx::isJitAvailable()
     unsigned int result = 0;
     (void) result;
 
-#if !(defined(BSLS_PLATFORM_OS_DARWIN) && defined(BSLS_PLATFORM_CPU_ARM))
+#if !defined(BSLS_PLATFORM_CPU_ARM)
     // Currently pcre2_config incorrectly reports JIT support is available for
     // Apple M1 hardware, but it currently does not work.
 

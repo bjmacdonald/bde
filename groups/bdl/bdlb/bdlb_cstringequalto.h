@@ -12,10 +12,10 @@ BSLS_IDENT("$Id: $")
 //
 //@SEE_ALSO:
 //
-//@DESCRIPTION: This component provides a 'struct', 'bdlb::CStringEqualTo',
+//@DESCRIPTION: This component provides a `struct`, `bdlb::CStringEqualTo`,
 // that defines a functor that checks two null-terminated strings for equality
 // using a case-sensitive string comparison, rather than simply comparing the
-// two addresses (as the 'std::equal_to' functor would do).  This comparison
+// two addresses (as the `std::equal_to` functor would do).  This comparison
 // functor is suitable for supporting C-strings as keys in unordered
 // associative containers.  Note that the container behavior would be undefined
 // if the strings referenced by such pointers were to change value.
@@ -24,35 +24,35 @@ BSLS_IDENT("$Id: $")
 ///-----
 // This section illustrates intended use of this component.
 //
-///Example 1: Basic Use of 'bdlb::CStringEqualTo'
+///Example 1: Basic Use of `bdlb::CStringEqualTo`
 /// - - - - - - - - - - - - - - - - - - - - - - -
 // The following snippets of code illustrate how to create and use a
-// 'bdlb::CStringEqualTo' object as a binary predicate for the standard library
-// function 'bsl::equal' to test that two ranges of null-terminated character
+// `bdlb::CStringEqualTo` object as a binary predicate for the standard library
+// function `bsl::equal` to test that two ranges of null-terminated character
 // strings are equal.
 //
 // First, we create few sequences with null-terminated character strings,
 // making sure that their elements have different memory addresses:
-//..
-//  const char hello1[] = { 'h', 'e', 'l', 'l', 'o', 0};
-//  const char hello2[] = { 'h', 'e', 'l', 'l', 'o', 0};
+// ```
+// const char hello1[] = { 'h', 'e', 'l', 'l', 'o', 0};
+// const char hello2[] = { 'h', 'e', 'l', 'l', 'o', 0};
 //
-//  const char* arrayA[3] = { "A", "B", hello1 };
-//  const char* arrayB[3] = { "A", "B", hello2 };
-//..
+// const char* arrayA[3] = { "A", "B", hello1 };
+// const char* arrayB[3] = { "A", "B", hello2 };
+// ```
 // Now, use bdlb::CStringEqualTo() as a binary predicate to compare sequences:
-//..
-//  bool bdlbEqualTo = bsl::equal(arrayA, arrayA+3, arrayB,
-//                                bdlb::CStringEqualTo());
-//  bool bslEqualTo  = bsl::equal(arrayA, arrayA+3, arrayB,
-//                                bsl::equal_to<const char *>());
-//..
-// Finally, we observe that 'bdlb::CStringEqualTo' compares character string by
+// ```
+// bool bdlbEqualTo = bsl::equal(arrayA, arrayA+3, arrayB,
+//                               bdlb::CStringEqualTo());
+// bool bslEqualTo  = bsl::equal(arrayA, arrayA+3, arrayB,
+//                               bsl::equal_to<const char *>());
+// ```
+// Finally, we observe that `bdlb::CStringEqualTo` compares character string by
 // their values, while the default comparator compares addresses:
-//..
-//  assert( true  == bdlbEqualTo );
-//  assert( false == bslEqualTo );
-//..
+// ```
+// assert( true  == bdlbEqualTo );
+// assert( false == bslEqualTo );
+// ```
 
 #include <bdlscm_version.h>
 
@@ -73,11 +73,11 @@ namespace bdlb {
                        // struct CStringEqualTo
                        // =====================
 
+/// This `struct` defines a comparison functor on null-terminated character
+/// strings, enabling them for use as keys in the standard unordered
+/// associative containers such as `bsl::unordered_map` and
+/// `bsl::unordered_set`.  Note that this class is an empty POD type.
 struct CStringEqualTo {
-    // This 'struct' defines a comparison functor on null-terminated character
-    // strings, enabling them for use as keys in the standard unordered
-    // associative containers such as 'bsl::unordered_map' and
-    // 'bsl::unordered_set'.  Note that this class is an empty POD type.
 
     // STANDARD TYPEDEFS
     typedef const char *first_argument_type;
@@ -90,29 +90,32 @@ struct CStringEqualTo {
                                        bsl::is_trivially_default_constructible)
 
     // CREATORS
+
+    /// Create a `CStringEqualTo` object.
     //! CStringEqualTo() = default;
-        // Create a 'CStringEqualTo' object.
 
+    /// Create a `CStringEqualTo` object.  Note that as `CStringEqualTo` is
+    /// an empty (stateless) type, this operation has no observable effect.
     //! CStringEqualTo(const CStringEqualTo& original) = default;
-        // Create a 'CStringEqualTo' object.  Note that as 'CStringEqualTo' is
-        // an empty (stateless) type, this operation has no observable effect.
 
+    /// Destroy this object.
     //! ~CStringEqualTo() = default;
-        // Destroy this object.
 
     // MANIPULATORS
+
+    /// Assign to this object the value of the specified `rhs` object, and
+    /// return a reference providing modifiable access to this object.  Note
+    /// that as `CStringEqualTo` is an empty (stateless) type, this
+    /// operation has no observable effect.
     //! CStringEqualTo& operator=(const CStringEqualTo&) = default;
-        // Assign to this object the value of the specified 'rhs' object, and
-        // return a reference providing modifiable access to this object.  Note
-        // that as 'CStringEqualTo' is an empty (stateless) type, this
-        // operation has no observable effect.
 
     // ACCESSORS
+
+    /// Return `true` if the specified `lhs` string has the same (case
+    /// sensitive) value as the specified `rhs` string, and `false`
+    /// otherwise.  The behavior is undefined unless both `lhs` and `rhs`
+    /// point to null-terminated strings.
     bool operator()(const char *lhs, const char *rhs) const;
-        // Return 'true' if the specified 'lhs' string has the same (case
-        // sensitive) value as the specified 'rhs' string, and 'false'
-        // otherwise.  The behavior is undefined unless both 'lhs' and 'rhs'
-        // point to null-terminated strings.
 };
 
 // ============================================================================

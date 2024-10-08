@@ -13,7 +13,7 @@ using namespace BloombergLP;
 //                             TEST PLAN
 //-----------------------------------------------------------------------------
 // This test driver tests utility functions provided by the
-// 'bsls::BslExceptionUtil' namespace.  We need to verify that each function
+// `bsls::BslExceptionUtil` namespace.  We need to verify that each function
 // throws the documented exception.
 //-----------------------------------------------------------------------------
 // [ 1] void throwBadAlloc();
@@ -80,30 +80,30 @@ static void aSsErT(bool b, const char *s, int i)
 // that does not support exceptions.
 //
 // First we declare a function template that wants to throw a standard
-// exception.  Note that the 'exception' header is not included at this point.
-//..
+// exception.  Note that the `exception` header is not included at this point.
+// ```
     #include <bsls_bslexceptionutil.h>
 
+    ///  Throw a standard exception according to the specified `selector`.
     template<class T>
     void testFunction(int selector)
-        //  Throw a standard exception according to the specified 'selector'.
     {
         switch (selector) {
-//..
+// ```
 //  Now we can use the utilities in this component to throw the desired
 //  exception, even though the standard exception classes are not visible to
 //  this code.
-//..
+// ```
           case  1: bsls::BslExceptionUtil::throwBadAlloc();
           case  2: bsls::BslExceptionUtil::throwBadCast();
           default: bsls::BslExceptionUtil::throwException();
         }
     }
-//..
+// ```
 // Finally, we can write some client code that calls our function, and wishes
 // to catch the thrown exception.  Observe that this file must #include the
 // corresponding standard header in order to catch the exception.
-//..
+// ```
     #include <exception>
     #include <new>
     #include <typeinfo>
@@ -124,7 +124,7 @@ static void aSsErT(bool b, const char *s, int i)
         catch (const std::bad_cast& ex) {
         }
     }
-//..
+// ```
 #endif // defined BDE_BUILD_TARGET_EXC
 
 //=============================================================================
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
         //   compile, link, and run on all platforms as shown.
         //
         // Plan:
-        //   Simply invoke the functions 'addSecurity' and 'removeSecurity' to
+        //   Simply invoke the functions `addSecurity` and `removeSecurity` to
         //   ensure the code compiles.
         //
         // Testing:
@@ -171,17 +171,17 @@ int main(int argc, char *argv[])
         // BREATHING/USAGE TEST
         //
         // Concerns:
-        //: 1. Each function throws a standard exception that can be caught as
-        //:    the documented type.
+        //  1. Each function throws a standard exception that can be caught as
+        //     the documented type.
         //
         // Plan:
-        //: 1. For each utility function in the class 'BslExceptionUtil', use a
-        //:    try/catch block to demonstrate that the documented exception is
-        //:    thrown.
-        //: 2. Use an 'ASSERT(false)' after the throwing function to find any
-        //:    cases where the exception is not thrown.
-        //: 3. Use a 'catch(...)' block to observe if the wrong exception type
-        //:    is thrown.
+        //  1. For each utility function in the class `BslExceptionUtil`, use a
+        //     try/catch block to demonstrate that the documented exception is
+        //     thrown.
+        //  2. Use an `ASSERT(false)` after the throwing function to find any
+        //     cases where the exception is not thrown.
+        //  3. Use a `catch(...)` block to observe if the wrong exception type
+        //     is thrown.
         //
         // Testing:
         //   void throwBadAlloc();
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
                 "\nThis case is not run as it relies on exception support.\n");
 #else
         try {
-            if (verbose) printf("\nThrowing a 'bad_alloc' exception");
+            if (verbose) printf("\nThrowing a `bad_alloc` exception");
             bsls::BslExceptionUtil::throwBadAlloc();
             ASSERT( false ); // execution should jump to catch block
         }
@@ -209,11 +209,11 @@ int main(int argc, char *argv[])
             }
         }
         catch(...) {
-            ASSERT(!"Threw the wrong exception type, expected std::bad_alloc");
+            ASSERT(0 == "Threw the wrong exception type, expected std::bad_alloc");
         }
 
         try {
-            if (verbose) printf("\nThrowing a 'bad_cast' exception");
+            if (verbose) printf("\nThrowing a `bad_cast` exception");
             bsls::BslExceptionUtil::throwBadCast();
             ASSERT( false ); // execution should jump to catch block
         }
@@ -223,11 +223,11 @@ int main(int argc, char *argv[])
             }
         }
         catch(...) {
-            ASSERT(!"Threw the wrong exception type, expected std::bad_cast");
+            ASSERT(0 == "Threw the wrong exception type, expected std::bad_cast");
         }
 
         try {
-            if(verbose) printf("\nThrowing a 'bad_exception' exception");
+            if(verbose) printf("\nThrowing a `bad_exception` exception");
             bsls::BslExceptionUtil::throwBadException();
             ASSERT( false ); // execution should jump to catch block
         }
@@ -237,12 +237,12 @@ int main(int argc, char *argv[])
             }
         }
         catch(...) {
-            ASSERT(
-               !"Threw the wrong exception type, expected std::bad_exception");
+            ASSERT(0 ==
+                "Threw the wrong exception type, expected std::bad_exception");
         }
 
         try {
-            if (verbose) printf("\nThrowing a 'bad_typeid' exception");
+            if (verbose) printf("\nThrowing a `bad_typeid` exception");
             bsls::BslExceptionUtil::throwBadTypeid();
             ASSERT( false ); // execution should jump to catch block
         }
@@ -252,12 +252,12 @@ int main(int argc, char *argv[])
             }
         }
         catch(...) {
-            ASSERT(
-                  !"Threw the wrong exception type, expected std::bad_typeid");
+            ASSERT(0 ==
+                   "Threw the wrong exception type, expected std::bad_typeid");
         }
 
         try {
-            if (verbose) printf("\nThrowing an 'exception' exception");
+            if (verbose) printf("\nThrowing an `exception` exception");
             bsls::BslExceptionUtil::throwException();
             ASSERT( false ); // execution should jump to catch block
         }
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
             }
         }
         catch(...) {
-            ASSERT(!"Threw the wrong exception type, expected std::exception");
+            ASSERT(0 == "Threw the wrong exception type, expected std::exception");
         }
 #endif // defined BDE_BUILD_TARGET_EXC
       } break;

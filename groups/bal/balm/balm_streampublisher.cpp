@@ -1,26 +1,18 @@
 // balm_streampublisher.cpp                                           -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balm_streampublisher.h>
 
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(balm_streampublisher_cpp,"$Id$ $CSID$")
 
-#include <bdlt_datetimetz.h>
-
 #include <balm_metricformat.h>
+#include <balm_metricid.h>
 #include <balm_metricrecord.h>
 #include <balm_metricsample.h>
-#include <balm_metricid.h>
 
-#include <bsls_timeinterval.h>
+#include <bdlt_datetimetz.h>
+
 #include <bsls_assert.h>
+#include <bsls_timeinterval.h>
 
 #include <bsl_ostream.h>
 
@@ -118,10 +110,10 @@ void formatValue(bsl::ostream&                 stream,
     }
 }
 
+/// Publish, to the specified `stream`, the specified `record`.
 void publishRecord(bsl::ostream&             stream,
                    const balm::MetricRecord& record,
                    double                    elapsedTime)
-    // Publish, to the specified 'stream', the specified 'record'.
 {
     balm::PublicationType::Value publicationType =
                    record.metricId().description()->preferredPublicationType();

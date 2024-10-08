@@ -16,14 +16,12 @@
 #include <bsls_libraryfeatures.h>
 #include <bsls_log.h>
 #include <bsls_platform.h>
-#include <bsls_review.h>
 #include <bsls_stopwatch.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 #include <bsl_algorithm.h>
-#include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
 #include <bsl_iomanip.h>
@@ -35,13 +33,13 @@
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
 
-#include <bsl_cerrno.h>    // 'errno', 'ERANGE', 'EDOM'
+#include <bsl_cerrno.h>    // `errno`, `ERANGE`, `EDOM`
 #include <bsl_climits.h>
-#include <bsl_cmath.h>     // 'fabs'
-#include <bsl_cstdio.h>    // 'sscanf'
-#include <bsl_ctime.h>     // 'time_t', 'time'
-#include <bsl_cstring.h>   // 'memset', 'memcpy'
-#include <bsl_cstddef.h>   // 'ptrdiff_t', 'size_t'
+#include <bsl_cmath.h>     // `fabs`
+#include <bsl_cstdio.h>    // `sscanf`
+#include <bsl_ctime.h>     // `time_t`, `time`
+#include <bsl_cstring.h>   // `memset`, `memcpy`
+#include <bsl_cstddef.h>   // `ptrdiff_t`, `size_t`
 #include <bsl_cstdlib.h>
 
 #if !defined(BSLS_LIBRARYFEATURES_HAS_CPP17_CHARCONV) || \
@@ -58,41 +56,16 @@
 #endif
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_CHARCONV
-    // For 'parseDouble' implementation assumptions verification & reporting
+    // For `parseDouble` implementation assumptions verification & reporting
     #include <bsl_charconv.h>
     #include <bsl_system_error.h>
 #endif
 
 #if defined(__GLIBC__) && defined(u_PARSEDOUBLE_USES_STRTOD)
     #include <gnu/libc-version.h>
-    // Using 'gnu_get_libc_version()' and 'gnu_get_libc_release()' to give a
+    // Using `gnu_get_libc_version()` and `gnu_get_libc_release()` to give a
     // full picture of which libc.so we are running against (when we detect
-    // changes in the expected 'strtod' anomalies).
-#endif
-
-//=============================================================================
-//                   PLATFORM RELATED CONDITIONAL BEHAVIORS
-//-----------------------------------------------------------------------------
-
-#if defined(__GLIBC__) && __GLIBC__ <= 2
-    // 'strtod' of GNU libc  consistently parses any hexfloat value that is
-    // half of 'bsl::numeric_limits<double>::denorm_min()' into the value of
-    // 'bsl::numeric_limits<double>::denorm_min()'.  This off-by-one-helf bug
-    // does not seem to appear for any other value or format.  The anomaly is
-    // fixed/patched up in the 'parseDouble' implementation.  As 'strtod' is
-    // used with GNU libstdc++ even when 'from_chars' is present (to determine
-    // the exact under/overflow condition) the bug fix has to be tested even
-    // when we use 'from_chars'.
-    #define u_GLIBC2_STRTOD_HEX_HALF_DENORM_MIN_HEX_BUG                       1
-#endif
-
-// Solaris 'strtod' linked by us somehow does not parse hexadecimal floats, but
-// the one we link when using gcc on Solaris does.
-#if defined(BSLS_PLATFORM_OS_SUNOS) || defined(BSLS_PLATFORM_OS_SOLARIS)
-    #define u_BDLB_NUMERICPARSEUTIL_ON_SUN                                    1
-#endif
-#if !defined(u_BDLB_NUMERICPARSEUTIL_ON_SUN) || defined(BSLS_PLATFORM_CMP_GNU)
-    #define u_BDLB_NUMERICPARSEUTIL_SUPPORT_PARSING_HEXFLOAT                  1
+    // changes in the expected `strtod` anomalies).
 #endif
 
 using namespace BloombergLP;
@@ -119,7 +92,6 @@ using namespace BloombergLP;
 // [ 3] parseSignedInteger(result, rest, input, base, minVal, maxVal)
 // [ 3] parseSignedInteger(result, input, base, minVal, maxVal)
 // [ 4] size_t calcRestPos(parsedChars, length)
-// [ 4] class BslsReviewMonitor
 // [ 4] class TestAssertCounter
 // [ 4] double parseExpected(const bsl::string_view&)
 // [ 5] parseDouble(double *res, string_view *rest, string_view in)
@@ -191,8 +163,8 @@ void aSsErT(bool condition, const char *message, int line)
 #ifdef BSLS_LIBRARYFEATURES_STDCPP_LIBCSTD
     // SunOS/Solaris iostreams are broken as in they can crash in various
     // fashion if used with a null stream buffer pointer, especially
-    // bsl::cout', that just crashes on any output after a 'bsl::cout.rdbuf(0)'
-    // call if using in any 'operator<<' from it.
+    // bsl::cout', that just crashes on any output after a `bsl::cout.rdbuf(0)`
+    // call if using in any `operator<<` from it.
     #define u_NULL_STREAMBUFPTR_CRASHES_IOSTREAMS                             1
 #endif
 
@@ -215,27 +187,27 @@ void aSsErT(bool condition, const char *message, int line)
 
 #define u_LASTARGN(N, ...) u_LASTARGN_IMPL(N, __VA_ARGS__)
 
+/// To get the condition out of the arguments of an `ASSERTV`.  The macro
+/// evaluates to the last argument given to it, unless there are more than 8
+/// arguments, in which case the behavior is undefined.  Same as `ASSERTV`.
 #define u_LASTARG(...) u_LASTARGN(BSLIM_TESTUTIL_NUM_ARGS(__VA_ARGS__),       \
                                   __VA_ARGS__)
-    // To get the condition out of the arguments of an 'ASSERTV'.  The macro
-    // evaluates to the last argument given to it, unless there are more than 8
-    // arguments, in which case the behavior is undefined.  Same as 'ASSERTV'.
 
 // ============================================================================
 //                                MACROS
 // ----------------------------------------------------------------------------
 
+/// Convert the specified `ptrexp` (an expression that results in a pointer)
+/// to `const void *`.  Used in printing the pointer value and not a C
+/// string for `char *`/`const char *` values.
 #define ASPTR(ptrexpr) static_cast<const void *>(ptrexpr)
-    // Convert the specified 'ptrexp' (an expression that results in a pointer)
-    // to 'const void *'.  Used in printing the pointer value and not a C
-    // string for 'char *'/'const char *' values.
 
 //=============================================================================
 //                        GLOBAL TYPEDEFS/CONSTANTS
 //-----------------------------------------------------------------------------
 
+/// De-facto standard abbreviation for utilities in testing
 typedef bdlb::NumericParseUtil Util;
-    // De-facto standard abbreviation for utilities in testing
 
 typedef bsls::Types::Int64  Int64;
 typedef bsls::Types::Uint64 Uint64;
@@ -255,9 +227,10 @@ static int veryVeryVerbose;
                               // =========
                               // class Opt
                               // =========
+
+/// Thin wrapper to safely print optional C-string (that may be a null
+/// pointer) to an `ostream`.
 class Opt {
-    // Thin wrapper to safely print optional C-string (that may be a null
-    // pointer) to an 'ostream'.
 
     // DATA
     const char *d_optCstr_p;
@@ -279,10 +252,10 @@ bsl::ostream& operator<<(bsl::ostream& os, Opt o)
                          // template class Qs_
                          // ==================
 
+/// Thin wrapper to print strings in quotes to an `ostream`.  Don't use it
+/// directly, use the `Qs` function.
 template <class StringType>
 class Qs_ {
-    // Thin wrapper to print strings in quotes to an 'ostream'.  Don't use it
-    // directly, use the 'Qs' function.
 
     // DATA
     const StringType& d_string;
@@ -303,9 +276,9 @@ bsl::ostream& operator<<(bsl::ostream& os, Qs_<StringType> qs)
 
                           // template Qs(string)
 
+/// Return a `Qs_` object with the specified `string`.
 template <class StringType>
 Qs_<StringType> Qs(const StringType& string)
-    // Return a 'Qs_' object with the specified 'string'.
 {
     return Qs_<StringType>(string);
 }
@@ -314,10 +287,10 @@ Qs_<StringType> Qs(const StringType& string)
                          // template class Qas_
                          // ===================
 
+/// Thin wrapper to print abbreviated strings in quotes to an `ostream`.
+/// Don't use it directly, use the `Qas` function.
 template <class StringType>
 class Qas_ {
-    // Thin wrapper to print abbreviated strings in quotes to an 'ostream'.
-    // Don't use it directly, use the 'Qas' function.
 
     // DATA
     const StringType& d_string;
@@ -364,9 +337,9 @@ bsl::ostream& operator<<(bsl::ostream& os, Qas_<StringType> qas)
 
                           // template Qas(string)
 
+/// Return a `Qas_` object with the specified `string`.
 template <class StringType>
 Qas_<StringType> Qas(const StringType& string)
-    // Return a 'Qas_' object with the specified 'string'.
 {
     return Qas_<StringType>(string);
 }
@@ -375,8 +348,8 @@ Qas_<StringType> Qas(const StringType& string)
 //                          GLOBAL HELPER TYPES
 //-----------------------------------------------------------------------------
 
+/// Orthogonal Perturbation Mode enumeration wrapper.
 struct OpMode {
-    // Orthogonal Perturbation Mode enumeration wrapper.
 
     enum Enum {
         e_NONE              = 0,  // Original input string from test table
@@ -388,9 +361,9 @@ struct OpMode {
     };
 };
 
+/// Print the specified `opMode` as human-readable text to the specified
+/// `os` output stream, then return `os`.
 bsl::ostream& operator<<(bsl::ostream& os, OpMode::Enum opMode)
-    // Print the specified 'opMode' as human-readable text to the specified
-    // 'os' output stream, then return 'os'.
  {
     switch (opMode) {
       case OpMode::e_NONE:                return os << "[unchanged-input]";
@@ -412,43 +385,38 @@ namespace testDouble {
 void checkConfig()
 {
 #ifdef u_PARSEDOUBLE_USES_STRTOD
-        if (verbose) puts("'parseDouble' uses 'strtod'");
-#endif
+    if (verbose) puts("`parseDouble` uses `strtod`");
+#endif  // u_PARSEDOUBLE_USES_STRTOD
+
 #ifdef u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY
-        if (verbose) puts("'parseDouble' uses 'from_chars' then 'strtod' in "
-                          "case of Range Error.");
-    #ifndef u_PARSEDOUBLE_USES_FROM_CHARS
-        ASSERT("u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY without using"
-               " 'bsl::from_chars'?" == 0);
-    #endif
-#endif
+    if (verbose) puts("`parseDouble` uses `from_chars` then `strtod` in case "
+                      "of Range Error.");
+  #ifndef u_PARSEDOUBLE_USES_FROM_CHARS
+    ASSERT("u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY without using "
+           "`bsl::from_chars`?" == 0);
+  #endif  // u_PARSEDOUBLE_USES_FROM_CHARS
+#endif  // u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY
 
-#if defined(u_PARSEDOUBLE_USES_FROM_CHARS) &&               \
-    !defined(u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY)
-        if (verbose) puts("'parseDouble' uses 'from_chars' only");
+#if defined(u_PARSEDOUBLE_USES_FROM_CHARS) &&                                \
+                       !defined(u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY)
+    if (verbose) puts("`parseDouble` uses `from_chars` only");
 #elif !defined(u_PARSEDOUBLE_USES_STRTOD)
-        ASSERT("'parseDouble' uses neither 'strtod' nor 'from_chars'?" == 0);
-#endif
-
-#ifdef u_BDLB_NUMERICPARSEUTIL_SUPPORT_PARSING_HEXFLOAT
-        if (verbose) puts("Hexfloat parsing supported");
-#else
-        if (verbose) puts("NO hexfloat parsing (Solaris && Sun-CC)");
+    ASSERT("`parseDouble` uses neither `strtod` nor `from_chars`?" == 0);
 #endif
 }
 
 // ============================================================================
-// C GLOBAL 'errno' VERIFICATION SUPPORT CODE
+// C GLOBAL `errno` VERIFICATION SUPPORT CODE
 
                           // =================
                           // class StrtodErrno
                           // =================
 
+/// This attribute type stores `strtod` error values from the global `errno`
+/// of `<errno.h>`.  It also provides its own stream insert operator that
+/// prints the macro name for expected errors, including also the anomalous
+/// ones we know about.
 class StrtodErrno {
-    // This attribute type stores 'strtod' error values from the global 'errno'
-    // of '<errno.h>'.  It also provides its own stream insert operator that
-    // prints the macro name for expected errors, including also the anomalous
-    // ones we know about.
 
   private:
     // DATA
@@ -485,10 +453,10 @@ bsl::ostream& operator<<(bsl::ostream& os, StrtodErrno obj)
     switch (obj.value()) {
       case 0: return os << "Success(0)";                              // RETURN
 
-      case EINVAL: os << "'EINVAL'";  break;
-      case ERANGE: os << "'ERANGE'";  break;
+      case EINVAL: os << "`EINVAL`";  break;
+      case ERANGE: os << "`ERANGE`";  break;
 #if defined(__GLIBC__) && __GLIBC__ <= 2
-      case EDOM:   os << "'EDOM'";    break;
+      case EDOM:   os << "`EDOM`";    break;
 #endif
 
       default:     os << "**unexpected-strtod-errno**";
@@ -500,17 +468,17 @@ bsl::ostream& operator<<(bsl::ostream& os, StrtodErrno obj)
                        // class StrtodErrnoSampler
                        // ========================
 
+/// This mechanism provides functionality to test `strtod` that reports
+/// errors via the global `errno` of `<errno.h>`.  This type sets `errno` to
+/// zero on construction (to clear earlier errors).  The value of `errno` is
+/// then sampled by calling `grab()` immediately after `strtod`.  Equality
+/// and non-equality operators to `int` are provided that directly compare
+/// the grabbed `errno` value without the need to use an accessor.  This
+/// allows direct comparison to `<errno.h>`-defined error number that are
+/// `int` literals.  `ErrnoSampler` has a stream insert operator that prints
+/// the `<errno.h>` error (macro) name for expected values (including also
+/// the possible anomalous ones that we know about).
 class StrtodErrnoSampler {
-    // This mechanism provides functionality to test 'strtod' that reports
-    // errors via the global 'errno' of '<errno.h>'.  This type sets 'errno' to
-    // zero on construction (to clear earlier errors).  The value of 'errno' is
-    // then sampled by calling 'grab()' immediately after 'strtod'.  Equality
-    // and non-equality operators to 'int' are provided that directly compare
-    // the grabbed 'errno' value without the need to use an accessor.  This
-    // allows direct comparison to '<errno.h>'-defined error number that are
-    // 'int' literals.  'ErrnoSampler' has a stream insert operator that prints
-    // the '<errno.h>' error (macro) name for expected values (including also
-    // the possible anomalous ones that we know about).
 
   private:
     // DATA
@@ -558,7 +526,7 @@ bsl::ostream& operator<<(bsl::ostream& os, StrtodErrnoSampler obj)
 // GUARDS AND MONITORS
 
 #ifdef u_NULL_STREAMBUFPTR_CRASHES_IOSTREAMS
-    // In case a simple 'cout.rdbuf(0)' won't work we need an actual null
+    // In case a simple `cout.rdbuf(0)` won't work we need an actual null
     // stream buffer object and its address.  We need only one as it has no
     // state whatsoever (only vtable of its do-nothing protected virtuals).
 static struct NullBuffer : bsl::streambuf {} s_nullBuf;
@@ -568,9 +536,9 @@ static struct NullBuffer : bsl::streambuf {} s_nullBuf;
                           // class StreamStateGuard
                           // ======================
 
+/// This guard saves and restores the state of a standard iostream,
+/// including "sticky" and user defined states.
 class StreamStateGuard {
-    // This guard saves and restores the state of a standard iostream,
-    // including "sticky" and user defined states.
 
   private:
     // DATA
@@ -584,17 +552,18 @@ class StreamStateGuard {
 
   public:
     // CREATORS
+
+    /// Create an `StreamStateGuard` object that restores the complete state
+    /// os the specified `stream` upon its destruction.
     explicit StreamStateGuard(bsl::ios& stream)
-        // Create an 'StreamStateGuard' object that restores the complete state
-        // os the specified 'stream' upon its destruction.
     : d_stream_p(&stream)
     , d_oldState(0)
     {
         d_oldState.copyfmt(stream);
     }
 
+    /// Restore the state of the guarded stream then destroy this object.
     ~StreamStateGuard()
-        // Restore the state of the guarded stream then destroy this object.
     {
         d_stream_p->copyfmt(d_oldState);
     }
@@ -603,13 +572,13 @@ class StreamStateGuard {
                        // class OstreamSilencerGuard
                        // ==========================
 
+/// This guard type work using an `ostream` and a `verbosity` flag.  If the
+/// flag is `false` the guard object silences the output stream during
+/// construction, and restores it during destruction (by replacing the
+/// stream buffer).  If the verbosity flag is `true` the guard will do
+/// nothing.  The purpose of this type is to silence expected assertions
+/// while testing test support code that asserts.
 class OstreamSilencerGuard {
-    // This guard type work using an 'ostream' and a 'verbosity' flag.  If the
-    // flag is 'false' the guard object silences the output stream during
-    // construction, and restores it during destruction (by replacing the
-    // stream buffer).  If the verbosity flag is 'true' the guard will do
-    // nothing.  The purpose of this type is to silence expected assertions
-    // while testing test support code that asserts.
 
   private:
     // DATA
@@ -618,9 +587,10 @@ class OstreamSilencerGuard {
 
   public:
     // CREATORS
+
+    /// Create an `OstreamSilencerGuard` object that silences the specified
+    /// `ostream` when the specified `verbose` flag is `false`.
     OstreamSilencerGuard(bsl::ostream& ostream, bool verbose)
-        // Create an 'OstreamSilencerGuard' object that silences the specified
-        // 'ostream' when the specified 'verbose' flag is 'false'.
     {
         if (verbose) {
             d_ostream_p = 0;
@@ -635,8 +605,8 @@ class OstreamSilencerGuard {
 #endif
     }
 
+    /// Restore the guarded `ostream` if it was silenced upon construction.
     ~OstreamSilencerGuard()
-        // Restore the guarded 'ostream' if it was silenced upon construction.
     {
         if (d_ostream_p) {
             d_ostream_p->rdbuf(d_streambuf_p);
@@ -646,11 +616,12 @@ class OstreamSilencerGuard {
                            // =======================
                            // class TestAssertCounter
                            // =======================
+
+/// This mechanism enables counting test assertion failures that occur in a
+/// in a block/part of code by setting `testStatus` to 0 at construction and
+/// properly updating it with the observed changes of `testStatus` on
+/// destruction, or when requested.
 class TestAssertCounter {
-    // This mechanism enables counting test assertion failures that occur in a
-    // in a block/part of code by setting 'testStatus' to 0 at construction and
-    // properly updating it with the observed changes of 'testStatus' on
-    // destruction, or when requested.
 
   public:
     // PUBLIC CONSTANTS
@@ -668,26 +639,29 @@ class TestAssertCounter {
 
   public:
     // CREATORS
-    TestAssertCounter();
-        // Create an activated test status counter object and save the current
-        // value of the global 'testStatus' then set that 'testStatus' to 0.
 
+    /// Create an activated test status counter object and save the current
+    /// value of the global `testStatus` then set that `testStatus` to 0.
+    TestAssertCounter();
+
+    /// If this object is active call `release()`.  Destroy this object.
     ~TestAssertCounter();
-        // If this object is active call 'release()'.  Destroy this object.
 
     // ACCESSORS
+
+    /// Return `true` if the object is active, otherwise return `false`.
     bool isActive() const;
-        // Return 'true' if the object is active, otherwise return 'false'.
 
     // MANIPULATORS
-    void release();
-        // Set the value of the global 'testStatus' to the value it have had if
-        // this object had never existed, then deactivate this object.  The
-        // behavior is undefined unless the object is active.
 
+    /// Set the value of the global `testStatus` to the value it have had if
+    /// this object had never existed, then deactivate this object.  The
+    /// behavior is undefined unless the object is active.
+    void release();
+
+    /// Update this object as if it had just been created at the point of
+    /// the call and reactivate the object if it was inactive.
     void reset();
-        // Update this object as if it had just been created at the point of
-        // the call and reactivate the object if it was inactive.
 };
                          // -----------------------
                          // class TestAssertCounter
@@ -757,11 +731,11 @@ void TestAssertCounter::reset()
                           // class BslsLogCounterGuard
                           // =========================
 
+/// Depending on a verbosity flag install either a counting `bsls` log
+/// handler or a counting and printing log handler on construction and
+/// restore the original handler on destruction.  It counts the log messages
+/// using a class data member.
 class BslsLogCounterGuard {
-    // Depending on a verbosity flag install either a counting 'bsls' log
-    // handler or a counting and printing log handler on construction and
-    // restore the original handler on destruction.  It counts the log messages
-    // using a class data member.
 
   private:
     // TYPES
@@ -777,40 +751,44 @@ class BslsLogCounterGuard {
 
   private:
     // PRIVATE CLASS METHODS
+
+    /// Count log by incrementing `s_logMessageCounter` then call
+    /// `s_originalHandler` using the specified `severity`, `file`, `line`,
+    /// and `message`.
     static void countingCallingHandler(bsls::LogSeverity::Enum  severity,
                                         const char             *file,
                                         int                     line,
                                         const char             *message);
-        // Count log by incrementing 's_logMessageCounter' then call
-        // 's_originalHandler' using the specified 'severity', 'file', 'line',
-        // and 'message'.
 
+    /// Count calls by incrementing `s_logMessageCounter`.
     static void countingHandler(bsls::LogSeverity::Enum,
                                 const char *,
                                 int,
                                 const char *);
-        // Count calls by incrementing 's_logMessageCounter'.
 
   public:
     // CREATORS
-    explicit BslsLogCounterGuard(bool verbose);
-        // Create a 'BslsLogCounterGuard' object.  Set the call counter to
-        // zero.  If the specified 'verbose' is 'false' install a call-counting
-        // log message handler, otherwise install a handler that counts as well
-        // as calls the original log message handler to print the message.  The
-        // behavior is undefined unless no other object of this type exist.
 
+    /// Create a `BslsLogCounterGuard` object.  Set the call counter to
+    /// zero.  If the specified `verbose` is `false` install a call-counting
+    /// log message handler, otherwise install a handler that counts as well
+    /// as calls the original log message handler to print the message.  The
+    /// behavior is undefined unless no other object of this type exist.
+    explicit BslsLogCounterGuard(bool verbose);
+
+    /// Restore the original log message handler from before the creation of
+    /// this object, then destroy this object.
     ~BslsLogCounterGuard();
-        // Restore the original log message handler from before the creation of
-        // this object, then destroy this object.
 
     // CLASS "MANIPULATORS"
+
+    /// Set the log message counter to zero.
     static void resetCounter();
-        // Set the log message counter to zero.
 
     // CLASS "ACCESSORS"
+
+    /// Return the current value of the log message counter.
     static int counter();
-        // Return the current value of the log message counter.
 };
                        // -------------------------
                        // class BslsLogCounterGuard
@@ -871,405 +849,6 @@ int BslsLogCounterGuard::counter()
     return s_logMessageCounter;
 }
 
-                       // ===========================
-                       // class BslsReviewMonitorUtil
-                       // ===========================
-
-class BslsReviewMonitorUtil {
-    // A simple stateful utility that monitors 'BSLS_REVIEW' failures and
-    // verifies that only expected messages from the tested component occur.
-    // Do not use this utility directly, use 'BslsReviewMonitor'.
-
-  private:
-    // CLASS DATA
-    static bsls::Review::ViolationHandler s_originalReviewHandler;
-
-    static bool s_verbose;
-
-    static int  s_numHexfloatReviews;
-    static int  s_numOverflowReviews;
-    static int  s_numUnderflowReviews;
-
-  private:
-    // PRIVATE CLASS METHODS
-
-                       // VIOLATION PREDICATES RELATED
-
-    static bool containsCaseless(const bsl::string_view& string,
-                                 const bsl::string_view& subString);
-        // Return 'true' if the specified 'subString' is present in the
-        // specified 'string' disregarding case of alphabet characters
-        // '[a-zA-Z]', otherwise return 'false'.
-
-    static bool isInComment(const char *comment, const char *subString);
-        // Return 'true' if the specified 'comment' is not a null pointer and
-        // contains the specified 'subString', case insensitive, otherwise
-        // return 'false'.
-
-    static bool maybeRightFilename(const char *fileName);
-        // Return 'true' if the specified 'fileName' is a null pointer, or an
-        // empty null-terminated string, or contains the name of this
-        // component, case insensitive, immediately followed by a dot,
-        // otherwise return 'false'.
-
-                     // 'bsls::Review::ViolationHandler'
-
-    static void monitoringHandler(const bsls::ReviewViolation& violation);
-        // If 'd_verbose' is 'true' "print" the specified 'violation' using the
-        // 'bsls::Review::failByLog' handler.  Determine if the 'violation' is
-        // one of the valid review violations from the tested method
-        // ('bsls::NumericParseutil::parseDouble').  In case  'violation' is
-        // unexpected 'ASSERT' and call the original violation handler stored
-        // by the constructor, unless 'd_verbose' is 'true' and the original
-        // handler is 'bsls::Review::failByLog', then return.  In case
-        // 'violation' is an expected one update the corresponding counter,
-        // then return.
-
-                               // Handler Helpers
-
-    static bool handleIfExpected(const bsls::ReviewViolation& violation);
-        // Determine if the specified 'violation' is expected and update the
-        // corresponding counter if it is, and return 'true', otherwise return
-        // 'false'.
-
-    static bool handleIfHexfloat(const char *comment);
-        // If the specified 'comment' is not from a hexfloat related review
-        // violation do nothing and return 'false', otherwise return 'true'.
-
-    static bool handleIfOverflow(const char *comment);
-        // If the specified 'comment' is not from an overflow related review
-        // violation do nothing and return 'false', otherwise return 'true'.
-
-    static bool handleIfUnderflow(const char *comment);
-        // If the specified 'comment' is not from an underflow related review
-        // violation do nothing and return 'false', otherwise return 'true'.
-
-  public:
-    // CLASS METHODS            // Setup/Tear-down
-    static void start();
-        // Save the original handler, install 'monitoringHandler' as the bsls
-        // review violation handler.  The behavior is undefined unless
-        // 'false == wasStarted()'.
-
-    static void stop();
-        // Restore the saved original bsls review violation handler stored by
-        // 'installHandler' and set the original handler to null.  The behavior
-        // is undefined unless 'true == isActive()'.
-
-                            // Monitoring Status Helpers
-
-    static bool isActive();
-        // Return 'true' if 'true == wasStarted()' and also the installed
-        // review violation handler is 'monitoringHandler', otherwise return
-        // 'false'.
-
-    static bool wasStarted();
-        // Return 'true' if there is a saved original bsls review violation
-        // handler, otherwise return 'false'.
-
-    static bool isVerbose();
-        // Return 'd_verbose'.
-
-                                // Counter Related
-    static int numHexfloat();
-        // Return the hexfloat review violation counter.
-
-    static int numOverflow();
-        // Return the overflow review violation counter.
-
-    static int numUnderflow();
-        // Return the underflow review violation counter.
-
-    static void resetCounters();
-        // Set all counters to 0.
-
-                               // Verbosity Related
-
-    static void setVerbose(bool verbosity);
-        // Set verbosity to the specified 'verbosity'.
-};
-                         // =======================
-                         // class BslsReviewMonitor
-                         // =======================
-
-class BslsReviewMonitor {
-    // A mechanism that monitors 'BSLS_REVIEW' failures and verifies that only
-    // expected messages from the tested component occur.  Note that no more
-    // than one instance of this type is allowed to exist.
-
-  public:
-    // CREATORS
-    explicit BslsReviewMonitor(bool verbose);
-        // Create a 'BslsReviewMonitor' object, set the monitoring verbosity
-        // to the specified 'verbose', reset all counters to zero, and finally
-        // start monitoring bsls review failures.  The behavior is undefined
-        // unless no other 'BslsReviewMonitor' objects exists or in other words
-        // 'false == BslsReviewMonitorUtil::wasStarted()'.
-
-    ~BslsReviewMonitor();
-        // Call 'BslsReviewMonitorUtil::stop()' to stop monitoring and destroy
-        // this object.
-
-    // MANIPULATORS
-    void resetCounters();
-        // Set all expected review violation counters to zero.
-
-    // ACCESSORS
-    bool isVerbose() const;
-        // Return 'true' if this object has been instantiated in 'verbose'
-        // mode, otherwise return 'false'.
-
-    int numHexfloat() const;
-    int numOverflow() const;
-    int numUnderflow() const;
-        // Return the number of observed review failures since construction or
-        // the last call to 'resetCounters'.
-};
-                        // ---------------------------
-                        // class BslsReviewMonitorUtil
-                        // ---------------------------
-// CLASS DATA
-bsls::Review::ViolationHandler BslsReviewMonitorUtil::s_originalReviewHandler;
-
-bool BslsReviewMonitorUtil::s_verbose = false;
-
-int BslsReviewMonitorUtil::s_numHexfloatReviews  = 0;
-int BslsReviewMonitorUtil::s_numOverflowReviews  = 0;
-int BslsReviewMonitorUtil::s_numUnderflowReviews = 0;
-
-// PRIVATE CLASS METHODS
-
-                     // VIOLATION PREDICATES RELATED
-inline
-bool BslsReviewMonitorUtil::containsCaseless(const bsl::string_view& string,
-                                             const bsl::string_view& subString)
-{
-    if (subString.empty()) {
-        return true;                                                  // RETURN
-    }
-
-    typedef bdlb::StringViewUtil SVU;
-    const bsl::string_view rsv = SVU::strstrCaseless(string, subString);
-
-    return !rsv.empty();
-}
-
-inline
-bool BslsReviewMonitorUtil::isInComment(const char *comment,
-                                        const char *subString)
-{
-    return comment && containsCaseless(comment, subString);
-}
-
-inline
-bool BslsReviewMonitorUtil::maybeRightFilename(const char *fileName)
-{
-    if (0 == fileName || '\0' == *fileName) {
-        // It could have been "bsls_numericparseutil.cpp"
-        return true;                                                  // RETURN
-    }
-
-    return containsCaseless(fileName, "bdlb_numericparseutil.");
-}
-
-                    // 'bsls::Review::ViolationHandler'
-
-void BslsReviewMonitorUtil::monitoringHandler(
-                                        const bsls::ReviewViolation& violation)
-{
-    if (s_verbose) {
-        bsls::Review::failByLog(violation);
-    }
-
-    const bool expectedReviewViolation = handleIfExpected(violation);
-
-    ASSERTV(violation.reviewLevel(),
-            Opt(violation.fileName()),
-            violation.lineNumber(),
-            Opt(violation.comment()),
-            violation.count(),
-            expectedReviewViolation);
-
-    if (!expectedReviewViolation &&
-        (!s_verbose || &bsls::Review::failByLog != s_originalReviewHandler)) {
-        // Unexpected violations get the original handler called unless we have
-        // called it already, because it is 'failByLog' and we are verbose.
-        s_originalReviewHandler(violation);
-    }
-}
-                             // Handler Helpers
-inline
-bool BslsReviewMonitorUtil::handleIfExpected(
-                                        const bsls::ReviewViolation& violation)
-{
-    return maybeRightFilename(violation.fileName())
-        && (handleIfHexfloat(violation.comment())  ||
-            handleIfUnderflow(violation.comment()) ||
-            handleIfOverflow(violation.comment()));
-}
-
-inline
-bool BslsReviewMonitorUtil::handleIfHexfloat(const char *comment)
-{
-    const bool isMyThing = isInComment(comment, "hexfloat");
-    if (isMyThing) {
-        ++s_numHexfloatReviews;
-    }
-
-    return isMyThing;  // Chain of Responsibilities Pattern
-}
-
-inline
-bool BslsReviewMonitorUtil::handleIfOverflow(const char *comment)
-{
-    const bool isMyThing = isInComment(comment, "overflow");
-    if (isMyThing) {
-        ++s_numOverflowReviews;
-    }
-
-    return isMyThing;  // Chain of Responsibilities Pattern
-}
-
-inline
-bool BslsReviewMonitorUtil::handleIfUnderflow(const char *comment)
-{
-    const bool isMyThing = isInComment(comment, "underflow");
-    if (isMyThing) {
-        ++s_numUnderflowReviews;
-    }
-
-    return isMyThing;  // Chain of Responsibilities Pattern
-}
-
-// CLASS METHODS
-                            // Setup/Tear-down
-inline
-void BslsReviewMonitorUtil::start()
-{
-    ASSERT(!wasStarted());
-
-    s_originalReviewHandler = bsls::Review::violationHandler();
-
-    bsls::Review::setViolationHandler(&monitoringHandler);
-}
-
-inline
-void BslsReviewMonitorUtil::stop()
-{
-    ASSERT(isActive());
-
-    bsls::Review::setViolationHandler(s_originalReviewHandler);
-    s_originalReviewHandler = 0;
-}
-                        // Monitoring Status Helpers
-inline
-bool BslsReviewMonitorUtil::isActive()
-{
-    return wasStarted() &&
-                        &monitoringHandler == bsls::Review::violationHandler();
-}
-
-inline
-bool BslsReviewMonitorUtil::wasStarted()
-{
-    return s_originalReviewHandler != 0;
-}
-
-inline bool BslsReviewMonitorUtil::isVerbose()
-{
-    return s_verbose;
-}
-
-                             // Counter Related
-inline
-int BslsReviewMonitorUtil::numHexfloat()
-{
-    return s_numHexfloatReviews;
-}
-
-inline
-int BslsReviewMonitorUtil::numOverflow()
-{
-    return s_numOverflowReviews;
-}
-
-inline
-int BslsReviewMonitorUtil::numUnderflow()
-{
-    return s_numUnderflowReviews;
-}
-
-inline
-void BslsReviewMonitorUtil::resetCounters()
-{
-    s_numHexfloatReviews  = 0;
-    s_numOverflowReviews  = 0;
-    s_numUnderflowReviews = 0;
-}
-                            // Verbosity Related
-inline
-void BslsReviewMonitorUtil::setVerbose(bool verbosity)
-{
-    s_verbose = verbosity;
-}
-                         // -----------------------
-                         // class BslsReviewMonitor
-                         // -----------------------
-// CREATORS
-inline
-BslsReviewMonitor::BslsReviewMonitor(bool verbose)
-{
-    ASSERT(!BslsReviewMonitorUtil::wasStarted());
-
-    BslsReviewMonitorUtil::setVerbose(verbose);
-    BslsReviewMonitorUtil::resetCounters();
-    BslsReviewMonitorUtil::start();
-}
-
-inline
-BslsReviewMonitor::~BslsReviewMonitor()
-{
-    BslsReviewMonitorUtil::stop();
-}
-
-// MANIPULATORS
-inline
-void BslsReviewMonitor::resetCounters()
-{
-    BslsReviewMonitorUtil::resetCounters();
-}
-
-// ACCESSORS
-inline
-bool BslsReviewMonitor::isVerbose() const
-{
-    return BslsReviewMonitorUtil::isVerbose();
-}
-
-inline
-int BslsReviewMonitor::numHexfloat() const
-{
-    return BslsReviewMonitorUtil::numHexfloat();
-}
-
-inline
-int BslsReviewMonitor::numOverflow() const
-{
-    return BslsReviewMonitorUtil::numOverflow();
-}
-
-inline
-int BslsReviewMonitor::numUnderflow() const
-{
-    return BslsReviewMonitorUtil::numUnderflow();
-}
-                        // Null Review Handler
-
-void nullReviewHandler(const bsls::ReviewViolation&)
-    // This 'BSLS_REVIEW' handler does nothing.  Used in benchmarking.
-{
-    // This function is intentionally empty.
-}
 
 // ============================================================================
 // FREQUENTLY USED TYPE ABBREVIATIONS
@@ -1286,108 +865,83 @@ bool isNegative(double d) { return bdlb::Float::signBit(   d); }
 // ============================================================================
 // PARSE DATA TEST DATA SPECIFICATION ALIASES, CONSTANTS, AND FUNCTIONS
 
+/// For human-readable "what was parsed" column.  Positive numbers count
+/// from the start of string, larger in absolute value (than the string
+/// length) negative numbers (see `ALL` below) mean the whole string was
+/// parsed (successfully), smaller negative numbers describe the number of
+/// *not* parsed characters, counting from the beginning of the string.
+/// Zero means failure (no characters were successfully parsed).
 typedef bsl::ptrdiff_t ParsedChars;
-    // For human-readable "what was parsed" column.  Positive numbers count
-    // from the start of string, larger in absolute value (than the string
-    // length) negative numbers (see 'ALL' below) mean the whole string was
-    // parsed (successfully), smaller negative numbers describe the number of
-    // *not* parsed characters, counting from the beginning of the string.
-    // Zero means failure (no characters were successfully parsed).
 
 static const ParsedChars All = bsl::numeric_limits<ParsedChars>::min();
 
+/// Convert the specified `parsedChars` that is a possibly negative number
+/// of characters to an index into an input string with the specified
+///  `length` and return it as follows:
+///
+/// * Return a non-negative `parsedChars` value as is.
+/// * If `-parsedChars >= length` return `length`,
+/// * otherwise return `length + parsedChars`.
+///
+/// Essentially positive `parsedChars` values indicate exact positions,
+/// large negative values (see `All` earlier) represent the whole string
+/// parsed successfully, and smaller negative values indicate the number of
+/// characters from the end of the string that were not parsed.
 bsl::size_t calcRestPos(ParsedChars parsedChars, bsl::size_t length)
-    // Convert the specified 'parsedChars' that is a possibly negative number
-    // of characters to an index into an input string with the specified
-    //  'length' and return it as follows:
-    //:
-    //: o Return a non-negative 'parsedChars' value as is.
-    //:
-    //: o If '-parsedChars >= length' return 'length',
-    //:
-    //: o otherwise return 'length + parsedChars'.
-    //
-    // Essentially positive 'parsedChars' values indicate exact positions,
-    // large negative values (see 'All' earlier) represent the whole string
-    // parsed successfully, and smaller negative values indicate the number of
-    // characters from the end of the string that were not parsed.
 {
     if (0 <= parsedChars) {  // Positive or zero
         return parsedChars;                                           // RETURN
     }
 
-    if (static_cast<bsl::size_t>(-parsedChars) > length) { // large negative
+    if ((parsedChars == All) ||
+        (static_cast<bsl::size_t>(-parsedChars) > length)) { // large negative
         return length;                                                // RETURN
     }
 
-    // Small negative position counts from the end of the string (of 'length')
+    // Small negative position counts from the end of the string (of `length`)
     return length + parsedChars;
-}
-
-bsl::size_t calcRestPosForNoHexfloat(bool                    isHex,
-                                     const bsl::string_view& input,
-                                     ParsedChars             parsedChars)
-    // Calculate the position of the first not-parsed character for platforms
-    // that do not support parsing hexadecimal floating point.  Such platforms
-    // will parse the '0' of the hex prefix into a 0, regardless of the rest of
-    // the input after the 'x' or 'X'.  Non hexfloat input (the specified
-    // 'isHex' is 'false') is not different, so we delegate to'calcRestpos'
-    // using the specified 'parsedChars' value, and the length of the specified
-    // 'input'.  When 'isHex' is 'true' the function returns the position of
-    // the first 'x' or 'X' character of 'input'.  The behavior is undefined
-    // if 'isHex' is 'true', but the 'input' does not start with a hex prefix
-    // ("0x" or "0X") optionally preceded by a sign character ('+'/'-').
-    // Notice that the 'parsedChars' argument value is deliberately ignored in
-    // case of a hexfloat 'input'.
-{
-    ASSERTV(input,
-            !isHex || input.find_first_of("xX") != bsl::string_view::npos);
-
-    return isHex
-        ? input.find_first_of("xX")
-        : calcRestPos(parsedChars, input.length());
 }
 
 static const double Inf = Limits::infinity();
 static const double NaN = Limits::quiet_NaN();
 
+/// [N]o[t] [A]pplicable, expected result for failure (readability)
 static const double NtA = -42e42;
-    // [N]o[t] [A]pplicable, expected result for failure (readability)
 
+/// This function exists only because lack of proper hexfloat literal
+/// support and support for hexfloat in `strtod` on Solaris.  We want to
+/// *precisely* specify the expected `parseDouble` result, and in a way that
+/// is still readable for humans.  That needs hexfloat.
+///
+/// Convert the specified `sv` string view to a `double`.  The behavior is
+/// undefined unless `s` is:
+/// * a simple, normalized hexfloat
+/// * a small (less than 2^54) decimal unsigned integer
+/// * the letters "NtA"  -- [No]o[t] [A]pplicable
+/// * the letters "NaN"  -- Not a Number
+/// * the letters "Inf"  -- Infinity
+///
+/// A simple hexfloat starts with "0x", followed by a single integer digit
+/// of '0' or '1'. It has an optional fractional part that immediately
+/// follows the integer digit and starts with a '.' followed by minimum 0
+/// and maximum 13 hexadecimal digits.  It has a mandatory binary exponent
+/// that follows the optional fraction or the integer part if a fraction is
+/// not present.  The exponent part consists of the letter `p` followed by
+/// an optional '+' or '-' sign followed by a decimal number in the range
+/// -1022 and +1023.  If the integer part is 0 the exponent value must be 0
+/// or -1022.  No value that would over or underflow (not fit an IEEE
+/// binary64) is allowed.
+///
+/// Notice that no sign before the value is allowed.  This is because we
+/// verify the explicit positive and the negative variant of every input
+/// string automatically by adding the sign before the string, so there is
+/// no reason to use sign in the input.  (The domain of the signed and
+/// unsigned values of `double` is the same in absolute values.)
+///
+/// "NtA" `input` returns `NtA`, "NaN" and "Inf" `input` return `NaN` and
+/// `Inf` respectively.  Other allowed `input` returns the exact
+/// corresponding positive integer, normal, or subnormal `double` value.
 double parseExpected(const bsl::string_view& sv)
-    // This function exists only because lack of proper hexfloat literal
-    // support and support for hexfloat in 'strtod' on Solaris.  We want to
-    // *precisely* specify the expected 'parseDouble' result, and in a way that
-    // is still readable for humans.  That needs hexfloat.
-    //
-    // Convert the specified 'sv' string view to a 'double'.  The behavior is
-    // undefined unless 's' is:
-    //: o a simple, normalized hexfloat
-    //: o a small (less than 2^54) decimal unsigned integer
-    //: o the letters "NtA"  -- [No]o[t] [A]pplicable
-    //: o the letters "NaN"  -- Not a Number
-    //: o the letters "Inf"  -- Infinity
-    //
-    // A simple hexfloat starts with "0x", followed by a single integer digit
-    // of '0' or '1'. It has an optional fractional part that immediately
-    // follows the integer digit and starts with a '.' followed by minimum 0
-    // and maximum 13 hexadecimal digits.  It has a mandatory binary exponent
-    // that follows the optional fraction or the integer part if a fraction is
-    // not present.  The exponent part consists of the letter 'p' followed by
-    // an optional '+' or '-' sign followed by a decimal number in the range
-    // -1022 and +1023.  If the integer part is 0 the exponent value must be 0
-    // or -1022.  No value that would over or underflow (not fit an IEEE
-    // binary64) is allowed.
-    //
-    // Notice that no sign before the value is allowed.  This is because we
-    // verify the explicit positive and the negative variant of every input
-    // string automatically by adding the sign before the string, so there is
-    // no reason to use sign in the input.  (The domain of the signed and
-    // unsigned values of 'double' is the same in absolute values.)
-    //
-    // "NtA" 'input' returns 'NtA', "NaN" and "Inf" 'input' return 'NaN' and
-    // 'Inf' respectively.  Other allowed 'input' returns the exact
-    // corresponding positive integer, normal, or subnormal 'double' value.
 {
     typedef bsl::string_view::size_type Position;
     typedef bsl::string_view::size_type Size;
@@ -1478,132 +1032,100 @@ double parseExpected(const bsl::string_view& sv)
 // ============================================================================
 // PARSE DOUBLE TEST DATA TYPES
 
+/// This complex constrained attribute type stores directly publicly
+/// accessible flags that describe certain special input values in
+/// `parseDouble` test data.
+///
+/// # Attributes
+/// ```
+/// Name                Type  Default  Simple Constraints
+/// ------------------  ----  -------  ------------------
+/// uflwInSignificand   bool  none     none
+/// isUnderflow         bool  none     none
+/// isOverflow          bool  none     none
+/// isSubnormal         bool  none     none
+/// ```
+///
+/// # Complex Constrains
+///
+///  +-------------------+-----------------------------------------+
+///  | Flags             | Constraint one when can be set (`true`) |
+///  +===================+=========================================+
+///  | isUnderflow       | these 3 flags are mutually exclusive,   |
+///  | isOverflow        | only one of them may be `true`.         |
+///  | isSubnormal       |                                         |
+///  +-------------------+-----------------------------------------+
+///  | uflwInSignificand | true == isOverflow, in other words this |
+///  |                   | is a special flavor of underflow        |
+///  +-------------------+-----------------------------------------+
+///  | subnormalIsMin    | true == isSubnormal, in other words     |
+///  |                   | this is a special subnormal             |
+///  +-------------------+-----------------------------------------+
+///
+/// `uflwInSignificand`: GNU libc `strtod` behave differently when it
+///                      converts a number that has smallest representable
+///                      effective decimal exponent -324 but its binary
+///                      significand rounds to zero when trying to fit it
+///                      into the available 52 bits with binary exponent
+///                      -1022.  This is a range of very small numbers that
+///                      have the largest negative subnormal
+///                      decimal exponent -324 but the significand rounds to
+///                      less than that of the smallest subnormal
+///                      `bsl::numeric_limits<double>denorm_min()`.
+///
+/// `subnormalIsMin`    - GNU libc has an anomaly when parsing the exact
+///                       value of `numeric_limits<>::denorm_min()`
+///
+/// # String Literal Format
+///
+/// For ease of readability the flags are set using a string literal that we
+/// then translate to these boolean values.  See also `stringToFlags`.  The
+/// above constraints translate to the following possible literals:
+///
+///  +------+-----+---+-----+
+///  | str  | u   | o | d i |
+///  | ing  | n t | v | e s |
+///  |      | d i | e | n m |
+///  | lit  | e n | r | r i | ,----------------------------------------+
+///  | eral | r y | f | m n |/               Description               |
+///  +======+=====+===+=====+==========================================+
+///  | ""   | f f | f | f f | normal number in fixed/scientific format |
+///  |      |     |   |     | or parsing error(**)                     |
+///  +------+-----+---+-----+------------------------------------------+
+///  | "U"  | T f | f | f f | underflow in fixed or scientific format  |
+///  +------+-----+---+-----+------------------------------------------+
+///  | "u"  | T T | f | f T | significand-only underflow in            |
+///  |      |     |   |     | fixed/scientific format                  |
+///  +------+-----+---+-----+------------------------------------------+
+///  | "O"  | f f | T | f T | overflow in fixed or scientific format   |
+///  +------+-----+---+-----+------------------------------------------+
+///  | "D"  | f f | f | f f | subnormal in fixed or scientific format  |
+///  +------+-----+---+-----+------------------------------------------+
+///  | "d"  | f f | f | T T | `denorm_min()` in fixed/scientific fmt   |
+///  +------+-----+---+-----+------------------------------------------+
+///  | str  | u t | o | d i |\              Description                |
+///  | ing  | n i | v | e s | `----------------------------------------+
+///  |      | d n | e | n M |
+///  | eral | e y | r | r i |
+///  | lit  | r   | f | m n |
+///  +------+-----+---+-----+
+///
+///(**) Every other string literal must accompany an input that is, or
+///      begins-with a parsable `double` that fulfills to the description.
 struct SpecialFlags {
-    // This complex constrained attribute type stores directly publicly
-    // accessible flags that describe certain special input values in
-    // 'parseDouble' test data.
-    //
-    ///Attributes
-    ///----------
-    //..
-    //  Name                Type  Default  Simple Constraints
-    //  ------------------  ----  -------  ------------------
-    //  isHex               bool  none     none
-    //  uflwInSignificand   bool  none     none
-    //  isUnderflow         bool  none     none
-    //  isOverflow          bool  none     none
-    //  isSubnormal         bool  none     none
-    //..
-    //
-    ///Complex Constrains
-    ///------------------
-    ///
-    //: +-------------------+-----------------------------------------+
-    //: | Flags             | Constraint one when can be set ('true') |
-    //: +===================+=========================================+
-    //: | isHex             | none                                    |
-    //: +-------------------+-----------------------------------------+
-    //: | isUnderflow       | these 3 flags are mutually exclusive,   |
-    //: | isOverflow        | only one of them may be 'true'.         |
-    //: | isSubnormal       |                                         |
-    //: +-------------------+-----------------------------------------+
-    //: | uflwInSignificand | true == isOverflow, in other words this |
-    //: |                   | is a special flavor of underflow        |
-    //: +-------------------+-----------------------------------------+
-    //: | subnormalIsMin    | true == isSubnormal, in other words     |
-    //: |                   | this is a special subnormal             |
-    //: +-------------------+-----------------------------------------+
-    //
-    // 'uflwInSignificand': GNU libc 'strtod' behave differently when it
-    //                      converts a number that has smallest representable
-    //                      effective decimal exponent -324 but its binary
-    //                      significand rounds to zero when trying to fit it
-    //                      into the available 52 bits with binary exponent
-    //                      -1022.  This is a range of very small numbers that
-    //                      have the largest negative subnormal
-    //                      decimal exponent -324 but the significand rounds to
-    //                      less than that of the smallest subnormal
-    //                      'bsl::numeric_limits<double>denorm_min()'.
-    //
-    // 'subnormalIsMin'    - GNU libc has an anomaly when parsing the exact
-    //                       value of 'numeric_limits<>::denorm_min()'
-    //
-    ///String Literal Format
-    ///---------------------
-    //
-    // For ease of readability the flags are set using a string literal that we
-    // then translate to these boolean values.  See also 'stringToFlags'.  The
-    // above constraints translate to the following possible literals:
-    //
-    //: +------+---+-----+---+-----+
-    //: | str  |   | u   | o | d i |
-    //: | ing  |   | n t | v | e s |
-    //: |      | h | d i | e | n m |
-    //: | lit  | e | e n | r | r i | ,----------------------------------------+
-    //: | eral | x | r y | f | m n |/               Description               |
-    //: +======+===+=====+===+=====+==========================================+
-    //: | ""   | f | f f | f | f f | normal number in fixed/scientific format |
-    //: |      |   |     |   |     | or parsing error(**)                     |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "H"  | T | f f | f | f f | normal number in hexfloat format         |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "U"  | f | T f | f | f f | underflow in fixed or scientific format  |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "u"  | f | T T | f | f T | significand-only underflow in            |
-    //: |      |   |     |   |     | fixed/scientific format                  |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "O"  | f | f f | T | f T | overflow in fixed or scientific format   |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "HU" | T | T f | f | f f | underflow in hexfloat format             |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "Hu" | T | T T | f | f T | significand-only underflow in hexadecimal|
-    //: |      |   |     |   |     | format                                   |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "HO" | T | f f | T | f f | overflow in hexfloat format              |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "D"  | f | f f | f | f f | subnormal in fixed or scientific format  |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "d"  | f | f f | f | T T | 'denorm_min()' in fixed/scientific fmt   |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "HD" | T | f f | f | T f | subnormal in hexfloat format             |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "Hd" | T | f f | f | T T | 'denorm_min()' in hexfloat format        |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | "hd" | T | f f | f | F F | hexfloat 'denorm_min()/2' GNU bug(***)   |
-    //: +------+---+-----+---+-----+------------------------------------------+
-    //: | str  | h | u t | o | d i |\              Description                |
-    //: | ing  | e | n i | v | e s | `----------------------------------------+
-    //: | eral | x | d n | e | n M |
-    //: | lit  |   | e y | r | r i |
-    //: |      |   | r   | f | m n |
-    //: +------+---+-----+---+-----+
-    //:
-    //:(**) Every other string literal must accompany an input that is, or
-    //:     begins-with a parsable 'double' that fulfills to the description.
-    //:
-    //: (***) See 'u_GLIBC2_STRTOD_HEX_HALF_DENORM_MIN_HEX_BUG'.  This sets
-    //:       'd_isHexHalfSubnormMin' to 'true', while all other flags
-    //:       combinations set 'd_isHexHalfSubnormMin' to 'false'.  That flag
-    //:       is used only in the expectations-verifier when the 'strtod' bug
-    //:       is expected to be present.
 
     // PUBLIC DATA
-    bool d_isHex;
     bool d_isUnderflow;
     bool d_significandUnderflow;
     bool d_isOverflow;
     bool d_isSubnormal;
     bool d_subnormIsMin;
-    bool d_isHexHalfSubnormMin;
 };
 
 bsl::ostream& operator<<(bsl::ostream& os, const SpecialFlags& flags)
 {
     os << '"';
 
-    const char hexFlag = (flags.d_isHexHalfSubnormMin ? 'h' : 'H');
-
-    if (flags.d_isHex)                os << hexFlag;
     if (flags.d_significandUnderflow) os << 'u';
     else if (flags.d_isUnderflow)     os << 'U';
     else if (flags.d_isOverflow)      os << 'O';
@@ -1613,52 +1135,25 @@ bsl::ostream& operator<<(bsl::ostream& os, const SpecialFlags& flags)
     return os << '"';
 }
 
+/// Return `SpecialFlags` filled out according to the specified `string`.
+///
+///  "U"  | underflow
+///  "u"  | Significand-only underflow
+///  "O"  | overflow
+///  "D"  | subnormal
+///  "d"  | sci/fixed `denorm_min()`
+///
+/// See `SpecialFlags` for a detailed description.
 SpecialFlags stringToFlags(const char *string)
-    // Return 'SpecialFlags' filled out according to the specified 'string',
-    // properly ignoring hexfloat flags for platforms that do not support
-    // parsing that format.
-    //
-    //: "H"  | hexfloat
-    //: "U"  | underflow
-    //: "u"  | Significand-only underflow
-    //: "O"  | overflow
-    //: "HU" | hex and underflow
-    //: "Hu" | hex and decimal significand-only underflow
-    //: "HO" | hex and overflow
-    //: "D"  | subnormal
-    //: "HD" | hexfloat subnormal
-    //: "d"  | sci/fixed 'denorm_min()'
-    //: "Hd" | hexfloat 'denorm_min()'
-    //: "hd" | hexfloat 'denorm_min() / 2'
-    //
-    // See 'SpecialFlags' for a detailed description.
 {
     using bdlb::CharType;
 
-    const bool k_IS_HEX      = ('H' == CharType::toUpper(string[0]));
-
-#ifndef u_BDLB_NUMERICPARSEUTIL_SUPPORT_PARSING_HEXFLOAT
-    // On platforms not supporting hexfloat parsing the hex prefix will be
-    // parsed as zero ("0x"/"0X"), so no overflow, underflow, or subnormals are
-    // possible.  Therefore all flags should be 'false' except for 'isHex', as
-    // we still get our own 'BSLS_REVIEW_OPT'.  Note that all platforms that
-    // support 'from_chars' do support 'chars_format::hex'.
-    if (k_IS_HEX) {
-        static const SpecialFlags k_JUST_HEX = { true };
-        return k_JUST_HEX;                                            // RETURN
-    }
-#endif
-
-    const bsl::size_t POS = k_IS_HEX ? 1 : 0;
-
     SpecialFlags rv = {
-        k_IS_HEX,                                 // isHex
-        ('U' == CharType::toUpper(string[POS])),  // isUnderflow
-        ('u' == string[POS]),                     // significandUnderflow
-        ('O' == string[POS]),                     // isOverflow
-        ('D' == CharType::toUpper(string[POS])),  // isSubnormal
-        ('d' == string[POS]),                     // subnormIsMin
-        (k_IS_HEX && 'h' == string[0])            // isHexHalfSubnormMin
+        ('U' == CharType::toUpper(string[0])),  // isUnderflow
+        ('u' == string[0]),                     // significandUnderflow
+        ('O' == string[0]),                     // isOverflow
+        ('D' == CharType::toUpper(string[0])),  // isSubnormal
+        ('d' == string[0])                      // subnormIsMin
     };
 
     return rv;
@@ -1666,8 +1161,9 @@ SpecialFlags stringToFlags(const char *string)
                         // ==================
                         // struct TestDataRow
                         // ==================
+
+/// One line of test data for `parseDouble` tests (and benchmarking).
 struct TestDataRow {
-    // One line of test data for 'parseDouble' tests (and benchmarking).
 
     typedef bsl::string_view string_view;
 
@@ -1675,15 +1171,24 @@ struct TestDataRow {
     string_view  d_input;       // base input string to parse
     double       d_expected;    // expected value if parsed successfully
     bsl::size_t  d_restPos;     // position of the first non-parsed character
-    SpecialFlags d_flags;       // See 'SpecialFlags' and 'stringToFlags()'.
+    SpecialFlags d_flags;       // See `SpecialFlags` and `stringToFlags()`.
 
-    string_view  d_expLiteral;  // literal form of 'expected' used to overcome
-};                              // no-support for hexfloat literal in compiler
+    string_view  d_expLiteral;  // literal form of `expected` used to overcome
+                                // no-support for hexfloat literal in compiler
+};
 
 // ============================================================================
 // PARSE DOUBLE TEST DATA DEFINITION AND ITS PORTABILITY MACROS
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS
+    /// Define a table row using the specified `input`, `expected` value,
+    /// expected `offset` specification, and `sflags` special flags.
+    ///
+    /// Add the string-form of the `expected` value in order to verify the
+    /// parser function for the platforms that do not support hexadecimal
+    /// floating point literals, and to allow better for experience by
+    /// asserting *exactly* what the expected value was in the table
+    /// regardless of stream format settings.
     #define ROW(input, expected, offset, sflags)                              \
         { L_, input,                                                          \
               expected,                                                       \
@@ -1691,17 +1196,8 @@ struct TestDataRow {
               stringToFlags(sflags),                                          \
               #expected                                                       \
         }
-        // Define a table row using the specified 'input', 'expected' value,
-        // expected 'offset' specification, and 'sflags' special flags.
-        //
-        // Add the string-form of the 'expected' value in order to verify the
-        // parser function for the platforms that do not support hexadecimal
-        // floating point literals, and to allow better for experience by
-        // asserting *exactly* what the expected value was in the table
-        // regardless of stream format settings.
-#elif defined(u_BDLB_NUMERICPARSEUTIL_SUPPORT_PARSING_HEXFLOAT)
-    // This is AIX, has trouble with some literals but its 'strtod' has working
-    // hexfloat support.
+#else
+    // AIX and Sun
     #define ROW(input, expected, offset, sflags)                              \
         { L_, input,                                                          \
               parseExpected(#expected),                                       \
@@ -1709,30 +1205,11 @@ struct TestDataRow {
               stringToFlags(sflags),                                          \
               #expected                                                       \
         }
-#else
-    // This is Solaris, no hexfloat support of any kind so we need to fake that
-    // by "parsing" everything hex into 0, and parsing the expected literals by
-    // a function into a 'double'.
-    #define ROW(input, expected, offset, sflags)                              \
-        { L_, input,                                                          \
-              ('H' != *sflags) ? parseExpected(#expected) : 0.0,              \
-              calcRestPosForNoHexfloat('H' == *sflags || 'h' == *sflags,      \
-                                       input, offset),                        \
-              stringToFlags(sflags),                                          \
-              #expected                                                       \
-        }
 #endif
 
+/// Abbreviation for long rows that are expected to pass and have no special
+/// flags (not subnormal, no under or overflow).
 #define PROW(input, expected) ROW(input, expected, All, "")
-    // Abbreviation for long rows that are expected to pass and have no special
-    // flags (not subnormal, not hexfloat format, no any under/overflow).
-
-#define HPROW(input, expected) ROW(input, expected, All, "H")
-    // Abbreviation for long hexfloat rows that are expected to pass and have
-    // no other special flags (not subnormal, no any under/overflow).
-
-#define HDROW(input, expected) ROW(input, expected, All, "HD")
-    // Abbreviation for long hexfloat subnormal rows.
 
 static const TestDataRow TEST_DATA[] = {
     //  input text                         expected                 offs sflags
@@ -1749,7 +1226,7 @@ static const TestDataRow TEST_DATA[] = {
     ROW("e",                               NtA,                       0, ""  ),
     ROW("E",                               NtA,                       0, ""  ),
 
-    // We treat 'x' and 'X' at the end differently due to MS and AIX issues
+    // We treat `x` and `X` at the end differently due to MS and AIX issues
     ROW("x",                               NtA,                       0, ""  ),
     ROW("X",                               NtA,                       0, ""  ),
 
@@ -1776,48 +1253,18 @@ static const TestDataRow TEST_DATA[] = {
     ROW("+-1",                             NtA,                       0, ""  ),
     ROW("-+1",                             NtA,                       0, ""  ),
 
-    // Hex-looking 3 char, but not really valid hexfloat
-    ROW("0xx",                             0,                         1, ""  ),
-    ROW("0XX",                             0,                         1, ""  ),
-    ROW("0x.",                             0,                         1, ""  ),
-    ROW("0X.",                             0,                         1, ""  ),
+    // Hexfloat - should be parsed as 0, stopping on the `x`
+    ROW("0x7",                               0,                       1, ""  ),
+    ROW("0X3",                               0,                       1, ""  ),
+    ROW("+0x5",                              0,                       2, ""  ),
+    ROW("+0X2",                              0,                       2, ""  ),
+    ROW("-0x4",                              0,                       2, ""  ),
+    ROW("-0X9",                              0,                       2, ""  ),
+    // Complete tests for parsing hexfloats are found at the following git hash
+    // 5cb5985af1b7e3fb113eea421f73770075eb968f and may be used in case we
+    // decide to implement a hexfloat parsing functionality.
 
-    // Valid 3 char hexfloats
-    ROW("0x0",                              0,                      All, "H" ),
-    ROW("0x1",                              1,                      All, "H" ),
-    ROW("0x2",                              2,                      All, "H" ),
-    ROW("0x3",                              3,                      All, "H" ),
-    ROW("0x4",                              4,                      All, "H" ),
-    ROW("0x5",                              5,                      All, "H" ),
-    ROW("0x6",                              6,                      All, "H" ),
-    ROW("0x7",                              7,                      All, "H" ),
-    ROW("0x8",                              8,                      All, "H" ),
-    ROW("0x9",                              9,                      All, "H" ),
-    ROW("0xa",                             10,                      All, "H" ),
-    ROW("0xb",                             11,                      All, "H" ),
-    ROW("0xc",                             12,                      All, "H" ),
-    ROW("0xd",                             13,                      All, "H" ),
-    ROW("0xe",                             14,                      All, "H" ),
-    ROW("0xf",                             15,                      All, "H" ),
-    ROW("0x10",                            16,                      All, "H" ),
-    ROW("0x11",                            17,                      All, "H" ),
-    ROW("0x12",                            18,                      All, "H" ),
-    ROW("0x13",                            19,                      All, "H" ),
-    ROW("0x14",                            20,                      All, "H" ),
-    ROW("0x15",                            21,                      All, "H" ),
-    ROW("0x16",                            22,                      All, "H" ),
-    ROW("0x17",                            23,                      All, "H" ),
-    ROW("0x18",                            24,                      All, "H" ),
-    ROW("0x19",                            25,                      All, "H" ),
-    ROW("0x1a",                            26,                      All, "H" ),
-    ROW("0x1b",                            27,                      All, "H" ),
-    ROW("0x1c",                            28,                      All, "H" ),
-    ROW("0x1d",                            29,                      All, "H" ),
-    ROW("0x1e",                            30,                      All, "H" ),
-    ROW("0x1f",                            31,                      All, "H" ),
-    ROW("0xFF",                           255,                      All, "H" ),
-
-    // '[eE]+$' had 'scanf' anomalies, we treat those as possible anomalies
+    // `[eE]+$` had `scanf` anomalies, we treat those as possible anomalies
     ROW("0ee",                               0,                       1, ""  ),
     ROW("0eE",                               0,                       1, ""  ),
     ROW("0Ee",                               0,                       1, ""  ),
@@ -1867,36 +1314,8 @@ static const TestDataRow TEST_DATA[] = {
     ROW("- + 1",                           NtA,                       0, ""  ),
     ROW(" - + 1",                          NtA,                       0, ""  ),
 
-    // Valid 4 char hexfloats
-    ROW("0x42",                             66,                     All, "H" ),
-    ROW("0X0f",                             15,                     All, "H" ),
-    ROW("0Xa5",                            165,                     All, "H" ),
-
-    ROW("0x.0",                            0,                       All, "H" ),
-    ROW("0x.1",                            0x1.0000000000000p-4,    All, "H" ),
-    ROW("0x.2",                            0x1.0000000000000p-3,    All, "H" ),
-    ROW("0x.3",                            0x1.8000000000000p-3,    All, "H" ),
-    ROW("0x.4",                            0x1.0000000000000p-2,    All, "H" ),
-    ROW("0x.5",                            0x1.4000000000000p-2,    All, "H" ),
-    ROW("0x.6",                            0x1.8000000000000p-2,    All, "H" ),
-    ROW("0x.7",                            0x1.c000000000000p-2,    All, "H" ),
-    ROW("0x.8",                            0x1.0000000000000p-1,    All, "H" ),
-    ROW("0x.9",                            0x1.2000000000000p-1,    All, "H" ),
-    ROW("0x.a",                            0x1.4000000000000p-1,    All, "H" ),
-    ROW("0x.b",                            0x1.6000000000000p-1,    All, "H" ),
-    ROW("0x.c",                            0x1.8000000000000p-1,    All, "H" ),
-    ROW("0x.d",                            0x1.a000000000000p-1,    All, "H" ),
-    ROW("0x.e",                            0x1.c000000000000p-1,    All, "H" ),
-    ROW("0x.f",                            0x1.e000000000000p-1,    All, "H" ),
-
-    // Too many signs for hexfloat
-    ROW("++0Xa",                           NtA,                       0, ""  ),
-    ROW("--0xa",                           NtA,                       0, ""  ),
-    ROW("+-0Xa",                           NtA,                       0, ""  ),
-    ROW("-+0xa",                           NtA,                       0, ""  ),
-
     // Eclectic set of string that look hex or scientific but aren't, yet a
-    // part of them can be parsed as a 'double'
+    // part of them can be parsed as a `double`
     ROW("1.23E2E",                         123,                      -1, ""  ),
     ROW("123x",                            123,                      -1, ""  ),
     ROW("1x",                                1,                      -1, ""  ),
@@ -1975,13 +1394,13 @@ static const TestDataRow TEST_DATA[] = {
     // the mantissa will *not* cross into the overflow/underflow condition.  So
     // do not be surprised by the numbers below.
 
-    // "Exact" scientific maximum 'double', and the first that overflows
+    // "Exact" scientific maximum `double`, and the first that overflows
     ROW("1.7976931348623157e308",          0x1.fffffffffffffp+1023, All, ""  ),
     ROW("1.7976931348623157e+308",         0x1.fffffffffffffp+1023, All, ""  ),
     ROW("1.7976931348623160e308",          Inf,                     All, "O" ),
     ROW("1.7976931348623160e+308",         Inf,                     All, "O" ),
 
-    // Minimum normal, max/min subnormal, first underflow 'double'
+    // Minimum normal, max/min subnormal, first underflow `double`
     ROW("2.2250738585072014e-308",         0x1.0000000000000p-1022, All, ""  ),
     ROW("2.2250738585072009e-308",         0x0.fffffffffffffp-1022, All, "D" ),
     ROW("4.9406564584124654e-324",         0x0.0000000000001p-1022, All, "d" ),
@@ -1994,274 +1413,6 @@ static const TestDataRow TEST_DATA[] = {
     ROW("1e-325",                          0,                       All, "U" ),
     ROW("1e309",                           Inf,                     All, "O" ),
     ROW("1e+309",                          Inf,                     All, "O" ),
-
-    // Hexfloat under/overflow
-    ROW("0x1p-1074",                       0x0.0000000000001p-1022, All, "Hd"),
-    ROW("0x2p-1075",                       0x0.0000000000001p-1022, All, "Hd"),
-    ROW("0x2p-1076",                       0,                       All, "hd"),
-    ROW("0x1p-1075",                       0,                       All, "hd"),
-
-    // 'strtod' of GNU libc  consistently parses any hexfloat value that is
-    // half of 'bsl::numeric_limits<double>::denorm_min()' into the value of
-    // 'bsl::numeric_limits<double>::denorm_min()'.  This off-by-one-helf bug
-    // does not seem to appear for any other value or format.  The anomaly is
-    // fixed/patched up in the 'parseDouble' implementation.  These test values
-    // are the reasonable verification of the fix on this GNU libc bug.  A more
-    // exhaustive verification step is performed separately with much longer
-    // strings to verify pathological scenarios.  These tests are enabled for
-    // all platforms deliberately as we use the non-buggy platforms as oracles.
-    // See also 'u_GLIBC2_STRTOD_HEX_HALF_DENORM_MIN_HEX_BUG'.
-    ROW( "0x1p-1075",                      0,                       All, "hd"),
-    ROW( "0x2p-1076",                      0,                       All, "hd"),
-    ROW( "0x4p-1077",                      0,                       All, "hd"),
-    ROW( "0x8p-1078",                      0,                       All, "hd"),
-    ROW("0x10p-1079",                      0,                       All, "hd"),
-    ROW("0x20p-1080",                      0,                       All, "hd"),
-    ROW("0x40p-1081",                      0,                       All, "hd"),
-    ROW("0x80p-1082",                      0,                       All, "hd"),
-    ROW("0x100p-1083",                     0,                       All, "hd"),
-    ROW("0x200p-1084",                     0,                       All, "hd"),
-    ROW("0x400p-1085",                     0,                       All, "hd"),
-    ROW("0x800p-1086",                     0,                       All, "hd"),
-    ROW("0x1000p-1087",                    0,                       All, "hd"),
-    ROW("0x2000p-1088",                    0,                       All, "hd"),
-    ROW("0x4000p-1089",                    0,                       All, "hd"),
-    ROW("0x8000p-1090",                    0,                       All, "hd"),
-    ROW("0x10000p-1091",                   0,                       All, "hd"),
-    ROW("0x20000p-1092",                   0,                       All, "hd"),
-    ROW("0x40000p-1093",                   0,                       All, "hd"),
-
-    ROW("0x0.8p-1074",                     0,                       All, "hd"),
-    ROW("0x0.4p-1073",                     0,                       All, "hd"),
-    ROW("0x0.2p-1072",                     0,                       All, "hd"),
-    ROW("0x0.1p-1071",                     0,                       All, "hd"),
-    ROW("0x0.08p-1070",                    0,                       All, "hd"),
-    ROW("0x0.04p-1069",                    0,                       All, "hd"),
-    ROW("0x0.02p-1068",                    0,                       All, "hd"),
-    ROW("0x0.01p-1067",                    0,                       All, "hd"),
-    ROW("0x0.008p-1066",                   0,                       All, "hd"),
-    ROW("0x0.004p-1065",                   0,                       All, "hd"),
-    ROW("0x0.002p-1064",                   0,                       All, "hd"),
-    ROW("0x0.001p-1063",                   0,                       All, "hd"),
-    ROW("0x0.0008p-1062",                  0,                       All, "hd"),
-    ROW("0x0.0004p-1061",                  0,                       All, "hd"),
-    ROW("0x0.0002p-1060",                  0,                       All, "hd"),
-    ROW("0x0.0001p-1059",                  0,                       All, "hd"),
-    ROW("0x0.00008p-1058",                 0,                       All, "hd"),
-    ROW("0x0.00004p-1057",                 0,                       All, "hd"),
-    ROW("0x0.00002p-1056",                 0,                       All, "hd"),
-    ROW("0x0.00001p-1055",                 0,                       All, "hd"),
-    ROW("0x0.000001p-1051",                0,                       All, "hd"),
-
-    ROW("0x.8p-1074",                      0,                       All, "hd"),
-    ROW("0x.4p-1073",                      0,                       All, "hd"),
-    ROW("0x.2p-1072",                      0,                       All, "hd"),
-    ROW("0x.1p-1071",                      0,                       All, "hd"),
-    ROW("0x.08p-1070",                     0,                       All, "hd"),
-    ROW("0x.04p-1069",                     0,                       All, "hd"),
-    ROW("0x.02p-1068",                     0,                       All, "hd"),
-    ROW("0x.01p-1067",                     0,                       All, "hd"),
-    ROW("0x.008p-1066",                    0,                       All, "hd"),
-    ROW("0x.004p-1065",                    0,                       All, "hd"),
-    ROW("0x.002p-1064",                    0,                       All, "hd"),
-    ROW("0x.001p-1063",                    0,                       All, "hd"),
-    ROW("0x.0008p-1062",                   0,                       All, "hd"),
-    ROW("0x.0004p-1061",                   0,                       All, "hd"),
-    ROW("0x.0002p-1060",                   0,                       All, "hd"),
-    ROW("0x.0001p-1059",                   0,                       All, "hd"),
-    ROW("0x.00008p-1058",                  0,                       All, "hd"),
-    ROW("0x.00004p-1057",                  0,                       All, "hd"),
-    ROW("0x.00002p-1056",                  0,                       All, "hd"),
-    ROW("0x.00001p-1055",                  0,                       All, "hd"),
-    ROW("0x.000001p-1051",                 0,                       All, "hd"),
-
-    // 'u_GLIBC2_STRTOD_HEX_HALF_DENORM_MIN_HEX_BUG' unlikely but valid inputs
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000002", // 268 '0's then '2'
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000004", // 268 '0's then '4'
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000002P0", // 268 '0's then '2'
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000004P0", // 268 '0's then '4'
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000001P1",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000002P1",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "000000000000000000000000000008P2",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000001P2",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "000000000000000000000000000004P3",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "000000000000000000000000000008P3",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "000000000000000000000000000002P4",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "000000000000000000000000000004P4",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "0000000000000000000000000000002P8",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "0000000000000000000000000000004P8",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000004P-1",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000008P-1",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000008P-2",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "0000000000000000000000000001P-2",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "0000000000000000000000000001P-3",
-                                           0,                       All, "hd"),
-
-    ROW("0x.000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "0000000000000000000000000002P-3",
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x0"
-          ".000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000002", // 268 '0's then '2'
-                                           0,                       All, "hd"),
-
-    ROW("0x0"
-          ".000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000004", // 268 '0's then '4'
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x00000"
-          ".000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000002", // 268 '0's then '2'
-                                           0,                       All, "hd"),
-
-    ROW("0x00000000"
-          ".000000000000000000000000000000000000000000000000000000000000" // 60
-           "000000000000000000000000000000000000000000000000000000000000" //120
-           "000000000000000000000000000000000000000000000000000000000000" //180
-           "000000000000000000000000000000000000000000000000000000000000" //240
-           "00000000000000000000000000004", // 268 '0's then '4'
-                                           0x0.0000000000001p-1022, All, "Hd"),
-
-    ROW("0x2p-1077",                       0,                       All, "Hu"),
-    ROW("0x1p-1076",                       0,                       All, "Hu"),
-    ROW("0x1p-1077",                       0,                       All, "Hu"),
-    ROW("0x1p-1078",                       0,                       All, "Hu"),
-    ROW("0x1p-1079",                       0,                       All, "HU"),
-    ROW("0x1p-1080",                       0,                       All, "HU"),
-    ROW("0x0.8p1024",                      0x1.0000000000000p+1023, All, "H" ),
-    ROW("0x1p1024",                        Inf,                     All, "HO"),
-    ROW("0x1p+1024",                       Inf,                     All, "HO"),
-
-    // Hexfloat exact maximum, then first overflow NA,
-    ROW("0x1.FFFFFFFFFFFFFp1023",          0x1.fffffffffffffp+1023, All, "H" ),
-    ROW("0x1.FFFFFFFFFFFFFp+1023",         0x1.fffffffffffffp+1023, All, "H" ),
 
     ROW("1e1000000000",                    Inf,                     All, "O" ),
     ROW("1e+1000000000",                   Inf,                     All, "O" ),
@@ -2281,8 +1432,8 @@ static const TestDataRow TEST_DATA[] = {
     ROW("1.8e+308",                        Inf,                     All, "O" ),
 
     // Stress tests for converting decimal to 64-bit double.  See
-    //: "A Program for Testing IEEE Decimal-Binary Conversions"
-    //: Vern Paxson, ICIR 1991.
+    //  "A Program for Testing IEEE Decimal-Binary Conversions"
+    //  Vern Paxson, ICIR 1991.
     //
     //   Input                                    Expected
     //   ---------------------------------------- -----------------------
@@ -2347,90 +1498,7 @@ static const TestDataRow TEST_DATA[] = {
     PROW("NAN(ananana_batmaaan)",   NaN ),
     PROW("Nan(ananana_batmaaan)",   NaN ),
     PROW("NaN(ananana_batmaaan)",   NaN ),
-
-    // Tests for hexfloat parsing
-    //
-    // Hexfloats are verified more thoroughly as they are a relatively recent
-    // addition to the languages and also one that may not be used as widely as
-    // the scientific and fixed format.
-    //
-    // Some values are from https://observablehq.com/@jrus/hexfloat
-    //..
-    // number             hexfloat                 decimal
-    //  1                 +0x1.0000000000000p+00   +1.0000000000000000e+00
-    // +0                 +0x0.0000000000000p+00   +0.0000000000000000e+00
-    // -0                 -0x0.0000000000000p+00   -0.0000000000000000e+00
-    //  1/3               +0x1.5555555555555p-02   +3.3333333333333331e-01
-    // -4/7               -0x1.2492492492492p-01   -5.7142857142857140e-01
-    //  0.1               +0x1.999999999999ap-04   +1.0000000000000001e-01
-    // (sqrt(5) + 1) / 2  +0x1.9e3779b97f4a8p+00   +1.6180339887498949e+00
-    // sqrt(.5)           +0x1.6a09e667f3bcdp-01   +7.0710678118654757e-01
-    // pi                 +0x1.921fb54442d18p+01   +3.1415926535897931e+00
-    // e                  +0x1.5bf0a8b145769p+01   +2.7182818284590451e+00
-    // ln(2)              +0x1.62e42fefa39efp-01   +6.9314718055994529e-01
-    // log2(e)            +0x1.71547652b82fep+00   +1.4426950408889634e+00
-    // DBL_EPSILON        +0x1.0000000000000p-52   +2.2204460492503131e-16
-    // DBL_MIN            +0x1.0000000000000p-1074 +4.9406564584124654e-324
-    // DBL_MAX            +0x1.fffffffffffffp+1023 +1.7976931348623157e+308
-    // min safe int64     -0x1.fffffffffffffp+052  -9.0071992547409910e+15
-    // max safe int64     +0x1.fffffffffffffp+052  +9.0071992547409910e+15
-    //..
-    //
-    // More values (corner cases, subnormals, etc.) will have to be added only
-    // if we decide to implement hexfloat support on Solaris.
-    //
-    //     Input                         Expected
-    //     ---------------------------   ------------------------
-    HPROW( "0x1.0000000000000p0",        1                       ),
-    HPROW( "0x1.0000000000000p+0",       1                       ),
-    HPROW( "0x1.0000000000000p00",       1                       ),
-    HPROW( "0x1.0000000000000p+00",      1                       ),
-    HPROW( "0x0.0000000000000p0",        0                       ),
-    HPROW( "0x0.0000000000000p+0",       0                       ),
-    HPROW( "0x0.0000000000000p00",       0                       ),
-    HPROW( "0x0.0000000000000p+00",      0                       ),
-    HPROW( "0x1.5555555555555p-2",       0x1.5555555555555p-2    ),
-    HPROW( "0x1.5555555555555p-02",      0x1.5555555555555p-2    ),
-    HPROW( "0x1.999999999999ap-4",       0x1.999999999999ap-4    ),
-    HPROW( "0x1.999999999999ap-04",      0x1.999999999999ap-4    ),
-    HPROW( "0x1.9e3779b97f4a8p0",        0x1.9e3779b97f4a8p+0    ),
-    HPROW( "0x1.9e3779b97f4a8p00",       0x1.9e3779b97f4a8p+0    ),
-    HPROW( "0x1.9e3779b97f4a8p+0",       0x1.9e3779b97f4a8p+0    ),
-    HPROW( "0x1.9e3779b97f4a8p+00",      0x1.9e3779b97f4a8p+0    ),
-    HPROW( "0x1.6a09e667f3bcdp-1",       0x1.6a09e667f3bcdp-1    ),
-    HPROW( "0x1.6a09e667f3bcdp-01",      0x1.6a09e667f3bcdp-1    ),
-    HPROW( "0x1.921fb54442d18p1",        0x1.921fb54442d18p+1    ),
-    HPROW( "0x1.921fb54442d18p01",       0x1.921fb54442d18p+1    ),
-    HPROW( "0x1.921fb54442d18p+1",       0x1.921fb54442d18p+1    ),
-    HPROW( "0x1.921fb54442d18p+01",      0x1.921fb54442d18p+1    ),
-    HPROW( "0x1.5bf0a8b145769p1",        0x1.5bf0a8b145769p+1    ),
-    HPROW( "0x1.5bf0a8b145769p01",       0x1.5bf0a8b145769p+1    ),
-    HPROW( "0x1.5bf0a8b145769p+1",       0x1.5bf0a8b145769p+1    ),
-    HPROW( "0x1.5bf0a8b145769p+01",      0x1.5bf0a8b145769p+1    ),
-    HPROW( "0x1.62e42fefa39efp-1",       0x1.62e42fefa39efp-1    ),
-    HPROW( "0x1.62e42fefa39efp-01",      0x1.62e42fefa39efp-1    ),
-    HPROW( "0x1.71547652b82fep0",        0x1.71547652b82fep+0    ),
-    HPROW( "0x1.71547652b82fep00",       0x1.71547652b82fep+0    ),
-    HPROW( "0x1.71547652b82fep+0",       0x1.71547652b82fep+0    ),
-    HPROW( "0x1.71547652b82fep+00",      0x1.71547652b82fep+0    ),
-    HPROW( "0x1.0000000000000p-52",      0x1.0000000000000p-52   ),
-    HPROW( "0x1.0000000000000p-052",     0x1.0000000000000p-52   ),
-    HPROW( "0x1.0000000000000p-0052",    0x1.0000000000000p-52   ),
-    HDROW( "0x1.0000000000000p-1074",    0x0.0000000000001p-1022 ),
-    HDROW( "0x1.0000000000000p-01074",   0x0.0000000000001p-1022 ),
-    HPROW( "0x1.fffffffffffffp1023",     0x1.fffffffffffffp+1023 ),
-    HPROW( "0x1.fffffffffffffp01023",    0x1.fffffffffffffp+1023 ),
-    HPROW( "0x1.fffffffffffffp+1023",    0x1.fffffffffffffp+1023 ),
-    HPROW( "0x1.fffffffffffffp+01023",   0x1.fffffffffffffp+1023 ),
-    HPROW( "0x1.fffffffffffffp52",       9007199254740991        ),
-    HPROW( "0x1.fffffffffffffp052",      9007199254740991        ),
-    HPROW( "0x1.fffffffffffffp0052",     9007199254740991        ),
-    HPROW( "0x1.fffffffffffffp+52",      9007199254740991        ),
-    HPROW( "0x1.fffffffffffffp+052",     9007199254740991        ),
-    HPROW( "0x1.fffffffffffffp+0052",    9007199254740991        ),
 };
-#undef HDROW
-#undef HPROW
 #undef PROW
 #undef ROW
 
@@ -2438,25 +1506,25 @@ static bsl::size_t NUM_TEST_DATA = sizeof TEST_DATA / sizeof *TEST_DATA;
 
 #ifdef u_PARSEDOUBLE_USES_STRTOD
 namespace StrtodAssumptions {
+/// Print a report `strtod` unexpected behavior about the input in the
+/// specified test data `ROW`.
 void verifyForRow(const TestDataRow& ROW);
-    // Print a report 'strtod' unexpected behavior about the input in the
-    // specified test data 'ROW'.
 }  // close namespace StrtodAssumptions
 #endif
 
 #ifdef u_PARSEDOUBLE_USES_FROM_CHARS
 namespace FromCharsAssumptions {
+/// Verify assumptions about `from_chars` behavior on range errors.
 void verify();
-    // Verify assumptions about 'from_chars' behavior on range errors.
 }  // close namespace FromCharsAssumptions
 #endif
 
+/// Verify `bdlb::NumericParseUtil::parseDouble` using the test data from
+/// the specified `ROW`.  The specified `opMode` (orthogonal perturbation
+/// mode) is used only in test assertions to denote what exact sub-test
+/// failed (e.g., adding a redundant '+' sign, or adding trailing
+/// whitespace, or a combination etc.).
 void verifyParseDouble(const TestDataRow& ROW, OpMode::Enum opMode)
-    // Verify 'bdlb::NumericParseUtil::parseDouble' using the test data from
-    // the specified 'ROW'.  The specified 'opMode' (orthogonal perturbation
-    // mode) is used only in test assertions to denote what exact sub-test
-    // failed (e.g., adding a redundant '+' sign, or adding trailing
-    // whitespace, or a combination etc.).
 {
     // Pull in long names
     using bsl::string_view;
@@ -2468,18 +1536,19 @@ void verifyParseDouble(const TestDataRow& ROW, OpMode::Enum opMode)
     const bsl::size_t  REST_POS = ROW.d_restPos;
     const SpecialFlags FLAGS    = ROW.d_flags;
 
-    // Derived test data
-    const bool         SUCCESS = (REST_POS != 0);
-    const bool         IS_NAN  = SUCCESS && isNan(EXPECTED);
-    const string_view  REST    = INPUT.substr(REST_POS);
-
     // Flags describing the input value
-    const bool IS_HEX       = FLAGS.d_isHex;
     const bool IS_OVERFLOW  = FLAGS.d_isOverflow;
     //const bool SIGD_UFLOW   = FLAGS.d_significandUnderflow;
     const bool IS_UNDERFLOW = FLAGS.d_isUnderflow;
-    const bool IS_SUBNORMAL = FLAGS.d_isSubnormal;
+    //const bool IS_SUBNORMAL = FLAGS.d_isSubnormal;
     //const bool SUBNORM_MIN  = FLAGS.d_subnormIsMin;
+
+    // Derived test data
+    const bool RANGE_ERROR = IS_OVERFLOW || IS_UNDERFLOW;
+    const bool SUCCESS     = (REST_POS != 0);
+    const bool IS_NAN      = SUCCESS && isNan(EXPECTED);
+
+    const string_view REST = INPUT.substr(REST_POS);
 
     if (veryVerbose) {
         P_(LINE) P_(INPUT)
@@ -2489,20 +1558,10 @@ void verifyParseDouble(const TestDataRow& ROW, OpMode::Enum opMode)
         P(SUCCESS);
     }
 
-    // For platforms that do not support parsing hexfloat we modified the flags
-    // while filling the row of the test table.
-    const bool EXPECT_HEX_REVIEW       = (SUCCESS && IS_HEX      );
-    const bool EXPECT_OVERFLOW_REVIEW  = (SUCCESS && IS_OVERFLOW );
-    const bool EXPECT_UNDERFLOW_REVIEW = (SUCCESS && IS_UNDERFLOW);
-    const bool MAYBE_UNDERFLOW_REVIEW  = (SUCCESS && IS_SUBNORMAL);
-
     const double INIT1 = 42.42e42 * (isNegative(EXPECTED) ? 1 : -1);
     const double INIT2 = 24.24e24 * (isNegative(EXPECTED) ? 1 : -1);
 
     const double INIT_VALUE = (INIT1 == EXPECTED) ? INIT2 : INIT1;
-
-    // For under/overflow and hexfloat 'BSLS_REVIEW' tests.
-    BslsReviewMonitor reviewMon(veryVerbose);
 
     double      result = INIT_VALUE;
     string_view rest;
@@ -2510,12 +1569,13 @@ void verifyParseDouble(const TestDataRow& ROW, OpMode::Enum opMode)
     // ==========================================
     // Verification of the all-arguments function
 
-    reviewMon.resetCounters();
     const int rc = Util::parseDouble(&result, &rest, INPUT);
     if (veryVerbose) {
         P(rc);
     }
 
+/// Local `ASSERT` that adds extra value printing we want to see in every
+/// failure message to be able to quickly identify the issue reported.
 #define ASSERTL(...) do {                                                     \
     if (!u_LASTARG(__VA_ARGS__)) {                                            \
          bsl::cout << "LINE: "   <<    LINE                     << ", "       \
@@ -2526,19 +1586,17 @@ void verifyParseDouble(const TestDataRow& ROW, OpMode::Enum opMode)
                    << "result: " << result << '\n';                           \
     }                                                                         \
     ASSERTV(__VA_ARGS__) } while (false)
-    // Local 'ASSERT' that adds extra value printing we want to see in every
-    // failure message to be able to quickly identify the issue reported.
 
     // Return value is as expected
-    ASSERTL(SUCCESS == (0 == rc));
+    ASSERTL(SUCCESS == (0 == rc) || RANGE_ERROR == (ERANGE == rc));
 
-    // The unparsed 'rest' is at the expected input-string-offset
+    // The unparsed `rest` is at the expected input-string-offset
     ASSERTL(REST_POS,
-            Qs(REST),
+            Qs(REST), Qs(rest),
             ASPTR(REST.data()), ASPTR(rest.data()),
             REST.data() == rest.data());
 
-    // The unparsed 'rest' ends at the end of the input
+    // The unparsed `rest` ends at the end of the input
     ASSERTL(Qs(REST),
             REST.length(),   rest.length(),
             REST.length() == rest.length());
@@ -2560,25 +1618,9 @@ void verifyParseDouble(const TestDataRow& ROW, OpMode::Enum opMode)
         ASSERTL(result, INIT_VALUE, result == INIT_VALUE);
     }
 
-    // Verify expected 'BSLS_REVIEW' violation numbers
-    ASSERTL(reviewMon.numHexfloat(),
-            reviewMon.numHexfloat() == (EXPECT_HEX_REVIEW ? 1 : 0));
-    ASSERTL(reviewMon.numOverflow(),
-            reviewMon.numOverflow() == (EXPECT_OVERFLOW_REVIEW ? 1 : 0));
-    if (EXPECT_UNDERFLOW_REVIEW) {
-        ASSERTL(reviewMon.numUnderflow(), reviewMon.numUnderflow() == 1);
-    }
-    else if (MAYBE_UNDERFLOW_REVIEW) {
-        ASSERTL(reviewMon.numUnderflow(), reviewMon.numUnderflow() <= 1);
-    }
-    else {
-        ASSERTL(reviewMon.numUnderflow(), reviewMon.numUnderflow() == 0);
-    }
-
     // ===========================================
     // Verification of the two-parameters function
 
-    reviewMon.resetCounters();
     double    result2 = INIT_VALUE;
     const int rc2     = Util::parseDouble(&result2, INPUT);
     if (veryVerbose) {
@@ -2600,33 +1642,18 @@ void verifyParseDouble(const TestDataRow& ROW, OpMode::Enum opMode)
                 resultSign == result2Sign);
     }
     else {
-        // The parsed 'double' value should be the same in case of numbers *or*
-        // failure as we use the same 'INIT_VALUE'
+        // The parsed `double` value should be the same in case of numbers *or*
+        // failure as we use the same `INIT_VALUE`
         ASSERTL(rc2, result == result2);
-    }
-
-    // Verify expected 'BSLS_REVIEW' violation numbers
-    ASSERTL(reviewMon.numHexfloat(),
-            reviewMon.numHexfloat() == (EXPECT_HEX_REVIEW ? 1 : 0));
-    ASSERTL(reviewMon.numOverflow(),
-            reviewMon.numOverflow() == (EXPECT_OVERFLOW_REVIEW ? 1 : 0));
-    if (EXPECT_UNDERFLOW_REVIEW) {
-        ASSERTL(reviewMon.numUnderflow(), reviewMon.numUnderflow() == 1);
-    }
-    else if (MAYBE_UNDERFLOW_REVIEW) {
-        ASSERTL(reviewMon.numUnderflow(), reviewMon.numUnderflow() <= 1);
-    }
-    else {
-        ASSERTL(reviewMon.numUnderflow(), reviewMon.numUnderflow() == 0);
     }
 
 #undef ASSERTL
 }
 
+/// One by one prepare all relevant orthogonal perturbations on the
+/// `parseDouble` test described by the specified `ROW` and delegate actual
+/// verification of each to `verifyParseDouble`.
 void orthogonallyPerturbateOn(const TestDataRow& ROW)
-    // One by one prepare all relevant orthogonal perturbations on the
-    // 'parseDouble' test described by the specified 'ROW' and delegate actual
-    // verification of each to 'verifyParseDouble'.
 {
     // The buffer used to prepare input during orthogonal perturbation
     char opBuff[1024];
@@ -2644,7 +1671,6 @@ void orthogonallyPerturbateOn(const TestDataRow& ROW)
     const bool         SUCCESS = (REST_POS != 0);
     const bool         IS_NAN  = (SUCCESS && EXPECTED != EXPECTED);
 
-    //const bool         IS_HEX       = FLAGS.d_isHex;
     //const bool         IS_OVERFLOW  = FLAGS.d_isOverflow;
     //const bool         SIGD_UFLOW   = FLAGS.d_significandUnderflow;
     //const bool         IS_UNDERFLOW = FLAGS.d_isUnderflow;
@@ -2661,18 +1687,18 @@ void orthogonallyPerturbateOn(const TestDataRow& ROW)
 
     const TestAssertCounter tsg; (void)tsg;
 
+    // Allows really *orthogonal* perturbation on 4 axis:
+    //
+    // * leading whitespace
+    // * trailing whitespace
+    // * optional sign
+    // * optional exponent sign
+    //
+    // We do *not* yet do these 4 axis parallel, just ensure that `opBuff`
+    // is larger enough for it.
     static const int OPI_MAX_EXTRA_CHARS = 4;
-        // Allows really *orthogonal* perturbation on 4 axis:
-        //
-        //: o leading whitespace
-        //: o trailing whitespace
-        //: o optional sign
-        //: o optional exponent sign
-        //
-        // We do *not* yet do these 4 axis parallel, just ensure that 'opBuff'
-        // is larger enough for it.
 
-    // Ensure that the any orthogonal perturbation will fit in 'opBuff'
+    // Ensure that the any orthogonal perturbation will fit in `opBuff`
     ASSERTV(LINE,
             INPUT.length() + OPI_MAX_EXTRA_CHARS,
             INPUT.length() + OPI_MAX_EXTRA_CHARS <= sizeof opBuff);
@@ -2683,11 +1709,11 @@ void orthogonallyPerturbateOn(const TestDataRow& ROW)
 
         if (veryVerbose) bsl::cout << "testing with " << opMode << '\n';
 
-        // We use 'opBuff' not only to build up the input string variations
-        // (based on the 'opi' Orthogonal Perturbation Iterator), but also to
+        // We use `opBuff` not only to build up the input string variations
+        // (based on the `opi` Orthogonal Perturbation Iterator), but also to
         // make the input text not to be null terminated.  We do that by making
-        // sure that 'opBuff' is always longer than our final input string, and
-        // we pre-fill 'opBuff' (C-style) with a character that should cause an
+        // sure that `opBuff` is always longer than our final input string, and
+        // we pre-fill `opBuff` (C-style) with a character that should cause an
         // error when read, and is not the 0 character.
 
         const size_t MAX_OPI_LENGTH = INPUT.length() + OPI_MAX_EXTRA_CHARS;
@@ -2698,11 +1724,11 @@ void orthogonallyPerturbateOn(const TestDataRow& ROW)
             continue;                                               // CONTINUE
         }
 
-        // Pre-fill 'opBuff' with a character that would be invalid in any
+        // Pre-fill `opBuff` with a character that would be invalid in any
         // parsed number.
         bsl::memset(&opBuff, '\xff', sizeof opBuff);
 
-        int extraChars       = 0;  // These get into 'opBuff'
+        int extraChars       = 0;  // These get into `opBuff`
         int extraParsedChars = 0;  // These get into parsed characters
 
         switch (opMode) {
@@ -2747,18 +1773,18 @@ void orthogonallyPerturbateOn(const TestDataRow& ROW)
           case OpMode::e_END: break;  // silence clang/gcc warning
         }
 
-        // Test data and expectations that depend on the 'opMode'
+        // Test data and expectations that depend on the `opMode`
 
+        // The actual number of characters we need to parse
         const size_t OP_LENGTH = INPUT.length() + extraChars;
-            // The actual number of characters we need to parse
 
+        // The input string view.
         const bsl::string_view OP_INPUT(opBuff, OP_LENGTH);
-            // The input string view.
 
         const bool OP_SUCCESS = (SUCCESS && OpMode::e_LEADING != opMode);
 
-        // Not 'size_t' because we compare it to the difference
-        // 'rest.data() - OP_INPUT.data()' and compilers warn about
+        // Not `size_t` because we compare it to the difference
+        // `rest.data() - OP_INPUT.data()` and compilers warn about
         // signed/unsigned mismatch
         const size_t OP_REST_POS =
                                  !OP_SUCCESS ? 0 : REST_POS + extraParsedChars;
@@ -2777,15 +1803,15 @@ void orthogonallyPerturbateOn(const TestDataRow& ROW)
     }  // close opMode loop
 }
 
+/// Verify the `parseDouble` function using orthogonal perturbation methods
+/// over the `TEST_DATA` table.
 void testParseDouble()
-    // Verify the 'parseDouble' function using orthogonal perturbation methods
-    // over the 'TEST_DATA' table.
 {
     TestAssertCounter testStatusGuard;
     for (bsl::size_t ti = 0; ti < NUM_TEST_DATA; ++ti) {
         orthogonallyPerturbateOn(TEST_DATA[ti]);
 
-        // Check our assumptions in the implementation, did 'strtod' change?
+        // Check our assumptions in the implementation, did `strtod` change?
 #ifdef u_PARSEDOUBLE_USES_STRTOD
         if (testStatus > 0) {
 #ifdef u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY
@@ -2815,93 +1841,89 @@ namespace StrtodAssumptions {
                                 // ============
                                 // class Result
                                 // ============
+
+/// This simply constrained attribute type-like class is an abstraction of
+/// the easily O(1) observable results of an `strtod` call.  It has dual
+/// purpose.  It provides easy verification of assumptions such as POSIX
+/// compliance, expected parsing results, as well as observed and assumed
+/// anomalies.  But it also represent "what the parsing code can see".
+/// Attaching observed anomalies to their observed `Result` quickly shows if
+/// there are bugs in `strtod` (on a given platform) that we cannot possibly
+/// fix without writing our `double` parser parser.
+///
+/// The main purpose of this type is to compute and store the (useful)
+/// categories in which the observable effects of an `strtod` call fall,
+/// such as the category of an `errno` value that was possibly set by
+/// `strtod`, the category of the parsed number of characters reported via
+/// the `endPtr` output argument, and of course the category of the returned
+/// `double` value itself.  We also store the precise values to display them
+/// in messages since they may be needed by humans analyzing unexpected
+/// `strtod` behavior.
+///
+/// This class essentially reduces the large range of theoretically possible
+/// `double`, `endPtr`, and `errno` results into few categories for each,
+/// greatly simplifying the definition of what is expected or not.
+///
+/// # The Categories
+/// This `strtod` result type has three "dimensions": the `double` return
+/// value, the `errno` value right after the call, and the number of parsed
+/// characters reported via the `endPtr` output parameter.
+///
+/// ## Categories of `errno`
+/// ```
+/// e_OK     - zero `errno` value
+/// e_EINVAL - (22) redundantly reports failed parsing, "syntax error"
+/// e_ERANGE - (34) result is over/underflow
+/// e_EDOM   - (33) GNU libc anomaly for certain underflows
+/// e_EOTHER - any other non-zero `errno`
+/// ```
+/// `e_OK`, `e_EINVAL`, and `e_RANGE` are POSIX compliant.  `e_EDOM` is a
+/// known `errno` anomaly on Linux that indicates underflow.  `e_OTHER`
+/// indicates an error value that POSIX does not allow, and we have not seen
+/// any `strtod` implementation set.
+///
+/// Each `errno` category limits the possible category the other values may,
+/// meaningfully, take.  Those constraints however are not part of the
+/// invariant of this type.  They only describe if the particular
+/// combination is an expected/valid one.  This type should be able to store
+/// whatever `strtod` result we observe.  A separate assumption verification
+/// algorithm decides if the result is something that the tested
+/// `parseDouble` implementation should be prepared to deal with, or if we
+/// are seeing some new bug in an `strtod` implementation.
+///
+/// ## Categorization of The Number of Parsed Characters
+/// We care about failure and success only.  No anomaly found in the exact
+/// number of parsed characters reported on any platform: `isFailure`.
+///
+/// ## Categorization of The Returned `double` Value
+/// In order to be able to handle expected anomalies on every platform the
+/// return value has the most categories:
+/// ```
+/// e_ZERO      - indicates `isFailure()`, a zero parsed, or underflow
+/// e_SUBNORMAL - should indicate that value parsed, or an underflow
+/// e_NORMAL    - should indicate that value parsed
+/// e_INF       - should indicate Infinity parsed or an overflow
+/// a_NAN       - should indicate Not-a-Number parsed
+/// ```
+/// A numeric value parsed is indicated by `e_OK` and `!isFailure()`, in
+/// addition of the return value being the number.
+///
+/// Underflow is indicated by `ERANGE`, `!isFailure()`, and an absolute
+/// return value not greater than `std::numeric_limits<double>::min()`.  Due
+/// to a GNU libc bug, on Linux `errno` may also be `EDOM` on occasion.
+///
+/// Not-a-Number and Infinity values are represented in the input by
+/// letters, not numbers.  See {Grammar Production Rules}.
+///
+/// Overflow is indicated by `e_ERANGE`, `!isFailure()`, and an absolute
+/// return value of Infinity, or `bsl::numeric_limits<double>::max()`.  The
+/// `max()` return value has not been observed with default (C, global)
+/// rounding setting.
+///
+/// # Special in this Type
+/// This type looks much like an attribute type, but it does not aim to
+/// implement all value-type abilities, only those needed for the tests.
 class Result {
-    // This simply constrained attribute type-like class is an abstraction of
-    // the easily O(1) observable results of an 'strtod' call.  It has dual
-    // purpose.  It provides easy verification of assumptions such as POSIX
-    // compliance, expected parsing results, as well as observed and assumed
-    // anomalies.  But it also represent "what the parsing code can see".
-    // Attaching observed anomalies to their observed 'Result' quickly shows if
-    // there are bugs in 'strtod' (on a given platform) that we cannot possibly
-    // fix without writing our 'double' parser parser.
-    //
-    // The main purpose of this type is to compute and store the (useful)
-    // categories in which the observable effects of an 'strtod' call fall,
-    // such as the category of an 'errno' value that was possibly set by
-    // 'strtod', the category of the parsed number of characters reported via
-    // the 'endPtr' output argument, and of course the category of the returned
-    // 'double' value itself.  We also store the precise values to display them
-    // in messages since they may be needed by humans analyzing unexpected
-    // 'strtod' behavior.
-    //
-    // This class essentially reduces the large range of theoretically possible
-    // 'double', 'endPtr', and 'errno' results into few categories for each,
-    // greatly simplifying the definition of what is expected or not.
-    //
-    ///The Categories
-    ///--------------
-    // This 'strtod' result type has three "dimensions": the 'double' return
-    // value, the 'errno' value right after the call, and the number of parsed
-    // characters reported via the 'endPtr' output parameter.
-    ///
-    ///Categories of 'errno'
-    ///- - - - - - - - - - -
-    //..
-    // e_OK     - zero 'errno' value
-    // e_EINVAL - (22) redundantly reports failed parsing, "syntax error"
-    // e_ERANGE - (34) result is over/underflow
-    // e_EDOM   - (33) GNU libc anomaly for certain underflows
-    // e_EOTHER - any other non-zero 'errno'
-    //..
-    // 'e_OK', 'e_EINVAL', and 'e_RANGE' are POSIX compliant.  'e_EDOM' is a
-    // known 'errno' anomaly on Linux that indicates underflow.  'e_OTHER'
-    // indicates an error value that POSIX does not allow, and we have not seen
-    // any 'strtod' implementation set.
-    //
-    // Each 'errno' category limits the possible category the other values may,
-    // meaningfully, take.  Those constraints however are not part of the
-    // invariant of this type.  They only describe if the particular
-    // combination is an expected/valid one.  This type should be able to store
-    // whatever 'strtod' result we observe.  A separate assumption verification
-    // algorithm decides if the result is something that the tested
-    // 'parseDouble' implementation should be prepared to deal with, or if we
-    // are seeing some new bug in an 'strtod' implementation.
-    //
-    ///Categorization of The Number of Parsed Characters
-    ///- - - - - - - - - - - - - - - - - - - - - - - - -
-    // We care about failure and success only.  No anomaly found in the exact
-    // number of parsed characters reported on any platform: 'isFailure'.
-    //
-    ///Categorization of The Returned 'double' Value
-    ///- - - - - - - - - - - - - - - - - - - - - - -
-    // In order to be able to handle expected anomalies on every platform the
-    // return value has the most categories:
-    //..
-    // e_ZERO      - indicates 'isFailure()', a zero parsed, or underflow
-    // e_SUBNORMAL - should indicate that value parsed, or an underflow
-    // e_NORMAL    - should indicate that value parsed
-    // e_INF       - should indicate Infinity parsed or an overflow
-    // a_NAN       - should indicate Not-a-Number parsed
-    //..
-    // A numeric value parsed is indicated by 'e_OK' and '!isFailure()', in
-    // addition of the return value being the number.
-    //
-    // Underflow is indicated by 'ERANGE', '!isFailure()', and an absolute
-    // return value not greater than 'std::numeric_limits<double>::min()'.  Due
-    // to a GNU libc bug, on Linux 'errno' may also be 'EDOM' on occasion.
-    //
-    // Not-a-Number and Infinity values are represented in the input by
-    // letters, not numbers.  See {Grammar Production Rules}.
-    //
-    // Overflow is indicated by 'e_ERANGE', '!isFailure()', and an absolute
-    // return value of Infinity, or 'bsl::numeric_limits<double>::max()'.  The
-    // 'max()' return value has not been observed with default (C, global)
-    // rounding setting.
-    //
-    ///Special in this Type
-    ///--------------------
-    // This type looks much like an attribute type, but it does not aim to
-    // implement all value-type abilities, only those needed for the tests.
 
   public:
     // PUBLIC TYPES
@@ -2924,42 +1946,44 @@ class Result {
 
   public:
     // CREATORS
+
+    /// Create an `Result` object with the specified `errorNumber` and
+    /// `value`.  Compute `parsedChars` from the specified `input` and
+    /// `endPtr`.  Compute the value category from the absolute of `value`.
     Result(const char *input,
            double      value,
            const char *endPtr,
            int         errorNumber);
-        // Create an 'Result' object with the specified 'errorNumber' and
-        // 'value'.  Compute 'parsedChars' from the specified 'input' and
-        // 'endPtr'.  Compute the value category from the absolute of 'value'.
 
     // ACCESSORS                // Values
     int         errorNumber() const;
     bsl::size_t parsedChars() const;
+
+    /// Return the attribute's value.
     double      value()       const;
-        // Return the attribute's value.
 
+    /// Return `0 == parsedChars()`.
     bool isFailure() const;
-        // Return '0 == parsedChars()'.
 
+    /// Return `abs(value()) == bsl::numeric_limits<double>::infinity()`.
     bool isInf() const;
-        // Return 'abs(value()) == bsl::numeric_limits<double>::infinity()'.
 
+    /// Return `true` if the value is positive or negative NaN, otherwise
+    /// return `false`.
     bool isNan() const;
-        // Return 'true' if the value is positive or negative NaN, otherwise
-        // return 'false'.
 
+    /// Return `true` if the values correspond to a POSIX overflow,
+    /// otherwise return `false`.
     bool isOverflow() const;
-        // Return 'true' if the values correspond to a POSIX overflow,
-        // otherwise return 'false'.
 
+    /// Return `true` if the values correspond to a POSIX underflow, or a
+    /// "GNU underflow" where `errno` is `ERANGE`, otherwise return `false`.
     bool isUnderflow() const;
-        // Return 'true' if the values correspond to a POSIX underflow, or a
-        // "GNU underflow" where 'errno' is 'ERANGE', otherwise return 'false'.
 
                               // Value Category
 
+    /// Return the computed category (enumeration).
     ValueCat valueCategory() const;
-        // Return the computed category (enumeration).
 
     friend bool hasExpectedErrno(const Result& res)
     {
@@ -3037,9 +2061,9 @@ bool Result::isUnderflow() const
         || (d_errno == EDOM   && d_valueCat == e_ZERO)
 #endif
         ;
-    // POSIX definition: 'errno' is 'ERANGE', value is less than the smallest
-    // normal.  Linux anomaly: 'errno' can be 'EDOM' on significand-only
-    // underflow, with the returned value being '0.0'.
+    // POSIX definition: `errno` is `ERANGE`, value is less than the smallest
+    // normal.  Linux anomaly: `errno` can be `EDOM` on significand-only
+    // underflow, with the returned value being `0.0`.
 }
                             // Categories
 inline
@@ -3078,13 +2102,14 @@ bsl::ostream& operator<<(bsl::ostream& os, Result sr)
                            // ==================
                            // class ResultCatKey
                            // ==================
+
+/// Represents a so-called category key of an `Result` that can be used as a
+/// key for lookup or sorting.  Note that the value used for lookup-key or
+/// sorting is not the same than what is displayed for human consumption.
+/// The class provides hashing and sorting support by implicitly converting
+/// to an unspecified `unsigned` value.  It provides stream output support
+/// for human consumption.
 class ResultCatKey {
-    // Represents a so-called category key of an 'Result' that can be used as a
-    // key for lookup or sorting.  Note that the value used for lookup-key or
-    // sorting is not the same than what is displayed for human consumption.
-    // The class provides hashing and sorting support by implicitly converting
-    // to an unspecified 'unsigned' value.  It provides stream output support
-    // for human consumption.
 
   private:
     // DATA
@@ -3098,38 +2123,41 @@ class ResultCatKey {
 
   public:
     // CLASS METHODS
+
+    /// Return an `unsigned` with its lowest 3 bits filled according to the
+    /// specified `errorNumber` (`errno`).
     static unsigned char categorize(int errorNumber);
-        // Return an 'unsigned' with its lowest 3 bits filled according to the
-        // specified 'errorNumber' ('errno').
 
+    /// Return an `unsigned` with its lowest 3 bits filled according to the
+    /// specified `valueCategory`.
     static unsigned char convertToBits(Result::ValueCat valueCategory);
-        // Return an 'unsigned' with its lowest 3 bits filled according to the
-        // specified 'valueCategory'.
 
+    /// Return a value category filled according to the 3 bits of the
+    /// specified `bits` value.  The behavior is undefined unless `bits` is
+    /// a value obtained from `convertToBits` called on a valid enumerator.
     static Result::ValueCat convertToValueCategory(unsigned bits);
-        // Return a value category filled according to the 3 bits of the
-        // specified 'bits' value.  The behavior is undefined unless 'bits' is
-        // a value obtained from 'convertToBits' called on a valid enumerator.
 
+    /// Return a human readable description of the specified
+    /// `errnoCategory`.
     static const char *errnoCategoryText(unsigned char errnoCategory);
-        // Return a human readable description of the specified
-        // 'errnoCategory'.
 
+    /// Convert the specified `bits` into a `ResultCatKey` and return that.
+    /// Opposite action of `operator unsigned`.
     static ResultCatKey fromBits(unsigned bits);
-        // Convert the specified 'bits' into a 'ResultCatKey' and return that.
-        // Opposite action of 'operator unsigned'.
 
   public:
     // CREATORS
+
+    /// Create a category key object from the specified `strtodResult` that
+    /// allows to look up or sort information based on the major
+    /// characteristics of the result.
     explicit ResultCatKey(const Result& strtodResult);
-        // Create a category key object from the specified 'strtodResult' that
-        // allows to look up or sort information based on the major
-        // characteristics of the result.
 
     // ACCESSORS
+
+    /// Return an unsigned value that is a key that may be used for sorting
+    /// or lookup based on the major categories.
     operator unsigned() const;
-        // Return an unsigned value that is a key that may be used for sorting
-        // or lookup based on the major categories.
 
     // ASPECTS
     friend
@@ -3166,7 +2194,7 @@ unsigned char ResultCatKey::categorize(int errorNumber)
 #endif
     }
 
-    // Unexpected 'errno' value (not in POSIX or seen in an anomaly)
+    // Unexpected `errno` value (not in POSIX or seen in an anomaly)
     return 7;
 }
 
@@ -3196,8 +2224,8 @@ unsigned char ResultCatKey::convertToBits(Result::ValueCat valueCategory)
       case Result::e_NAN:       return 4;                             // RETURN
     }
 
-    // Not in 'default' to not silence 'enum' warnings
-    ASSERT(!"unknown-value-category");
+    // Not in `default` to not silence `enum` warnings
+    ASSERT(0 == "unknown-value-category");
     return 0;
 }
 
@@ -3212,12 +2240,13 @@ Result::ValueCat ResultCatKey::convertToValueCategory(unsigned bits)
       case 4: return Result::e_NAN;                                   // RETURN
     }
 
-    ASSERT(!"unknown-value-category-bits");
+    ASSERT(0 == "unknown-value-category-bits");
     return Result::e_ZERO;
 }
 
-ResultCatKey ResultCatKey::fromBits(unsigned bits)
+ResultCatKey ResultCatKey::fromBits(unsigned ubits)
 {
+    unsigned char bits = ubits & 0xff; // quiet conversion warning
     return ResultCatKey(!!(bits & 0x40), (bits & 0x38) >> 3, bits & 0x7);
 }
 
@@ -3250,10 +2279,10 @@ ResultCatKey::operator unsigned() const
                        // class Expectations
                        // ==================
 
+/// Flags and the expected `double` result of the test data row.  Used to
+/// determine if the `Result` is correct and may help a human reader to
+/// determine what the anomaly is when `Result` is not correct.
 class Expectations {
-    // Flags and the expected 'double' result of the test data row.  Used to
-    // determine if the 'Result' is correct and may help a human reader to
-    // determine what the anomaly is when 'Result' is not correct.
 
   private:
     // DATA
@@ -3269,89 +2298,76 @@ class Expectations {
     Expectations(const TestDataRow& row);                           // IMPLICIT
 
     // ACCESSORS       // Result Expectations
+
+    /// Return the value `strod` is expected to return.  Meaningless in case
+    /// any of `true == isFail()`.
     double expected() const;
-        // Return the value 'strod' is expected to return.  Meaningless in case
-        // any of 'true == isFail()'.
 
+    /// Return the value `strod` is expected to return as the literal used
+    /// to define it in the test data table row.  Meaningless in case of
+    /// `true == isFail()`.
     const bsl::string_view& expAsLiteral() const;
-        // Return the value 'strod' is expected to return as the literal used
-        // to define it in the test data table row.  Meaningless in case of
-        // 'true == isFail()'.
 
+    /// Return `true` if `strtod` was supposed to parse 0 characters,
+    /// otherwise return `false`.
     bool isFailure() const;
-        // Return 'true' if 'strtod' was supposed to parse 0 characters,
-        // otherwise return 'false'.
 
+    /// Return `true` if the input was too small in absolute value to be
+    /// represented as a normal number in a `double` before rounding or
+    /// after rounding to binary, otherwise return `false`.  Notice that in
+    /// case of away-from-zero, towards-positive, or towards-negative
+    /// rounding applied the absolute return value of `strtod` may still be
+    /// the `bsl::numeric_limits<double>::min()` value, which is a normal
+    /// number, not a subnormal one.  See also `isUnderflow()` here.
     bool isInUnderflowGap() const;
-        // Return 'true' if the input was too small in absolute value to be
-        // represented as a normal number in a 'double' before rounding or
-        // after rounding to binary, otherwise return 'false'.  Notice that in
-        // case of away-from-zero, towards-positive, or towards-negative
-        // rounding applied the absolute return value of 'strtod' may still be
-        // the 'bsl::numeric_limits<double>::min()' value, which is a normal
-        // number, not a subnormal one.  See also 'isUnderflow()' here.
 
+    /// Return `true` if the input was too large in absolute value to be
+    /// represented in a `double` so `strtod` was supposed to set `errno` to
+    /// `ERANGE` and return +/-Infinity.  (Technically +/-`HUGE_VAL`, but
+    /// in case of IEEE 754 binary formats that is Infinity.), otherwise
+    /// return `false`.
     bool isOverflow() const;
-        // Return 'true' if the input was too large in absolute value to be
-        // represented in a 'double' so 'strtod' was supposed to set 'errno' to
-        // 'ERANGE' and return +/-Infinity.  (Technically +/-'HUGE_VAL', but
-        // in case of IEEE 754 binary formats that is Infinity.), otherwise
-        // return 'false'.
 
+    /// Return `true` if the input was too small in absolute value to be
+    /// represented in a `double` so the resulting value after rounding is
+    /// zero, otherwise return `false`.
     bool isUnderflow() const;
-        // Return 'true' if the input was too small in absolute value to be
-        // represented in a 'double' so the resulting value after rounding is
-        // zero, otherwise return 'false'.
 
+    /// Return the number of characters `strtod` was supposed to convert
+    /// into a `double`.  Note that this value can be zero and that means
+    /// that the parsing has failed completely.
     bsl::size_t parsedChars() const;
-        // Return the number of characters 'strtod' was supposed to convert
-        // into a 'double'.  Note that this value can be zero and that means
-        // that the parsing has failed completely.
 
                         // Useful Input Categorization
 
+    /// Return `true` if the input was a subnormal number, a number that
+    /// can only be represented by less than 53 significant binary digits in
+    /// an IEEE 754 binary64, otherwise return `false`.
     bool isSubnormal() const;
-        // Return 'true' if the input was a subnormal number, a number that
-        // can only be represented by less than 53 significant binary digits in
-        // an IEEE 754 binary64, otherwise return 'false'.
 
+    /// Return `true` if the absolute value of the input is the smallest
+    /// representable subnormal number (that is
+    /// `bsl::numeric_limits<double>::denorm_min()`) in any accepted format,
+    /// otherwise return `false`.  Note that this flags is additional to
+    /// `isSubnormal()`, hence when this flag is `true` so is
+    /// `isSubnormal()`.  In other words this flag is always `false` unless
+    /// `true == isSubnormal()`.
     bool isSubnormMin() const;
-        // Return 'true' if the absolute value of the input is the smallest
-        // representable subnormal number (that is
-        // 'bsl::numeric_limits<double>::denorm_min()') in any accepted format,
-        // otherwise return 'false'.  Note that this flags is additional to
-        // 'isSubnormal()', hence when this flag is 'true' so is
-        // 'isSubnormal()'.  In other words this flag is always 'false' unless
-        // 'true == isSubnormal()'.
 
-    bool isHexHalfSubnormMin() const;
-        // Return 'true' if the input is in hexfloat format, and its absolute
-        // value is the half smallest representable subnormal number (that is
-        // 'bsl::numeric_limits<double>::denorm_min() / 2'), otherwise, return
-        // 'false'.  Note that this flags is additional to 'isSubnormal()',
-        // hence when this flag is 'true' so is 'isSubnormal()'.  In other
-        // words this flag is always 'false' unless 'true == isSubnormal()'.
-        // See also 'u_GLIBC2_STRTOD_HEX_HALF_DENORM_MIN_HEX_BUG'.
-
+    /// Return `true` if the input should convert to positive or negative
+    /// Infinity, otherwise return `false`.
     bool isInf() const;
-        // Return 'true' if the input should convert to positive or negative
-        // Infinity, otherwise return 'false'.
 
+    /// Return `true` if the input should convert to positive or negative
+    /// Not-a-Number, otherwise return `false`.
     bool isNan() const;
-        // Return 'true' if the input should convert to positive or negative
-        // Not-a-Number, otherwise return 'false'.
 
+    /// Return `true` if the absolute value of the input converts to a
+    /// number that, when represented in scientific format has its decimal
+    /// exponent value at the same as the smallest subnormal value (-324 for
+    /// 'double), but its binary significand is smaller than what can be
+    /// represented using the available 52 bits, otherwise return `false`.
     bool isSignificandUnderflow() const;
-        // Return 'true' if the absolute value of the input converts to a
-        // number that, when represented in scientific format has its decimal
-        // exponent value at the same as the smallest subnormal value (-324 for
-        // 'double), but its binary significand is smaller than what can be
-        // represented using the available 52 bits, otherwise return 'false'.
-
-                             // Input Format Flag
-    bool isHex() const;
-        // Return 'true' if the input text was in hexadecimal format,
-        // otherwise return 'false'.
 };
                        // ------------------
                        // class Expectations
@@ -3366,13 +2382,6 @@ Expectations::Expectations(const TestDataRow& row)
 , d_isNan(row.d_expected != row.d_expected)
 , d_flags(row.d_flags)
 {
-#if u_GLIBC2_STRTOD_HEX_HALF_DENORM_MIN_HEX_BUG
-    if (row.d_flags.d_isHexHalfSubnormMin) {
-        // We expect this bug.
-        d_expected = bsl::numeric_limits<double>::denorm_min() *
-                                     (isNegative(row.d_expected) ? -1.0 : 1.0);
-    }
-#endif  // u_GLIBC2_STRTOD_HEX_HALF_DENORM_MIN_HEX_BUG
 }
 
 // ACCESSORS       // Result Expectations
@@ -3431,12 +2440,6 @@ bool Expectations::isSubnormMin() const
 }
 
 inline
-bool Expectations::isHexHalfSubnormMin() const
-{
-    return d_flags.d_isHexHalfSubnormMin;
-}
-
-inline
 bool Expectations::isInf() const
 {
     return d_isInf;
@@ -3453,35 +2456,30 @@ bool Expectations::isSignificandUnderflow() const
 {
     return d_flags.d_significandUnderflow;
 }
-                  // Input Format Flag
-inline
-bool Expectations::isHex() const
-{
-    return d_flags.d_isHex;
-}
 
                             // ================
                             // class Conclusion
                             // ================
+
+/// This enumerator describes what an `Result` is when compared to its
+/// `Expectations`.  The following conclusions are possible:
+/// ```
+/// e_OK:  `strtod` worked as expected (by POSIX)
+///
+/// e_BOGUS_SUCCESS: Was supposed to fail but parsed something.
+/// e_BOGUS_FAILURE: Was supposed to parse something but parsed nothing.
+///
+/// e_WRONG_LENGTH: non-zero number of parsed characters do not match.
+///
+/// e_WRONG_VALUE: returned the wrong value.
+///
+/// e_BOGUS_OVERFLOW:  Overflow reported but not expected.
+/// e_MISSED_OVERFLOW: Expected overflow not reported.
+///
+/// e_BOGUS_UNDERFLOW:  Underflow reported but not expected.
+/// e_MISSED_UNDERFLOW: Expected underflow not reported.
+/// ```
 struct Conclusion {
-    // This enumerator describes what an 'Result' is when compared to its
-    // 'Expectations'.  The following conclusions are possible:
-    //..
-    // e_OK:  'strtod' worked as expected (by POSIX)
-    //
-    // e_BOGUS_SUCCESS: Was supposed to fail but parsed something.
-    // e_BOGUS_FAILURE: Was supposed to parse something but parsed nothing.
-    //
-    // e_WRONG_LENGTH: non-zero number of parsed characters do not match.
-    //
-    // e_WRONG_VALUE: returned the wrong value.
-    //
-    // e_BOGUS_OVERFLOW:  Overflow reported but not expected.
-    // e_MISSED_OVERFLOW: Expected overflow not reported.
-    //
-    // e_BOGUS_UNDERFLOW:  Underflow reported but not expected.
-    // e_MISSED_UNDERFLOW: Expected underflow not reported.
-    //..
 
   public:
     // PUBIC TYPES
@@ -3507,12 +2505,12 @@ struct Conclusion {
         e_BOGUS_UNDERFLOW  = 13,  // Unexpected underflow
         e_MISSED_UNDERFLOW = 14,  // Underflow not reported
 
-        e_WRONG_LENGTH     = 15,  // wrong 'double' returned (number/Inf/NaN)
-        e_WRONG_VALUE      = 16   // wrong 'endPtr' returned
+        e_WRONG_LENGTH     = 15,  // wrong `double` returned (number/Inf/NaN)
+        e_WRONG_VALUE      = 16   // wrong `endPtr` returned
     };
 
     enum {
-        // These enumerators we do not need to handle in 'switch' statements.
+        // These enumerators we do not need to handle in `switch` statements.
 
         k_LAST_GOOD = e_UNDERFLOW_SUBN,  // as-expected high-boundary
         k_FIRST_BAD = e_WEIRD_ERRNO,     // unexpected low-boundary
@@ -3524,9 +2522,9 @@ struct Conclusion {
         k_SIZEOF = k_END - k_BEGIN + 1  // for array size
     };
 
+    /// Return `true` if the specified `e` enumerator value represents an
+    /// `strtod` result that was the expected one, otherwise return `false`.
     friend bool isAsExpected(Enum e)
-        // Return 'true' if the specified 'e' enumerator value represents an
-        // 'strtod' result that was the expected one, otherwise return 'false'.
     {
         // Unary + avoids the "comparing different enum types" warnings.
         return +e < +k_FIRST_BAD;
@@ -3547,7 +2545,7 @@ bsl::ostream& operator<<(bsl::ostream& os, Conclusion::Enum sde)
       u_CASE(e_OVERFLOW_OK,      "overflow-as-expected"  );
       u_CASE(e_UNDERFLOW_OK,     "underflow-as-expected" );
 
-      u_CASE(e_WEIRD_ERRNO,      "unexpected-'errno'"    );
+      u_CASE(e_WEIRD_ERRNO,      "unexpected-`errno`"    );
 
       u_CASE(e_UNDERFLOW_SUBN,   "underflow-on-subnormal");
 
@@ -3568,7 +2566,7 @@ bsl::ostream& operator<<(bsl::ostream& os, Conclusion::Enum sde)
     return os << "***unknown-strtod-conclusion**";
 }
 
-//..
+// ```
 // .------------.
 // | May not be |       .-----------.
 // | observed   |       | PASS/FAIL |                     .-------.
@@ -3705,17 +2703,17 @@ bsl::ostream& operator<<(bsl::ostream& os, Conclusion::Enum sde)
 // | ? |                    |   |          | ERANGE |     |       |
 // | ? |                    |   |          | EINVAL |     |       |
 // +---+--------------------+---+----------+--------+-----+-------+
-//..
+// ```
 //
 //: LEGEND: 'L' - only on Linux
 //:         '?' - need a flag to show if it was seen
 
 
+/// Return the conclusion about the specified `strtod` `result` when
+/// evaluated in regards to the specified `expectations`.
 Conclusion::Enum
 evaluateResult(const Result&       result,
                const Expectations& expectations)
-    // Return the conclusion about the specified 'strtod' 'result' when
-    // evaluated in regards to the specified 'expectations'.
 {
     // ERRNO
     if (!hasExpectedErrno(result)) {
@@ -3800,14 +2798,14 @@ evaluateResult(const Result&       result,
                            // class BriefCallData
                            // ===================
 
+/// A read-only attribute type that stores all information about an `strtod`
+/// call and its results that are relevant in determining "the least faulty"
+/// `parseDouble` implementation we may be able to provide based on a given
+/// (anomalous) `strtod` implementation.  In other words: the information
+/// needed to see if we can differentiate between faulty and correct
+/// behavior just seeing the results of an `strtod` call but not parsing
+/// the input string itself heavily again.
 class BriefCallData {
-    // A read-only attribute type that stores all information about an 'strtod'
-    // call and its results that are relevant in determining "the least faulty"
-    // 'parseDouble' implementation we may be able to provide based on a given
-    // (anomalous) 'strtod' implementation.  In other words: the information
-    // needed to see if we can differentiate between faulty and correct
-    // behavior just seeing the results of an 'strtod' call but not parsing
-    // the input string itself heavily again.
 
   private:
     // DATA
@@ -3818,21 +2816,23 @@ class BriefCallData {
 
   public:
     // CREATORS
+
+    /// Create an object that describes an `strtod` call made according to
+    /// the test data at the specified `line`, to parse the specified,
+    /// `input`, resulting in the specified `result`, and finally classified
+    /// according to the specified `conclusion`.
     BriefCallData(int                     line,
                   const bsl::string_view& input,
                   const Result&           result,
                   Conclusion::Enum        conclusion);
-        // Create an object that describes an 'strtod' call made according to
-        // the test data at the specified 'line', to parse the specified,
-        // 'input', resulting in the specified 'result', and finally classified
-        // according to the specified 'conclusion'.
 
     // ACCESSORS
     Conclusion::Enum conclusion() const;
     bsl::string_view input()      const;
     int              line()       const;
+
+    /// Return the requested data from this object.
     const Result&    result()     const;
-        // Return the requested data from this object.
 
     // ASPECTS
     friend
@@ -3875,11 +2875,11 @@ const Result& BriefCallData::result() const        { return d_result;     }
                         // class ConclusionsMatrix
                         // =======================
 
+/// This complex, database-like mechanism stores all `strtod` call inputs,
+/// results and their evaluations in different views to help determine the
+/// "least faulty" `parseDouble` implementation we are able to provide given
+/// an anomalous `strtod` implementation.
 class ConclusionsMatrix {
-    // This complex, database-like mechanism stores all 'strtod' call inputs,
-    // results and their evaluations in different views to help determine the
-    // "least faulty" 'parseDouble' implementation we are able to provide given
-    // an anomalous 'strtod' implementation.
 
   public:
     // TYPES
@@ -3897,11 +2897,12 @@ class ConclusionsMatrix {
         CatMapData() {}
 
         // MANIPULATORS
+
+        /// Add the specified `index` of a call to the proper list based on
+        /// the specified `isExpectedResult`.  The behavior is undefined
+        /// unless `callIndex < d_calls.size()` of the calling
+        /// `ConclusionsMatrix`.
         void addCall(bool isExpectedResult, bsl::size_t index)
-            // Add the specified 'index' of a call to the proper list based on
-            // the specified 'isExpectedResult'.  The behavior is undefined
-            // unless 'callIndex < d_calls.size()' of the calling
-            // 'ConclusionsMatrix'.
         {
             (isExpectedResult ? d_asExpected : d_unexpected).push_back(index);
         }
@@ -3911,8 +2912,8 @@ class ConclusionsMatrix {
         const CallRefs &unexpectedCalls() const { return d_unexpected; }
     };
 
+    /// Bind the call references to calls just for printing.
     class CatMapDataBoundRef {
-        // Bind the call references to calls just for printing.
 
       private:
         // DATA
@@ -3993,12 +2994,14 @@ class ConclusionsMatrix {
 
   public:
     // CREATORS
+
+      /// Create an empty matrix.
       ConclusionsMatrix() {}
-          // Create an empty matrix.
 
     // MANIPULATORS
+
+    /// Add the specified `call` into the database.
     void pushBack(const BriefCallData& call);
-        // Add the specified 'call' into the database.
 
     // ASPECTS
     friend
@@ -4035,8 +3038,8 @@ void ConclusionsMatrix::pushBack(const BriefCallData& call)
 
                          // callStrtod(input)
 
+/// The specified `input` must be null terminated.
 Result callStrtod(const char *input)
-    // The specified 'input' must be null terminated.
 {
     char               *endPtr = 0;
     StrtodErrnoSampler  ERRNO;
@@ -4048,9 +3051,9 @@ Result callStrtod(const char *input)
 
                       // verifyAssumptions(ROW)
 
+/// Report `strtod` unexpected behavior for the specified test data table
+/// `ROW`.
 BriefCallData verifyAssumptions(const TestDataRow& ROW)
-    // Report 'strtod' unexpected behavior for the specified test data table
-    // 'ROW'.
 {
     // Prepare null terminated input and do the call
     const bsl::string  str(ROW.d_input);
@@ -4095,8 +3098,8 @@ BriefCallData verifyAssumptions(const TestDataRow& ROW)
     return BriefCallData(ROW.d_line, ROW.d_input, result, conclusion);
 }
 
+/// Print a report `strtod` unexpected behavior using the global test data.
 void reportForWholeTestTable()
-    // Print a report 'strtod' unexpected behavior using the global test data.
 {
     ConclusionsMatrix matrix;
 
@@ -4108,15 +3111,20 @@ void reportForWholeTestTable()
     }
 
     bsl::cout << matrix << '\n';
+
+    if (0 == testStatus) {
+        bsl::cout << "\nAssumptions about `strtod` behavior in `parseDouble` "
+                     "implementation hold.\n";
+    }
 }
 
+/// Print a report `strtod` unexpected behavior about the input in the
+/// specified test data `ROW`.
 void verifyForRow(const TestDataRow& ROW)
-    // Print a report 'strtod' unexpected behavior about the input in the
-    // specified test data 'ROW'.
 {
     const BriefCallData& bcd = verifyAssumptions(ROW);
     if (!isAsExpected(bcd.conclusion())) {
-        bsl::cout << "Unexpected 'strtod' behavior: " << bcd << '\n';
+        bsl::cout << "Unexpected `strtod` behavior: " << bcd << '\n';
     }
 }
 
@@ -4179,10 +3187,10 @@ void verifyLwg3081(const std::string_view& toParse,
     }
 }
 
+/// Verify assumptions about `std::from_chars` behavior.  Currently verifies
+/// only issue LWG 3081 related behavior: does it set the `double` output
+/// value when parsing out-of-range input.
 void verify()
-    // Verify assumptions about 'std::from_chars' behavior.  Currently verifies
-    // only issue LWG 3081 related behavior: does it set the 'double' output
-    // value when parsing out-of-range input.
 {
     const auto hexFmt = bsl::chars_format::hex;
     const auto genFmt = bsl::chars_format::general;
@@ -4196,16 +3204,17 @@ void verify()
     verifyLwg3081("-1.8e308", k_OVER, genFmt);
 }
 
+/// Verify and report assumptions about `std::from_chars` behavior.
+/// See also `verify()` above.
 void report()
-    // Verify and report assumptions about 'std::from_chars' behavior.
-    // See also 'verify()' above.
 {
     TestAssertCounter testStatusGuard;
 
     verify();
 
-    if (testStatus == 0) {
-        bsl::cout << "'std::from_chars' assumption in implementation hold.\n";
+    if (0 == testStatus) {
+        bsl::cout << "Assumptions about `std::from_chars` behavior in "
+                     "`parseDouble` implementation hold.\n";
     }
 }
 
@@ -4226,17 +3235,17 @@ namespace benchmarking {
 
 const static bsl::string_view k_ALGORITHM =
 #ifdef u_PARSEDOUBLE_USES_FROM_CHARS
-#ifdef u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY
-    "from_chars-17"; // 'std::from_chars' with 'strtod' on range-errors
+  #ifdef u_PARSEDOUBLE_USES_STRTOD_ON_RANGE_ERRORS_ONLY
+    "from_chars-17";        // `from_chars` with `strtod` on range-errors
+  #else
+    "from_chars-LWG-3081";  // pure `from_chars`
+  #endif
 #else
-    "from_chars-MS"; // pure 'std::from_chars'
-#endif
-#else
-    "strtod";  // pure 'strtod'
+    "strtod";  // pure `strtod`, hexfloat is disabled, out-of-range is error
 #endif
 
+/// CPU (user/system) usage and elapsed wall time capture in seconds.
 class LapTimesDatum {
-    // CPU (user/system) usage and elapsed wall time capture in seconds.
 
     // DATA
     double             d_user;
@@ -4275,9 +3284,9 @@ class LapTimesDatum {
     }
 };
 
+/// This class stores CPU (user/system) usage and elapsed wall time data
+/// captures in seconds for later manipulation or saving.
 class LapTimes {
-    // This class stores CPU (user/system) usage and elapsed wall time data
-    // captures in seconds for later manipulation or saving.
 
   public:
     // TYPES
@@ -4363,8 +3372,8 @@ class LapTimes {
     }
 };
 
+/// A mechanism that measures and records "laps" of benchmark runs.
 class TimerRecorder {
-    // A mechanism that measures and records "laps" of benchmark runs.
 
     // DATA
     bsls::Stopwatch d_sumWatch;
@@ -4435,9 +3444,9 @@ class TimerRecorder {
                           // class BenchmarkInput
                           // ====================
 
+/// Abstraction to store benchmark input in a cache-friendly way from either
+/// the `TEST_DATA` or external input.
 class BenchmarkInput {
-    // Abstraction to store benchmark input in a cache-friendly way from either
-    // the 'TEST_DATA' or external input.
 
     // DATA
     bsl::string                   d_strings;
@@ -4445,30 +3454,31 @@ class BenchmarkInput {
 
   public:
     // CREATORS
+
+    /// Create a `BenchmarkInput` object representing benchmark input data
+    /// from the specified `testTable` *without* copying the input strings.
+    /// The behavior is undefined unless all the referenced input strings
+    /// (`testTable[n].d_input`) outlive the object created.
     template <bsl::size_t t_SIZE>
     explicit BenchmarkInput(const TestDataRow(&testTable)[t_SIZE]);
-        // Create a 'BenchmarkInput' object representing benchmark input data
-        // from the specified 'testTable' *without* copying the input strings.
-        // The behavior is undefined unless all the referenced input strings
-        // ('testTable[n].d_input') outlive the object created.
 
+    /// Create a `BenchmarkInput` object representing benchmark input data
+    /// read from the specified `streamBuf` until EOF or a hard error
+    /// occurs, or until the specified `maxNums` or `maxMemMB` limit is
+    /// reached.  The limit values are 0 for unlimited, and the number of
+    /// maximum numbers, or the number of maximum megabytes (1024*1024
+    /// bytes) after which the reading will stop.  The input should be
+    /// whitespace delimited strings that the benchmark will parse.  The
+    /// strings are copied into the object created.
     explicit BenchmarkInput(bsl::streambuf *streamBuf,
                             unsigned        maxNums,
                             unsigned        maxMemMB);
-        // Create a 'BenchmarkInput' object representing benchmark input data
-        // read from the specified 'streamBuf' until EOF is reached, a hard
-        // error occurs, or until the specified 'maxNums' number of input
-        // strings or the specified 'maxMemMB' number of (significant,
-        // non-whitespace) characters are read.  The value of 0 for either of
-        // 'maxNums' and 'maxMemMB' indicates no limit.  The input (from
-        // 'streamBuf') is considered to be a sequence of whitespace-delimited
-        // strings that the benchmark will parse by repeatedly calling
-        // 'parseDouble'.  The read strings are copied into the object created.
 
     // ACCESSORS
+
+    /// Provide implicit conversion to the expected input type of the
+    /// benchmark.
     operator const bsl::vector<bsl::string_view>& () const
-        // Provide implicit conversion to the expected input type of the
-        // benchmark.
     {
         return d_refs;
     }
@@ -4500,7 +3510,7 @@ BenchmarkInput::BenchmarkInput(bsl::streambuf *streamBuf,
          // We allow more characters so in the report we get the limit in
          // megabytes, and not 1MB less, unless that last string is too long.
 
-    // 'd_strings' gets reallocated, can't store pointers yet
+    // `d_strings` gets reallocated, can't store pointers yet
     bsl::vector<bsl::size_t> lengths;
 
     bsl::cout << "Reading input data...\n";
@@ -4537,22 +3547,19 @@ BenchmarkInput::BenchmarkInput(bsl::streambuf *streamBuf,
 // =================================
 // Input-Independent Benchmark Code
 
+/// Attempting to avoid optimization in the benchmark code
 volatile double sink = 0.0;
-    // Attempting to avoid optimization in the benchmark code
 
+/// Call `parseDouble` on each input string of the specified `inputs`
+/// `numWarmupLaps` times to prime the CPU cache/prediction.  Then call
+/// `parseDouble` on the inputs again the specified `numMeasuredLaps` times
+/// and collect CPU user-system use and wall time data in (`double`) seconds
+/// for each lap and add them to the specified `results`.
 void measure(LapTimes                             *results,
              const bsl::vector<bsl::string_view>&  inputs,
              int                                   numWarmupLaps,
              int                                   numMeasuredLaps)
-    // Call 'parseDouble' on each input string of the specified 'inputs'
-    // 'numWarmupLaps' times to prime the CPU cache/prediction.  Then call
-    // 'parseDouble' on the inputs again the specified 'numMeasuredLaps' times
-    // and collect CPU user-system use and wall time data in ('double') seconds
-    // for each lap and add them to the specified 'results'.
 {
-    // Silence 'BSLS_REVIEW', its handling is irrelevant to the benchmark.
-    bsls::Review::setViolationHandler(nullReviewHandler);
-
     const bsl::size_t NUM_INPUTS = inputs.size();
 
     bsl::cout << "Starting warmup laps...\n";
@@ -4605,11 +3612,11 @@ void measure(LapTimes                             *results,
 
 #define u_END(os) do {                                                        \
              BSLS_ASSERT(nesting > 0); os << nestack[--nesting]; } while(false)
+/// Dummy `os` argument is needed to make C++03 preprocessors happy about
+/// using parentheses (function-like macro).  The dummy `os` argument is
+/// added to all other macros for consistency.
 #define u_NLEND(os) do {  BSLS_ASSERT(nesting > 0);  --nesting;               \
            os << '\n' << k_INDENTS[nesting] << nestack[nesting]; } while(false)
-    // Dummy 'os' argument is needed to make C++03 preprocessors happy about
-    // using parentheses (function-like macro).  The dummy 'os' argument is
-    // added to all other macros for consistency.
 
 #define u_BEGIN(os, startChar, endChar) do {                                  \
                                             os << startChar;                  \
@@ -4625,15 +3632,15 @@ void measure(LapTimes                             *results,
 
 #define u_OBJECT_OPEN(os) do { u_BEGIN(os, '{', '}'); } while(false)
 
+/// Write into the specified `outputStreamHandle` the benchmark results from
+/// the specified `lapTimes`, for a benchmark with the specified `numData`
+/// input for calls from the specified `inputSource`, that started at the
+/// specified `utcStartTime` (ISO 8601).  The current output format is JSON.
 void writeReport(bsl::streambuf          *outputStreamHandle,
                  const char              *utcStartTime,
                  const bsl::string_view&  inputSource,
                  bsl::size_t              numData,
                  const LapTimes&          lapTimes)
-    // Write into the specified 'outputStreamHandle' the benchmark results from
-    // the specified 'lapTimes', for a benchmark with the specified 'numData'
-    // input for calls from the specified 'inputSource', that started at the
-    // specified 'utcStartTime' (ISO 8601).  The current output format is JSON.
 {
     BSLS_ASSERT(outputStreamHandle);
     BSLS_ASSERT(utcStartTime);
@@ -4762,19 +3769,19 @@ void writeReport(bsl::streambuf          *outputStreamHandle,
 #undef u_OBJECT
 #undef u_OBJECT_OPEN
 
+/// Benchmark the current `parseDouble` implementation using the specified
+/// `inputs` and write the results into the specified `reportFile` (in JSON
+/// format).  Before measuring call `parseDouble` on all `inputs` the
+/// specified `numWarmupLaps` times to warm up the CPU cache (and the cache
+/// prediction).  Then call `parseDouble` on all `inputs` the specified
+/// `numMeasuredLaps` times and measure the CPU (user and system) use as
+/// well as wall time for each lap.  The report will contain all those
+/// measurements as well as the specified `inputSource`.
 void runBenchmark(bsl::fstream                         *reportFile,
                   const bsl::string_view&               inputSource,
                   const bsl::vector<bsl::string_view>&  inputs,
                   unsigned                              numWarmupLaps,
                   unsigned                              numMeasuredLaps)
-    // Benchmark the current 'parseDouble' implementation using the specified
-    // 'inputs' and write the results into the specified 'reportFile' (in JSON
-    // format).  Before measuring call 'parseDouble' on all 'inputs' the
-    // specified 'numWarmupLaps' times to warm up the CPU cache (and the cache
-    // prediction).  Then call 'parseDouble' on all 'inputs' the specified
-    // 'numMeasuredLaps' times and measure the CPU (user and system) use as
-    // well as wall time for each lap.  The report will contain all those
-    // measurements as well as the specified 'inputSource'.
 {
     LapTimes lapTimes(numWarmupLaps, numMeasuredLaps);
 
@@ -4796,8 +3803,8 @@ void runBenchmark(bsl::fstream                         *reportFile,
                 lapTimes);
 }
 
+/// Open the specified benchmark `reportFile` for appended writing.
 void openReportFile(bsl::fstream *reportFile)
-    // Open the specified benchmark 'reportFile' for appended writing.
 {
     BSLS_ASSERT(reportFile);
 
@@ -4817,10 +3824,10 @@ void openReportFile(bsl::fstream *reportFile)
 
 }  // close namespace benchmarking
 
+/// Run a benchmark using `TEST_DATA` as input with the specified
+/// `numWarmupLaps` and `numMeasuredLaps` and report the result to file.
 void benchmarkParseDouble_OnTestData(unsigned numWarmupLaps,
                                      unsigned numMeasuredLaps)
-    // Run a benchmark using 'TEST_DATA' as input with the specified
-    // 'numWarmupLaps' and 'numMeasuredLaps' and report the result to file.
 {
     using namespace testDouble::benchmarking;
 
@@ -4829,25 +3836,25 @@ void benchmarkParseDouble_OnTestData(unsigned numWarmupLaps,
 
     const BenchmarkInput inputs(testDouble::TEST_DATA);
     runBenchmark(&reportFile,
-                 "'TEST_DATA'",
+                 "`TEST_DATA`",
                  inputs,
                  numWarmupLaps,
                  numMeasuredLaps);
 }
 
 
+/// Run a benchmark using data from the specified `inputFilename` as input
+/// with the specified `numWarmupLaps` and `numMeasuredLaps` and report the
+/// results to file.  Unless zero, use the specified `maxDataCount` to limit
+/// the number of input strings used (read) from the input file.  Unless
+/// zero, use the specified `maxDataMegaBytes` to limit the combined size of
+/// all input (strings) used (read) from the input file.  The reading of
+/// input on the first active limit that is exhausted.
 void benchmarkParseDouble_OnFile(const char *inputFilename,
                                  unsigned    maxDataCount,
                                  unsigned    maxDataMegaBytes,
                                  unsigned    numWarmupLaps,
                                  unsigned    numMeasuredLaps)
-    // Run a benchmark using data from the specified 'inputFilename' as input
-    // with the specified 'numWarmupLaps' and 'numMeasuredLaps' and report the
-    // results to file.  Unless zero, use the specified 'maxDataCount' to limit
-    // the number of input strings used (read) from the input file.  Unless
-    // zero, use the specified 'maxDataMegaBytes' to limit the combined size of
-    // all input (strings) used (read) from the input file.  The reading of
-    // input on the first active limit that is exhausted.
 {
     using namespace testDouble::benchmarking;
 
@@ -4888,11 +3895,11 @@ void benchmarkParseDouble_OnFile(const char *inputFilename,
 // ============================================================================
 // PARSE DOUBLE TEST MACHINERY VERIFICATION MACHINERY
 
+/// Verifies the `calcRestPos` support function.  See the calling test
+/// `case` description for concerns and plan.
 void testCalcRestPos()
-    // Verifies the 'calcRestPos' support function.  See the calling test
-    // 'case' description for concerns and plan.
 {
-    // 'ParsedChars' constants
+    // `ParsedChars` constants
     static const ParsedChars k_ALL = bsl::numeric_limits<ParsedChars>::min();
 
     static const struct {
@@ -4950,9 +3957,9 @@ void testCalcRestPos()
     }
 }
 
+/// Verifies the `testParseExpected` support function.  See the calling test
+/// `case` description for concerns and plan.
 void testParseExpected()
-    // Verifies the 'testParseExpected' support function.  See the calling test
-    // 'case' description for concerns and plan.
 {
 
     struct SolarisTestData {
@@ -4962,15 +3969,15 @@ void testParseExpected()
         double      d_manual;
     };
 
+/// Non-hex row: integers
 #define IROW(literal) {L_, #literal, literal##., 0}
-    // Non-hex row: integers
 
+/// Constant row: Symbolic constants (NtA, NaN, Inf)
 #define CROW(constantname) {L_, #constantname, constantname, 0}
-    // Constant row: Symbolic constants (NtA, NaN, Inf)
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS
+    /// Hexfloat row for modern platforms
     #define HROW(literal, manual) {L_, #literal, literal, manual}
-        // Hexfloat row for modern platforms
 #else
     #define HROW(literal, manual) {L_, #literal, manual, manual}
         // Solaris has no hexfloat literals, AIX parses them wrong
@@ -5197,8 +4204,8 @@ void testParseExpected()
         const bsl::string_view LITERAL  = DATA[ti].d_literal_p;
         const double           EXPECTED = DATA[ti].d_expected;
 
+        // For readability of the test assertion below
         const double result = parseExpected(LITERAL);
-            // For readability of the test assertion below
 
         ASSERTV(LINE, LITERAL, EXPECTED, result,
                 (EXPECTED == result) || (isNan(EXPECTED) && isNan(result)));
@@ -5209,8 +4216,8 @@ void testParseExpected()
         // local test table.
         const bool IS_HEX = LITERAL.substr(0, 2) == "0x";
         if (IS_HEX) {
+            // Meaningfully filled for hexfloats only
             const double MANUAL_EXPECTED = DATA[ti].d_manual;
-                // Meaningfully filled for hexfloats only
 
             ASSERTV(LINE, LITERAL, EXPECTED, MANUAL_EXPECTED,
                     EXPECTED == MANUAL_EXPECTED);
@@ -5220,10 +4227,10 @@ void testParseExpected()
 }
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS
+/// Extra verification for the `testParseExpected` function on platforms
+/// that properly support hexadecimal floating point literals for `double`.
+/// See the calling test `case` description for concerns and plan.
 void testParseExpectedOnMainDataWithCompilerAsOracle()
-    // Extra verification for the 'testParseExpected' function on platforms
-    // that properly support hexadecimal floating point literals for 'double'.
-    // See the calling test 'case' description for concerns and plan.
 {
     for (bsl::size_t ti = 0; ti < NUM_TEST_DATA; ++ti) {
         const int               LINE     = TEST_DATA[ti].d_line;
@@ -5242,25 +4249,25 @@ void testParseExpectedOnMainDataWithCompilerAsOracle()
 }
 #endif  // BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS
 
+/// Verifies the `TestAssertCounter` mechanism.  See the calling test `case`
+/// description for concerns and plan.
 void testTestAssertCounter()
-    // Verifies the 'TestAssertCounter' mechanism.  See the calling test 'case'
-    // description for concerns and plan.
 {
     ASSERTV(TestAssertCounter::k_MAX_TESTSTATUS,
             100 == TestAssertCounter::k_MAX_TESTSTATUS);
 
+    // No exceptions here, simple save/restore suffices
     const int savedTestStatus = testStatus;
-        // No exceptions here, simple save/restore suffices
 
+    // As we keep overwriting `testStatus` we have to maintain our own
+    // assertion count.
     int assertionCount = 0;
-        // As we keep overwriting 'testStatus' we have to maintain our own
-        // assertion count.
 
+/// Local `ASSERT` that increases `assertionCount` in case of failure.
 #define ASSERTL(...) do { if (!u_LASTARG(__VA_ARGS__)) ++assertionCount;      \
                           ASSERTV(__VA_ARGS__) } while (false)
-    // Local 'ASSERT' that increases 'assertionCount' in case of failure.
 
-    // Verify that construction sets 'testStatus' to zero and activates.
+    // Verify that construction sets `testStatus` to zero and activates.
     {
 
         testStatus = 42;
@@ -5336,7 +4343,7 @@ void testTestAssertCounter()
 
 #define ASSERTL(...) do { if (!u_LASTARG(__VA_ARGS__)) ++assertionCount;      \
                           ASSERTV(LINE, __VA_ARGS__) } while (false)
-        // Local 'ASSERT' that increases 'assertionCount' in case of failure,
+        // Local `ASSERT` that increases `assertionCount` in case of failure,
         // and also adds LINE information.
 
         // Verifying simplest case
@@ -5347,7 +4354,7 @@ void testTestAssertCounter()
         }
         ASSERTL(FINAL, testStatus, FINAL == testStatus);
 
-        // Verifying 'release()', and 'reset()'
+        // Verifying `release()`, and `reset()`
         testStatus = ORIGINAL;
         {
             TestAssertCounter tsg;
@@ -5401,9 +4408,9 @@ void testTestAssertCounter()
     }
 }
 
+/// Verifies the `BslsLogCounterGuard` mechanism.  See the calling test
+/// `case` description for concerns and plan.
 void testBslsLogCounterGuard()
-    // Verifies the 'BslsLogCounterGuard' mechanism.  See the calling test
-    // 'case' description for concerns and plan.
 {
     // Abbreviations for more readable code
     using   bsls::Log;
@@ -5418,497 +4425,18 @@ void testBslsLogCounterGuard()
 
         ASSERT(originalLogHandler != Log::logMessageHandler());
 
-        BSLS_LOG_FATAL("'BslsLogCounterGuard' test log message FATAL");
+        BSLS_LOG_FATAL("`BslsLogCounterGuard` test log message FATAL");
         ASSERTV(BslsLogCounterGuard::counter(),
                 1 == BslsLogCounterGuard::counter());
 
-        BSLS_LOG_INFO("TESTING 'BslsLogCounterGuard' test log message INFO");
+        BSLS_LOG_INFO("TESTING `BslsLogCounterGuard` test log message INFO");
         ASSERTV(BslsLogCounterGuard::counter(),
                 2 == BslsLogCounterGuard::counter());
     }
     ASSERT(originalLogHandler == Log::logMessageHandler());
 }
 
-void testBslsReviewMonitorCounters(const BslsReviewMonitor&  monitor,
-                                   int                       fileLine,
-                                   const char               *file,
-                                   int                       commentLine,
-                                   const char               *comment,
-                                   char                      category)
-    // Verifies the working of the counters in the 'BslsReviewMonitor'
-    // mechanism on expected review violations.  Use the specified 'monitor',
-    // with test data from the specified 'file', 'comment', and 'category'.
-    // Use the specified 'fileLine' and 'commentLine' in assertions to identify
-    // the location of the test data in this file.  The behavior is undefined
-    // unless 'file' is a file name that matches this component(*), and
-    // category is one of 'H', 'O', or 'U'.
-{
-    const bool IS_VERBOSE    = monitor.isVerbose();
-
-    const bool IS_HEXFLOAT   = ('H' == category);
-    const bool IS_OVERFLOW   = ('O' == category);
-    const bool IS_UNDERFLOW  = ('U' == category);
-
-#define ASSERTL(...)                                                          \
-    ASSERTV(fileLine, commentLine, Opt(file), category, Opt(comment),         \
-            __VA_ARGS__)
-        // Local assert that prints all values to understand what failed
-
-    const int origNumHexf  = monitor.numHexfloat();
-    const int origNumOver  = monitor.numOverflow();
-    const int origNumUnder = monitor.numUnderflow();
-
-    const int EXP_NUM_HEXFLOAT  = origNumHexf  + IS_HEXFLOAT;
-    const int EXP_NUM_OVERFLOW  = origNumOver  + IS_OVERFLOW;
-    const int EXP_NUM_UNDERFLOW = origNumUnder + IS_UNDERFLOW;
-
-    using bsls::Review;
-    using bsls::ReviewViolation;
-    typedef Review::ViolationHandler ReviewHandler;
-
-    const ReviewHandler monitoringHandler = Review::violationHandler();
-
-    const ReviewViolation reviewViolation(comment, file, L_, "11", 0);
-                                                    // line, level, count
-    {
-        // This guard counts log messages.
-        const BslsLogCounterGuard lcg(false); (void)lcg;
-
-        // If we get an assertion failure for an expected review message we
-        // want to tell the test data line numbers that had the issue.  This
-        // guard allows us to monitor those unexpected assertions even if
-        // 'testStatus' is at the maximum 100.
-        TestAssertCounter tsg; (void)tsg;
-
-        monitoringHandler(reviewViolation);
-
-        // Save the number of test assert failures we counted.
-        const int numAsserts = testStatus;
-        tsg.release();  // Stop the counter.
-
-        ASSERTL(numAsserts, 0 == numAsserts);
-        // There should be no assertion failures
-
-        if (IS_VERBOSE) {
-            ASSERTL(lcg.counter(), 1 == lcg.counter());
-            // There should be exactly one log message if monitor is verbose
-        }
-        else {
-            ASSERTL(lcg.counter(), 0 == lcg.counter());
-            // There should be no log messages if the monitor isn't verbose
-        }
-    }
-
-    ASSERTL(origNumHexf, EXP_NUM_HEXFLOAT, monitor.numHexfloat(),
-            EXP_NUM_HEXFLOAT == monitor.numHexfloat());
-
-    ASSERTL(origNumOver, EXP_NUM_OVERFLOW, monitor.numOverflow(),
-            EXP_NUM_OVERFLOW == monitor.numOverflow());
-
-    ASSERTL(origNumUnder, EXP_NUM_UNDERFLOW, monitor.numUnderflow(),
-            EXP_NUM_UNDERFLOW == monitor.numUnderflow());
-#undef ASSERTL
-}
-
-void testBslsReviewMonitorAsserts(const BslsReviewMonitor&  monitor,
-                                  int                       fileLine,
-                                  const char               *file,
-                                  int                       commentLine,
-                                  const char               *comment)
-    // Verifies the existence of assertions in the 'BslsReviewMonitor'
-    // mechanism for unexpected review violations as well as that counters are
-    // unchanged by such unexpected review message.  Use the specified
-    // 'monitor' with test data from the specified 'file', 'comment'.  Use the
-    // specified 'fileLine' and 'commentLine' in assertions to identify the
-    // location of the test data in this file.  The behavior is undefined
-    // unless either 'file' does not matches this component(*), or comment does
-    // not match the underflow, overflow, or hexfloat messages.
-{
-    // Abbreviations for readable code
-
-#define ASSERTL(...)                                                          \
-    ASSERTV(fileLine, commentLine, Opt(file), Opt(comment), __VA_ARGS__)
-        // Local assert that prints all values to understand what failed
-
-    const int origNumHexf  = monitor.numHexfloat();
-    const int origNumOver  = monitor.numOverflow();
-    const int origNumUnder = monitor.numUnderflow();
-
-    using bsls::Review;
-    using bsls::ReviewViolation;
-    typedef Review::ViolationHandler ReviewHandler;
-
-    const ReviewHandler monitoringHandler = Review::violationHandler();
-
-    const ReviewViolation reviewViolation(comment, file, L_, "11", 0);
-                                                    // line, level, count
-    {
-        // This guard silences and counts the 'failByLog' messages of the
-        // unexpected review violations unless the user requested to see them.
-        const BslsLogCounterGuard lcg(veryVerbose); (void)lcg;
-
-        // This guard allows us to count the number of assertions that occur
-        // even if 'testStatus' is already at its maximum 100.
-        TestAssertCounter tsg;
-        {
-            // This guard silences the test assertion failures ('cout') unless
-            // the user of the test driver requested otherwise.
-            const OstreamSilencerGuard osg(bsl::cout, veryVerbose); (void)osg;
-
-            monitoringHandler(reviewViolation);
-        }
-
-        // Save the number of test asserts that had occurred
-        const int numAsserts = testStatus;
-
-        // "Hide" the count of the test assert that we expected to happen.
-        testStatus = (testStatus > 0) ? testStatus - 1 : testStatus;
-
-        // Stop the counter and restore the global 'testStatus'
-        tsg.release();
-
-        // Verify that only the expected number of test asserts fired.
-        ASSERTL(numAsserts, 1 == numAsserts);
-
-        ASSERTL(lcg.counter(), 1 == lcg.counter());
-        // There should be exactly 1 log message observed.  Note that even if
-        // 'monitor' is in verbose mode we don't want it logged it twice.
-    }
-
-    // Counters must not change for unexpected review messages
-    ASSERTL(origNumHexf,    monitor.numHexfloat(),
-            origNumHexf  == monitor.numHexfloat());
-    ASSERTL(origNumOver,    monitor.numOverflow(),
-            origNumOver  == monitor.numOverflow());
-    ASSERTL(origNumUnder,   monitor.numUnderflow(),
-            origNumUnder == monitor.numUnderflow());
-#undef ASSERTL
-}
-
-void testBslsReviewMonitor()
-    // Verifies the 'BslsReviewMonitor' mechanism.  See the calling test 'case'
-    // description for concerns and plan.
-{
-    // Abbreviations for readable code
-    using bsls::Review;
-    using bsls::ReviewViolation;
-
-    typedef Review::ViolationHandler ReviewHandler;
-
-    // Creating a monitor replaces the review violation handler
-    const ReviewHandler originalHandler = Review::violationHandler();
-    {
-        BslsReviewMonitor brm(veryVerbose); (void)brm;
-
-        ASSERT(originalHandler != Review::violationHandler());
-    }
-    // Destroying a monitor restores the original violation handler
-    ASSERT(originalHandler == Review::violationHandler());
-
-    static const struct FilenameTestData {
-        int          d_line;
-        const char * d_filename_p;
-        bool         d_match;
-    } FILENAMES[] = {
-        { L_, "/usr/local/Cellar/BBLP-BDE/src/groups/bdl/bdlb/"
-                                     "BDLB_NumericParseUtil.CPP",   true  },
-        { L_, "X:\\devel\\workarea\\bde\\groups\bdl\\bdlb\\"
-                                         "bdlb_numericparseutil.h", true  },
-
-        { L_, "BDLB_NUMERICPARSEUTIL.",                             true  },
-
-        { L_, "",                                                   true  },
-
-        { L_, 0,                                                    true  },
-
-        { L_, "bdlb_numericparseRutil.",                            false },
-        { L_, "bdlb_numericparseutil",                              false },
-        { L_, "dlb_numericparseutil.",                              false },
-        { L_, "bdlbnumericparseutil",                               false },
-    };
-    const bsl::size_t NUM_FILENAMES = sizeof FILENAMES / sizeof *FILENAMES;
-
-    static const struct CommentTestData {
-        int         d_line;
-        const char *d_comment_p;
-        char        d_category;  // '?' - unexpected
-                                 // 'H' - hexfloat
-                                 // 'O' - overflow
-                                 // 'U' - underflow
-    } COMMENTS[] = {
-        { L_, "An hexfloat has been detected.",  'H' },
-        { L_, "Hexfloat parsed by 'stR2D2'.",    'H' },
-        { L_, "I think I taw an hexfloat",       'H' },
-        { L_, "HeXfLoAt baby, yeah!",            'H' },
-        { L_, "hExFlOaT",                        'H' },
-
-        { L_, "An overflow has been detected.",  'O' },
-        { L_, "Overflow reported by 'stR2D'.",   'O' },
-        { L_, "I think I taw an overflow",       'O' },
-        { L_, "oVeRfLoW baby, yeah!",            'O' },
-        { L_, "OvErFlOw",                        'O' },
-
-        { L_, "An underflow has been detected.", 'U' },
-        { L_, "Underflow reported by 'stR2D'.",  'U' },
-        { L_, "I think I taw an underflow",      'U' },
-        { L_, "uNdErFlOw baby, yeah!",           'U' },
-        { L_, "UnDeRfLoW",                       'U' },
-
-        { L_, "Hexgroot parsed by 'stR2D2'.",    '?' },
-        { L_, "An overgrow has been detected.",  '?' },
-        { L_, "I think I taw an unterflow",      '?' },
-
-        { L_, 0, '?' }
-    };
-    const bsl::size_t NUM_COMMENTS = sizeof COMMENTS / sizeof *COMMENTS;
-
-    // Let's ensure we are using a log severity threshold that will show all
-    // log messages so we can count them properly.
-    bsls::Log::setSeverityThreshold(bsls::LogSeverity::e_TRACE);
-
-    // Let's ensure we are using the proper review violation handler for these
-    // test so that we can count the log messages.
-    Review::setViolationHandler(&Review::failByLog);
-
-    for (int vi = 0; vi <= 1; ++vi) {
-        const bool VERBOSE = (0 < vi);
-
-        BslsReviewMonitor monitor(VERBOSE);
-
-        // Verifying counting of expected review violations, as well as lack of
-        // test assertions using the already verified test status monitor.
-        // This loop skips failure cases on purpose.
-        for (bsl::size_t fi = 0; fi < NUM_FILENAMES; ++fi) {
-            const FilenameTestData& FILENAME = FILENAMES[fi];
-
-            const bool MATCHING_FILENAME = FILENAME.d_match;
-
-            for (bsl::size_t ci = 0; ci < NUM_COMMENTS; ++ci) {
-                const CommentTestData& COMMENT = COMMENTS[ci];
-
-                const bool EXPECTED_COMMENT = ('?' != COMMENT.d_category);
-                const bool EXPECTED_REVIEW  =
-                                         MATCHING_FILENAME && EXPECTED_COMMENT;
-
-                if (veryVerbose) {
-                    P_(FILENAME.d_line) P_(COMMENT.d_line)
-                    P_(Opt(FILENAME.d_filename_p)) P_(MATCHING_FILENAME)
-                    P_(Opt(COMMENT.d_comment_p))  P_(COMMENT.d_category)
-                    P(EXPECTED_REVIEW);
-                }
-
-                if (EXPECTED_REVIEW) {
-                    testBslsReviewMonitorCounters(monitor,
-                                                  FILENAME.d_line,
-                                                  FILENAME.d_filename_p,
-                                                  COMMENT.d_line,
-                                                  COMMENT.d_comment_p,
-                                                  COMMENT.d_category);
-                }
-                else {
-                    testBslsReviewMonitorAsserts(monitor,
-                                                 FILENAME.d_line,
-                                                 FILENAME.d_filename_p,
-                                                 COMMENT.d_line,
-                                                 COMMENT.d_comment_p);
-                }
-            }  // Close comments (messages) loop
-        }  // Close filenames loop
-
-        // Verifying 'resetCounters'
-        {
-            ASSERT(monitor.numHexfloat()  > 0);
-            ASSERT(monitor.numOverflow()  > 0);
-            ASSERT(monitor.numUnderflow() > 0);
-
-            monitor.resetCounters();
-
-            ASSERTV(monitor.numHexfloat(),  0 == monitor.numHexfloat());
-            ASSERTV(monitor.numOverflow(),  0 == monitor.numOverflow());
-            ASSERTV(monitor.numUnderflow(), 0 == monitor.numUnderflow());
-        }
-    }  // Close monitor-verbosity setting (on/off) loop
-}
-
 }  // close namespace testDouble
-
-bool isHexHalfSubnormMin(const bsl::string_view& input)
-    // Return 'true' if the specified 'input' is a signless hexfloat
-    // representation of 'denorm_min()', otherwise return 'false'.
-{
-    typedef bsl::string_view::size_type Size;
-
-    if (input.size() < 7) {
-        // Too short
-        return false;                                                 // RETURN
-    }
-    if (input[0] != '0' || bdlb::CharType::toUpper(input[1]) != 'X') {
-        // Not hex
-        return false;                                                 // RETURN
-    }
-
-    // Does it have a binary exponent?
-    const bsl::string_view::size_type k_NPOS = bsl::string_view::npos;
-    bsl::string_view::size_type pos = input.find_last_of("pP");
-    if (k_NPOS == pos) {  // There is no exponent
-        // Must have "0x."(3)"0...0"(268)"2" minimum
-        if (input.size() < 272) {  // Too short
-            return false;                                             // RETURN
-        }
-
-        pos = input.find('.');
-        if (k_NPOS == pos) {  // There is no dot
-            return false;                                             // RETURN
-        }
-
-        if (input.size() - pos < 270) {  // Too short
-            return false;                                             // RETURN
-        }
-        if (input[++pos] != '0') {  // Nah
-            return false;                                             // RETURN
-        }
-        const Size fracPos = pos;
-
-
-        pos = input.find_last_not_of('0');
-        if (k_NPOS == pos) {  // There is no significant digit
-            return false;                                             // RETURN
-        }
-
-        if (input[pos] != 2) {  // Not the right number
-            return false;                                             // RETURN
-        }
-
-        const Size twoPos = pos;
-        if (twoPos - fracPos != 268) {  // Wrong length
-            return false;                                             // RETURN
-        }
-
-        if (input.find_first_not_of('0', fracPos) != twoPos) {  // Wrong digits
-            return false;                                             // RETURN
-        }
-        return true;                                                  // RETURN
-    }
-
-    // Has an exponent at 'pos'
-    if (input.size() < pos + 6) {  // Not enough characters after 'p'
-        return false;                                                 // RETURN
-    }
-
-    const Size pPos = pos++;
-
-    const bool expNeg = ('-' ==  input[pos]);
-    if (expNeg || '+' == input[pos]) {
-        ++pos;  // Skip sign
-    }
-
-    pos = input.find_first_not_of('0', pos);
-    if (k_NPOS == pos) {  // There is no significant exponent digit
-        return false;                                                 // RETURN
-    }
-
-    if (input.size() - pos > 20) { // This won't fit into an unit64
-        return false;                                                 // RETURN
-    }
-
-    Uint64 exponent;
-    if (0 != Util::parseUint64(&exponent, input.substr(pos), 10)) {
-        // Not a number or too large
-        return false;                                                 // RETURN
-    }
-
-    // Cannot be 'npos', we have the exponent starting with 'p'
-    pos = input.find_first_not_of("0.", 2);
-
-    if ('P' == bdlb::CharType::toUpper(input[pos])) {  // No significant digits
-        return false;                                                 // RETURN
-    }
-    if (!bdlb::CharType::isDigit(input[pos])) {  // Bad char
-        return false;                                                 // RETURN
-    }
-    static const bsl::string_view bitXD("1248");  // 1 bit set hex digits
-    if (k_NPOS == bitXD.find(input[pos])) {  // Bad digit for us
-        return false;                                                 // RETURN
-    }
-    static const int xdigitToBitOffset[] = {
-        -1, // '0' X
-         0, // '1'
-         1, // '2'
-        -1, // '3' X
-         2, // '4'
-        -1, // '5' X
-        -1, // '6' X
-        -1, // '7' X
-         3  // '8'
-    };
-    const unsigned xdigitOffset = xdigitToBitOffset[input[pos] - '0'];
-
-    const Size xdigitPos = pos;
-
-    pos = input.find('.', 2);
-
-    const Size hasFrac = (pos != k_NPOS);
-
-    const Size dotPos  = hasFrac ? pos        : pPos;
-    const Size fracPos = hasFrac ? dotPos + 1 : pPos;
-
-    const bool hasIntPart = !hasFrac || dotPos > xdigitPos;
-
-    if (hasIntPart && !expNeg) {
-        // Fraction has bad character or it is non-zero (only 1 bit can be set)
-        return false;                                                 // RETURN
-    }
-    if (hasIntPart && input.find_first_not_of('0', fracPos) != pPos) {
-        // Fraction has bad character or it is non-zero (only 1 bit can be set)
-        return false;                                                 // RETURN
-    }
-
-    static const Size sizeMax = bsl::numeric_limits<Size>::max();
-
-    if (hasIntPart) {
-        const Size bigxShift = (dotPos - xdigitPos - 1);
-        if (bigxShift > sizeMax / 4) {
-            // Waaaay too large integer value
-            return false;                                             // RETURN
-        }
-
-        if (exponent < 4 * bigxShift) {
-            return false;                                             // RETURN
-        }
-        exponent -= 4 * bigxShift;
-        return (exponent == xdigitOffset + 1075);                     // RETURN
-    }
-
-    // Fraction has the significant bit...
-    if (pPos != input.find_first_not_of('0', xdigitPos + 1)) {
-        // Garbage after the significant digit
-        return false;                                                 // RETURN
-    }
-
-    const Size bigxShift = xdigitPos - 1 - dotPos;
-
-    if (bigxShift > bsl::numeric_limits<Size>::max() / 4) {
-        // Waaaay too small fraction value
-        return false;                                                 // RETURN
-    }
-
-    if (expNeg) {
-        if (exponent > sizeMax - 4 * bigxShift) {
-            return false;                                             // RETURN
-        }
-        exponent += 4 * bigxShift;
-    }
-    else {
-        // Positive exponent
-        if (exponent >= 4 * bigxShift) {  // It must turn negative
-            return false;                                             // RETURN
-        }
-        exponent = 4 * bigxShift - exponent;
-        // Now it is negative
-    }
-
-    return (exponent == 1075 - (4 - xdigitOffset));
-}
 
 //=============================================================================
 //                              MAIN PROGRAM
@@ -5929,12 +4457,12 @@ int main(int argc, char *argv[])
         // USAGE EXAMPLE
         //
         // Concerns:
-        //: 1 The usage example provided in the component header file compiles,
-        //:   links, and runs as shown.
+        // 1. The usage example provided in the component header file compiles,
+        //    links, and runs as shown.
         //
         // Plan:
-        //: 1 Incorporate usage example from header into test driver, remove
-        //:   leading comment characters, and replace 'assert' with 'ASSERT'.
+        // 1. Incorporate usage example from header into test driver, remove
+        //    leading comment characters, and replace `assert` with `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE
@@ -5943,52 +4471,52 @@ int main(int argc, char *argv[])
         if (verbose) bsl::cout << "\nUSAGE EXAMPLE"
                                   "\n=============\n";
 
-///Example 1: Parsing an Integer Value from a 'string_view'
+///Example 1: Parsing an Integer Value from a `string_view`
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Suppose that we have a 'string_view' that presumably contains a (not
+// Suppose that we have a `string_view` that presumably contains a (not
 // necessarily NUL terminated) string representing a 32-bit integer value and
-// we want to convert that string into an 'int' (32-bit integer).
+// we want to convert that string into an `int` (32-bit integer).
 //
 // First, we create the string:
-//..
+// ```
     const bsl::string_view input("2017");
-//..
+// ```
 // Then we create the output variables for the parser:
-//..
+// ```
     int              year;
     bsl::string_view rest;
-//..
+// ```
 // Next we call the parser function:
-//..
+// ```
     const int rv = bdlb::NumericParseUtil::parseInt(&year, &rest, input);
-//..
+// ```
 // Then we verify the results:
-//..
+// ```
     ASSERT(0    == rv);
     ASSERT(2017 == year);
     ASSERT(rest.empty());
-//..
+// ```
       } break;
       case 11: {
         // --------------------------------------------------------------------
         // PARSE USHORT
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large as representable
-        //:    3 The value is just larger than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large as representable
+        //    3. The value is just larger than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseUshort(result, rest, input, base = 10)
@@ -6130,7 +4658,7 @@ int main(int argc, char *argv[])
                         result == (0 == rv ? VALUE : INITIAL_VALUE_2));
             }
 
-            // Testing without 'remainder' argument.
+            // Testing without `remainder` argument.
 
             {  // test with first initial value
                 unsigned short result = INITIAL_VALUE_1;
@@ -6154,21 +4682,21 @@ int main(int argc, char *argv[])
         // PARSE SHORT
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseShort(result, rest, input, base = 10)
@@ -6330,7 +4858,7 @@ int main(int argc, char *argv[])
                         result == (0 == rv ? VALUE : INITIAL_VALUE_2));
             }
 
-            // Test without the 'remainder' argument
+            // Test without the `remainder` argument
 
             {  // test with first initial value
                 short     result = INITIAL_VALUE_1;
@@ -6354,21 +4882,21 @@ int main(int argc, char *argv[])
         // PARSE UINT64
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseUint64(result, rest, input, base = 10)
@@ -6520,7 +5048,7 @@ int main(int argc, char *argv[])
                         result == (0 == rv ? VALUE : INITIAL_VALUE_2));
             }
 
-            // Test without the 'remainder' argument
+            // Test without the `remainder` argument
 
             {  // test with first initial value
                 Uint64    result = INITIAL_VALUE_1;
@@ -6544,21 +5072,21 @@ int main(int argc, char *argv[])
         // PARSE UINT
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseUint(result, rest, input, base = 10)
@@ -6705,7 +5233,7 @@ int main(int argc, char *argv[])
                         result == (0 == rv ? VALUE : INITIAL_VALUE_2));
             }
 
-            // Test without the 'remainder' argument
+            // Test without the `remainder` argument
 
             {  // test with first initial value
                 unsigned  result = INITIAL_VALUE_1;
@@ -6729,21 +5257,21 @@ int main(int argc, char *argv[])
         // PARSE INT64
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseInt64(result, rest, input, base = 10)
@@ -6930,7 +5458,7 @@ int main(int argc, char *argv[])
                         result == (0 == rv ? VALUE : INITIAL_VALUE_2));
             }
 
-            // Test without the 'remainder' argument
+            // Test without the `remainder` argument
 
             {  // test with first initial value
                 Int64     result = INITIAL_VALUE_1;
@@ -6954,21 +5482,21 @@ int main(int argc, char *argv[])
         // PARSE INT
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseInt(result, rest, input, base = 10)
@@ -7138,7 +5666,7 @@ int main(int argc, char *argv[])
                         result == (0 == rv ? VALUE : INITIAL_VALUE_2));
             }
 
-            // Test without the 'remainder' argument
+            // Test without the `remainder` argument
 
             {  // test with first initial value
                 int       result = INITIAL_VALUE_1;
@@ -7162,23 +5690,23 @@ int main(int argc, char *argv[])
         // PARSE DOUBLE
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
-        //:    4 "Interesting" values from "A Program for Testing IEEE
-        //:      Decimal-Binary Conversions", Vern Paxson, ICIR 1991.
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
+        //    4. "Interesting" values from "A Program for Testing IEEE
+        //       Decimal-Binary Conversions", Vern Paxson, ICIR 1991.
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseDouble(double *res, string_view *rest, string_view in)
@@ -7198,92 +5726,74 @@ int main(int argc, char *argv[])
         // PARSE DOUBLE TEST MACHINERY
         //
         // Concerns:
-        //:  1 'calRestPos' returns the expected values for meaningful
-        //:    combinations of 'parsaedChars' specification and 'length'.
-        //:
-        //:  2 'parseExpected' parses properly:
-        //:    1 0..0x1fffffffffffff *decimal* integer strings
-        //:    2 hexfloats 0x0.0000000000001p-1022..0x1.fffffffffffffp+1023
-        //:    3 hexfloats with less than 13 fractional digits
-        //:    4 optional '+' sign for hexfloat binary exponent
-        //:    5 "NtA", "Inf", "Nan"
-        //:
-        //:  3 'TestAssertCounter':
-        //:     1 sets 'testStatus' to '0' after construction
-        //:     2 recreates 'testStatus' properly when destroyed
-        //:
-        //:  4 'BslsLogCounterGuard' replaces and restores the handler.
-        //:
-        //:  5 'BslsReviewMonitor':
-        //:     1 on expected events:
-        //:         1 counts the events properly
-        //:         2 calls the original handler only when 'verbose == true'
-        //          3 does not assert
-        //:     2 on unexpected events:
-        //:         1 asserts with the full content
-        //:         2 calls the original handler with all the same arguments
-        //:     3 empty file name in an event is ignored
+        //  1. `calRestPos` returns the expected values for meaningful
+        //     combinations of `parsaedChars` specification and `length`.
+        //
+        //  2. `parseExpected` parses properly:
+        //    1. 0..0x1fffffffffffff *decimal* integer strings
+        //    2. hexfloats 0x0.0000000000001p-1022..0x1.fffffffffffffp+1023
+        //    3. hexfloats with less than 13 fractional digits
+        //    4. optional '+' sign for hexfloat binary exponent
+        //    5. "NtA", "Inf", "Nan"
+        //
+        //  3. `TestAssertCounter`:
+        //     1. sets `testStatus` to `0` after construction
+        //     2. recreates `testStatus` properly when destroyed
+        //
+        //  4. `BslsLogCounterGuard` replaces and restores the handler.
         //
         // Plan:
-        //: 1 Use the table-driven approach with combinations of zero, and
-        //:   positive length, as well as zero, positive, less-than length
-        //:   negative, and very large negative parsed chars values.  Compare
-        //:   to manually provided expected values. (C-2)
-        //:
-        //: 2 Use the table-driven approach with a twist that the expected
-        //:   results are created by using the compiler on platforms supporting
-        //:   hexfloat for all numeric values, and for decimal integers on
-        //:   AIX/Solaris, the platforms that do not support hexfloat literals.
-        //:   (AIX thinks it does but it fails on certain subnormals.)
-        //:   Hexfloat values on  are tested against manually-provided decimal
-        //:   floating point constants on AIX/Solaris.  The distinction in the
-        //:   row definitions is made by the preprocessor.  Special,
-        //:   non-numeric "NtA", "NaN", and "Inf" are tested separately,
-        //:   directly, not in the table-driven test.  On platforms that do
-        //:   support hexfloat literals we also run the verification on all
-        //:   rows of the "main" 'TEST_DATA' table for 'parseDouble'. (C-3)
-        //:
-        //: 3 Use the table-driven approach with combinations of an original
-        //:   'testStatus' value, value at the end of scope, and the expected
-        //:    final 'testStatus' value restored by the destructor. (C-4)
-        //:
-        //: 4 'BslsLogCounterGuard' is tested by comparing the active handler
-        //:   during and after its lifetime.
-        //:
-        //: 5 'BslsReviewMonitor' is tested by comparing the active handler
-        //:   during and after its lifetime, as well as calling the handler
-        //:   directly with fake log messages and observing the counts.
+        // 1. Use the table-driven approach with combinations of zero, and
+        //    positive length, as well as zero, positive, less-than length
+        //    negative, and very large negative parsed chars values.  Compare
+        //    to manually provided expected values. (C-2)
+        //
+        // 2. Use the table-driven approach with a twist that the expected
+        //    results are created by using the compiler on platforms supporting
+        //    hexfloat for all numeric values, and for decimal integers on
+        //    AIX/Solaris, the platforms that do not support hexfloat literals.
+        //    (AIX thinks it does but it fails on certain subnormals.)
+        //    Hexfloat values on  are tested against manually-provided decimal
+        //    floating point constants on AIX/Solaris.  The distinction in the
+        //    row definitions is made by the preprocessor.  Special,
+        //    non-numeric "NtA", "NaN", and "Inf" are tested separately,
+        //    directly, not in the table-driven test.  On platforms that do
+        //    support hexfloat literals we also run the verification on all
+        //    rows of the "main" `TEST_DATA` table for `parseDouble`. (C-3)
+        //
+        // 3. Use the table-driven approach with combinations of an original
+        //    `testStatus` value, value at the end of scope, and the expected
+        //     final `testStatus` value restored by the destructor. (C-4)
+        //
+        // 4. `BslsLogCounterGuard` is tested by comparing the active handler
+        //    during and after its lifetime.
         //
         // Testing:
         //   PARSE DOUBLE TEST MACHINERY
         //   size_t calcRestPos(parsedChars, length)
         //   double parseExpected(const bsl::string_view&)
-        //   class BslsReviewMonitor
         //   class TestAssertCounter
         // --------------------------------------------------------------------
 
         if (verbose) bsl::cout << "\nPARSE DOUBLE TEST MACHINERY"
                                   "\n===========================\n";
 
-        if (verbose) bsl::cout << "'calcRestPos'\n";
+        if (verbose) bsl::cout << "`calcRestPos`\n";
         testDouble::testCalcRestPos();
 
-        if (verbose) bsl::cout << "'parseExpected'\n";
+        if (verbose) bsl::cout << "`parseExpected`\n";
         testDouble::testParseExpected();
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS
-        if (verbose) bsl::cout << "'parseExpected' on main test data table\n";
+        if (verbose) bsl::cout << "`parseExpected` on main test data table\n";
         testDouble::testParseExpectedOnMainDataWithCompilerAsOracle();
 #endif
 
-        if (verbose) bsl::cout << "'TestAssertCounter'\n";
+        if (verbose) bsl::cout << "`TestAssertCounter`\n";
         testDouble::testTestAssertCounter();
 
-        if (verbose) bsl::cout << "'BslsLogCounterGuard'\n";
+        if (verbose) bsl::cout << "`BslsLogCounterGuard`\n";
         testDouble::testBslsLogCounterGuard();
-
-        if (verbose) bsl::cout << "'BslsReviewMonitor'\n";
-        testDouble::testBslsReviewMonitor();
 
      } break;
       case 3: {
@@ -7291,21 +5801,21 @@ int main(int argc, char *argv[])
         // PARSE SIGNED INTEGER
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseSignedInteger(result, rest, input, base, minVal, maxVal)
@@ -7503,7 +6013,7 @@ int main(int argc, char *argv[])
             // orthogonal perturbation over terminating whitespace
             for (int opi = 0; opi < 2; ++opi) {
 
-                // Prepare 'opBuff' with the input text and the unset bytes
+                // Prepare `opBuff` with the input text and the unset bytes
                 bsl::memset(&opBuff, '\xff', sizeof opBuff);
                 bsl::memcpy(opBuff, INPUT, LENGTH);
 
@@ -7570,7 +6080,7 @@ int main(int argc, char *argv[])
                             result == expectedResult);
                 }
 
-                // Test without the 'remainder' argument
+                // Test without the `remainder` argument
 
                 {  // test with first initial value
                     Int64     result = INITIAL_VALUE_1;
@@ -7617,21 +6127,21 @@ int main(int argc, char *argv[])
         // PARSE UNSIGNED INTEGER
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
-        //:
-        //:  3 Corner cases work as expected
-        //:
-        //:    1 The string ends unexpectedly
-        //:    2 The value is as large or small as representable
-        //:    3 The value is just large/small than representable
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
+        //
+        //  3. Corner cases work as expected
+        //
+        //    1. The string ends unexpectedly
+        //    2. The value is as large or small as representable
+        //    3. The value is just large/small than representable
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   parseUnsignedInteger(result, rest, in, base, maxVal)
@@ -7762,7 +6272,7 @@ int main(int argc, char *argv[])
                 const bsl::size_t    LENGTH = bsl::strlen(INPUT);
 
                 ASSERTV(LINE, LENGTH + 2 < sizeof opBuff);
-                               // orthogonal perturbation will fit in 'opBuff'
+                               // orthogonal perturbation will fit in `opBuff`
 
                 // orthogonal perturbation over terminating whitespace
                 for (int opi = 0; opi < 2; ++opi) {
@@ -7832,7 +6342,7 @@ int main(int argc, char *argv[])
                                 result == expectedResult);
                     }
 
-                    // Test without the 'remainder' argument
+                    // Test without the `remainder` argument
 
                     {  // test with first initial value
                         Uint64    result = INITIAL_VALUE_1;
@@ -7976,12 +6486,12 @@ int main(int argc, char *argv[])
                 }
 
                 ASSERTV(LINE, LENGTH + 2 < sizeof opBuff);
-                                // orthogonal perturbation will fit in 'opBuff'
+                                // orthogonal perturbation will fit in `opBuff`
 
                 // orthogonal perturbation over terminating whitespace
                 for (int opi = 0; opi < 2; ++opi) {
 
-                    // Prepare 'opBuff'
+                    // Prepare `opBuff`
                     bsl::memset(&opBuff, '\xff', sizeof opBuff);
                     bsl::memcpy(opBuff, INPUT, LENGTH);
 
@@ -8048,7 +6558,7 @@ int main(int argc, char *argv[])
                                 result == expectedResult);
                     }
 
-                    // Test without the 'remainder' argument
+                    // Test without the `remainder` argument
 
                     {  // test with first initial value
                         Uint64      result = INITIAL_VALUE_1;
@@ -8096,15 +6606,15 @@ int main(int argc, char *argv[])
         // CHARACTER TO DIGIT
         //
         // Concerns:
-        //:  1 Correct value is returned.
-        //:
-        //:  2 Characters that comprise the legal set varies correctly with
-        //:    'base'.
+        //  1. Correct value is returned.
+        //
+        //  2. Characters that comprise the legal set varies correctly with
+        //     `base`.
         //
         // Plan:
-        //: 1 Use the table-driven approach with columns for input, base, and
-        //:   expected result.  Use category partitioning to create a suite of
-        //:   test vectors for an enumerated set of bases.
+        // 1. Use the table-driven approach with columns for input, base, and
+        //    expected result.  Use category partitioning to create a suite of
+        //    test vectors for an enumerated set of bases.
         //
         // Testing:
         //   characterToDigit(char character, int base)
@@ -8216,38 +6726,38 @@ int main(int argc, char *argv[])
             const int rv = Util::characterToDigit(INPUT_CHAR, BASE);
             ASSERTV(LINE, VALUE, rv, VALUE == rv);
         }
-        // TODO: failure modes (in char is out of range, 'base' out of range)
+        // TODO: failure modes (in char is out of range, `base` out of range)
       } break;
       // ======================================================================
       // MANUALLY RUN TEST CASES
       // ----------------------------------------------------------------------
       case -1: {
         // --------------------------------------------------------------------
-        // REPORTING 'parseDouble' IMPLEMENTATION ASSUMPTIONS VALIDITY
+        // REPORTING `parseDouble` IMPLEMENTATION ASSUMPTIONS VALIDITY
         // --------------------------------------------------------------------
 
         if (verbose) bsl::cout <<
-            "\nREPORTING 'parseDouble' IMPLEMENTATION ASSUMPTIONS VALIDITY"
+            "\nREPORTING `parseDouble` IMPLEMENTATION ASSUMPTIONS VALIDITY"
             "\n===========================================================\n";
 
 #ifdef u_PARSEDOUBLE_USES_STRTOD
-        bsl::cout << "\nAssumptions about 'strtod' behavior:\n";
+        bsl::cout << "\nVerifying `strtod` expected behavior:\n";
         testDouble::StrtodAssumptions::reportForWholeTestTable();
 #endif
 
 #ifdef u_PARSEDOUBLE_USES_FROM_CHARS
-        bsl::cout << "\nAssumptions about 'std::from_chars' behavior\n";
+        bsl::cout << "\nVerifying `std::from_chars` expected behavior\n";
         testDouble::FromCharsAssumptions::report();
 #endif
       } break;
 // BDE_VERIFY pragma: push
-// BDE_VERIFY pragma: -TP17   // Test case doesn't have 'if (verbose) banner'
+// BDE_VERIFY pragma: -TP17   // Test case doesn't have `if (verbose) banner`
       case -2: {
         // --------------------------------------------------------------------
-        // PARSE DOUBLE 'TEST_DATA' TABLE BASED BENCHMARK
+        // PARSE DOUBLE `TEST_DATA` TABLE BASED BENCHMARK
         // --------------------------------------------------------------------
 
-        bsl::cout << "\nPARSE DOUBLE 'TEST_DATA' TABLE BASED BENCHMARK"
+        bsl::cout << "\nPARSE DOUBLE `TEST_DATA` TABLE BASED BENCHMARK"
                      "\n==============================================\n";
 
         const int numMeasuredLaps = argc > 2 ? bsl::atoi(argv[2]) : 500000;
@@ -8274,9 +6784,6 @@ int main(int argc, char *argv[])
         bsl::cout << "\nPARSE DOUBLE EXTERNAL INPUT BASED BENCHMARK"
                      "\n===========================================\n\n";
 
-        // CONSIDER USING 'contrib/data/numbers.txt' from the 'bde/benchmarks'
-        //                repository as input file.
-
         const char *filename   = argc > 2 ? argv[2] : "-";
 
         const int numMeasuredLaps = argc > 3 ? bsl::atoi(argv[3]) : 251;
@@ -8289,12 +6796,12 @@ int main(int argc, char *argv[])
             bsl::cerr << "\nUsage: " << argv[0] << ' ' << test <<
                     "input-file [#measured-runs [#warm-up-runs "
                                                   "[#max-mem [#max-nums]]]] \n"
-                "\tinput-file default   : - (for 'stdin')\n"
+                "\tinput-file default   : - (for `stdin`)\n"
                 "\tmeasured-runs default: 251\n"
                 "\twarm-up-runs default : 3\n"
                 "\tmax-mem default      : 0 (no limit on input)\n"
                 "\tmax-nums default     : 0 (no limit on input)\n"
-                "\tuse shell redirection or pipe for input on 'stdin'\n\n";
+                "\tuse shell redirection or pipe for input on `stdin`\n\n";
             exit(1);
         }
 
@@ -8310,7 +6817,7 @@ int main(int argc, char *argv[])
                                     numWarmupLaps,
                                     numMeasuredLaps);
       } break;
-// BDE_VERIFY pragma: pop  // TP17 Test case doesn't have 'if (verbose) banner'
+// BDE_VERIFY pragma: pop  // TP17 Test case doesn't have `if (verbose) banner`
       default: {
         bsl::cerr << "WARNING: CASE '" << test << "' NOT FOUND.\n";
         testStatus = -1;

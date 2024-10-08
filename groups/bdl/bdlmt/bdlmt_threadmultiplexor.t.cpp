@@ -1,32 +1,27 @@
 // bdlmt_threadmultiplexor.t.cpp                                      -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
-
 #include <bdlmt_threadmultiplexor.h>
+
+#include <bdlmt_fixedthreadpool.h>
+
+#include <bdlf_bind.h>
 
 #include <bslim_testutil.h>
 
-#include <bdlf_bind.h>
+#include <bslma_managedptr.h>
+#include <bslma_testallocator.h>
+
 #include <bslmt_semaphore.h>
 #include <bslmt_threadutil.h>
 #include <bslmt_threadgroup.h>
-#include <bdlmt_fixedthreadpool.h>
-#include <bsls_atomic.h>
 
-#include <bslma_managedptr.h>
-#include <bslma_testallocator.h>
+#include <bsls_atomic.h>
 
 #include <bsl_algorithm.h>
 #include <bsl_cstdlib.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_streambuf.h>
+
 #include <bsl_c_math.h>
 
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
@@ -127,11 +122,11 @@ static int veryVeryVeryVerbose = 0;
                               // class TestQueue
                               // ===============
 
+/// This class appears in the usage example for the ThreadMultiplexor
+/// component.  It associates a multiplexor with a thread pool, so that
+/// threads in the thread pool execute all their jobs through the
+/// multiplexor.
 class TestQueue {
-    // This class appears in the usage example for the ThreadMultiplexor
-    // component.  It associates a multiplexor with a thread pool, so that
-    // threads in the thread pool execute all their jobs through the
-    // multiplexor.
 
     // DATA
     bdlmt::FixedThreadPool   *d_threadPool_p;    // (held, not owned)
@@ -154,13 +149,14 @@ class TestQueue {
     ~TestQueue();
 
     // MANIPULATORS
-    int processJob(const Job& job);
-        // Submit the specified 'job' to the thread pool.  If there are
-        // processors available according to the multiplexor, the job will be
-        // executed immediately; otherwise it will be enqueued.
 
+    /// Submit the specified `job` to the thread pool.  If there are
+    /// processors available according to the multiplexor, the job will be
+    /// executed immediately; otherwise it will be enqueued.
+    int processJob(const Job& job);
+
+    /// Return a pointer to the modifiable "multiplexor" attribute.
     bdlmt::ThreadMultiplexor *multiplexor();
-        // Return a pointer to the modifiable "multiplexor" attribute.
 };
 
 // CREATORS
@@ -194,11 +190,11 @@ bdlmt::ThreadMultiplexor *TestQueue::multiplexor() {
                            // class UsageTestChecker
                            // ======================
 
+/// This class provides a functor to be passed to the ThreadMultiplexor for
+/// testing.  The job the functor does is to increment a counter controlled
+/// by a mutex.  The start of the job can be coordinated with a semaphore,
+/// allowing for forced contention.
 class UsageTestChecker {
-    // This class provides a functor to be passed to the ThreadMultiplexor for
-    // testing.  The job the functor does is to increment a counter controlled
-    // by a mutex.  The start of the job can be coordinated with a semaphore,
-    // allowing for forced contention.
 
     // DATA
     int                     d_timesCalled;
@@ -214,26 +210,28 @@ public:
    ~UsageTestChecker();
 
    // MANIPULATORS
+
+   /// Return an invokable functor which calls the `eval` method of this
+   /// object.
    operator TestQueue::Job ();
-       // Return an invokable functor which calls the 'eval' method of this
-       // object.
 
+   /// Perform the function of this object.
    void eval();
-       // Perform the function of this object.
 
+   /// Reset the counter variables of this object to 0.
    void reset();
-       // Reset the counter variables of this object to 0.
 
+   /// Specify the `semaphore` which will control the start of the job.
    void setSemaphore(bslmt::Semaphore* semaphore);
-       // Specify the 'semaphore' which will control the start of the job.
 
    // ACCESSORS
-   int timesCalled() const;
-       // Return the number of times the functor was invoked.
 
+   /// Return the number of times the functor was invoked.
+   int timesCalled() const;
+
+   /// Return the maximal value of the "processors" attribute of the
+   /// multiplexor when executing this functor.
    int maxProcessors() const;
-       // Return the maximal value of the "processors" attribute of the
-       // multiplexor when executing this functor.
 };
 
 // CREATORS
@@ -307,13 +305,13 @@ namespace TEST_CASE_USAGE_EXAMPLE {
 
 class JobQueue {
    // This class defines a generic processor for user-defined functions
-   // ("jobs").  Jobs specified to the 'processJob' method are executed in the
+   // ("jobs").  Jobs specified to the `processJob` method are executed in the
    // thread pool specified at construction.
 
 public:
    // PUBLIC TYPES
    typedef bdlmt::ThreadMultiplexor::Job Job;
-     // A callback of this type my be specified to the 'processJob' method.
+     // A callback of this type my be specified to the `processJob` method.
 
 private:
    // DATA
@@ -327,21 +325,23 @@ private:
 
 public:
    // CREATORS
+
+   /// Create a job queue that executes jobs in the specified `threadPool`
+   /// using no more than the specified `maxProcessors`.  Optionally specify
+   /// a `basicAllocator` used to supply memory.  If `basicAllocator` is 0,
+   /// the currently installed default allocator is used.
    JobQueue(int                     maxProcessors,
             bdlmt::FixedThreadPool *threadPool,
             bslma::Allocator       *basicAllocator = 0);
-       // Create a job queue that executes jobs in the specified 'threadPool'
-       // using no more than the specified 'maxProcessors'.  Optionally specify
-       // a 'basicAllocator' used to supply memory.  If 'basicAllocator' is 0,
-       // the currently installed default allocator is used.
 
+   /// Destroy this object.
    ~JobQueue();
-       // Destroy this object.
 
    // MANIPULATORS
+
+   /// Process the specified `job` in the thread pool specified at
+   /// construction.  Return 0 on success, and a non-zero value otherwise.
    int processJob(const Job& job);
-       // Process the specified 'job' in the thread pool specified at
-       // construction.  Return 0 on success, and a non-zero value otherwise.
 
 };
 
@@ -384,7 +384,7 @@ int usageExample(bslma::Allocator *allocator)
     JobQueue               criticalQueue(maxProc, &tp);
 
     if (0 != tp.start()) {
-       ASSERT(!"Could not start thread pool! Threads cannot be created!");
+       ASSERT(0 == "Could not start thread pool! Threads cannot be created!");
        return -1;                                                     // RETURN
     }
 
@@ -535,8 +535,8 @@ int main(int argc, char *argv[])
                (OQUEUE_MAX_PROC, MAX_QUEUESIZE, &tp, &ta);
 
             if (0 != tp.start()) {
-               ASSERT(!"Could not start thread pool!  "
-                       "Threads cannot be created!");
+               ASSERT(0 == "Could not start thread pool!  "
+                           "Threads cannot be created!");
                break;
             }
             if (veryVerbose) cout << "Thread-pool Started" << endl;
@@ -640,8 +640,8 @@ int main(int argc, char *argv[])
             bdlmt::FixedThreadPool tp(NUM_THREADS, MAX_QUEUESIZE, &ta);
 
             if (0 != tp.start()) {
-               ASSERT(!"Could not start thread pool!  "
-                       "Threads cannot be created!");
+               ASSERT(0 == "Could not start thread pool!  "
+                           "Threads cannot be created!");
                break;
             }
             if (veryVerbose) cout << "Thread-pool Started" << endl;
@@ -709,8 +709,8 @@ int main(int argc, char *argv[])
             TestQueue otherQueue(maxProc, MAX_QUEUESIZE, &tp, &ta);
 
             if (0 != tp.start()) {
-               ASSERT(!"Could not start thread pool!  "
-                       "Threads cannot be created!");
+               ASSERT(0 == "Could not start thread pool!  "
+                           "Threads cannot be created!");
                break;
             }
             if (veryVerbose) cout << "Thread-pool Started" << endl;
@@ -756,7 +756,7 @@ int main(int argc, char *argv[])
         //  runs, and behaves as advertised.
         //
         // Plan:
-        //  Use the 'JobQueue' usage example as the basis for the test.
+        //  Use the `JobQueue` usage example as the basis for the test.
         //
         // Testing:
         //  USAGE EXAMPLE

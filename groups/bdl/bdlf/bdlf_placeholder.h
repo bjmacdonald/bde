@@ -1,12 +1,4 @@
 // bdlf_placeholder.h                                                 -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #ifndef INCLUDED_BDLF_PLACEHOLDER
 #define INCLUDED_BDLF_PLACEHOLDER
 
@@ -21,12 +13,16 @@ BSLS_IDENT("$Id: $")
 //@SEE_ALSO: bdlf_bind
 //
 //@DESCRIPTION: This component provides a parameterized placeholder,
-// 'bdlf::PlaceHolder', and fourteen placeholder objects ('_1', '_2', etc.),
-// each of a distinct type.  '_1' is of type 'const bdlf::PlaceHolder<1>', '_2'
-// is of type 'const bdlf::PlaceHolder<2>', and so on.
+// `bdlf::PlaceHolder`, and fourteen placeholder objects (`_1`, `_2`, etc.),
+// each of a distinct type.  `_1` is of type `const bdlf::PlaceHolder<1>`, `_2`
+// is of type `const bdlf::PlaceHolder<2>`, and so on.
 //
 ///Usage
 ///-----
+// This section illustrates intended use of this component.
+//
+///Example 1: TDB
+/// - - - - - - -
 // TBD
 
 #include <bdlscm_version.h>

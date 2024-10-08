@@ -1,17 +1,8 @@
 // bdlb_float.cpp                                                     -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <bdlb_float.h>
 
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bdlb_float_cpp,"$Id$ $CSID$")
-
 
 #include <bsl_cstring.h>          // for 'memcpy'
 
@@ -63,21 +54,21 @@ const DoubleRep_t doubleInfRep   = doubleExpMask;
 
 namespace {
 
+/// Convert the specified `number` to an integral (bitwise) representation.
+/// Using `bsl::memcpy` is the only portable way to copy the contents of
+/// `number` into an integral type without aliasing and/or alignment
+/// problems.
 inline
 FloatRep_t toRep(float number)
-    // Convert the specified 'number' to an integral (bitwise) representation.
-    // Using 'bsl::memcpy' is the only portable way to copy the contents of
-    // 'number' into an integral type without aliasing and/or alignment
-    // problems.
 {
     FloatRep_t ret;
     bsl::memcpy(&ret, &number, sizeof(number));
     return ret;
 }
 
+/// Implementation of `bdlb::Float::classify(float number)`.
 inline
 bdlb::Float::Classification classifyImp(FloatRep_t number)
-    // Implementation of 'bdlb::Float::classify(float number)'.
 {
     FloatRep_t numberExp = floatExpMask & number;
 
@@ -207,12 +198,12 @@ bool Float::isSignalingNan(float number)
 //                      ** Functions that operate on 'double' **
 namespace {
 
+/// Convert the specified `number` to an integral (bitwise) representation.
+/// Using `bsl::memcpy` is the only portable way to copy the contents of
+/// `number` into an integral type without aliasing and/or alignment
+/// problems.
 inline
 DoubleRep_t toRep(double number)
-    // Convert the specified 'number' to an integral (bitwise) representation.
-    // Using 'bsl::memcpy' is the only portable way to copy the contents of
-    // 'number' into an integral type without aliasing and/or alignment
-    // problems.
 {
 
     DoubleRep_t ret;
@@ -220,9 +211,9 @@ DoubleRep_t toRep(double number)
     return ret;
 }
 
+/// Implementation of `bdlb::Float::classify(double number)`.
 inline
 bdlb::Float::Classification classifyImp(DoubleRep_t number)
-    // Implementation of 'bdlb::Float::classify(double number)'.
 {
     DoubleRep_t numberExp = doubleExpMask & number;
 

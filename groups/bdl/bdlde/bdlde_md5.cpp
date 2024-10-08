@@ -1,13 +1,4 @@
 // bdlde_md5.cpp                                                      -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
-
 #include <bdlde_md5.h>
 
 ///IMPLEMENTATION NOTES
@@ -410,10 +401,10 @@ static void append(unsigned int *state, const unsigned char *data)
     bsl::memset(xArray, 0, sizeof(xArray));
 }
 
+/// Return the number of bytes in use in the buffer for the total specified
+/// `length`.
 inline
 static int getLengthInUse(bsls::Types::Int64 length)
-    // Return the number of bytes in use in the buffer for the total specified
-    // 'length'.
 {
     // Return value equivalent to 'length % BYTEBLOCKSIZE'.
     return length & 0x3f;
@@ -545,8 +536,14 @@ Md5::~Md5()
 // MANIPULATORS
 void Md5::update(const void *data, int length)
 {
-    BSLS_ASSERT(0 <= length);
-    BSLS_ASSERT(data || !length);
+    if (0 == length) {
+        // Nothing to update with.  This early return also avoids a UB of
+        // possibly calling `memcpy` with null as second argument.
+        return;                                                       // RETURN
+    }
+
+    BSLS_ASSERT(0 < length);
+    BSLS_ASSERT(data);
 
     const unsigned char *input = (const unsigned char *)data;
 

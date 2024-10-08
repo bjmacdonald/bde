@@ -1,12 +1,4 @@
 // balst_stacktracetestallocator.cpp                                  -*-C++-*-
-
-// ----------------------------------------------------------------------------
-//                                   NOTICE
-//
-// This component is not up to date with current BDE coding standards, and
-// should not be used as an example for new development.
-// ----------------------------------------------------------------------------
-
 #include <balst_stacktracetestallocator.h>
 
 #include <bsls_ident.h>
@@ -15,15 +7,20 @@ BSLS_IDENT_RCSID(balst_stacktracetestallocator_cpp,"$Id$ $CSID$")
 #include <balst_stacktrace.h>
 #include <balst_stacktraceutil.h>
 
-#include <bslmt_lockguard.h>
+#include <bsla_maybeunused.h>
 
 #include <bslma_allocator.h>
+#include <bslma_testallocatorexception.h>
 #include <bslma_mallocfreeallocator.h>
+
 #include <bslmf_assert.h>
+
+#include <bslmt_lockguard.h>
 
 #include <bsls_alignmentfromtype.h>
 #include <bsls_alignmentutil.h>
 #include <bsls_assert.h>
+#include <bsls_buildtarget.h>
 #include <bsls_platform.h>
 #include <bsls_review.h>
 #include <bsls_stackaddressutil.h>
@@ -44,12 +41,12 @@ namespace {
 typedef BloombergLP::bsls::StackAddressUtil AddressUtil;
 
 enum {
+    /// On some platforms, gathering the stack pointers wastes one frame
+    /// gathering the address of `AddressUtil::getStackAddresses`, which is
+    /// reflected in whether `AddressUtil::k_IGNORE_FRAMES` is 0 or 1.  This
+    /// constant allows us to adjust for this and not display that frame as
+    /// it is of no interest to the user.
     k_IGNORE_FRAMES = AddressUtil::k_IGNORE_FRAMES,
-        // On some platforms, gathering the stack pointers wastes one frame
-        // gathering the address of 'AddressUtil::getStackAddresses', which is
-        // reflected in whether 'AddressUtil::k_IGNORE_FRAMES' is 0 or 1.  This
-        // constant allows us to adjust for this and not display that frame as
-        // it is of no interest to the user.
 
     k_MAX_ALIGNMENT = BloombergLP::bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT,
 
@@ -60,9 +57,9 @@ BSLMF_ASSERT(0 == k_MAX_ALIGNMENT % sizeof(void *));
 
 typedef BloombergLP::bsls::Types::UintPtr UintPtr;
 
+/// Calculate, at compile time, the maximum of two `int` values.
 template <int A, int B>
 struct Max {
-    // Calculate, at compile time, the maximum of two 'int' values.
 
     enum { VALUE = A > B ? A : B };
 };
@@ -87,13 +84,13 @@ static const UintPtr k_DEALLOCATED_BLOCK_MAGIC = 1999999991 + HIGH_ONES;
                             // static functions
                             // ----------------
 
+/// Return the size, in pointers, of buffer space that must be reserved for
+/// each block for storing frame pointers, given a specified
+/// `specifiedMaxRecordedFrames`.  The specify value may need to be
+/// adjusted upward to include room for ignored frames, and for the buffer
+/// size in bytes being a multiple of `k_MAX_ALIGNMENT`.
 static
 int getTraceBufferLength(int specifiedMaxRecordedFrames)
-    // Return the size, in pointers, of buffer space that must be reserved for
-    // each block for storing frame pointers, given a specified
-    // 'specifiedMaxRecordedFrames'.  The specify value may need to be
-    // adjusted upward to include room for ignored frames, and for the buffer
-    // size in bytes being a multiple of 'k_MAX_ALIGNMENT'.
 {
     enum { k_PTRS_PER_MAX = k_MAX_ALIGNMENT / sizeof(void *) };
 
@@ -116,18 +113,18 @@ namespace balst {
                  // class StackTraceTestAllocator::BlockHeader
                  // ==========================================
 
+/// A record of this type is stored in each block, after the stack pointers
+/// and immediately before the user area of memory in the block.  These
+/// `BlockHeader` objects form a doubly linked list consisting of all blocks
+/// which are unfreed.
+///
+/// Note that the `d_magic` and `d_allocator_p` fields are at the end of the
+/// `BlockHeader`, putting them adjacent to the client's area of memory,
+/// making them the most likely fields to be corrupted.  A corrupted
+/// `d_allocator_p` or especially a corrupted `d_magic` are much more likely
+/// to be properly diagnosed by the allocator with a meaningful error
+/// message and no segfault than a corrupted `d_next_p` or `d_prevNext_p`.
 struct StackTraceTestAllocator::BlockHeader {
-    // A record of this type is stored in each block, after the stack pointers
-    // and immediately before the user area of memory in the block.  These
-    // 'BlockHeader' objects form a doubly linked list consisting of all blocks
-    // which are unfreed.
-    //
-    // Note that the 'd_magic' and 'd_allocator_p' fields are at the end of the
-    // 'BlockHeader', putting them adjacent to the client's area of memory,
-    // making them the most likely fields to be corrupted.  A corrupted
-    // 'd_allocator_p' or especially a corrupted 'd_magic' are much more likely
-    // to be properly diagnosed by the allocator with a meaningful error
-    // message and no segfault than a corrupted 'd_next_p' or 'd_prevNext_p'.
 
     // DATA
     BlockHeader                   *d_next_p;      // next object in the
@@ -147,13 +144,14 @@ struct StackTraceTestAllocator::BlockHeader {
                                                   // block
 
     // CREATOR
+
+    /// Create a block here, populating the fields with the specified
+    /// `next`, `prevNext`, `stackTraceTestAllocator`, and `magic`
+    /// arguments.
     BlockHeader(BlockHeader                   *next,
                 BlockHeader                  **prevNext,
                 StackTraceTestAllocator *stackTraceTestAllocator,
                 UintPtr                        magic);
-        // Create a block here, populating the fields with the specified
-        // 'next', 'prevNext', 'stackTraceTestAllocator', and 'magic'
-        // arguments.
 };
 
 // CREATORS
@@ -233,7 +231,7 @@ int StackTraceTestAllocator::checkBlockHeader(
     if (next) {
         if (k_ALLOCATED_BLOCK_MAGIC != next->d_magic) {
             if (k_DEALLOCATED_BLOCK_MAGIC == next->d_magic) {
-                *d_ostream << "Error: freed object on allocted block list"
+                *d_ostream << "Error: freed object on allocated block list"
                            << " of allocator '" << d_name << "' at "
                            << next << bsl::endl;
             }
@@ -267,6 +265,7 @@ StackTraceTestAllocator::StackTraceTestAllocator(
 : d_magic(k_STACK_TRACE_TEST_ALLOCATOR_MAGIC)
 , d_numBlocksInUse(0)
 , d_numAllocations(0)
+, d_allocationLimit(-1)
 , d_blocks(0)
 , d_mutex()
 , d_name("<unnamed>")
@@ -285,7 +284,7 @@ StackTraceTestAllocator::StackTraceTestAllocator(
     BSLS_ASSERT(d_traceBufferLength >= d_maxRecordedFrames);
 
     // This must be assigned in a statement in the body of the c'tor rather
-    // than in the initializer list to work around a microsoft bug with
+    // than in the initializer list to work around a Microsoft bug with
     // function pointers.
 
     d_failureHandler = &failAbort;
@@ -297,6 +296,7 @@ StackTraceTestAllocator::StackTraceTestAllocator(
 : d_magic(k_STACK_TRACE_TEST_ALLOCATOR_MAGIC)
 , d_numBlocksInUse(0)
 , d_numAllocations(0)
+, d_allocationLimit(-1)
 , d_blocks(0)
 , d_mutex()
 , d_name("<unnamed>")
@@ -316,7 +316,7 @@ StackTraceTestAllocator::StackTraceTestAllocator(
     BSLS_ASSERT(d_traceBufferLength >= d_maxRecordedFrames);
 
     // This must be assigned in a statement in the body of the c'tor rather
-    // than in the initializer list to work around a microsoft bug with
+    // than in the initializer list to work around a Microsoft bug with
     // function pointers.
 
     d_failureHandler = &failAbort;
@@ -339,11 +339,31 @@ StackTraceTestAllocator::~StackTraceTestAllocator()
 // MANIPULATORS
 void *StackTraceTestAllocator::allocate(size_type size)
 {
+    // All updates are protected by a mutex lock, so as to not interleave the
+    // action of multiple threads.  Note that the lock is needed even for
+    // atomic variables, as concurrent writes to different statistics could put
+    // the variables in an inconsistent state.
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+
+    // The 'd_numAllocations' is updated before attempting any allocations,
+    // even if later we throw because we have reached the allocation limit.  In
+    // other words this statistic represents the number of *attempted*
+    // allocations, not the number of allocated blocks.
+    d_numAllocations.addRelaxed(1);
+
+#ifdef BDE_BUILD_TARGET_EXC
+    if (0 <= allocationLimit()) {
+        // An exception-test allocation limit has been set.  Decrement the
+        // limit and throw a special exception if it goes negative.
+        if (0 > d_allocationLimit.addRelaxed(-1)) {
+            throw bslma::TestAllocatorException(static_cast<int>(size));
+        }
+    }
+#endif
+
     if (0 == size) {
         return 0;                                                     // RETURN
     }
-
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
 
     // The underlying allocator might align the block differently depending on
     // the size passed.  The alignment must be large enough to accommodate the
@@ -392,8 +412,7 @@ void *StackTraceTestAllocator::allocate(size_type size)
 
     BSLS_ASSERT(0 == ((UintPtr) ret & ((sizeof(void *) - 1) | lowBits)));
 
-    ++d_numBlocksInUse;
-    ++d_numAllocations;
+    d_numBlocksInUse.addRelaxed(1);
 
     return ret;
 }
@@ -435,7 +454,7 @@ void StackTraceTestAllocator::deallocate(void *address)
     d_allocator_p->deallocate(reinterpret_cast<void **>(blockHdr) -
                                                           d_traceBufferLength);
 
-    --d_numBlocksInUse;
+    d_numBlocksInUse.addRelaxed(-1);
     BSLS_ASSERT(d_numBlocksInUse >= 0);
 }
 
@@ -453,7 +472,7 @@ void StackTraceTestAllocator::release()
         }
     }
 
-    int numBlocks = 0;
+    BSLA_MAYBE_UNUSED int numBlocks = 0;
     for (BlockHeader *blockHdr = d_blocks; blockHdr; ) {
         ++numBlocks;
 
@@ -467,7 +486,12 @@ void StackTraceTestAllocator::release()
     d_blocks = 0;
 
     BSLS_ASSERT(numBlocks == d_numBlocksInUse);
-    d_numBlocksInUse = 0;
+    d_numBlocksInUse.storeRelaxed(0);
+}
+
+void StackTraceTestAllocator::setAllocationLimit(bsls::Types::Int64 limit)
+{
+    d_allocationLimit.storeRelaxed(limit);
 }
 
 void StackTraceTestAllocator::setDemanglingPreferredFlag(bool value)
@@ -502,6 +526,11 @@ void StackTraceTestAllocator::setOstream(bsl::ostream *ostream)
 }
 
 // ACCESSORS
+bsls::Types::Int64 StackTraceTestAllocator::allocationLimit() const
+{
+    return d_allocationLimit.loadRelaxed();
+}
+
 void StackTraceTestAllocator::reportBlocksInUse(bsl::ostream *ostream) const
 {
     typedef bsl::vector<const void *>    StackTraceVec;
@@ -523,7 +552,7 @@ void StackTraceTestAllocator::reportBlocksInUse(bsl::ostream *ostream) const
     StackTraceVecMap stackTraceVecMap(d_allocator_p);
     StackTraceVec traceVec(d_allocator_p);
 
-    int numBlocksInUse = 0;
+    BSLA_MAYBE_UNUSED int numBlocksInUse = 0;
     for (BlockHeader *blockHdr = d_blocks; blockHdr;
                                                blockHdr = blockHdr->d_next_p) {
         if (k_ALLOCATED_BLOCK_MAGIC != blockHdr->d_magic) {

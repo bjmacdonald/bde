@@ -12,7 +12,7 @@ BSLS_IDENT("$Id: $")
 //
 //@CANONICAL_HEADER: bsl_functional.h
 //
-//@DESCRIPTION: This component provides 'bsl::reference_wrapper', a reduced
+//@DESCRIPTION: This component provides `bsl::reference_wrapper`, a reduced
 //  implementation of the standard C++2011 template of the same name, which
 //  simply wraps a reference into a copyable, assignable object to allow it to
 //  be stored in a place that cannot normally hold a reference, such as a
@@ -20,8 +20,8 @@ BSLS_IDENT("$Id: $")
 //  contained reference type, it can be passed to functions that take such a
 //  reference.
 //
-//  This component also provides the (free) helper functions 'bsl::ref' and
-//  'bsl::cref' that may be used to generate 'reference_wrapper' objects more
+//  This component also provides the (free) helper functions `bsl::ref` and
+//  `bsl::cref` that may be used to generate `reference_wrapper` objects more
 //  concisely than with the constructor.
 //
 //  NOTE: This component is a partial implementation of the standard class,
@@ -41,54 +41,54 @@ BSLS_IDENT("$Id: $")
 // for this component are limited in freestanding C++98.
 //
 // First, let us define the large-object type:
-//..
-//  struct Canary {
-//      static const int s_size = 1000;
-//      Canary *d_values[s_size];
-//      Canary();
-//  };
+// ```
+// struct Canary {
+//     static const int s_size = 1000;
+//     Canary *d_values[s_size];
+//     Canary();
+// };
 //
-//  Canary::Canary()
-//  {
-//       for (int i = 0; i < s_size; ++i) {
-//           d_values[i] = this;
-//       }
-//  }
-//..
-// Next, we define the comparison function:
-//..
-//  bool operator<(Canary const& a, Canary const& b)
-//  {
-//      return a.d_values[0] < b.d_values[0];
-//  }
-//..
-// Finally, we define a generic function to sort two items:
-//..
-//  template <typename T>
-//  void sortTwoItems(T& a, T& b)
-//  {
-//      if (b < a) {
-//          T tmp(a);
-//          a = b;
-//          b = tmp;
+// Canary::Canary()
+// {
+//      for (int i = 0; i < s_size; ++i) {
+//          d_values[i] = this;
 //      }
-//  }
-//..
-// We can call 'sortTwoItems' on wrappers representing 'Canary' objects
-// without need to move actual, large 'Canary' objects about.  In the call to
-// 'sortTwoItems', below, the 'operator=' used in it is that of
-// 'bsl::reference_wrapper<Canary>', but the 'operator<' used is the one
-// declared for 'Canary&' arguments.  All of the conversions needed are
+// }
+// ```
+// Next, we define the comparison function:
+// ```
+// bool operator<(Canary const& a, Canary const& b)
+// {
+//     return a.d_values[0] < b.d_values[0];
+// }
+// ```
+// Finally, we define a generic function to sort two items:
+// ```
+// template <typename T>
+// void sortTwoItems(T& a, T& b)
+// {
+//     if (b < a) {
+//         T tmp(a);
+//         a = b;
+//         b = tmp;
+//     }
+// }
+// ```
+// We can call `sortTwoItems` on wrappers representing `Canary` objects
+// without need to move actual, large `Canary` objects about.  In the call to
+// `sortTwoItems`, below, the `operator=` used in it is that of
+// `bsl::reference_wrapper<Canary>`, but the `operator<` used is the one
+// declared for `Canary&` arguments.  All of the conversions needed are
 // applied implicitly:
-//..
-//  Canary canaries[2];
-//  bsl::reference_wrapper<Canary> canaryA = bsl::ref(canaries[1]);
-//  bsl::reference_wrapper<Canary> canaryB = bsl::ref(canaries[0]);
-//  sortTwoItems(canaryA, canaryB);
+// ```
+// Canary canaries[2];
+// bsl::reference_wrapper<Canary> canaryA = bsl::ref(canaries[1]);
+// bsl::reference_wrapper<Canary> canaryB = bsl::ref(canaries[0]);
+// sortTwoItems(canaryA, canaryB);
 //
-//  assert(&canaryA.get() == canaries);
-//  assert(&canaryB.get() == canaries + 1);
-//..
+// assert(&canaryA.get() == canaries);
+// assert(&canaryB.get() == canaries + 1);
+// ```
 
 #include <bslscm_version.h>
 
@@ -118,13 +118,13 @@ namespace bsl {
                     // class reference_wrapper
                     // =======================
 
+/// This class is a wrapper that encapsulates an object reference, enabling
+/// operations not possible on actual references, including assignment,
+/// copying, and storage in standard containers.  When stored in a
+/// container, it enables functions defined to operate on references to the
+/// type represented to be called on the container elements.
 template <class T>
 class reference_wrapper {
-    // This class is a wrapper that encapsulates an object reference, enabling
-    // operations not possible on actual references, including assignment,
-    // copying, and storage in standard containers.  When stored in a
-    // container, it enables functions defined to operate on references to the
-    // type represented to be called on the container elements.
 
   private:
     // DATA
@@ -135,8 +135,9 @@ class reference_wrapper {
     typedef T type;
 
     // CREATORS
+
+    /// Create a reference wrapper representing the specified `object`.
     reference_wrapper(T& object) BSLS_KEYWORD_NOEXCEPT;             // IMPLICIT
-        // Create a reference wrapper representing the specified 'object'.
 
     //! reference_wrapper(const reference_wrapper& original) = default;
         // Create a reference wrapper referring to the same object as the
@@ -151,18 +152,20 @@ class reference_wrapper {
         // 'rhs', and return '*this'.
 
     // ACCESSORS
-    T& get() const BSLS_KEYWORD_NOEXCEPT;
-        // Return a reference to the object that '*this' represents.
 
+    /// Return a reference to the object that `*this` represents.
+    T& get() const BSLS_KEYWORD_NOEXCEPT;
+
+    /// Return a reference to the object that `*this` represents.
     operator T&() const BSLS_KEYWORD_NOEXCEPT;
-        // Return a reference to the object that '*this' represents.
 };
 
 // FREE FUNCTIONS
+
+/// Return a reference wrapper representing a `const` view of the specified
+/// `object`.
 template <class T>
 reference_wrapper<const T> cref(const T& object) BSLS_KEYWORD_NOEXCEPT;
-    // Return a reference wrapper representing a 'const' view of the specified
-    // 'object'.
 
 template <class T>
 reference_wrapper<const T> cref(reference_wrapper<T> original)
@@ -170,14 +173,14 @@ reference_wrapper<const T> cref(reference_wrapper<T> original)
     // Return a reference wrapper representing a 'const' view of the same
     // object as the specified 'original'.
 
+/// Return a reference wrapper that represents the specified `object`.
 template <class T>
 reference_wrapper<T> ref(T& object) BSLS_KEYWORD_NOEXCEPT;
-    // Return a reference wrapper that represents the specified 'object'.
 
+/// Return a reference wrapper that represents the same object as the
+/// specified `original`.
 template <class T>
 reference_wrapper<T> ref(reference_wrapper<T> original) BSLS_KEYWORD_NOEXCEPT;
-    // Return a reference wrapper that represents the same object as the
-    // specified 'original'.
 
 }  // close namespace bsl
 

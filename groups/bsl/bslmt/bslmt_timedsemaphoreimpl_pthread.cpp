@@ -24,10 +24,10 @@ namespace {
 #if !defined(BSLS_PLATFORM_OS_DARWIN)
 // Set the condition clock type, except on Darwin which doesn't support it.
 
+/// This class is a thin wrapper over `pthread_condattr_t` structure which
+/// gets configured with the proper clock type for the purpose of
+/// initializing the `pthread_cond_t` object.
 class CondAttr {
-    // This class is a thin wrapper over 'pthread_condattr_t' structure which
-    // gets configured with the proper clock type for the purpose of
-    // initializing the 'pthread_cond_t' object.
 
     // DATA
     pthread_condattr_t d_attr;
@@ -38,12 +38,14 @@ class CondAttr {
     CondAttr& operator=(const CondAttr&);
 
 public:
+    /// Create the `pthread_condattr_t` structure and initialize it with the
+    /// specified `clockType`.
     CondAttr(bsls::SystemClockType::Enum clockType)
-        // Create the 'pthread_condattr_t' structure and initialize it with the
-        // specified 'clockType'.
     {
         int rc = pthread_condattr_init(&d_attr);
-        (void) rc; BSLS_ASSERT_OPT(0 == rc);  // can only fail on 'ENOMEM'
+        if (rc) {  // can only fail on 'ENOMEM'
+            BSLS_ASSERT_INVOKE_NORETURN("'pthread_condattr_init' failed");
+        }
 
         clockid_t clockId;
         switch (clockType) {
@@ -61,8 +63,8 @@ public:
         pthread_condattr_setclock(&d_attr, clockId);
     }
 
+    /// Destroy the `pthread_condattr_t` structure.
     ~CondAttr()
-        // Destroy the 'pthread_condattr_t' structure.
     {
         int rc = pthread_condattr_destroy(&d_attr);
         (void) rc; BSLS_ASSERT(0 == rc);  // can only fail on invalid 'd_attr'
@@ -78,37 +80,44 @@ public:
 
 // STATIC HELPER FUNCTIONS
 
+/// Initialize the specified `condition` variable with the specified
+/// `clockType`.
 static
 void initializeCondition(pthread_cond_t              *condition,
                          bsls::SystemClockType::Enum  clockType)
-    // Initialize the specified 'condition' variable with the specified
-    // 'clockType'.
 {
 #ifdef BSLS_PLATFORM_OS_DARWIN
     (void) clockType;
     int rc = pthread_cond_init(condition, 0);
-    (void) rc; BSLS_ASSERT_OPT(0 == rc);  // 'pthread_cond_int' can only fail
-                                          // for two possible reasons in this
-                                          // usage and neither should ever
-                                          // occur:
-                                          //: 1 lack of system resources
-                                          //: 2 attempt to re-initialize
+
+    // 'pthread_cond_int' can only fail for two possible reasons in this usage
+    // and neither should ever occur:
+    //: 1 lack of system resources
+    //: 2 attempt to re-initialize
+
+    if (rc) {
+        BSLS_ASSERT_INVOKE_NORETURN("'pthread_cond_init' failed");
+    }
 #else
     CondAttr attr(clockType);
     int rc = pthread_cond_init(condition, &attr.conditionAttributes());
-    (void) rc; BSLS_ASSERT_OPT(0 == rc);  // 'pthread_cond_int' can only fail
-                                          // for three possible reasons in this
-                                          // usage and none should ever occur:
-                                          //: 1 lack of system resources
-                                          //: 2 attempt to re-initialize
-                                          //: 3 the attribute is invalid
+
+    // 'pthread_cond_int' can only fail for three possible reasons in this
+    // usgae and none should ever occur:
+    //: 1 lack of system resources
+    //: 2 attempt to re-initialize
+    //: 3 the attribute is invalid
+
+    if (rc) {
+        BSLS_ASSERT_INVOKE_NORETURN("'pthread_cond_init' failed");
+    }
 #endif
 }
 
+/// Try to decrement the specified atomic integer `a` if positive.  Return 0
+/// on success and a non-zero value otherwise.
 static
 int decrementIfPositive(bsls::AtomicInt *a)
-    // Try to decrement the specified atomic integer 'a' if positive.  Return 0
-    // on success and a non-zero value otherwise.
 {
     int i = *a;
 

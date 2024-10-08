@@ -8,9 +8,10 @@
 #include <bslma_testallocator.h>           // for testing only
 
 #include <bsls_bsltestutil.h>
+#include <bsls_keyword.h>
 
-#include <stdio.h>      // 'printf'
-#include <stdlib.h>     // 'atoi'
+#include <stdio.h>      // `printf`
+#include <stdlib.h>     // `atoi`
 
 using namespace BloombergLP;
 
@@ -109,11 +110,11 @@ class my_CountingAllocator : public bslma::Allocator
     int d_blocksOutstanding;
   public:
     my_CountingAllocator();
-    ~my_CountingAllocator();
+    ~my_CountingAllocator() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    virtual void *allocate(size_type size);
-    virtual void deallocate(void *address);
+    void *allocate(size_type size) BSLS_KEYWORD_OVERRIDE;
+    void deallocate(void *address) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     int blocksOutstanding() const { return d_blocksOutstanding; }
@@ -195,8 +196,8 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   Incorporate usage example from header into driver, remove
-        //   leading comment characters, and replace 'assert' with
-        //   'ASSERT'.
+        //   leading comment characters, and replace `assert` with
+        //   `ASSERT`.
         //
         // Testing:
         //   USAGE EXAMPLE

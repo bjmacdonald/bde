@@ -51,13 +51,32 @@ struct IsString {
     ;
 };
 
+enum ZoneinfoReadMode {
+    // Enumerate the set of modes that can be used for reading binary data.
+
+    k_READ_RAW,        // Return an unadjusted raw binary data from the data
+                       // file (this may not be a "well-formed" Zoneinfo (see
+                       // 'baltzo_zoneinfoutil')
+
+    k_READ_NORMALIZED  // Adjust the raw binary data to produce a Zoneinfo
+                       // satisfying the first two requirements for a
+                       // "well-formed" object by inserting a sentinel
+                       // transition at 01-01-001 (see
+                       // 'baltzo::ZoneinfoUtil::isWellFormed' documentation).
+                       // At the moment, this means adding a sentinel
+                       // transition at 01-01-0001 (the raw file format may
+                       // place such a sentinel transition before the first
+                       // representable 'Datetime' object)
+};
+
 // HELPER FUNCTIONS
+
+/// Load, into the specified `result`, the system independent path of the
+/// specified `timeZoneId` appended to the specified `rootPath`.
 template <class STRING>
 void concatenatePath(STRING             *result,
                      const bsl::string&  rootPath,
                      const char         *timeZoneId)
-    // Load, into the specified 'result', the system independent path of the
-    // specified 'timeZoneId' appended to the specified 'rootPath'.
 {
     BSLS_ASSERT(result);
     BSLS_ASSERT(timeZoneId);
@@ -73,9 +92,9 @@ void concatenatePath(STRING             *result,
     }
 }
 
+/// Returns 0 if the specified `timeZoneId` contains only valid characters
+/// and does not start with `/`, and a non-zero value otherwise.
 int validateTimeZoneId(const char *timeZoneId)
-    // Returns 0 if the specified 'timeZoneId' contains only valid characters
-    // and does not start with '/', and a non-zero value otherwise.
 {
     BSLS_ASSERT(timeZoneId);
 
@@ -96,19 +115,19 @@ int validateTimeZoneId(const char *timeZoneId)
     return 0;
 }
 
+/// Load into the specified `result` the file-system path to the Zoneinfo
+/// binary data file corresponding to the specified `timeZoneId` relative to
+/// the configured `rootPath`.  Return 0 on success, and a non-zero value
+/// otherwise.  On error, `result` is left in a valid, but unspecified
+/// state.  The behavior is undefined unless either `configureRootPath` or
+/// `configureRootPathIfValid` has been called successfully.  Note that this
+/// operation does not verify `result` refers to a valid file on the file
+/// system, or whether the file (if it exists) contains valid Zoneinfo data.
 template <class STRING>
 inline
 int loadTimeZoneFilePath_Impl(STRING             *result,
                               const char         *timeZoneId,
                               const bsl::string&  rootPath)
-    // Load into the specified 'result' the file-system path to the Zoneinfo
-    // binary data file corresponding to the specified 'timeZoneId' relative to
-    // the configured 'rootPath'.  Return 0 on success, and a non-zero value
-    // otherwise.  On error, 'result' is left in a valid, but unspecified
-    // state.  The behavior is undefined unless either 'configureRootPath' or
-    // 'configureRootPathIfValid' has been called successfully.  Note that this
-    // operation does not verify 'result' refers to a valid file on the file
-    // system, or whether the file (if it exists) contains valid Zoneinfo data.
 {
     BSLS_ASSERT(result);
     BSLS_ASSERT(timeZoneId);
@@ -124,6 +143,56 @@ int loadTimeZoneFilePath_Impl(STRING             *result,
     u::concatenatePath(result, rootPath, timeZoneId);
 
     return 0;
+}
+
+/// Load into the specified `result` the time-zone information for the time
+/// zone identified by the specified `timeZoneId` in accordance with the
+/// specified `mode`.  Return 0 on success, and a non-zero value otherwise.
+/// A return status of `ErrorCode::k_UNSUPPORTED_ID` indicates that
+/// `timeZoneId` is not recognized.  If an error occurs during this
+/// operation, `result` will be left in a valid, but unspecified state.
+int loadTimeZoneImpl(baltzo::Zoneinfo              *result,
+                     const baltzo::DataFileLoader&  loader,
+                     const char                    *timeZoneId,
+                     ZoneinfoReadMode               mode)
+{
+    BSLS_ASSERT(result);
+    BSLS_ASSERT(timeZoneId);
+
+    bsl::string path;
+    const int rc = loader.loadTimeZoneFilePath(&path, timeZoneId);
+    if (0 != rc) {
+        BSLS_LOG_ERROR("Poorly formed time-zone identifier '%s'", timeZoneId);
+        return u::UNSUPPORTED_ID;                                     // RETURN
+    }
+
+    // Create a file stream for the olson data file.
+
+    bsl::ifstream infile(path.c_str(),
+                         bsl::ifstream::binary | bsl::ifstream::in);
+
+    if (!infile.is_open()) {
+        // Failed to open the data file for 'timeZoneId'.  If the data-file
+        // loader is correctly configured, 'timeZoneId' is not a supported
+        // time-zone identifier, so return 'k_UNSUPPORTED_ID'.  Otherwise, if
+        // the data-file loader is not correctly configured, return
+        // 'UNSPECIFIED_ERROR' (different from 'k_UNSUPPORTED_ID').
+
+        BSLS_LOG_ERROR("Failed to open time-zone information file '%s'",
+                       path.c_str());
+
+        return loader.isRootPathPlausible()
+               ? u::UNSUPPORTED_ID
+               : u::UNSPECIFIED_ERROR;                                // RETURN
+    }
+
+    result->setIdentifier(timeZoneId);
+
+    if (k_READ_RAW == mode) {
+        return baltzo::ZoneinfoBinaryReader::readRaw(result, infile); // RETURN
+    }
+
+    return baltzo::ZoneinfoBinaryReader::read(result, infile);
 }
 
 }  // close namespace u
@@ -196,38 +265,12 @@ int DataFileLoader::configureRootPathIfPlausible(const char *path)
 
 int DataFileLoader::loadTimeZone(Zoneinfo *result, const char *timeZoneId)
 {
-    BSLS_ASSERT(result);
-    BSLS_ASSERT(timeZoneId);
+    return loadTimeZoneImpl(result, *this, timeZoneId, u::k_READ_NORMALIZED);
+}
 
-    bsl::string path;
-    const int rc = loadTimeZoneFilePath(&path, timeZoneId);
-    if (0 != rc) {
-        BSLS_LOG_ERROR("Poorly formed time-zone identifier '%s'", timeZoneId);
-        return u::UNSUPPORTED_ID;                                     // RETURN
-    }
-
-    // Create a file stream for the olson data file.
-
-    bsl::ifstream infile(path.c_str(),
-                         bsl::ifstream::binary | bsl::ifstream::in);
-
-    if (!infile.is_open()) {
-        // Failed to open the data file for 'timeZoneId'.  If the data-file
-        // loader is correctly configured, 'timeZoneId' is not a supported
-        // time-zone identifier, so return 'k_UNSUPPORTED_ID'.  Otherwise, if
-        // the data-file loader is not correctly configured, return
-        // 'UNSPECIFIED_ERROR' (different from 'k_UNSUPPORTED_ID').
-
-        BSLS_LOG_ERROR("Failed to open time-zone information file '%s'",
-                       path.c_str());
-
-        return isRootPathPlausible()
-               ? u::UNSUPPORTED_ID
-               : u::UNSPECIFIED_ERROR;                                // RETURN
-    }
-
-    result->setIdentifier(timeZoneId);
-    return ZoneinfoBinaryReader::read(result, infile);
+int DataFileLoader::loadTimeZoneRaw(Zoneinfo *result, const char *timeZoneId)
+{
+    return loadTimeZoneImpl(result, *this, timeZoneId, u::k_READ_RAW);
 }
 
 // ACCESSORS

@@ -5,16 +5,16 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a default constructible alternative for 'bsl::variant'.
+//@PURPOSE: Provide a default constructible alternative for `bsl::variant`.
 //
 //@CLASSES:
-//  bsl::monostate: default constructible 'bsl::variant' first alternative
+//  bsl::monostate: default constructible `bsl::variant` first alternative
 //
 //@SEE_ALSO: bslstl_variant
 //
-//@DESCRIPTION: This component provides a 'bsl::monostate' class.  This class
-// can serve as a first alternative type for a 'bsl::variant' to make the
-// 'bsl::variant' type default constructible.
+//@DESCRIPTION: This component provides a `bsl::monostate` class.  This class
+// can serve as a first alternative type for a `bsl::variant` to make the
+// `bsl::variant` type default constructible.
 
 
 #include <bslscm_version.h>
@@ -44,6 +44,9 @@ struct monostate {
 
 // FREE OPERATORS
 
+/// Compare two `monostate` objects.  Since `monostate` only has one value,
+/// the result is `true` for the `==`, `<=`, and `>=` operators, and `false`
+/// for the `!=`, `<`, and `>` operators.
 BSLS_KEYWORD_CONSTEXPR bool operator==(monostate,
                                        monostate) BSLS_KEYWORD_NOEXCEPT;
 BSLS_KEYWORD_CONSTEXPR bool operator!=(monostate,
@@ -56,14 +59,11 @@ BSLS_KEYWORD_CONSTEXPR bool operator<=(monostate,
                                        monostate) BSLS_KEYWORD_NOEXCEPT;
 BSLS_KEYWORD_CONSTEXPR bool operator>=(monostate,
                                        monostate) BSLS_KEYWORD_NOEXCEPT;
-    // Compare two 'monostate' objects.  Since 'monostate' only has one value,
-    // the result is 'true' for the '==', '<=', and '>=' operators, and 'false'
-    // for the '!=', '<', and '>' operators.
 
+/// Pass a `monostate` to the specified `hashAlg`, where `hashAlg` is a
+/// hashing algorithm.
 template <class t_HASHALG>
 void hashAppend(t_HASHALG& hashAlg, const monostate&);
-    // Pass a 'monostate' to the specified 'hashAlg', where 'hashAlg' is a
-    // hashing algorithm.
 }  // close namespace bsl
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
 

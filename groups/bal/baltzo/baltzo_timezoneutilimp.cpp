@@ -30,15 +30,16 @@ BSLS_IDENT_RCSID(baltzo_timezoneutilimp_cpp,"$Id$ $CSID$")
 namespace BloombergLP {
 
 // STATIC HELPER FUNCTIONS
+
+/// Load, into the specified `timeZone`, the address of the time zone
+/// information having the specified `timeZoneId` from the specified
+/// `cache`.  Return 0 on success, and a non-zero value otherwise.  A return
+/// status of `baltzo::ErrorCode::k_UNSUPPORTED_ID` indicates that
+/// `timeZoneId` is not recognized.
 static
 int lookupTimeZone(const baltzo::Zoneinfo **timeZone,
                    const char              *timeZoneId,
                    baltzo::ZoneinfoCache   *cache)
-    // Load, into the specified 'timeZone', the address of the time zone
-    // information having the specified 'timeZoneId' from the specified
-    // 'cache'.  Return 0 on success, and a non-zero value otherwise.  A return
-    // status of 'baltzo::ErrorCode::k_UNSUPPORTED_ID' indicates that
-    // 'timeZoneId' is not recognized.
 {
     BSLS_ASSERT(timeZone);
     BSLS_ASSERT(timeZoneId);
@@ -56,19 +57,19 @@ int lookupTimeZone(const baltzo::Zoneinfo **timeZone,
     return rc;
 }
 
+/// Return an iterator referring to a transition in the specified
+/// `timeZone`, having a local-time descriptor with the specified `dstFlag`.
+/// If existing, first examine the transition after the specified `start`,
+/// then the two transitions preceding `start` and eventually search from
+/// the last transition of `timeZone` backwards.  Return
+/// `timeZone.endTransition()` if `timeZone` does not contain any transition
+/// having a local-time descriptor with `dstFlag`.  The behavior is
+/// undefined unless `start` is a valid iterator in `timeZone`.
 static
 baltzo::Zoneinfo::TransitionConstIterator findTransitionWithDstFlag(
                      const bool                                       dstFlag,
                      const baltzo::Zoneinfo::TransitionConstIterator& start,
                      const baltzo::Zoneinfo&                          timeZone)
-    // Return an iterator referring to a transition in the specified
-    // 'timeZone', having a local-time descriptor with the specified 'dstFlag'.
-    // If existing, first examine the transition after the specified 'start',
-    // then the two transitions preceding 'start' and eventually search from
-    // the last transition of 'timeZone' backwards.  Return
-    // 'timeZone.endTransition()' if 'timeZone' does not contain any transition
-    // having a local-time descriptor with 'dstFlag'.  The behavior is
-    // undefined unless 'start' is a valid iterator in 'timeZone'.
 {
     BSLS_ASSERT(timeZone.endTransitions() != start);
     BSLS_ASSERT(timeZone.numTransitions() != 0);
@@ -335,8 +336,8 @@ void TimeZoneUtilImp::resolveLocalTime(
         BSLS_ASSERT(*resultValidity != Validity::e_VALID_UNIQUE
                  || utcOffset1 == utcOffset2);
 
-         utcOffsetInSeconds = *resultValidity == Validity::e_INVALID
-                            ? utcOffset1 : utcOffset2;
+        utcOffsetInSeconds = *resultValidity == Validity::e_INVALID
+                           ? utcOffset1 : utcOffset2;
     }
 
     // Use the resolved UTC offset to create the resolved UTC value for
@@ -346,22 +347,8 @@ void TimeZoneUtilImp::resolveLocalTime(
     bdlt::Datetime resolvedUtcTime    = localTime;
 
     const int rc = resolvedUtcTime.addMinutesIfValid(-utcOffsetInMinutes);
-    BSLS_REVIEW_OPT(0 == rc &&
-                    "'addMinutes' would return an invalid Datetime.");
-
-    // The following block should be removed once the above 'BSLS_REVIEW_OPT'
-    // is replaced by 'BSLS_ASSERT'.
+    BSLS_ASSERT_SAFE(0 == rc); // See DRQS 174142713.
     if (0 != rc) {
-        const int buffSize = 32;
-        char      resolvedBuffer[buffSize];
-        resolvedUtcTime.printToBuffer(resolvedBuffer, buffSize);
-        BSLS_LOG_ERROR(
-            "DRQS 171227423: Converting 'resolvedUtcTime'=\"%s\" using "
-            "'resolvedUtcTime.addMinutes(-utcOffsetInMinutes)' where "
-            "'utcOffsetInMinutes=%d' would result in an invalid 'Datetime'.",
-            resolvedBuffer,
-            utcOffsetInMinutes);
-
         resolvedUtcTime.addMinutes(-utcOffsetInMinutes);
     }
 

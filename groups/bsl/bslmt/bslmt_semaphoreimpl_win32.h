@@ -5,25 +5,25 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-//@PURPOSE: Provide a win32 implementation of 'bslmt::Semaphore'.
+//@PURPOSE: Provide a win32 implementation of `bslmt::Semaphore`.
 //
 //@CLASSES:
 //  bslmt::SemaphoreImpl<Win32Semaphore>: win32 specialization
 //
 //@SEE_ALSO: bslmt_semaphore
 //
-//@DESCRIPTION: This component provides an implementation of 'bslmt::Semaphore'
-// for Windows (win32), 'bslmt::SemaphoreImpl<Win32Semaphore>', via the
+//@DESCRIPTION: This component provides an implementation of `bslmt::Semaphore`
+// for Windows (win32), `bslmt::SemaphoreImpl<Win32Semaphore>`, via the
 // template specialization:
-//..
-//  bslmt::SemaphoreImpl<Platform::Win32Threads>
-//..
+// ```
+// bslmt::SemaphoreImpl<Platform::Win32Threads>
+// ```
 // This template class should not be used (directly) by client code.  Clients
-// should instead use 'bslmt::Semaphore'.
+// should instead use `bslmt::Semaphore`.
 //
 ///Usage
 ///-----
-// This component is an implementation detail of 'bslmt' and is *not* intended
+// This component is an implementation detail of `bslmt` and is *not* intended
 // for direct client use.  It is subject to change without notice.  As such, a
 // usage example is not provided.
 
@@ -85,11 +85,11 @@ class SemaphoreImpl;
               // class SemaphoreImpl<Platform::Win32Semaphore>
               // =============================================
 
+/// This class provides a full specialization of `SemaphoreImpl` for win32.
+/// The implementation provided here defines an efficient POSIX like
+/// semaphore.
 template <>
 class SemaphoreImpl<Platform::Win32Semaphore> {
-    // This class provides a full specialization of 'SemaphoreImpl' for win32.
-    // The implementation provided here defines an efficient POSIX like
-    // semaphore.
 
     // DATA
     void            *d_handle;     // TBD doc
@@ -106,36 +106,37 @@ class SemaphoreImpl<Platform::Win32Semaphore> {
 
   public:
     // CREATORS
-    SemaphoreImpl(int count);
-        // Create a semaphore initially having the specified 'count'.  This
-        // method does not return normally unless there are sufficient system
-        // resources to construct the object.
 
+    /// Create a semaphore initially having the specified `count`.  This
+    /// method does not return normally unless there are sufficient system
+    /// resources to construct the object.
+    SemaphoreImpl(int count);
+
+    /// Destroy a semaphore
     ~SemaphoreImpl();
-        // Destroy a semaphore
 
     // MANIPULATORS
+
+    /// Atomically increment the count of this semaphore.
     void post();
-        // Atomically increment the count of this semaphore.
 
+    /// Atomically increment the count of this semaphore by the specified
+    /// `number`.  The behavior is undefined unless `number > 0`.
     void post(int number);
-        // Atomically increment the count of this semaphore by the specified
-        // 'number'.  The behavior is undefined unless 'number > 0'.
 
+    /// Decrement the count of this semaphore if it is positive and return
+    /// 0.  Return a non-zero value otherwise.
     int tryWait();
-        // Decrement the count of this semaphore if it is positive and return
-        // 0.  Return a non-zero value otherwise.
 
+    /// Block until the count of this semaphore is a positive value and
+    /// atomically decrement it.
     void wait();
-        // Block until the count of this semaphore is a positive value and
-        // atomically decrement it.
 
     // ACCESSORS
-    int getValue() const;
-        // Return the current value of this semaphore.
-};
 
-}  // close package namespace
+    /// Return the current value of this semaphore.
+    int getValue() const;
+};
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -147,25 +148,27 @@ class SemaphoreImpl<Platform::Win32Semaphore> {
 
 // CREATORS
 inline
-bslmt::SemaphoreImpl<bslmt::Platform::Win32Semaphore>::SemaphoreImpl(int count)
+SemaphoreImpl<bslmt::Platform::Win32Semaphore>::SemaphoreImpl(int count)
 : d_resources(count)
 {
     // Create a semaphore with a 0 count, since the count is actually
     // maintained in 'd_resources'.
 
     d_handle = CreateSemaphoreA(NULL, 0, INT_MAX, NULL);
-    BSLS_ASSERT_OPT(NULL != d_handle);
+    if (NULL == d_handle) {
+        BSLS_ASSERT_INVOKE_NORETURN("'CreateSemaphoreA' failed");
+    }
 }
 
 inline
-bslmt::SemaphoreImpl<bslmt::Platform::Win32Semaphore>::~SemaphoreImpl()
+SemaphoreImpl<bslmt::Platform::Win32Semaphore>::~SemaphoreImpl()
 {
     CloseHandle(d_handle);
 }
 
 // MANIPULATORS
 inline
-void bslmt::SemaphoreImpl<bslmt::Platform::Win32Semaphore>::post()
+void SemaphoreImpl<bslmt::Platform::Win32Semaphore>::post()
 {
     if (++d_resources <= 0) {
         ReleaseSemaphore(d_handle, 1, NULL);
@@ -173,7 +176,7 @@ void bslmt::SemaphoreImpl<bslmt::Platform::Win32Semaphore>::post()
 }
 
 inline
-void bslmt::SemaphoreImpl<bslmt::Platform::Win32Semaphore>::wait()
+void SemaphoreImpl<bslmt::Platform::Win32Semaphore>::wait()
 {
     if (--d_resources >= 0) {
         return;
@@ -183,12 +186,13 @@ void bslmt::SemaphoreImpl<bslmt::Platform::Win32Semaphore>::wait()
 
 // ACCESSORS
 inline
-int bslmt::SemaphoreImpl<bslmt::Platform::Win32Semaphore>::getValue() const
+int SemaphoreImpl<bslmt::Platform::Win32Semaphore>::getValue() const
 {
     const int v = d_resources;
     return v > 0 ? v : 0;
 }
 
+}  // close package namespace
 }  // close enterprise namespace
 
 #endif  // BSLMT_PLATFORM_WIN32_THREADS
