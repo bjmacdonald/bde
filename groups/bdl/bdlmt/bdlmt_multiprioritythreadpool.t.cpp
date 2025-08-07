@@ -16,6 +16,7 @@
 #include <bslmt_qlock.h>
 #include <bslmt_testutil.h>
 #include <bslmt_threadgroup.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bsls_atomic.h>
 #include <bsls_platform.h>
@@ -27,6 +28,7 @@
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>            // atoi()
 #include <bsl_cstring.h>
+#include <bsl_format.h>
 #include <bsl_iostream.h>
 #include <bsl_list.h>
 #include <bsl_string.h>
@@ -168,6 +170,20 @@ static const bool k_threadNameCanBeEmpty = false;
 #endif
 
 }  // close unnamed namespace
+
+#define STARTTHREADS(x) \
+    if (0 != x.startThreads()) { \
+        bslmt::ThreadUtil::microSleep(0, 1); \
+        if (0 != x.startThreads()) { \
+            bslmt::ThreadUtil::microSleep(0, 3); \
+            if (0 != x.startThreads()) { \
+                cout << "Thread start() failed.  Thread quota exceeded?" \
+                     << bsl::endl; \
+                ASSERT(false); \
+            } \
+        } \
+    }
+
 
 // ============================================================================
 //                      Classes for usage example 1
@@ -697,6 +713,10 @@ int main(int argc, char *argv[])
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;;
 
+    bslmt::TimedCompletionGuard completionGuard(&taDefault);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
+
     switch (test) { case 0:  // Zero is always the leading case.
       case 13: {
         // --------------------------------------------------------------------
@@ -714,7 +734,7 @@ int main(int argc, char *argv[])
 
         using namespace MULTIPRIORITYTHREADPOOL_CASE_USAGE_1;
 
-        bdlmt::MultipriorityThreadPool pool(20,  // threads
+        bdlmt::MultipriorityThreadPool pool(10,  // threads
                                             2,   // priorities
                                             &ta);
 
@@ -764,7 +784,7 @@ int main(int argc, char *argv[])
         doneFlag = false;
 
         threadPool =
-            new (ta) bdlmt::MultipriorityThreadPool(20, NUM_PRIORITIES, &ta);
+            new (ta) bdlmt::MultipriorityThreadPool(10, NUM_PRIORITIES, &ta);
         threadPool->startThreads();
 
         bsls::TimeInterval startJobs = bsls::SystemTime::nowRealtimeClock();
@@ -861,7 +881,7 @@ int main(int argc, char *argv[])
                                                 attrib,
                                                 &localTa);
 
-            pool.startThreads();
+            STARTTHREADS(pool);
             for (int i = 0; NUM_THREADS > i; ++i) {
                 pool.enqueueJob(functor, 0);
             }
@@ -931,7 +951,7 @@ int main(int argc, char *argv[])
         ASSERTV(taDefaultLocal.numAllocations(),
                 0 == taDefaultLocal.numAllocations());
 
-        pool.startThreads();
+        STARTTHREADS(pool);
 
         ASSERT(0 == Worker::s_time);
 
@@ -1036,6 +1056,10 @@ int main(int argc, char *argv[])
 
         using namespace MULTIPRIORITYTHREADPOOL_CASE_5;
 
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
+
         bdlmt::MultipriorityThreadPool pool(1, 1, &ta);
 
         memset(resultsVec, 0x8f, sizeof resultsVec);
@@ -1056,10 +1080,14 @@ int main(int argc, char *argv[])
                                                                      " jobs\n";
         }
 
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
+
         ASSERT(0 == resultsVecIdx);
         ASSERT(0 == pool.numPendingJobs());
 
-        pool.startThreads();
+        STARTTHREADS(pool);
         pool.drainJobs();
 
         ASSERT(0 == resultsVecIdx);
@@ -1067,6 +1095,10 @@ int main(int argc, char *argv[])
 
         pool.suspendProcessing();
         pool.removeJobs();
+
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
 
         pool.enqueueJob(&pushInt, (void *) 0, 0);
         pool.enqueueJob(&pushInt, (void *) 0, 0);
@@ -1082,10 +1114,14 @@ int main(int argc, char *argv[])
             cout << "After shutdown(): " << pool.numPendingJobs() << " jobs\n";
         }
 
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
+
         ASSERT(0 == resultsVecIdx);
         ASSERT(0 == pool.numPendingJobs());
 
-        pool.startThreads();
+        STARTTHREADS(pool);
         pool.resumeProcessing();
         pool.enableQueue();
 
@@ -1136,7 +1172,7 @@ int main(int argc, char *argv[])
                                             1,  // single priority
                                             &ta);
 
-        pool.startThreads();
+        STARTTHREADS(pool);
 
         for (int i = 0; 7 > i; ++i) {
             BlockFunctor bfInner;
@@ -1195,7 +1231,7 @@ int main(int argc, char *argv[])
         }
 
         ASSERT(k_SCRAMBLE_LEN == pool.numPendingJobs());
-        pool.startThreads();
+        STARTTHREADS(pool);
         pool.drainJobs();
 
         ASSERT(k_SCRAMBLE_LEN == resultsVecIdx);
@@ -1248,13 +1284,10 @@ int main(int argc, char *argv[])
             NUM_THREADS = 8,
             NUM_PRIORITIES = 4,
             GARBAGE_VAL = 0x8f,
-            NUM_JOBS = 10,
-            MAX_LOOP = 4
+            NUM_JOBS = 10
         };
 
-        int ii;
-        for (ii = 0; ii <= MAX_LOOP; ++ii) {
-            bool startOverFromScratch = false;
+        {
             bdlmt::MultipriorityThreadPool pool(NUM_THREADS,
                                                 NUM_PRIORITIES,
                                                 &ta);
@@ -1306,13 +1339,7 @@ int main(int argc, char *argv[])
             // execute jobs and verify the jobs have not begun executing
 
             for (int j = 0; 10 > j; ++j) {
-                if (pool.startThreads()) {
-                    startOverFromScratch = true;
-                    if (verbose) {
-                        P_(L_); P_(ii); P(j);
-                    }
-                    break;
-                }
+                STARTTHREADS(pool);
 
                 bslmt::ThreadUtil::yield();
                 bslmt::ThreadUtil::microSleep(10 * 1000);
@@ -1356,22 +1383,12 @@ int main(int argc, char *argv[])
                 ASSERT(0 == resultsVecIdx);
                 ASSERT(NUM_JOBS == pool.numPendingJobs());
             }
-            if (startOverFromScratch) {
-                continue;
-            }
 
             // repeat that last experiment, not as many times, redundantly
             // calling the state changes.
 
             for (int j = 0; 5 > j; ++j) {
-                if (pool.startThreads()) {
-                    startOverFromScratch = true;
-                    if (verbose) {
-                        P_(L_); P_(ii); P(j);
-                    }
-                    break;
-                }
-                ASSERT(0 == pool.startThreads());
+                STARTTHREADS(pool);
 
                 bslmt::ThreadUtil::yield();
                 bslmt::ThreadUtil::microSleep(10 * 1000);
@@ -1418,16 +1435,8 @@ int main(int argc, char *argv[])
                 ASSERT(0 == resultsVecIdx);
                 ASSERT(NUM_JOBS == pool.numPendingJobs());
             }
-            if (startOverFromScratch) {
-                continue;
-            }
 
-            if (pool.startThreads()) {
-                if (verbose) {
-                    P_(L_); P(ii);
-                }
-                continue;
-            }
+            STARTTHREADS(pool);
             pool.resumeProcessing();
             pool.drainJobs();
 
@@ -1481,11 +1490,7 @@ int main(int argc, char *argv[])
             }
 
             pool.stopThreads();
-
-            break;
         }
-        ASSERT(ii <= MAX_LOOP);
-        if (verbose) { P_(L_); P(ii); }
       }  break;
       case 5: {
         // --------------------------------------------------------------------
@@ -1544,10 +1549,7 @@ int main(int argc, char *argv[])
         ASSERT(!pool.isSuspended());
         checkOutPool(&pool);
 
-        if (pool.startThreads()) {
-            bslmt::ThreadUtil::microSleep(250000);  // 250 milliseconds
-            ASSERT(0 == pool.startThreads());
-        }
+        STARTTHREADS(pool);
 
         ASSERT(pool.isStarted());
         ASSERT(!pool.isSuspended());
@@ -1582,7 +1584,7 @@ int main(int argc, char *argv[])
         ASSERT(pool.isSuspended());
         checkOutPool(&pool);
 
-        pool.startThreads();
+        STARTTHREADS(pool);
 
         ASSERT(pool.isStarted());
         ASSERT(pool.isSuspended());
@@ -1601,7 +1603,7 @@ int main(int argc, char *argv[])
         ASSERT(!pool.isSuspended());
         checkOutPool(&pool);
 
-        pool.startThreads();
+        STARTTHREADS(pool);
 
         ASSERT(pool.isStarted());
         ASSERT(!pool.isSuspended());
@@ -1833,7 +1835,7 @@ int main(int argc, char *argv[])
             otherCounter *= otherCounter;
         }
 
-        pool.startThreads();
+        STARTTHREADS(pool);
         pool.drainJobs();
 
         ASSERTV(counter, otherCounter, counter == otherCounter);
@@ -1892,7 +1894,7 @@ int main(int argc, char *argv[])
 
             ASSERT(!counter && !otherCounter);
 
-            pool.startThreads();
+            STARTTHREADS(pool);
 
             for (int i = 0; i < k_INC_BY_LENGTH; ++i) {
                 barrier.wait();
@@ -1938,7 +1940,7 @@ int main(int argc, char *argv[])
                                                         1, // priorities
                                                         &ta);
 
-            pool->startThreads();
+            STARTTHREADS((*pool));
 
             counter = 0;
 

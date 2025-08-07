@@ -9,6 +9,7 @@
 #include <bslma_testallocatormonitor.h>
 
 #include <bslmf_isbitwisecopyable.h>
+#include <bslmf_istriviallycopyable.h>
 
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
@@ -128,6 +129,9 @@
 // [21] bool ends_with(basic_string_view subview) const;
 // [21] bool ends_with(CHAR_TYPE character) const;
 // [21] bool ends_with(const CHAR_TYPE* characterString) const;
+// [21] bool contains(basic_string_view subview) const;
+// [21] bool contains(CHAR_TYPE character) const;
+// [21] bool contains(const CHAR_TYPE* characterString) const;
 // [25] operator std::string<>();
 //
 // FREE OPERATORS
@@ -162,6 +166,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -745,7 +750,7 @@ typename bsl::basic_string_view<CHAR_TYPE>::size_type findLastNotOf(
 //              HELPER CLASSES FOR TESTING ITERATOR INTERFACES
 // ----------------------------------------------------------------------------
 
-#ifndef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifndef BSLSTL_STRING_VIEW_IS_ALIASED
 
                         // ==================
                         // class TestIterator
@@ -1399,11 +1404,16 @@ void TestDriver<TYPE,TRAITS>::testCase22()
             const ObjC::value_type *STRING   = TestDriver<char>::s_testString;
             const ObjC::value_type *NULL_PTR = 0;
 
-            ASSERT_SAFE_PASS(operator ""_sv(STRING, 0));
-            ASSERT_SAFE_PASS(operator ""_sv(STRING, 5));
+            // afeher: for some reason the using directive above does not work
+            ASSERT_SAFE_PASS(
+                         bsl::string_view_literals::operator ""_sv(STRING, 0));
+            ASSERT_SAFE_PASS(
+                         bsl::string_view_literals::operator ""_sv(STRING, 5));
 
-            ASSERT_SAFE_PASS(operator ""_sv(NULL_PTR, 0));
-            ASSERT_SAFE_FAIL(operator ""_sv(NULL_PTR, 5));
+            ASSERT_SAFE_PASS(
+                       bsl::string_view_literals::operator ""_sv(NULL_PTR, 0));
+            ASSERT_SAFE_FAIL(
+                       bsl::string_view_literals::operator ""_sv(NULL_PTR, 5));
         }
 #endif
     }
@@ -1486,11 +1496,16 @@ void TestDriver<TYPE,TRAITS>::testCase22()
                                              TestDriver<wchar_t>::s_testString;
             const ObjW::value_type *NULL_PTR = 0;
 
-            ASSERT_SAFE_PASS(operator ""_sv(STRING, 0));
-            ASSERT_SAFE_PASS(operator ""_sv(STRING, 5));
+            // afeher: for some reason the using directive above does not work
+            ASSERT_SAFE_PASS(
+                         bsl::string_view_literals::operator ""_sv(STRING, 0));
+            ASSERT_SAFE_PASS(
+                         bsl::string_view_literals::operator ""_sv(STRING, 5));
 
-            ASSERT_SAFE_PASS(operator ""_sv(NULL_PTR, 0));
-            ASSERT_SAFE_FAIL(operator ""_sv(NULL_PTR, 5));
+            ASSERT_SAFE_PASS(
+                       bsl::string_view_literals::operator ""_sv(NULL_PTR, 0));
+            ASSERT_SAFE_FAIL(
+                       bsl::string_view_literals::operator ""_sv(NULL_PTR, 5));
         }
 #endif
     }
@@ -1555,10 +1570,18 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
     //   bool ends_with(basic_string_view subview) const;
     //   bool ends_with(CHAR_TYPE character) const;
     //   bool ends_with(const CHAR_TYPE* characterString) const;
+    //   bool contains(basic_string_view subview) const;
+    //   bool contains(CHAR_TYPE character) const;
+    //   bool contains(const CHAR_TYPE* characterString) const;
     // ------------------------------------------------------------------------
     if (verbose) printf("for %s type.\n", NameOf<TYPE>().name());
 
-#if   defined(BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY)
+#if  defined(BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY) || \
+    !defined(BSLSTL_STRING_VIEW_IS_ALIASED)
+#define STRING_VIEW_HAS_CONTAINS
+#endif
+
+#if   defined(BSLSTL_STRING_VIEW_IS_ALIASED)
         ASSERT(( bsl::is_same<Obj,
                               std::basic_string_view<TYPE, TRAITS> >::value));
 #elif defined(BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY)
@@ -1695,6 +1718,11 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
         ASSERTV(true == XEmpty.ends_with(XZero));
         ASSERTV(true == XZero.ends_with(XEmpty));
 
+#ifdef STRING_VIEW_HAS_CONTAINS
+        ASSERTV(true == XEmpty.contains(XZero));
+        ASSERTV(true == XZero.contains(XEmpty));
+#endif
+
         for (size_type i = 0; i < NUM_DATA; ++i) {
             const int          LINE   = DATA[i].d_lineNum;
             const TYPE * const STR    = DATA[i].d_string;
@@ -1715,6 +1743,11 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
             ASSERTV(LINE, false == XEmpty.ends_with(X));
             ASSERTV(LINE, false == XZero.ends_with(X));
 
+#ifdef STRING_VIEW_HAS_CONTAINS
+            ASSERTV(LINE, false == XEmpty.contains(X));
+            ASSERTV(LINE, false == XZero.contains(X));
+#endif
+
             // string
 
             const bool ZERO_LENGTH_STR = (0 == TRAITS::length(STR));
@@ -1725,6 +1758,11 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
             ASSERTV(LINE, ZERO_LENGTH_STR == XEmpty.ends_with(STR));
             ASSERTV(LINE, ZERO_LENGTH_STR == XZero.ends_with(STR));
 
+#ifdef STRING_VIEW_HAS_CONTAINS
+            ASSERTV(LINE, ZERO_LENGTH_STR == XEmpty.contains(STR));
+            ASSERTV(LINE, ZERO_LENGTH_STR == XZero.contains(STR));
+#endif
+
             // character
 
             ASSERTV(LINE, false == XEmpty.starts_with(STR[0]));
@@ -1733,6 +1771,11 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
             ASSERTV(LINE, false == XEmpty.ends_with(STR[0]));
             ASSERTV(LINE, false == XZero.ends_with(STR[0]));
 
+#ifdef STRING_VIEW_HAS_CONTAINS
+            ASSERTV(LINE, false == XEmpty.contains(STR[0]));
+            ASSERTV(LINE, false == XZero.contains(STR[0]));
+#endif
+
             // reverse
 
             ASSERTV(LINE, true  == X.starts_with(XZero));
@@ -1740,6 +1783,11 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
 
             ASSERTV(LINE, true  == X.ends_with(XZero));
             ASSERTV(LINE, true  == X.ends_with(XEmpty));
+
+#ifdef STRING_VIEW_HAS_CONTAINS
+            ASSERTV(LINE, true  == X.contains(XZero));
+            ASSERTV(LINE, true  == X.contains(XEmpty));
+#endif
         }
     }
 
@@ -1785,6 +1833,13 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
             ASSERTV(LINE1, LINE2, EXP_E_SV, RESULT_E_SV,
                     EXP_E_SV == RESULT_E_SV);
 
+#ifdef STRING_VIEW_HAS_CONTAINS
+            const bool EXP_C_SV = (NPOS != X1.find(X2));
+            const bool RESULT_C_SV = X1.contains(X2);
+            ASSERTV(LINE1, LINE2, EXP_C_SV, RESULT_C_SV,
+                    EXP_C_SV == RESULT_C_SV);
+#endif
+
             // string
 
             const bool EXP_S_S = (0 == X1.find(STR2));
@@ -1800,6 +1855,13 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
             ASSERTV(LINE1, LINE2, EXP_E_S, RESULT_E_S,
                     EXP_E_S == RESULT_E_S);
 
+#ifdef STRING_VIEW_HAS_CONTAINS
+            const bool EXP_C_S = (NPOS != X1.find(STR2));
+            const bool RESULT_C_S = X1.contains(STR2);
+            ASSERTV(LINE1, LINE2, EXP_C_S, RESULT_C_S,
+                    EXP_C_S == RESULT_C_S);
+#endif
+
             // character
 
             const bool EXP_S_CH = (0 == X1.find(STR2[0]));
@@ -1812,6 +1874,13 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
                     EXP_S_CH == RESULT_S_CH);
             ASSERTV(LINE1, LINE2, EXP_E_CH, RESULT_E_CH,
                     EXP_E_CH == RESULT_E_CH);
+
+#ifdef STRING_VIEW_HAS_CONTAINS
+            const bool EXP_C_CH = (NPOS != X1.find(STR2[0]));
+            const bool RESULT_C_CH = X1.contains(STR2[0]);
+            ASSERTV(LINE1, LINE2, EXP_C_CH, RESULT_C_CH,
+                    EXP_C_CH == RESULT_C_CH);
+#endif
         }
     }
 
@@ -1832,6 +1901,11 @@ void TestDriver<TYPE, TRAITS>::testCase21() {
 
         ASSERT_SAFE_PASS(X.ends_with(STR));
         ASSERT_SAFE_FAIL(X.ends_with(NULL_PTR));
+
+#ifdef STRING_VIEW_HAS_CONTAINS
+        ASSERT_SAFE_PASS(X.contains(STR));
+        ASSERT_SAFE_FAIL(X.contains(NULL_PTR));
+#endif
     }
 #endif
 }
@@ -6905,7 +6979,7 @@ void TestDriver<TYPE, TRAITS>::testCase2()
     if (verbose) printf("Validate `TestIterator` and `TestSentinel`.\n");
 
     {
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifdef BSLSTL_STRING_VIEW_IS_ALIASED
 
         ASSERT((true ==std::is_same<bsl::string_view,  // confirm alias
                                     std::string_view>::value));
@@ -7396,9 +7470,34 @@ int main(int argc, char *argv[])
         if (verbose) printf("\nTESTING TYPE TRAITS"
                             "\n===================\n");
 
-        ASSERT((bsl::is_trivially_copyable<bsl::string_view>::value));
-        ASSERT((bslmf::IsBitwiseCopyable<bsl::string_view>::value));
-        ASSERT((bslmf::IsBitwiseMoveable<bsl::string_view>::value));
+        ASSERT((bsl::is_trivially_copyable<     bsl::string_view>::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::string_view>::value));
+        ASSERT((bslmf::IsBitwiseCopyable<       bsl::string_view>::value));
+        ASSERT((bslmf::IsBitwiseMoveable<       bsl::string_view>::value));
+
+        ASSERT((bsl::is_trivially_copyable<     bsl::wstring_view>::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::wstring_view>::value));
+        ASSERT((bslmf::IsBitwiseCopyable<       bsl::wstring_view>::value));
+        ASSERT((bslmf::IsBitwiseMoveable<       bsl::wstring_view>::value));
+
+#if defined (BSLS_COMPILERFEATURES_SUPPORT_UTF8_CHAR_TYPE)
+        ASSERT((bsl::is_trivially_copyable<     bsl::u8string_view>::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::u8string_view>::value));
+        ASSERT((bslmf::IsBitwiseCopyable<       bsl::u8string_view>::value));
+        ASSERT((bslmf::IsBitwiseMoveable<       bsl::u8string_view>::value));
+#endif
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_UNICODE_CHAR_TYPES)
+        ASSERT((bsl::is_trivially_copyable<     bsl::u16string_view>::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::u16string_view>::value));
+        ASSERT((bslmf::IsBitwiseCopyable<       bsl::u16string_view>::value));
+        ASSERT((bslmf::IsBitwiseMoveable<       bsl::u16string_view>::value));
+
+        ASSERT((bsl::is_trivially_copyable<     bsl::u32string_view>::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::u32string_view>::value));
+        ASSERT((bslmf::IsBitwiseCopyable<       bsl::u32string_view>::value));
+        ASSERT((bslmf::IsBitwiseMoveable<       bsl::u32string_view>::value));
+#endif
 
       } break;
       case 23: {

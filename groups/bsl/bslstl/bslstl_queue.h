@@ -67,9 +67,9 @@ BSLS_IDENT("$Id: $")
 // The following term is used to more precisely specify the requirements on
 // template parameter types in function-level documentation:
 //
-//: *equality-comparable*:
-//:   The type provides an equality-comparison operator that defines an
-//:   equivalence relationship and is both reflexive and transitive.
+// * *equality-comparable*
+//   > The type provides an equality-comparison operator that defines an
+//   > equivalence relationship and is both reflexive and transitive.
 //
 ///`VALUE` and `CONTAINER::value_type`
 ///- - - - - - - - - - - - - - - - - -
@@ -127,8 +127,8 @@ BSLS_IDENT("$Id: $")
 // Then, we define the class `MessageProcessor`, which provides methods to
 // receive and process messages:
 // ```
+// /// This class receives and processes messages from clients.
 // class MessageProcessor {
-//     // This class receives and processes messages from clients.
 // ```
 // Here, we define a private data member of `bsl::queue<Message>` type, which
 // is an instantiation of `bsl::queue` that uses `Message` for its `VALUE`
@@ -142,19 +142,21 @@ BSLS_IDENT("$Id: $")
 //
 //   public:
 //     // CREATORS
+//
+//     /// Create a message processor object.  Optionally specify a
+//     /// `basicAllocator` used to supply memory.  If `basicAllocator` is 0,
+//     /// the currently installed default allocator is used.
 //     explicit MessageProcessor(bslma::Allocator *basicAllocator = 0);
-//         // Create a message processor object.  Optionally specify a
-//         // 'basicAllocator' used to supply memory.  If 'basicAllocator' is
-//         // 0, the currently installed default allocator is used.
 //
 //     // MANIPULATORS
-//     void receiveMessage(const Message &message);
-//         // Enqueue the specified 'message' onto this message processor.
 //
+//     /// Enqueue the specified `message` onto this message processor.
+//     void receiveMessage(const Message &message);
+//
+//     /// Dequeue all messages currently contained by this processor,
+//     /// and print them to the console if the specified `verbose` flag
+//     /// is not 0.
 //     void processMessages(int verbose);
-//         // Dequeue all messages currently contained by this processor,
-//         // and print them to the console if the specified 'verbose' flag
-//         // is not 0.
 // };
 // ```
 // Next, we implement the `MessageProcessor` constructor:
@@ -227,12 +229,16 @@ BSLS_IDENT("$Id: $")
 #include <bsls_util.h>     // 'forward<T>(V)'
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Thu Oct 21 10:11:37 2021
+// Generated on Mon Jan 13 08:31:39 2025
 // Command line: sim_cpp11_features.pl bslstl_queue.h
+
 # define COMPILING_BSLSTL_QUEUE_H
 # include <bslstl_queue_cpp03.h>
 # undef COMPILING_BSLSTL_QUEUE_H
+
+// clang-format on
 #else
 
 namespace bsl {
@@ -427,7 +433,6 @@ class queue {
     /// inserted element.
     template <class... Args>
     reference emplace(Args&&... args);
-
 #endif
 
     /// Push onto the back of this queue a `value_type` object having the

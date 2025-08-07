@@ -19,6 +19,7 @@ BSLS_IDENT("$Id: $")
 #include <bslmf_disjunction.h>
 #include <bslmf_negation.h>
 
+#include <bsls_alignmentutil.h>
 #include <bsls_compilerfeatures.h>
 #include <bsls_keyword.h>
 #include <bsls_libraryfeatures.h>
@@ -71,36 +72,14 @@ BSLS_IDENT("$Id: $")
 // support macros if they are already defined, so that it is possible to define
 // them on the compiler command line to 0 or 1 regardless of platform.
 
-#if defined(BSLS_PLATFORM_CMP_MSVC)
+#if defined(BSLS_PLATFORM_CMP_MSVC) || \
+    defined(BSLS_PLATFORM_CMP_GNU) || \
+    defined(BSLS_PLATFORM_CMP_CLANG)
 #  ifndef   BSL_TYPE_TRAITS_HAS_IS_TRIVIALLY_TRAITS
 #    define BSL_TYPE_TRAITS_HAS_IS_TRIVIALLY_TRAITS 1
 #  endif
 #  ifndef   BSL_TYPE_TRAITS_HAS_ALIGNED_UNION
 #    define BSL_TYPE_TRAITS_HAS_ALIGNED_UNION       1
-#  endif
-#endif
-
-#if defined(BSLS_PLATFORM_CMP_GNU)
-#  if BSLS_PLATFORM_CMP_VERSION >= 50000
-#    ifndef   BSL_TYPE_TRAITS_HAS_IS_TRIVIALLY_TRAITS
-#      define BSL_TYPE_TRAITS_HAS_IS_TRIVIALLY_TRAITS 1
-#    endif
-#    ifndef   BSL_TYPE_TRAITS_HAS_ALIGNED_UNION
-#      define BSL_TYPE_TRAITS_HAS_ALIGNED_UNION       1
-#    endif
-#  endif
-#endif
-
-#if defined(BSLS_PLATFORM_CMP_CLANG)
-#  if defined(__APPLE_CC__) && __APPLE_CC__ >= 6000
-#    ifndef   BSL_TYPE_TRAITS_HAS_IS_TRIVIALLY_TRAITS
-#      define BSL_TYPE_TRAITS_HAS_IS_TRIVIALLY_TRAITS 1
-#    endif
-#    if defined(BSLS_COMPILERFEATURES_SUPPORT_VARIADIC_TEMPLATES)
-#      ifndef   BSL_TYPE_TRAITS_HAS_ALIGNED_UNION
-#        define BSL_TYPE_TRAITS_HAS_ALIGNED_UNION     1
-#      endif
-#    endif
 #  endif
 #endif
 
@@ -171,10 +150,51 @@ using std::make_unsigned;
 using std::remove_all_extents;
 
     // 20.10.7.6, other transformations:
-using std::aligned_storage;
-#if BSL_TYPE_TRAITS_HAS_ALIGNED_UNION
-using std::aligned_union;
+
+    // `std::aligned_storage` and `std::aligned_union` are deprecated in C++23.
+    // Silence the warning that would result from including this header, but
+    // mark the bsl aliases deprecated.
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#  endif
+#  define BSL_TYPE_TRAITS_DEPRECATED_ALIGNED [[deprecated]]
+#else
+#  define BSL_TYPE_TRAITS_DEPRECATED_ALIGNED
 #endif
+
+template <std::size_t t_LEN,
+          std::size_t t_ALIGNMENT =
+              BloombergLP::bsls::AlignmentUtil
+              ::defaultAlignmentOfAlignedStorage<t_LEN>()>
+using aligned_storage BSL_TYPE_TRAITS_DEPRECATED_ALIGNED
+= std::aligned_storage<t_LEN, t_ALIGNMENT>;
+
+template <std::size_t t_LEN,
+          std::size_t t_ALIGNMENT =
+              BloombergLP::bsls::AlignmentUtil
+              ::defaultAlignmentOfAlignedStorage<t_LEN>()>
+using aligned_storage_t BSL_TYPE_TRAITS_DEPRECATED_ALIGNED
+= typename std::aligned_storage<t_LEN, t_ALIGNMENT>::type;
+
+#if BSL_TYPE_TRAITS_HAS_ALIGNED_UNION
+template <std::size_t t_LEN, class... t_TYPES>
+using aligned_union BSL_TYPE_TRAITS_DEPRECATED_ALIGNED
+= std::aligned_union<t_LEN, t_TYPES...>;
+
+template <std::size_t t_LEN, class... t_TYPES>
+using aligned_union_t BSL_TYPE_TRAITS_DEPRECATED_ALIGNED
+= typename std::aligned_union<t_LEN, t_TYPES...>::type;
+#endif
+
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic pop
+#  endif
+#  undef BSL_TYPE_TRAITS_DEPRECATED_ALIGNED_STORAGE
+#endif
+
 using std::common_type;
 using std::underlying_type;
 #if ! defined(BSLS_LIBRARYFEATURES_HAS_CPP20_DEPRECATED_REMOVED)
@@ -183,19 +203,7 @@ using std::result_of;
 #endif
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_ALIAS_TEMPLATES
-template <std::size_t LEN, std::size_t ALIGN>
-using aligned_storage_t =
-                        typename std::aligned_storage<LEN, ALIGN>::type;
-    // 'aligned_storage_t' is an alias to the return type of the
-    // 'std::aligned_storage' meta-function.
-
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_VARIADIC_TEMPLATES
-template <std::size_t LEN, class... TYPES>
-using aligned_union_t =
-                       typename std::aligned_union<LEN, TYPES...>::type;
-    // 'aligned_union_t' is an alias to the return type of the
-    // 'std::aligned_union' meta-function.
-
 template <class... TYPES>
 using common_type_t = typename std::common_type<TYPES...>::type;
     // 'common_type_t' is an alias to the return type of the
@@ -530,9 +538,15 @@ using std::is_nothrow_convertible;
 using std::is_nothrow_convertible_v;
 
 // 20.15.7.6, other transformations
+using std::remove_cvref;
+using std::remove_cvref_t;
 using std::common_reference;
 using std::common_reference_t;
 using std::basic_common_reference;
+using std::unwrap_reference;
+using std::unwrap_reference_t;
+using std::unwrap_ref_decay;
+using std::unwrap_ref_decay_t;
 #endif
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE
@@ -553,6 +567,11 @@ using std::is_pointer_interconvertible_with_class;
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER
 // 20.15.9, member relationships
 using std::is_corresponding_member;
+#endif
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+// 20.15.10, constant evaluation context
+using std::is_constant_evaluated;
 #endif
 
 #if 0
@@ -662,11 +681,14 @@ using std::void_t;
 #include <bslmf_isvolatile.h>
 #include <bslmf_removeconst.h>
 #include <bslmf_removecv.h>
+#include <bslmf_removecvref.h>
 #include <bslmf_removeextent.h>
 #include <bslmf_removepointer.h>
 #include <bslmf_removereference.h>
 #include <bslmf_removevolatile.h>
 #include <bslmf_typeidentity.h>
+#include <bslmf_unwraprefdecay.h>
+#include <bslmf_unwrapreference.h>
 #include <bslmf_voidtype.h>
 
 #endif

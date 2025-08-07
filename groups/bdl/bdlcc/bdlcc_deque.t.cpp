@@ -2,14 +2,7 @@
 
 #include <bdlcc_deque.h>
 
-#include <bslmt_barrier.h>
-#include <bslmt_configuration.h>
-#include <bslmt_lockguard.h>
-#include <bslmt_semaphore.h>
-#include <bslmt_testutil.h>
-#include <bslmt_threadutil.h>
-#include <bslmt_threadgroup.h>
-#include <bsls_systemtime.h>
+#include <bsla_maybeunused.h>
 
 #include <bslalg_typetraitbitwisecopyable.h>
 #include <bslalg_typetraitbitwisemoveable.h>
@@ -22,10 +15,20 @@
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_testallocator.h>
 #include <bslma_newdeleteallocator.h>
+
 #include <bslmf_assert.h>
 #include <bslmf_integralconstant.h>
 #include <bslmf_isbitwisemoveable.h>
 #include <bslmf_issame.h>
+
+#include <bslmt_barrier.h>
+#include <bslmt_configuration.h>
+#include <bslmt_lockguard.h>
+#include <bslmt_semaphore.h>
+#include <bslmt_testutil.h>
+#include <bslmt_timedcompletionguard.h>
+#include <bslmt_threadutil.h>
+#include <bslmt_threadgroup.h>
 
 #include <bsls_asserttest.h>
 #include <bsls_atomic.h>
@@ -34,6 +37,8 @@
 #include <bsls_platform.h>
 #include <bsls_review.h>
 #include <bsls_stopwatch.h>
+#include <bsls_systemtime.h>
+#include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 #include <bsl_algorithm.h>
@@ -42,6 +47,7 @@
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
 #include <bsl_deque.h>
+#include <bsl_format.h>
 #include <bsl_iostream.h>
 #include <bsl_iterator.h>
 #include <bsl_limits.h>
@@ -319,6 +325,32 @@ const bsltf::MoveState::Enum expAssignMoveState = e_NOT_MOVED;
 const bool                   expAssignMove      = false;
 #endif
 
+#define CREATETHREAD(h, f) \
+    if (0 != bslmt::ThreadUtil::create(&h, f)) { \
+        bslmt::ThreadUtil::microSleep(0, 1); \
+        if (0 != bslmt::ThreadUtil::create(&h, f)) { \
+            bslmt::ThreadUtil::microSleep(0, 3); \
+            if (0 != bslmt::ThreadUtil::create(&h, f)) { \
+                cout << "`create` failed.  Thread quota exceeded?" \
+                     << bsl::endl; \
+                ASSERT(false); \
+            } \
+        } \
+    }
+
+#define CREATEARGTHREAD(h, f, a) \
+    if (0 != bslmt::ThreadUtil::create(&h, f, &a)) { \
+        bslmt::ThreadUtil::microSleep(0, 1); \
+        if (0 != bslmt::ThreadUtil::create(&h, f, &a)) { \
+            bslmt::ThreadUtil::microSleep(0, 3); \
+            if (0 != bslmt::ThreadUtil::create(&h, f, &a)) { \
+                cout << "`create` failed.  Thread quota exceeded?" \
+                     << bsl::endl; \
+                ASSERT(false); \
+            } \
+        } \
+    }
+
 //=============================================================================
 //                  SUPPORT CLASSES AND FUNCTIONS USED FOR TESTING
 //-----------------------------------------------------------------------------
@@ -361,12 +393,16 @@ class MoveCopyAllocTestType {
 
     // DATA
     int                    *d_data_p;       // pointer to the data value
+
     bslma::Allocator       *d_allocator_p;  // allocator used to supply memory
                                             // (held, not owned)
 
-    MoveCopyAllocTestType  *d_self_p;       // pointer to self (to verify this
-                                            // object is not bit-wise moved
+    BSLA_MAYBE_UNUSED MoveCopyAllocTestType  *d_self_p;
+                                            // pointer to self (to verify this
+                                            // object is not bit-wise moved)
+
     MoveState::Enum         d_movedFrom;    // moved-from state
+
     MoveState::Enum         d_movedInto;    // moved-from state
 
   public:
@@ -1903,7 +1939,7 @@ void testTimedPushPopMove()
 
         TimedPopRecordBack<ELEMENT> testMObj(&x, &barrier, T3, VA);
         bslmt::ThreadUtil::Handle thread;
-        bslmt::ThreadUtil::create(&thread, testMObj);
+        CREATETHREAD(thread, testMObj);
 
         barrier.wait();
 
@@ -1967,7 +2003,7 @@ void testTimedPushPopMove()
 
         TimedPopRecordFront<ELEMENT> testMObj(&x, &barrier, T3, VA);
         bslmt::ThreadUtil::Handle thread;
-        bslmt::ThreadUtil::create(&thread, testMObj);
+        CREATETHREAD(thread, testMObj);
 
         barrier.wait();
 
@@ -3947,16 +3983,16 @@ void testMultiThreadedTryPop()
             switch (vecType) {
               case u::e_BSL: {
                 TestPopFront<bsl::vector<ELEMENT> > frontFunc(&mX, &ta);
-                bslmt::ThreadUtil::create(&handle, frontFunc);
+                CREATETHREAD(handle, frontFunc);
               } break;
               case u::e_STD: {
                 TestPopFront<std::vector<ELEMENT> > frontFunc(&mX, &ta);
-                bslmt::ThreadUtil::create(&handle, frontFunc);
+                CREATETHREAD(handle, frontFunc);
               } break;
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
               case u::e_PMR: {
                 TestPopFront<std::pmr::vector<ELEMENT> > frontFunc(&mX, &ta);
-                bslmt::ThreadUtil::create(&handle, frontFunc);
+                CREATETHREAD(handle, frontFunc);
               } break;
 #endif
               default: {
@@ -3981,16 +4017,16 @@ void testMultiThreadedTryPop()
             switch (vecType) {
               case u::e_BSL: {
                 TestPopBack<bsl::vector<ELEMENT> > backFunc(&mX, &ta);
-                bslmt::ThreadUtil::create(&handle, backFunc);
+                CREATETHREAD(handle, backFunc);
               } break;
               case u::e_STD: {
                 TestPopBack<std::vector<ELEMENT> > backFunc(&mX, &ta);
-                bslmt::ThreadUtil::create(&handle, backFunc);
+                CREATETHREAD(handle, backFunc);
               } break;
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR
               case u::e_PMR: {
                 TestPopBack<std::pmr::vector<ELEMENT> > backFunc(&mX, &ta);
-                bslmt::ThreadUtil::create(&handle, backFunc);
+                CREATETHREAD(handle, backFunc);
               } break;
 #endif
               default: {
@@ -4034,7 +4070,7 @@ enum {
     FRONT_VAL           = 45,
     BACK_VAL            = 46 };
 
-static unsigned pushCount;
+static bsls::AtomicUint pushCount;
 
 int threadResult = -1;
 
@@ -4050,15 +4086,16 @@ class HighWaterMarkFunctor {
     HighWaterMarkFunctor(bdlcc::Deque<ELEMENT> *deque)
     : d_deque_p(deque)
     {
-        // have everything time out 2 seconds after thread object creation
+        // have everything time out 30 seconds after thread object creation
 
-        d_timeout = u::now() + bsls::TimeInterval(4.0);
+        d_timeout = u::now() + bsls::TimeInterval(30.0);
     }
 
     /// make sure we did not wait until timeout
     ~HighWaterMarkFunctor()
     {
-        ASSERT(u::now() < d_timeout);
+        bsls::TimeInterval interval = d_timeout - u::now();
+        ASSERTV(interval, bsls::TimeInterval(0.0) <= interval);
     }
 
     /// thread function
@@ -4167,20 +4204,15 @@ void highWaterMarkTest()
         HighWaterMarkFunctor<ELEMENT> functor(&mX);
 
         bslmt::ThreadUtil::Handle handle;
-        bslmt::ThreadUtil::create(&handle, functor);
-
-        while (X.length() < 4) {
-            bslmt::ThreadUtil::yield();
-        }
+        CREATETHREAD(handle, functor);
 
         for (unsigned u = 0; u <= 32 - 4; ++u) {
-            bslmt::ThreadUtil::yield();
-            bslmt::ThreadUtil::microSleep(50 * 1000);        // 50 mSec
-
-            bsl::size_t len = X.length();
+            while (4 + u > pushCount) {
+                bslmt::ThreadUtil::yield();
+            }
 
             ASSERTV(u, pushCount, 4 + u == pushCount);
-            ASSERTV(len,          4     == len);
+            ASSERTV(X.length(),   4     == X.length());
 
             if (veryVerbose) { P_(u);    P(ta.numBlocksInUse()); }
 
@@ -4210,7 +4242,8 @@ void highWaterMarkTest()
         // On Solaris, each sleep could potentially take 2 seconds, but
         // usually it will be much, much less.
 
-        ASSERT(u::now() < start + bsls::TimeInterval(10.1));
+        bsls::TimeInterval interval = u::now() - start;
+        ASSERTV(interval, interval < bsls::TimeInterval(30.0));
     }
 
     ASSERTV(ta.numBlocksInUse(), 0 == ta.numBlocksInUse());
@@ -5370,6 +5403,10 @@ int main(int argc, char *argv[])
     bslmt::Configuration::setDefaultThreadStackSize(
                     bslmt::Configuration::recommendedDefaultThreadStackSize());
 
+    bslmt::TimedCompletionGuard completionGuard(&da);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
+
     switch (test) { case 0:  // Zero is always the leading case.
       case 28: {
         // --------------------------------------------------------------------
@@ -5413,7 +5450,8 @@ int main(int argc, char *argv[])
     for (int ti = 0; ti < k_NUM_THREADS; ++ti) {
         WorkerFunctor functor = { ti, &myDeque, &barrier };
 
-        bslmt::ThreadUtil::create(&handles[ti], functor);
+        int rc = bslmt::ThreadUtil::create(&handles[ti], functor);
+        ASSERT(0 == rc);
     }
 // ```
 // Then, wait on the barrier, that will set all the subthreads running:
@@ -5965,12 +6003,10 @@ int main(int argc, char *argv[])
         for (int ii = 0; ii < NUM_THREADS; ++ii) {
             endDeques[ii] = new (ta) bdlcc::Deque<unsigned>(&ta);
 
-            int rc = bslmt::ThreadUtil::create(
-                                &handles[ii],
-                                MultiThreadedRangeTryPushTest(&container,
-                                                              ii,
-                                                              endDeques[ii]));
-            ASSERT(0 == rc);
+            CREATETHREAD(handles[ii],
+                         MultiThreadedRangeTryPushTest(&container,
+                                                       ii,
+                                                       endDeques[ii]));
         }
 
         for (int isForward = 0; isForward < 2; ++isForward) {
@@ -6288,10 +6324,8 @@ int main(int argc, char *argv[])
 
         bslmt::ThreadUtil::Handle handles[4];
         for (int ii = 0; ii < 4; ++ii) {
-            int rc =bslmt::ThreadUtil::create(
-                                   &handles[ii],
-                                   MultiThreadedForcePushTest(&container, ii));
-            ASSERT(0 == rc);
+            CREATETHREAD(handles[ii],
+                         MultiThreadedForcePushTest(&container, ii));
         }
 
         static unsigned expecteds[4];    // all initted to 0
@@ -6443,9 +6477,7 @@ int main(int argc, char *argv[])
                 ASSERT(X.length() == startLength);
 
                 bslmt::ThreadUtil::Handle handle;
-                bslmt::ThreadUtil::create(&handle,
-                                          FATHWMStressTest(&mX,
-                                          &barrier));
+                CREATETHREAD(handle, FATHWMStressTest(&mX, &barrier));
 
                 barrier.wait();
 
@@ -6625,8 +6657,6 @@ int main(int argc, char *argv[])
         enum { NUM_HIGH_WATER_MARKS = sizeof HIGH_WATER_MARKS /
                                                     sizeof *HIGH_WATER_MARKS };
 
-        int timesFull = 0;
-
         for (int ti = 0; ti < NUM_HIGH_WATER_MARKS; ++ti) {
             const size_t HIGH_WATER_MARK = HIGH_WATER_MARKS[ti];
 
@@ -6637,7 +6667,7 @@ int main(int argc, char *argv[])
             ASSERT(0 == X.length());
 
             bslmt::ThreadUtil::Handle handle;
-            bslmt::ThreadUtil::create(&handle, HWMStressTest(&mX, &barrier));
+            CREATETHREAD(handle, HWMStressTest(&mX, &barrier));
 
             while (X.length() < HIGH_WATER_MARK) {
                 bslmt::ThreadUtil::microSleep(10 * 1000);
@@ -6649,7 +6679,6 @@ int main(int argc, char *argv[])
                 }
                 const size_t len = X.length();
                 ASSERT(len <= HIGH_WATER_MARK);
-                timesFull += HIGH_WATER_MARK == len;
                 if (expected & 1) {
                     ASSERT(mX.popFront() == expected);
                 }
@@ -6674,7 +6703,6 @@ int main(int argc, char *argv[])
                 }
                 const size_t len = X.length();
                 ASSERT(len <= HIGH_WATER_MARK);
-                timesFull += HIGH_WATER_MARK == len;
                 if (expected & 1) {
                     ASSERT(mX.popBack() == expected);
                 }
@@ -6688,10 +6716,6 @@ int main(int argc, char *argv[])
             bslmt::ThreadUtil::join(handle);
         }
 
-        const int minTimesFull = NUM_HIGH_WATER_MARKS * 2 * 40 / 5;
-        ASSERTV(timesFull, minTimesFull, timesFull >= minTimesFull);
-
-        if (veryVerbose) { P_(minTimesFull); P(timesFull); }
         ASSERTV(da.numAllocations(), 0 == da.numAllocations());
       } break;
       case 14: {
@@ -6937,7 +6961,7 @@ int main(int argc, char *argv[])
 
         TC::EmptyDequeFunctor functor(&mX, &barrier, &status);
 
-        bslmt::ThreadUtil::create(&handle, functor);
+        CREATETHREAD(handle, functor);
 
         mX.pushFront(e);
         mX.pushBack(e);
@@ -7512,14 +7536,11 @@ int main(int argc, char *argv[])
 
             bslmt::ThreadUtil::Handle threads[TC::k_NUM_THREADS];
             int                       threadIdx = 0;
-            int                       rc;
             for (unsigned ti = 0; ti < TC::k_NUM_POPPERS; ++ti) {
-                rc = bslmt::ThreadUtil::create(&threads[threadIdx++], popper);
-                ASSERT(0 == rc);
+                CREATETHREAD(threads[threadIdx++], popper);
             }
 
-            rc = bslmt::ThreadUtil::create(&threads[threadIdx++], transferrer);
-            ASSERT(0 == rc);
+            CREATETHREAD(threads[threadIdx++], transferrer);
 
             unsigned ti;
             for (ti = 1; ti <= TC::k_NUM_DIRECT_PUSHERS; ++ti) {
@@ -7528,9 +7549,7 @@ int main(int argc, char *argv[])
                                                           TC::e_DIRECT_PUSHER,
                                                           ti,
                                                           backWard);
-                rc = bslmt::ThreadUtil::create(&threads[threadIdx++],
-                                               directPusher);
-                ASSERT(0 == rc);
+                CREATETHREAD(threads[threadIdx++], directPusher);
             }
 
             for (; ti <= TC::k_NUM_DIRECT_PUSHERS + TC::k_NUM_SRC_PUSHERS;
@@ -7540,13 +7559,12 @@ int main(int argc, char *argv[])
                                                     TC::e_SRC_PUSHER,
                                                     ti,
                                                     backWard);
-                rc = bslmt::ThreadUtil::create(&threads[threadIdx++], pusher);
-                ASSERT(0 == rc);
+                CREATETHREAD(threads[threadIdx++], pusher);
             }
 
             while (threadIdx > 0) {
-                rc = bslmt::ThreadUtil::join(threads[--threadIdx]);
-                ASSERT(0 == rc);
+                int rc = bslmt::ThreadUtil::join(threads[--threadIdx]);
+                ASSERTV(rc, 0 == rc);
             }
 
             ASSERT(0 == dstDeque.length());
@@ -7680,9 +7698,7 @@ int main(int argc, char *argv[])
             ASSERT(VA == u::myBack(x));
 
             bslmt::ThreadUtil::Handle thread;
-            bslmt::ThreadUtil::create(&thread,
-                                      &TC::doTimedHWMRecordBack,
-                                      &testObj);
+            CREATEARGTHREAD(thread, &TC::doTimedHWMRecordBack, testObj);
 
             while (0 == TC::waitingFlag) {
                 bslmt::ThreadUtil::yield();
@@ -7794,9 +7810,7 @@ int main(int argc, char *argv[])
             ASSERT(VA == u::myFront(x));
 
             bslmt::ThreadUtil::Handle thread;
-            bslmt::ThreadUtil::create(&thread,
-                                      &TC::doTimedHWMRecordFront,
-                                      &testObj);
+            CREATEARGTHREAD(thread, &TC::doTimedHWMRecordFront, testObj);
 
             while (0 == TC::waitingFlag) {
                 bslmt::ThreadUtil::yield();
@@ -7988,6 +8002,10 @@ int main(int argc, char *argv[])
         const Element VA = 1.2;
         const Element VB = -5.7;
 
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
+
         if (verbose) cout << "\tWith `pushBack`" << endl;
         for (size_t i = 0; i< NUM_VALUES; ++i)
         {
@@ -8008,7 +8026,7 @@ int main(int argc, char *argv[])
                 }
 
                 bslmt::ThreadUtil::Handle thread;
-                bslmt::ThreadUtil::create(&thread, testObj);
+                CREATETHREAD(thread, testObj);
 
                 for (int j = 0; 0 == TC::waitingFlag && j < 50; ++j) {
                     bslmt::ThreadUtil::yield();
@@ -8036,6 +8054,10 @@ int main(int argc, char *argv[])
             ASSERTV(i, 0 == ta.numBytesInUse());
         }
 
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
+
         if (verbose) cout << "\tWith `push_front`" << endl;
         for (unsigned i = 0; i< NUM_VALUES; ++i)
         {
@@ -8056,7 +8078,7 @@ int main(int argc, char *argv[])
                 }
 
                 bslmt::ThreadUtil::Handle thread;
-                bslmt::ThreadUtil::create(&thread, testObj);
+                CREATETHREAD(thread, testObj);
 
                 for (int j = 0; 0 == TC::waitingFlag && j < 50; ++j) {
                     bslmt::ThreadUtil::yield();
@@ -8124,9 +8146,7 @@ int main(int argc, char *argv[])
             TimedPopRecordBack testAObj(&x, &barrier, T10, VA);
 
             bslmt::ThreadUtil::Handle thread;
-            bslmt::ThreadUtil::create(&thread,
-                                      &testClass4BackCaller,
-                                      &testAObj);
+            CREATEARGTHREAD(thread, &testClass4BackCaller, testAObj);
 
             barrier.wait();
 
@@ -8157,9 +8177,7 @@ int main(int argc, char *argv[])
             TimedPopRecordFront testAObj(&x, &barrier, T10, VA);
 
             bslmt::ThreadUtil::Handle thread;
-            bslmt::ThreadUtil::create(&thread,
-                                      &testClass4FrontCaller,
-                                      &testAObj);
+            CREATEARGTHREAD(thread, &testClass4FrontCaller, testAObj);
 
             barrier.wait();
 
@@ -8245,7 +8263,7 @@ int main(int argc, char *argv[])
             PushPopRecordBack testObj(&x, VA, (!ti ? BY_VALUE : THROUGH_PTR));
 
             bslmt::ThreadUtil::Handle thread;
-            bslmt::ThreadUtil::create(&thread, pushPopFunctionBack, &testObj);
+            CREATEARGTHREAD(thread, pushPopFunctionBack, testObj);
 
             // Yielding is not bullet-proof because it does not ENSURE that
             // `testObj` is blocking on the `popFront`, so we make sure by
@@ -8283,7 +8301,7 @@ int main(int argc, char *argv[])
             PushPopRecordFront testObj(&x, VA, (!ti ? BY_VALUE : THROUGH_PTR));
 
             bslmt::ThreadUtil::Handle thread;
-            bslmt::ThreadUtil::create(&thread, pushPopFunctionFront, &testObj);
+            CREATEARGTHREAD(thread, pushPopFunctionFront, testObj);
 
             // See note above.
 

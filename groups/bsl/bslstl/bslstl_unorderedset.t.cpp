@@ -201,7 +201,7 @@ using bsls::NameOf;
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
 // [ 2] default construction (only)
-// [38] USAGE EXAMPLE
+// [39] USAGE EXAMPLE
 //
 // TEST APPARATUS: GENERATOR FUNCTIONS
 //*[ 3] int ggg(unordered_set<K,H,E,A> *object, const char *spec, int verbose);
@@ -230,6 +230,7 @@ void aSsErT(bool b, const char *s, int i)
 {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -4717,7 +4718,7 @@ int main(int argc, char *argv[])
     ASSERT(0 == bslma::Default::setDefaultAllocator(&defaultAllocator));
 
     switch (test) { case 0:
-      case 38: {
+      case 39: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //
@@ -4872,6 +4873,7 @@ if (verbose) {
 // See the material in {`bslstl_unorderedmap`|Example 2}.
 
       } break;
+      case 38: // falls through
       case 37: // falls through
       case 36: // falls through
       case 35: // falls through

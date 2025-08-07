@@ -19,15 +19,18 @@
 #include <bslmt_semaphore.h>
 #include <bslmt_threadgroup.h>
 #include <bslmt_threadutil.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bsls_atomic.h>
 #include <bsls_platform.h>
 #include <bsls_stopwatch.h>
 #include <bsls_systemtime.h>
+#include <bsls_timeinterval.h>
 
 #include <bsl_algorithm.h>
 #include <bsl_cstdlib.h>
 #include <bsl_deque.h>
+#include <bsl_format.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
@@ -845,9 +848,9 @@ class TestClass12 {      // this class is a functor passed to thread::create
         d_barrier = barrier;
         d_status_p = status;
 
-        // have everything time out 4 seconds after thread object creation
+        // have everything time out 10 seconds after thread object creation
 
-        d_timeout = u::now() + bsls::TimeInterval(4.0);
+        d_timeout = u::now() + bsls::TimeInterval(10.0);
     }
     ~TestClass12()
         // make sure we did not wait until timeout
@@ -2048,6 +2051,10 @@ int main(int argc, char *argv[])
 
     bslma::TestAllocator da(veryVeryVeryVerbose);
     bslma::DefaultAllocatorGuard defaultAllocatorGuard(&da);
+
+    bslmt::TimedCompletionGuard completionGuard(&da);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
 
     switch (test) { case 0:  // Zero is always the leading case.
       case 20: {

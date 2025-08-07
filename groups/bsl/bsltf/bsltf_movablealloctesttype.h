@@ -75,6 +75,8 @@ BSLS_IDENT("$Id: $")
 
 #include <bslscm_version.h>
 
+#include <bsla_maybeunused.h>
+
 #include <bslma_usesbslmaallocator.h>
 
 #include <bslmf_isnothrowmoveconstructible.h>
@@ -110,11 +112,14 @@ class MovableAllocTestType {
 
     // DATA
     int                    *d_data_p;       // pointer to the data value
+
     bslma::Allocator       *d_allocator_p;  // allocator used to supply memory
                                             // (held, not owned)
 
-    MovableAllocTestType   *d_self_p;       // pointer to self (to verify this
-                                            // object is not bit-wise moved
+    BSLA_MAYBE_UNUSED MovableAllocTestType *d_self_p;
+                                            // pointer to self (to verify this
+                                            // object is not bit-wise  moved)
+
     CopyMoveTracker         d_tracker;      // Track copy & move state
 
 #ifndef BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT
@@ -189,12 +194,14 @@ class MovableAllocTestType {
     /// Return the value of the `data` attribute of this object.
     int data() const;
 
-    /// **DEPRECATED** Use `CopyMoveState::isMovedInto` instead.
     /// Return the move state of this object as target of a move operation.
+    ///
+    /// @DEPRECATED: Use `CopyMoveState::isMovedInto` instead.
     MoveState::Enum movedInto() const;
 
-    /// **DEPRECATED** Use `CopyMoveState::isMovedFrom` instead.
     /// Return the move state of this object as source of a move operation.
+    ///
+    /// @DEPRECATED: Use `CopyMoveState::isMovedFrom` instead.
     MoveState::Enum movedFrom() const;
 
                                   // Aspects

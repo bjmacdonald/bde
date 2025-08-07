@@ -21,7 +21,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Sep  4 19:02:35 2024
+// Generated on Tue Apr  8 14:33:21 2025
 // Command line: sim_cpp11_features.pl bdlb_nullablevalue.h
 
 #ifdef COMPILING_BDLB_NULLABLEVALUE_H
@@ -278,9 +278,9 @@ class NullableValue : public bsl::optional<TYPE> {
     /// Create a nullable object having the null value if the specified
     /// `original` object is null, and the value of `original.value()` (of
     /// `BDE_OTHER_TYPE`) converted to `TYPE` otherwise.  If `TYPE` takes an
-    /// optional allocator at construction, use the currently installed
-    /// default allocator to supply memory.  Note that this method will fail
-    /// to compile if `TYPE and `BDE_OTHER_TYPE' are not compatible.
+    /// optional allocator at construction, use the currently installed default
+    /// allocator to supply memory.  Note that this method will fail to compile
+    /// if `TYPE` and `BDE_OTHER_TYPE' are not compatible.
     template <class BDE_OTHER_TYPE>
     explicit NullableValue(const NullableValue<BDE_OTHER_TYPE>& original);
 
@@ -289,28 +289,28 @@ class NullableValue : public bsl::optional<TYPE> {
     /// `BDE_OTHER_TYPE`) converted to `TYPE` otherwise.  Use the specified
     /// `allocator` (e.g., the address of a `bslma::Allocator` object) to
     /// supply memory.  Note that this constructor will not participate in
-    /// overload resolution unless `TYPE` is allocator aware.  Also note
-    /// that compilation will fail if this function is called with a
+    /// overload resolution unless `TYPE` is allocator aware.  Also note that
+    /// compilation will fail if this function is called with a
     /// `BDE_OTHER_TYPE` that is not convertible to `TYPE`.
     template <class BDE_OTHER_TYPE>
     NullableValue(const NullableValue<BDE_OTHER_TYPE>& original,
                   const allocator_type&                allocator);
 
     /// Create a nullable object having the null value.  If `TYPE` takes an
-    /// optional allocator at construction, use the currently installed
-    /// default allocator to supply memory for subsequent values assigned to
-    /// this object.
+    /// optional allocator at construction, use the currently installed default
+    /// allocator to supply memory for subsequent values assigned to this
+    /// object.
     NullableValue(const bsl::nullopt_t&) BSLS_KEYWORD_NOEXCEPT;     // IMPLICIT
 
     /// Create a nullable object that has the null value; use the specified
     /// `allocator` (e.g., the address of a `bslma::Allocator` object) to
-    /// supply memory for subsequent values assigned to this object.  Note
-    /// that this constructor will not participate in overload resolution
-    /// unless `TYPE` is allocator aware.
+    /// supply memory for subsequent values assigned to this object.  Note that
+    /// this constructor will not participate in overload resolution unless
+    /// `TYPE` is allocator aware.
     NullableValue(const bsl::nullopt_t&,
                   const allocator_type& allocator) BSLS_KEYWORD_NOEXCEPT;
 
-    // Destroy this object.
+    /// Destroy this object.
     //! ~NullableValue();
 
     // MANIPULATORS
@@ -320,44 +320,44 @@ class NullableValue : public bsl::optional<TYPE> {
     NullableValue<TYPE>& operator=(const NullableValue& rhs);
 
     /// Assign to this object the value of the specified `rhs`, and return a
-    /// reference providing modifiable access to this object.  The contents
-    /// of `rhs` are either move-inserted into or move-assigned to this
-    /// object.  `rhs` is left in a valid but unspecified state.
+    /// reference providing modifiable access to this object.  The contents of
+    /// `rhs` are either move-inserted into or move-assigned to this object.
+    /// `rhs` is left in a valid but unspecified state.
     NullableValue<TYPE>& operator=(bslmf::MovableRef<NullableValue> rhs);
 
-    /// Assign to this object the null value if the specified `rhs` object
-    /// is null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`)
-    /// converted to `TYPE` otherwise.  Return a reference providing
-    /// modifiable access to this object.  Note that this method will fail
-    /// to compile if `TYPE and `BDE_OTHER_TYPE' are not compatible.
+    /// Assign to this object the null value if the specified `rhs` object is
+    /// null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`) converted to
+    /// `TYPE` otherwise.  Return a reference providing modifiable access to
+    /// this object.  Note that this method will fail to compile if `TYPE` and
+    /// `BDE_OTHER_TYPE' are not compatible.
     template <class BDE_OTHER_TYPE>
     NullableValue<TYPE>& operator=(const NullableValue<BDE_OTHER_TYPE>& rhs);
 
-    /// Assign to this object the null value if the specified `rhs` object
-    /// is null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`)
-    /// converted to `TYPE` otherwise.  Return a reference providing
-    /// modifiable access to this object.  Note that this method will fail
-    /// to compile if `TYPE and `BDE_OTHER_TYPE' are not compatible.
+    /// Assign to this object the null value if the specified `rhs` object is
+    /// null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`) converted to
+    /// `TYPE` otherwise.  Return a reference providing modifiable access to
+    /// this object.  Note that this method will fail to compile if `TYPE` and
+    /// `BDE_OTHER_TYPE' are not compatible.
     template <class BDE_OTHER_TYPE>
     NullableValue<TYPE>& operator=(
                             BSLMF_MOVABLEREF_DEDUCE(
                                            NullableValue<BDE_OTHER_TYPE>) rhs);
 
-    /// Assign to this object the null value if the specified `rhs` object
-    /// is null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`)
-    /// converted to `TYPE` otherwise.  Return a reference providing
-    /// modifiable access to this object.  Note that this method will fail
-    /// to compile if `TYPE and `BDE_OTHER_TYPE' are not compatible.
+    /// Assign to this object the null value if the specified `rhs` object is
+    /// null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`) converted to
+    /// `TYPE` otherwise.  Return a reference providing modifiable access to
+    /// this object.  Note that this method will fail to compile if `TYPE` and
+    /// `BDE_OTHER_TYPE' are not compatible.
     template <class BDE_OTHER_TYPE>
     typename bsl::enable_if<bsl::is_convertible<BDE_OTHER_TYPE, TYPE>::value,
                             NullableValue<TYPE>&>::type
     operator=(const bsl::optional<BDE_OTHER_TYPE>& rhs);
 
-    /// Assign to this object the null value if the specified `rhs` object
-    /// is null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`)
-    /// converted to `TYPE` otherwise.  Return a reference providing
-    /// modifiable access to this object.  Note that this method will fail
-    /// to compile if `TYPE and `BDE_OTHER_TYPE' are not compatible.
+    /// Assign to this object the null value if the specified `rhs` object is
+    /// null, and the value of `rhs.value()` (of `BDE_OTHER_TYPE`) converted to
+    /// `TYPE` otherwise.  Return a reference providing modifiable access to
+    /// this object.  Note that this method will fail to compile if `TYPE` and
+    /// `BDE_OTHER_TYPE' are not compatible.
     template <class BDE_OTHER_TYPE>
     typename bsl::enable_if<bsl::is_convertible<BDE_OTHER_TYPE, TYPE>::value,
                             NullableValue<TYPE>&>::type
@@ -406,7 +406,7 @@ class NullableValue : public bsl::optional<TYPE> {
     /// Assign to this object the specified `value` (of `BDE_OTHER_TYPE`)
     /// converted to `TYPE`, and return a reference providing modifiable
     /// access to the underlying `TYPE` object.  Note that this method will
-    /// fail to compile if `TYPE and `BDE_OTHER_TYPE` are not compatible.
+    /// fail to compile if `TYPE` and `BDE_OTHER_TYPE` are not compatible.
     template <class BDE_OTHER_TYPE>
     TYPE& makeValue(BSLS_COMPILERFEATURES_FORWARD_REF(BDE_OTHER_TYPE) value);
 
@@ -555,11 +555,11 @@ class NullableValue : public bsl::optional<TYPE> {
     #if BSLS_DEPRECATE_IS_ACTIVE(BDL, 3, 5)
     BSLS_DEPRECATE
     #endif
-    /// **DEPRECATED**: Use `addressOr` instead.
-    ///
     /// Return an address providing non-modifiable access to the underlying
     /// object of a (template parameter) `TYPE` if this object is non-null,
     /// and the specified `value` otherwise.
+    ///
+    /// @DEPRECATED: Use `addressOr` instead.
     const TYPE *valueOr(const TYPE *value) const;
 
     /// Return an address providing non-modifiable access to the underlying
@@ -603,7 +603,7 @@ bool operator==(const bsl::optional<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 bool operator==(const NullableValue<LHS_TYPE>& lhs,
                 const std::optional<RHS_TYPE>& rhs)
@@ -622,7 +622,7 @@ bool operator==(const std::optional<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 /// Return `true` if the specified `lhs` and `rhs` nullable objects do not
 /// have the same value, and `false` otherwise.  Two nullable objects do not
@@ -657,7 +657,7 @@ bool operator!=(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 bool operator!=(const std::optional<LHS_TYPE>& lhs,
                 const NullableValue<RHS_TYPE>& rhs)
@@ -676,7 +676,7 @@ bool operator!=(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 /// Return `true` if the specified `lhs` and `rhs` objects do not have the
 /// same value, and `false` otherwise.  A nullable object and a value of
@@ -758,7 +758,7 @@ bool operator<(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 bool operator<(const std::optional<LHS_TYPE>& lhs,
                const NullableValue<RHS_TYPE>& rhs)
@@ -777,7 +777,7 @@ bool operator<(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 /// Return `true` if the specified `lhs` nullable object is ordered before
 /// the specified `rhs`, and `false` otherwise.  `lhs` is ordered before
@@ -837,7 +837,7 @@ bool operator>(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 bool operator>(const std::optional<LHS_TYPE>& lhs,
                const NullableValue<RHS_TYPE>& rhs)
@@ -856,7 +856,7 @@ bool operator>(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 /// Return `true` if the specified `lhs` nullable object is ordered after
 /// the specified `rhs`, and `false` otherwise.  `lhs` is ordered after
@@ -915,7 +915,7 @@ bool operator<=(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 bool operator<=(const std::optional<LHS_TYPE>& lhs,
                 const NullableValue<RHS_TYPE>& rhs)
@@ -934,7 +934,7 @@ bool operator<=(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 /// Return `true` if the specified `lhs` nullable object is ordered before
 /// the specified `rhs` or `lhs` and `rhs` have the same value, and `false`
@@ -993,7 +993,7 @@ bool operator>=(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 bool operator>=(const std::optional<LHS_TYPE>& lhs,
                 const NullableValue<RHS_TYPE>& rhs)
@@ -1012,7 +1012,7 @@ bool operator>=(const NullableValue<LHS_TYPE>& lhs,
     }
 #endif
 ;
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 /// Return `true` if the specified `lhs` nullable object is ordered after
 /// the specified `rhs` or `lhs` and `rhs` have the same value, and `false`
@@ -1900,7 +1900,7 @@ bool bdlb::operator==(const bsl::optional<LHS_TYPE>& lhs,
     return lhs == static_cast<const bsl::optional<RHS_TYPE>&>(rhs);
 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 inline
 bool bdlb::operator==(const NullableValue<LHS_TYPE>& lhs,
@@ -1926,7 +1926,7 @@ bool bdlb::operator==(const std::optional<LHS_TYPE>& lhs,
 {
     return lhs == static_cast<const bsl::optional<RHS_TYPE>&>(rhs);
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 template <class LHS_TYPE, class RHS_TYPE>
 inline
@@ -1968,7 +1968,7 @@ bool bdlb::operator!=(const NullableValue<LHS_TYPE>& lhs,
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) != rhs;
 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 inline
 bool bdlb::operator!=(const std::optional<LHS_TYPE>& lhs,
@@ -1994,7 +1994,7 @@ bool bdlb::operator!=(const NullableValue<LHS_TYPE>& lhs,
 {
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) != rhs;
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 template <class LHS_TYPE, class RHS_TYPE>
 inline
@@ -2080,7 +2080,7 @@ bool bdlb::operator<(const NullableValue<LHS_TYPE>& lhs,
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) < rhs;
 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 inline
 bool bdlb::operator<(const std::optional<LHS_TYPE>& lhs,
@@ -2106,7 +2106,7 @@ bool bdlb::operator<(const NullableValue<LHS_TYPE>& lhs,
 {
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) < rhs;
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 template <class LHS_TYPE, class RHS_TYPE>
 inline
@@ -2170,7 +2170,7 @@ bool bdlb::operator>(const NullableValue<LHS_TYPE>& lhs,
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) > rhs;
 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 inline
 bool bdlb::operator>(const std::optional<LHS_TYPE>& lhs,
@@ -2196,7 +2196,7 @@ bool bdlb::operator>(const NullableValue<LHS_TYPE>& lhs,
 {
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) > rhs;
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 template <class LHS_TYPE, class RHS_TYPE>
 inline
@@ -2262,7 +2262,7 @@ bool bdlb::operator<=(const NullableValue<LHS_TYPE>& lhs,
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) <= rhs;
 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 inline
 bool bdlb::operator<=(const std::optional<LHS_TYPE>& lhs,
@@ -2288,7 +2288,7 @@ bool bdlb::operator<=(const NullableValue<LHS_TYPE>& lhs,
 {
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) <= rhs;
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 template <class LHS_TYPE, class RHS_TYPE>
 inline
@@ -2355,7 +2355,7 @@ bool bdlb::operator>=(const NullableValue<LHS_TYPE>& lhs,
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) >= rhs;
 }
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 template <class LHS_TYPE, class RHS_TYPE>
 inline
 bool bdlb::operator>=(const std::optional<LHS_TYPE>& lhs,
@@ -2381,7 +2381,7 @@ bool bdlb::operator>=(const NullableValue<LHS_TYPE>& lhs,
 {
     return static_cast<const bsl::optional<LHS_TYPE>&>(lhs) >= rhs;
 }
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 template <class LHS_TYPE, class RHS_TYPE>
 inline

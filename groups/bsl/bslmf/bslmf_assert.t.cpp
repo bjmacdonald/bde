@@ -31,6 +31,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -216,8 +217,8 @@ int main(int argc, char *argv[])
 
         BSLMF_ASSERT(sizeof(int) >= sizeof(char));
         BSLMF_ASSERT(sizeof(int) >= sizeof(char));
-        BSLMF_ASSERT(1);  ASSERT(219 == __LINE__);
         BSLMF_ASSERT(1);  ASSERT(220 == __LINE__);
+        BSLMF_ASSERT(1);  ASSERT(221 == __LINE__);
         BSLMF_ASSERT(1 > 0 && 1);
 
 // MSVC: __LINE__ macro breaks when /ZI is used (see Q199057 or KB199057)

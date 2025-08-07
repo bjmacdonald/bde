@@ -900,7 +900,9 @@ BSLS_IDENT("$Id: $")
 #include <bslmt_mutex.h>
 #include <bslmt_readerwritermutex.h>
 
+#include <bsls_atomic.h>
 #include <bsls_compilerfeatures.h>
+#include <bsls_performancehint.h>
 #include <bsls_util.h>     // 'forward<T>(V)'
 
 #include <bsl_functional.h>
@@ -912,6 +914,7 @@ BSLS_IDENT("$Id: $")
 namespace BloombergLP {
 namespace ball {
 
+class Context;
 class LoggerManager;
 class Observer;
 class RecordBuffer;
@@ -1030,7 +1033,8 @@ class Logger {
     /// Return a shared pointer to a modifiable record having the specified
     /// `fileName` and `lineNumber` attributes, and retrieved from the
     /// shared object pool managed by this logger.
-    bsl::shared_ptr<Record> getRecordPtr(const char *fileName, int lineNumber);
+    bsl::shared_ptr<Record> getRecordPtr(const bsl::string_view& fileName,
+                                         int                     lineNumber);
 
     /// Log the specified `record` after setting its category field to the
     /// specified `category`, severity field to the specified `severity`,
@@ -1064,6 +1068,11 @@ class Logger {
     /// specified publication `cause`.
     void publish(Transmission::Cause cause);
 
+    /// Publish to the observer held by this logger the specified `record` with
+    /// the specified `context`.
+    void publish(const bsl::shared_ptr<Record>& record,
+                 const Context&                 context);
+
   public:
     // MANIPULATORS
 
@@ -1072,7 +1081,7 @@ class Logger {
     /// object pool managed by this logger.  Note that the returned `Record`
     /// must subsequently be supplied to a call to the 3-argument
     /// `logMessage` method on this logger.
-    Record *getRecord(const char *fileName, int lineNumber);
+    Record *getRecord(const bsl::string_view& fileName, int lineNumber);
 
     /// Log a record containing the specified `message` text, `fileName`,
     /// `lineNumber`, `severity`, and the name of the specified `category`.
@@ -1092,11 +1101,11 @@ class Logger {
     /// `severity` is less severe than all of the threshold levels of
     /// `category`.  The behavior is undefined unless `severity` is in the
     /// range `[1 .. 255]`.
-    void logMessage(const Category&  category,
-                    int              severity,
-                    const char      *fileName,
-                    int              lineNumber,
-                    const char      *message);
+    void logMessage(const Category&         category,
+                    int                     severity,
+                    const bsl::string_view& fileName,
+                    int                     lineNumber,
+                    const bsl::string_view& message);
 
     /// Log the specified `*record` after setting its category attribute to
     /// the name of the specified `category` and severity attribute to the
@@ -1128,7 +1137,7 @@ class Logger {
     /// logger.  Note that the returned buffer is intended to be used *only*
     /// for formatting log messages immediately before calling `logMessage`.
     ///
-    /// **DEPRECATED**: Use `obtainMessageBuffer` instead.  Do *not* use this
+    /// @DEPRECATED: Use `obtainMessageBuffer` instead.  Do *not* use this
     /// method in multi-threaded code.
     char *messageBuffer();
 #endif // BDE_OMIT_INTERNAL_DEPRECATED
@@ -1289,6 +1298,9 @@ class LoggerManager {
     Logger                *d_logger_p;           // holds default logger
                                                  // (owned)
 
+    bsls::AtomicUint       d_defaultLoggerCount; // number of thread-specific
+                                                 // default loggers
+
     CategoryManager        d_categoryManager;    // category manager
 
     unsigned int           d_maxNumCategoriesMinusOne;
@@ -1375,6 +1387,11 @@ class LoggerManager {
     /// publication `cause`.
     void publishAllImp(Transmission::Cause cause);
 
+    /// Return a non-`const` reference to a logger managed by this logger
+    /// manager suitable for performing logging operations for this thread
+    /// of execution.
+    Logger& getLoggerSlow();
+
   public:
     // CLASS METHODS
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
@@ -1389,7 +1406,7 @@ class LoggerManager {
     /// method does *not* create the singleton logger manager used by the
     /// macros of the BALL logging framework.
     ///
-    /// **DEPRECATED**: Use the `createLoggerManager` method that does not
+    /// @DEPRECATED: Use the `createLoggerManager` method that does not
     /// take a *raw* pointer to an `observer`, together with the
     /// `registerObserver` method (which takes a *shared* pointer to an
     /// `observer`), instead.
@@ -1418,7 +1435,7 @@ class LoggerManager {
     /// by the currently installed default allocator.  Note that the
     /// returned `Record` must subsequently be supplied to a call to the
     /// `LoggerManager::logMessage` method.
-    static Record *getRecord(const char *fileName, int lineNumber);
+    static Record *getRecord(const bsl::string_view& fileName, int lineNumber);
 
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
     /// Initialize the logger manager singleton having the specified
@@ -1433,7 +1450,7 @@ class LoggerManager {
     /// singleton already exists.  The behavior is undefined if `observer`
     /// is 0, goes out of scope, or is otherwise destroyed.
     ///
-    /// **DEPRECATED**: Use the `initSingleton` method that does not take a
+    /// @DEPRECATED: Use the `initSingleton` method that does not take a
     /// *raw* pointer to an `observer`, together with the `registerObserver`
     /// method (which takes a *shared* pointer to an `observer`), instead.
     static LoggerManager& initSingleton(
@@ -1566,7 +1583,7 @@ class LoggerManager {
     /// `observer` is *not* transferred, and hence, will *not* be destroyed
     /// (or otherwise affected) after the logger is deallocated.
     ///
-    /// **DEPRECATED**: Use the `allocateLogger` method that does not take a
+    /// @DEPRECATED: Use the `allocateLogger` method that does not take a
     /// *raw* pointer to an `observer`, together with the `registerObserver`
     /// method (which takes a *shared* pointer to an `observer`), instead.
     Logger *allocateLogger(RecordBuffer *buffer,
@@ -1738,7 +1755,7 @@ class LoggerManager {
     /// Return the address of the modifiable legacy observer registered with
     /// this logger manager.
     ///
-    /// **DEPRECATED**: Use `findObserver` instead.
+    /// @DEPRECATED: Use `findObserver` instead.
     Observer *observer();
 #endif  // BDE_OMIT_INTERNAL_DEPRECATED
 
@@ -1935,7 +1952,7 @@ class LoggerManager {
     /// Return the address of the non-modifiable observer registered with
     /// this logger manager.
     ///
-    /// **DEPRECATED**: Use `findObserver` instead.
+    /// @DEPRECATED: Use `findObserver` instead.
     const Observer *observer() const;
 #endif  // BDE_OMIT_INTERNAL_DEPRECATED
 
@@ -2021,7 +2038,7 @@ class LoggerManagerScopedGuard {
     /// destroyed.  Note that on destruction, this scoped guard will destroy
     /// the logger manager singleton, if the singleton exists at that time.
     ///
-    /// **DEPRECATED**: Use the `LoggerManagerScopedGuard` constructor that
+    /// @DEPRECATED: Use the `LoggerManagerScopedGuard` constructor that
     /// does not take a *raw* pointer to an `observer`, together with the
     /// `registerObserver` method (which takes a *shared* pointer to an
     /// `observer`), instead.
@@ -2058,7 +2075,7 @@ class LoggerManagerScopedGuard {
 /// the categories in the registry of a logger manager's category manager.
 /// The order of the iteration is undefined.
 ///
-/// **DEPRECATED**: Use the `LoggerManager::visitCategories` accessor instead.
+/// @DEPRECATED: Use the `LoggerManager::visitCategories` accessor instead.
 class LoggerManagerCategoryIter {
 
     // DATA
@@ -2111,8 +2128,7 @@ class LoggerManagerCategoryIter {
 /// to the categories in the registry of a logger manager's category
 /// manager.  The order of the iteration is undefined.
 ///
-/// **DEPRECATED**: Use the `LoggerManager::visitCategories` manipulator
-/// instead.
+/// @DEPRECATED: Use the `LoggerManager::visitCategories` manipulator instead.
 class LoggerManagerCategoryManip {
 
     // DATA
@@ -2347,6 +2363,16 @@ void LoggerManager::visitObservers(
 {
     d_observer->visitObservers(
                    BSLS_COMPILERFEATURES_FORWARD(t_OBSERVER_VISITOR, visitor));
+}
+
+inline
+Logger& LoggerManager::getLogger()
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                                         d_defaultLoggerCount.loadAcquire())) {
+        return getLoggerSlow();
+    }
+    return *d_logger_p;
 }
 
 // ACCESSORS

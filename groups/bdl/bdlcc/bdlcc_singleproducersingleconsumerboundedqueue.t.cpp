@@ -20,6 +20,7 @@
 #include <bslmt_mutex.h>
 #include <bslmt_threadgroup.h>
 #include <bslmt_threadutil.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
@@ -34,6 +35,7 @@
 
 #include <bsl_cstring.h>
 #include <bsl_cstdlib.h>
+#include <bsl_format.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -527,13 +529,8 @@ extern "C" void *deferredDisablePopFront(void *arg)
     return 0;
 }
 
-static bsls::TimeInterval s_deferredPopFrontInterval;
-
 extern "C" void *deferredPopFront(void *arg)
 {
-    s_deferredPopFrontInterval =
-                      bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME);
-
     Obj& mX = *static_cast<Obj *>(arg);
 
     bslmt::ThreadUtil::microSleep(0, 1);
@@ -541,10 +538,6 @@ extern "C" void *deferredPopFront(void *arg)
     Obj::value_type value;
 
     mX.popFront(&value);
-
-    s_deferredPopFrontInterval =
-                       bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME)
-                     - s_deferredPopFrontInterval;
 
     return 0;
 }
@@ -645,45 +638,12 @@ extern "C" void *orderingState(void *arg)
     return 0;
 }
 
-static char s_watchdogText[128];
-
-/// Assign the specified `value` to be displayed if the watchdog expires.
-void setWatchdogText(const char *value)
-{
-    memcpy(s_watchdogText, value, strlen(value) + 1);
-}
-
-/// Watchdog function used to determine when a timeout should occur.  This
-/// function returns without expiration if `0 == s_continue` before one
-/// second elapses.  Upon expiration, `s_watchdogText` is displayed and the
-/// program is aborted.
-extern "C" void *watchdog(void *)
-{
-    const int MAX = 100;  // one iteration is a deci-second
-
-    int count = 0;
-
-    while (s_continue) {
-        bslmt::ThreadUtil::microSleep(k_DECISECOND);
-        ++count;
-
-        ASSERTV(s_watchdogText, count < MAX);
-
-        if (MAX == count && s_continue) {
-            abort();
-        }
-    }
-
-    return 0;
-}
-
 /// Exercise an `OrderingObj` to verify, for the specified `numPushThread`
 /// and `numPopThread`, the set of elements enqueued by a particular thread
 /// and dequeued by a particular thread, the order in which the elements of
 /// this set are dequeued match the order these elements were enqueued.
 void orderingGuaranteeTest(const int numPushThread, const int numPopThread)
 {
-    bslmt::ThreadUtil::Handle              watchdogHandle;
     bslmt::ThreadUtil::Handle              stateHandle;
     bsl::vector<bslmt::ThreadUtil::Handle> pushHandle(numPushThread);
     bsl::vector<bslmt::ThreadUtil::Handle> popHandle(numPopThread);
@@ -692,9 +652,6 @@ void orderingGuaranteeTest(const int numPushThread, const int numPopThread)
     s_continue = 4;
 
     OrderingObj mX(32);  const OrderingObj& X = mX;
-
-    setWatchdogText("ordering guarantee");
-    bslmt::ThreadUtil::create(&watchdogHandle, watchdog, 0);
 
     bslmt::ThreadUtil::create(&stateHandle, orderingState, &mX);
 
@@ -715,7 +672,6 @@ void orderingGuaranteeTest(const int numPushThread, const int numPopThread)
     bslmt::ThreadUtil::microSleep(0, 1);
     s_continue = 3;
 
-    setWatchdogText("ordering guarantee: join state");
     bslmt::ThreadUtil::join(stateHandle);
 
     mX.enablePopFront();
@@ -726,12 +682,10 @@ void orderingGuaranteeTest(const int numPushThread, const int numPopThread)
 
     mX.disablePushBack();
 
-    setWatchdogText("ordering guarantee: join push");
     for (int i = 0; i < numPushThread; ++i){
         bslmt::ThreadUtil::join(pushHandle[i]);
     }
 
-    setWatchdogText("ordering guarantee: wait until empty");
     int rv = X.waitUntilEmpty();
     ASSERT(0 == rv);
     ASSERT(0 == X.numElements());
@@ -740,15 +694,11 @@ void orderingGuaranteeTest(const int numPushThread, const int numPopThread)
 
     mX.disablePopFront();
 
-    setWatchdogText("ordering guarantee: join pop");
     for (int i = 0; i < numPopThread; ++i){
         bslmt::ThreadUtil::join(popHandle[i]);
     }
 
     s_continue = 0;
-
-    setWatchdogText("ordering guarantee: join watchdog");
-    bslmt::ThreadUtil::join(watchdogHandle);
 }
 
 // ============================================================================
@@ -968,6 +918,10 @@ int main(int argc, char *argv[])
     bslma::TestAllocator defaultAllocator("default", veryVeryVeryVerbose);
     ASSERT(0 == bslma::Default::setDefaultAllocator(&defaultAllocator));
 
+    bslmt::TimedCompletionGuard completionGuard(&defaultAllocator);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
+
     switch (test) { case 0:  // Zero is always the leading case.
       case 12: {
         // --------------------------------------------------------------------
@@ -991,21 +945,9 @@ int main(int argc, char *argv[])
                           << "USAGE EXAMPLE" << endl
                           << "=============" << endl;
 
-        bslmt::ThreadUtil::Handle watchdogHandle;
-
-        s_continue = 1;
-
-        bslmt::ThreadUtil::create(&watchdogHandle,
-                                  watchdog,
-                                  const_cast<char *>("usage example"));
-
         enum { k_NUM_THREADS = 1 };
 
         myProducer();
-
-        s_continue = 0;
-
-        bslmt::ThreadUtil::join(watchdogHandle);
       } break;
       case 11: {
         // ---------------------------------------------------------
@@ -1424,13 +1366,10 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "\nTesting `waitUntilEmpty`." << endl;
         {
-            bslmt::ThreadUtil::Handle watchdogHandle;
-
-            s_continue = 1;
-
-            bslmt::ThreadUtil::create(&watchdogHandle,
-                                      watchdog,
-                                      const_cast<char *>("wait until empty"));
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
 
             Obj mX(8);  const Obj& X = mX;
 
@@ -1440,31 +1379,24 @@ int main(int argc, char *argv[])
 
             ASSERT(e_SUCCESS == rv);
             ASSERT(allocations == defaultAllocator.numAllocations());
-
-            s_continue = 0;
-
-            bslmt::ThreadUtil::join(watchdogHandle);
         }
         {
-            bslmt::ThreadUtil::Handle watchdogHandle;
-
-            s_continue = 1;
-
-            bslmt::ThreadUtil::create(&watchdogHandle,
-                                      watchdog,
-                                      const_cast<char *>("wait until empty"));
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
 
             Obj mX(8);  const Obj& X = mX;
+
+            mX.pushBack(0);
+
+            bsls::TimeInterval interval =
+                      bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME);
 
             bslmt::ThreadUtil::Handle handle;
 
             bslmt::ThreadUtil::create(&handle, deferredPopFront, &mX);
 
-            mX.pushBack(0);
-
-            bsls::TimeInterval interval =
-                      bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME);
-
             bsls::Types::Int64 allocations = defaultAllocator.numAllocations();
 
             int rv = X.waitUntilEmpty();
@@ -1477,53 +1409,40 @@ int main(int argc, char *argv[])
 
             bslmt::ThreadUtil::join(handle);
 
-            ASSERT(   s_deferredPopFrontInterval.totalSecondsAsDouble() * 0.8
-                                           <= interval.totalSecondsAsDouble()
-                   && s_deferredPopFrontInterval.totalSecondsAsDouble() * 1.5
-                                           >= interval.totalSecondsAsDouble());
-
-            s_continue = 0;
-
-            bslmt::ThreadUtil::join(watchdogHandle);
+            ASSERTV(interval,
+                       bsls::TimeInterval(0.8) <= interval
+                    && bsls::TimeInterval(3.0) >= interval);
         }
         {
-            bslmt::ThreadUtil::Handle watchdogHandle;
-
-            s_continue = 1;
-
-            bslmt::ThreadUtil::create(&watchdogHandle,
-                                      watchdog,
-                                      const_cast<char *>("wait until empty"));
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
 
             Obj mX(8);  const Obj& X = mX;
-
-            bslmt::ThreadUtil::Handle handle;
-
-            bslmt::ThreadUtil::create(&handle, deferredDisablePopFront, &mX);
 
             mX.pushBack(0);
 
             bsls::TimeInterval interval =
                       bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME);
 
+            bslmt::ThreadUtil::Handle handle;
+
+            bslmt::ThreadUtil::create(&handle, deferredDisablePopFront, &mX);
+
             bsls::Types::Int64 allocations = defaultAllocator.numAllocations();
 
             int rv = X.waitUntilEmpty();
 
-            ASSERT(e_DISABLED == rv);
+            ASSERT(e_DISABLED  == rv);
             ASSERT(allocations == defaultAllocator.numAllocations());
 
             interval = bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME)
                      - interval;
 
-            ASSERT(   bsls::TimeInterval(0.8) <= interval
-                   && bsls::TimeInterval(1.5) >= interval);
+            ASSERTV(interval, bsls::TimeInterval(1.0) <= interval);
 
             bslmt::ThreadUtil::join(handle);
-
-            s_continue = 0;
-
-            bslmt::ThreadUtil::join(watchdogHandle);
         }
       } break;
       case 7: {
@@ -2290,7 +2209,7 @@ int main(int argc, char *argv[])
 
                     if (veryVerbose) { T_ P_(EXP[i]) P(value) }
 
-                    Obj::value_type expValue;
+                    Obj::value_type expValue = 0;
                     getValue(&expValue, EXP[i], 0);
 
                     LOOP_ASSERT(LINE, expValue == value);

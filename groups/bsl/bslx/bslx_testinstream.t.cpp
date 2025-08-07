@@ -4455,7 +4455,9 @@ int main(int argc, char *argv[]) {
             const int LEN = static_cast<int>(strlen(EXPECTED)) + 1;
             if (veryVerbose) cout << "\tEXPECTED : " << EXPECTED << endl
                                   << "\tACTUAL : "   << RESULT   << endl;
+#ifndef BDE_BUILD_TARGET_UBSAN
             ASSERT(XX == RESULT[SIZE-1]); // check for overrun
+#endif
             if (LEN) {
                 ASSERT(0 == memcmp(RESULT, EXPECTED, LEN));
             }
@@ -4487,7 +4489,9 @@ int main(int argc, char *argv[]) {
             const int LEN = static_cast<int>(strlen(EXPECTED)) + 1;
             if (veryVerbose) cout << "\tEXPECTED : " << EXPECTED << endl
                                   << "\tACTUAL : "   << RESULT   << endl;
+#ifndef BDE_BUILD_TARGET_UBSAN
             ASSERT(XX == RESULT[SIZE-1]); // check for overrun
+#endif
             if (LEN) {
                 ASSERT(0 == memcmp(RESULT, EXPECTED, LEN));
             }
@@ -4525,7 +4529,9 @@ int main(int argc, char *argv[]) {
             const int LEN = static_cast<int>(strlen(EXPECTED)) + 1;
             if (veryVerbose) cout << "\tEXPECTED : " << EXPECTED << endl
                                   << "\tACTUAL : "   << RESULT   << endl;
+#ifndef BDE_BUILD_TARGET_UBSAN
             ASSERT(XX == RESULT[SIZE-1]); // check for overrun
+#endif
             if (LEN) {
                 ASSERT(0 == memcmp(RESULT, EXPECTED, LEN));
             }
@@ -4926,7 +4932,7 @@ int main(int argc, char *argv[]) {
             // test spec's of "a0", "a1", "a2"...
             for (i = 0; i < 3; ++i) {
                 static char spec[10];    memset((void *) spec, 0, 10);
-                sprintf(spec, "a%d", i);
+                snprintf(spec, sizeof spec, "a%d", i);
                 if (veryVerbose) cout << "\tSPEC : \"" << spec << '"' << endl;
                 Out mX(VERSION_SELECTOR);    const Out& X = mX;
                 mX.putArrayInt8(VA, i);

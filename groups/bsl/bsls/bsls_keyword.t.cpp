@@ -22,11 +22,13 @@ using namespace std;
 //                                  Overview
 //                                  --------
 //-----------------------------------------------------------------------------
+// [12] BSLS_KEYWORD_CONSTEVAL_CPP20
 // [ 2] BSLS_KEYWORD_CONSTEXPR
 // [  ] BSLS_KEYWORD_CONSTEXPR_MEMBER
 // [ 3] BSLS_KEYWORD_CONSTEXPR_RELAXED
 // [ 3] BSLS_KEYWORD_CONSTEXPR_CPP14
 // [ 4] BSLS_KEYWORD_CONSTEXPR_CPP17
+// [11] BSLS_KEYWORD_CONSTEXPR_CPP20
 // [10] BSLS_KEYWORD_DELETED
 // [ 5] BSLS_KEYWORD_EXPLICIT
 // [ 6] BSLS_KEYWORD_FINAL (class)
@@ -39,7 +41,7 @@ using namespace std;
 // [ 8] BSLS_KEYWORD_NOEXCEPT_SPECIFICATION
 // [ 9] BSLS_KEYWORD_OVERRIDE
 //-----------------------------------------------------------------------------
-// [11] USAGE EXAMPLE
+// [13] USAGE EXAMPLE
 // [ 1] Test machinery
 
 // ============================================================================
@@ -54,6 +56,7 @@ namespace {
     {
         if (condition) {
             printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+            fflush(stdout);
 
             if (0 <= testStatus && testStatus <= 100) {
                 ++testStatus;
@@ -117,6 +120,10 @@ namespace
     void throws4() BSLS_KEYWORD_NOEXCEPT_SPECIFICATION(false)       {}
     void throws5() BSLS_KEYWORD_NOEXCEPT_SPECIFICATION(false)       {}
 
+#ifdef BSLS_PLATFORM_CMP_GNU
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
 ///Usage
 ///-----
 // This section illustrates intended use of this component.
@@ -384,7 +391,9 @@ void useMoreComplexConstexprFunc()
     ASSERT(42 == result);
 }
 // ```
-
+#ifdef BSLS_PLATFORM_CMP_GNU
+# pragma GCC diagnostic pop  // -Woverloaded-virtual
+#endif
 }  // close unnamed namespace
 
 // ============================================================================
@@ -492,6 +501,13 @@ static void printFlags()
     printf("UNDEFINED\n");
 #endif
 
+    printf("\n  BSLS_KEYWORD_THREAD_LOCAL: ");
+#ifdef BSLS_KEYWORD_THREAD_LOCAL
+    printf("%s\n", STRINGIFY(BSLS_KEYWORD_THREAD_LOCAL) );
+#else
+    printf("UNDEFINED\n");
+#endif
+
     printf("\n\n  printFlags: bsls_keyword Referenced Macros\n");
 
     printf("\n  BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR: ");
@@ -580,7 +596,7 @@ int main(int argc, char *argv[])
     }
 
     switch (test) { case 0:
-      case 11: {
+      case 13: {
         // --------------------------------------------------------------------
         // TESTING USAGE EXAMPLE
         //
@@ -737,6 +753,66 @@ int main(int argc, char *argv[])
 #undef    FAIL_USAGE_FINAL_FUNCTION
 #undef    FAIL_USAGE_OVERRIDE_TYPE
 #undef    FAIL_USAGE_NO_OVERRIDE
+      } break;
+      case 12: {
+        // --------------------------------------------------------------------
+        // TESTING: BSLS_KEYWORD_CONSTEVAL_CPP20
+        //
+        // Concerns:
+        // 1. When `BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20` is defined
+        //    `BSLS_KEYWORD_CONSTEVAL_CPP20` evaluates to `consteval`.
+        //
+        // 2. When `BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20` is not
+        //    defined `BSLS_KEYWORD_CONSTEVAL_CPP20` evaluates to nothing.
+        //
+        // Plan:
+        // 1. Compare the stringified value of the macro to an oracle.
+        //
+        // Testing:
+        //   BSLS_KEYWORD_CONSTEVAL_CPP20
+        // --------------------------------------------------------------------
+
+        if (verbose)
+            printf("\nTESTING: BSLS_KEYWORD_CONSTEVAL_CPP20"
+                   "\n=====================================\n");
+
+        const char *expected =
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20)
+                               "consteval";
+#else
+            "";
+#endif
+        ASSERT(strcmp(STRINGIFY(BSLS_KEYWORD_CONSTEVAL_CPP20), expected) == 0);
+      } break;
+      case 11: {
+        // --------------------------------------------------------------------
+        // TESTING: BSLS_KEYWORD_CONSTEXPR_CPP20
+        //
+        // Concerns:
+        // 1. When `BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20` is defined
+        //    `BSLS_KEYWORD_CONSTEXPR_CPP20` evaluates to `constexpr`.
+        //
+        // 2. When `BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20` is not
+        //    defined `BSLS_KEYWORD_CONSTEXPR_CPP20` evaluates to nothing.
+        //
+        // Plan:
+        // 1. Compare the stringified value of the macro to an oracle.
+        //
+        // Testing:
+        //   BSLS_KEYWORD_CONSTEXPR_CPP20
+        // --------------------------------------------------------------------
+
+        if (verbose)
+            printf("\nTESTING: BSLS_KEYWORD_CONSTEXPR_CPP20"
+                   "\n=====================================\n");
+
+        const char *expected =
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20)
+                               "constexpr";
+#else
+            "";
+#endif
+        ASSERT(strcmp(STRINGIFY(BSLS_KEYWORD_CONSTEXPR_CPP20), expected) == 0);
       } break;
       case 10: {
         // --------------------------------------------------------------------

@@ -20,16 +20,19 @@
 #include <bslmt_lockguard.h>
 #include <bslmt_threadattributes.h>
 #include <bslmt_threadgroup.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bsls_alignmentfromtype.h>
 #include <bsls_atomic.h>
 #include <bsls_platform.h>
 #include <bsls_review.h>
+#include <bsls_timeinterval.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>
+#include <bsl_format.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
@@ -1061,8 +1064,8 @@ int my_CheckingClass::objCount = 0;
 
 union ObjectNode {
     struct {
-        ObjectNode                *d_next_p;
-        bsls::AtomicOperations::AtomicTypes::Int       d_refCount;
+        bsls::AtomicOperations::AtomicTypes::Pointer d_next_p;
+        bsls::AtomicOperations::AtomicTypes::Int     d_refCount;
     } d_inUse;
     bsls::AlignmentFromType<my_CheckingClass>::Type d_dummy;
 };
@@ -1251,6 +1254,10 @@ int main(int argc, char *argv[])
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
     using namespace bdlf::PlaceHolders;
+
+    bslmt::TimedCompletionGuard completionGuard;
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
 
     switch (test) { case 0:  // Zero is always the leading case.
       case 17: {

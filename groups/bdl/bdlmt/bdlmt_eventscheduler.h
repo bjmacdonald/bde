@@ -13,6 +13,15 @@ BSLS_IDENT("$Id: $")
 //  bdlmt::EventSchedulerRecurringEventHandle: handle to a recurring event
 //  bdlmt::EventSchedulerTestTimeSource: class for testing time changes
 //
+//@METRICS:
+//
+// * `bde.startlag`
+//   > seconds of delay in starting the next event (may be 0.0)
+//
+// Associated Metric Attributes:
+//  * object type name: "bdlmt.eventscheduler"
+//  * object type abbreviation: "es"
+//
 //@SEE_ALSO: bdlmt_timereventscheduler
 //
 //@DESCRIPTION: This component provides a thread-safe event scheduler.
@@ -182,6 +191,11 @@ BSLS_IDENT("$Id: $")
 // `bdlt::EventSchedulerTestTimeSource`.  See
 // [](#Example 3: Using the Test Time Source) below for an illustration of how
 // this is done.
+//
+// Also note that `bdlt::EventSchedulerTestTimeSource::advanceTime`
+// synchronizes with the dispatching thread.  Specifically, `advanceTime` does
+// not return until the dispatcher processes all events triggered by the change
+// in current time.
 //
 ///Thread Name for Dispatcher Thread
 ///---------------------------------
@@ -640,6 +654,8 @@ class EventScheduler {
                                                 // should use for the event
                                                 // timeline
 
+    bsls::AtomicInt64     d_cachedNow;          // cached total microseconds
+
     EventQueue            d_eventQueue;         // events
 
     RecurringEventQueue   d_recurringQueue;     // recurring events
@@ -759,7 +775,7 @@ class EventScheduler {
     /// construction (see {Supported Clock Types} in the component
     /// documentation).  Also note that this method may update the value of
     /// `now` with the current system time if necessary.
-    bsls::Types::Int64 chooseNextEvent(bsls::Types::Int64 *now);
+    bsls::Types::Int64 chooseNextEvent(bsls::AtomicInt64 *now);
 
     /// While d_running is true, execute events in the event and recurring
     /// event queues at their scheduled times.  Note that this method
@@ -849,7 +865,8 @@ class EventScheduler {
     /// specify a `basicAllocator` used to supply memory.  If
     /// `basicAllocator` is 0, the currently installed default allocator is
     /// used.
-    explicit EventScheduler(bslma::Allocator *basicAllocator = 0);
+    EventScheduler();
+    explicit EventScheduler(bslma::Allocator *basicAllocator);
 
     /// Create an event scheduler using the default dispatcher functor (see
     /// {The Dispatcher Thread and the Dispatcher Functor} in the
@@ -1769,7 +1786,11 @@ int EventScheduler::cancelEvent(const Event *handle)
     const EventQueue::Pair *itemPtr =
                        reinterpret_cast<const EventQueue::Pair*>(
                                        reinterpret_cast<const void*>(handle));
-
+    // We release the resources for the functor early (rather than waiting for
+    // handle to be released), since large objects may be bound to the functor
+    // and it may be surprising to users that they are not released until the
+    // handle is released.
+    itemPtr->data().d_callback = 0;
     return d_eventQueue.remove(itemPtr);
 }
 
@@ -1779,23 +1800,30 @@ int EventScheduler::cancelEvent(const RecurringEvent *handle)
     const RecurringEventQueue::Pair *itemPtr =
                reinterpret_cast<const RecurringEventQueue::Pair*>(
                                        reinterpret_cast<const void*>(handle));
-
+    // We release the resources for the functor early (rather than waiting for
+    // handle to be released), since large objects may be bound to the functor
+    // and it may be surprising to users that they are not released until the
+    // handle is released.
+    itemPtr->data().d_callback = 0;
     return d_recurringQueue.remove(itemPtr);
 }
 
 inline
 void EventScheduler::releaseEventRaw(Event *handle)
 {
-    d_eventQueue.releaseReferenceRaw(reinterpret_cast<EventQueue::Pair*>(
-                                            reinterpret_cast<void*>(handle)));
+    EventQueue::Pair *h = reinterpret_cast<EventQueue::Pair*>(
+                                              reinterpret_cast<void*>(handle));
+    h->data().d_callback = 0;
+    d_eventQueue.releaseReferenceRaw(h);
 }
 
 inline
 void EventScheduler::releaseEventRaw(RecurringEvent *handle)
 {
-    d_recurringQueue.releaseReferenceRaw(
-                         reinterpret_cast<RecurringEventQueue::Pair*>(
-                                            reinterpret_cast<void*>(handle)));
+    RecurringEventQueue::Pair *h= reinterpret_cast<RecurringEventQueue::Pair*>(
+                                              reinterpret_cast<void*>(handle));
+    h->data().d_callback = 0;
+    d_recurringQueue.releaseReferenceRaw(h);
 }
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
@@ -1964,13 +1992,16 @@ void EventScheduler::scheduleEventRaw(
     else {
         using namespace bsl::chrono;
 
-        microseconds stime =
-                     duration_cast<microseconds>(epochTime.time_since_epoch());
+        bsls::Types::Int64 startTime = (bsls::Types::Int64)
+             duration_cast<microseconds>(epochTime.time_since_epoch()).count();
+        if (startTime < d_cachedNow) {
+            startTime = d_cachedNow;
+        }
 
         bool newTop;
         d_eventQueue.addRawR(
                 (EventQueue::Pair **)event,
-                (bsls::Types::Int64)stime.count(),
+                startTime,
                 EventData(
                     callback,
                     bdlf::BindUtil::bind(timeUntilTrigger<t_CLOCK, t_DURATION>,

@@ -21,7 +21,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Sun Sep  1 15:18:45 2024
+// Generated on Wed Nov  6 15:08:55 2024
 // Command line: sim_cpp11_features.pl bslstl_function.h
 
 #ifdef COMPILING_BSLSTL_FUNCTION_H
@@ -89,11 +89,12 @@ template <class RET, class ARG>
 struct Function_ArgTypes<RET(ARG)> {
 
     // PUBLIC TYPES
+
+    /// @DEPRECATED: This typedef is deprecated in C++17, for details see
+    /// https://isocpp.org/files/papers/p0005r4.html.
     BSLS_DEPRECATE_FEATURE("bsl",
                            "deprecated_cpp17_standard_library_features",
                            "do not use")
-    /// **DEPRECATED**: This typedef is deprecated in C++17, for details see
-    /// https://isocpp.org/files/papers/p0005r4.html.
     typedef ARG argument_type;
 };
 
@@ -104,17 +105,18 @@ template <class RET, class ARG1, class ARG2>
 struct Function_ArgTypes<RET(ARG1, ARG2)> {
 
     // PUBLIC TYPES
+
+    /// @DEPRECATED: This typedef is deprecated in C++17, for details see
+    /// https://isocpp.org/files/papers/p0005r4.html.
     BSLS_DEPRECATE_FEATURE("bsl",
                            "deprecated_cpp17_standard_library_features",
                            "do not use")
-    /// **DEPRECATED**: This typedef is deprecated in C++17, for details see
-    /// https://isocpp.org/files/papers/p0005r4.html.
     typedef ARG1 first_argument_type;
 
     BSLS_DEPRECATE_FEATURE("bsl",
                            "deprecated_cpp17_standard_library_features",
                            "do not use")
-    /// **DEPRECATED**: This typedef is deprecated in C++17, for details see
+    /// @DEPRECATED: This typedef is deprecated in C++17, for details see
     /// https://isocpp.org/files/papers/p0005r4.html.
     typedef ARG2 second_argument_type;
 };
@@ -1138,7 +1140,7 @@ class Function_Variadic<RET(ARGS...)> : public Function_ArgTypes<RET(ARGS...)>
 /// type is considered convertible to the return type of the `PROTOTYPE`.
 /// In C++03, `FUNC` is considered Lvalue-Callable with the argument and
 /// return types of the `PROTOTYPE` if it is not an integral type.  This
-/// `struct` template requires 'PROTOTYPE" to be an unqualified function
+/// `struct` template requires `PROTOTYPE` to be an unqualified function
 /// type.
 template <class PROTOTYPE, class FUNC>
 struct Function_IsInvocableWithPrototype;
@@ -1301,7 +1303,7 @@ class function : public BloombergLP::bslstl::Function_Variadic<PROTOTYPE> {
         ///Implementation Note
         ///- - - - - - - - - -
         // The body of this constructor must be inlined inplace because the use
-        // of 'enable_if' will otherwise break the MSVC 2010 compiler.
+        // of `enable_if` will otherwise break the MSVC 2010 compiler.
         //
         // The `! bsl::is_function<FUNC>::value` constraint is required in
         // C++03 mode when using the IBM XL C++ compiler.  In C++03,
@@ -1660,35 +1662,34 @@ class function : public BloombergLP::bslstl::Function_Variadic<PROTOTYPE> {
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
     // LEGACY METHODS
 
-    /// **DEPRECATED**: Use `bsl::function` instead of `bdef_Function`.
-    ///
     /// Return `*this`, converted to a mutable `bdef_Function` reference by
     /// downcasting.  The behavior is undefined unless `bdef_Function<F*>`
     /// is derived from `bsl::function<F>` and adds no new data members.
+    ///
+    /// @DEPRECATED: Use `bsl::function` instead of `bdef_Function`.
     operator BloombergLP::bdef_Function<PROTOTYPE *>&() BSLS_KEYWORD_NOEXCEPT;
 
-    /// **DEPRECATED**: Use `bsl::function` instead of `bdef_Function`.
-    ///
     /// Return `*this` converted to a const `bdef_Function` reference by
     /// downcasting.  The behavior is undefined unless `bdef_Function<F*>`
     /// is derived from `bsl::function<F>` and adds no new data members.
+    ///
+    /// @DEPRECATED: Use `bsl::function` instead of `bdef_Function`.
     operator const BloombergLP::bdef_Function<PROTOTYPE *>&() const
                                                          BSLS_KEYWORD_NOEXCEPT;
 
     // LEGACY ACCESSORS
 
-    /// **DEPRECATED**: Use `get_allocator()` instead.
+    /// Return `get_allocator().mechanism()`.  Note that this function exists
+    /// for BDE compatibility and is not part of the C++ Standard Library.
     ///
-    /// Return `get_allocator().mechanism()`.  Note that this function
-    /// exists for BDE compatibility and is not part of the C++ Standard
-    /// Library.
+    /// @DEPRECATED: Use `get_allocator()` instead.
     BloombergLP::bslma::Allocator *allocator() const BSLS_KEYWORD_NOEXCEPT;
 
-    /// **DEPRECATED**: Runtime checking of this optimization is discouraged.
-    ///
     /// Return `true` if this `function` is empty or if it is non-empty and
     /// its target qualifies for the small-object optimization (and is thus
     /// allocated within this object's footprint); otherwise, return false.
+    ///
+    /// @DEPRECATED: Runtime checking of this optimization is discouraged.
     bool isInplace() const BSLS_KEYWORD_NOEXCEPT;
 #endif
 };
@@ -3629,7 +3630,7 @@ struct Function_InvokerUtilNullCheck<bsl::function<PROTO> > {
 }  //  close package namespace
 }  //  close enterprise namespace
 
-// Undo 'BSLS_ASSERT' filename fix -- See {'bsls_assertimputil'}
+// Undo `BSLS_ASSERT` filename fix -- See {`bsls_assertimputil`}
 #ifdef BSLS_ASSERTIMPUTIL_AVOID_STRING_CONSTANTS
 #undef BSLS_ASSERTIMPUTIL_FILE
 #define BSLS_ASSERTIMPUTIL_FILE BSLS_ASSERTIMPUTIL_DEFAULTFILE

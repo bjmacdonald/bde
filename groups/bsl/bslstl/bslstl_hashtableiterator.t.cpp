@@ -24,6 +24,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef BSLS_PLATFORM_CMP_GNU
+# pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 using namespace BloombergLP;
 
 // ============================================================================
@@ -111,6 +115,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;

@@ -3,6 +3,8 @@
 
 #include <bslim_testutil.h>
 
+#include <bsla_maybeunused.h>
+
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
 #include <bsls_platform.h>
@@ -30,6 +32,10 @@ using namespace bsl;
 #ifdef BSLS_PLATFORM_CMP_CLANG
 #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
 #endif
+#endif
+
+#ifdef BSLS_PLATFORM_CMP_GNU
+# pragma GCC diagnostic ignored "-Wunused-result"
 #endif
 
 // ============================================================================
@@ -670,8 +676,10 @@ int main(int argc, char **argv)
             bsls::AssertTestHandlerGuard hG;
             ObjIt itw = testData.begin();
             ++itw; ++itw; ++itw;
+#if defined(BSLS_ASSERT_SAFE_IS_ACTIVE)
             ASSERT_SAFE_FAIL("foo" == *itw);
             ASSERT_SAFE_FAIL(false == (*itw).empty());
+#endif
         }
 
         if (verbose) cout << "\nTest operator->\n";
@@ -687,7 +695,9 @@ int main(int argc, char **argv)
             bsls::AssertTestHandlerGuard hG;
             ObjIt itw = testData.begin();
             ++itw; ++itw; ++itw;
+#if defined(BSLS_ASSERT_SAFE_IS_ACTIVE)
             ASSERT_SAFE_FAIL(false == itw->empty());
+#endif
         }
 
       } break;

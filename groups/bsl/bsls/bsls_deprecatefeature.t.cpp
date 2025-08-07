@@ -44,6 +44,7 @@ static int testStatus = 0;
 static void aSsErT(bool b, const char *s, int i) {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -144,12 +145,12 @@ class Date {
         BSLS_DEPRECATE_FEATURE("bde", "bdec_queue", "Use bsl::queue instead")
 //
 
-    /// ```.
+    /// ...
     class BDEC_QUEUE_DEPRECATE bdec_Queue {
     };
 //
 
-    /// ```.
+    /// ...
     class BDEC_QUEUE_DEPRECATE bdec_QueueIterator {
     };
 // ```
@@ -376,6 +377,7 @@ void collectMacroInformation(CollectedData *result);
 
 // Clean the macro environment.
 
+// Deprecated feature macros
 #undef BSLS_DEPRECATE_FEATURE
 #undef BSLS_DEPRECATE_FEATURE_IS_SUPPORTED
 #undef BSLS_DEPRECATE_FEATURE_ANNOTATION_IS_ACTIVE
@@ -387,6 +389,13 @@ void collectMacroInformation(CollectedData *result);
 #undef BB_DEPRECATE_ENABLE_JSON_MESSAGE
 #undef BSLS_DEPRECATE_FEATURE_ENABLE_ALL_DEPRECATIONS_FOR_TESTING
 #undef BSLS_DEPRECATE_FEATURE_ENABLE_JSON_MESSAGE
+
+// Deprecate header macros
+#undef BSLS_DEPRECATE_FEATURE_HEADER
+#undef BSLS_DEPRECATE_FEATURE_HEADER_IMP
+#undef BSLS_DEPRECATE_FEATURE_HEADER_IMP_STRINGIFY
+#undef BSLS_DEPRECATE_FEATURE_HEADER_IMP_PRAGMA_DO
+#undef BSLS_DEPRECATE_FEATURE_HEADER_IMP_PRAGMA
 
 // Based on `MACRO_CONFIGURATION` set up a build configuration.
 

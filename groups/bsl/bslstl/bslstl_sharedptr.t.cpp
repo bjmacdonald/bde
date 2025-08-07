@@ -613,6 +613,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -696,9 +697,10 @@ void aSsErT(bool condition, const char *message, int line)
 #endif
 
 #if defined(BSLSTL_SHAREDPTR_SUPPORTS_SFINAE_CHECKS)
-# if !defined(BSLS_PLATFORM_CMP_CLANG)                             \
-  || !defined(__APPLE_CC__) && BSLS_PLATFORM_CMP_VERSION >= 120000 \
-  ||  defined(__APPLE_CC__) && BSLS_PLATFORM_CMP_VERSION >  130000
+#if !defined(BSLS_PLATFORM_CMP_CLANG) ||                                      \
+    !defined(__apple_build_version__) && BSLS_PLATFORM_CMP_VERSION >=         \
+                                             120000 ||                        \
+    defined(__apple_build_version__) && BSLS_PLATFORM_CMP_VERSION > 130000
     // There are some compilers that, while they support expression SFINAE, do
     // not check for substitution failures in discarded-value expressions (as
     // in, for example, a `static_cast<void>(expression)`).  As a result, for
@@ -8372,7 +8374,14 @@ int main(int argc, char *argv[])
             bsl::shared_ptr<Partial> p1 =
                            bsl::allocate_shared_for_overwrite<Partial>(allocA);
             ASSERT(0             == p1->d_initialized);
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
             ASSERT(scribbleValue == p1->d_not_initialized);
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic pop
+#endif
         }
 
         // statically-sized array
@@ -8434,7 +8443,14 @@ int main(int argc, char *argv[])
             bsl::shared_ptr<Partial> p1 =
                               bsl::allocate_shared_for_overwrite<Partial>(&sa);
             ASSERT(0              == p1->d_initialized);
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
             ASSERT(scribbleValue  == p1->d_not_initialized);
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic pop
+#endif
         }
 
         // statically-sized array

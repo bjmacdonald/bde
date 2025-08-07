@@ -6,6 +6,9 @@
 #include <bdlm_metricsadapter.h>
 #include <bdlm_metricsregistry.h>
 
+#include <bdlt_currenttime.h>
+#include <bdlt_datetime.h>
+
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_testallocator.h>
@@ -16,6 +19,7 @@
 #include <bslmt_threadutil.h>
 #include <bslmt_throughputbenchmark.h>
 #include <bslmt_throughputbenchmarkresult.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
@@ -32,6 +36,7 @@
 #include <bsl_cstdio.h>             // For FILE in usage example
 #include <bsl_cstdlib.h>            // for atoi
 #include <bsl_cstring.h>
+#include <bsl_format.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
@@ -71,7 +76,10 @@ using bsl::flush;
 // which are controlled by the test case.
 //
 // In addition to positive test cases (run in the nightly builds), a negative
-// test case -1 can be run manually to measure performance of enqueuing jobs.
+// test case -1 can be run manually to measure performance of enqueuing jobs,
+// and test case -3 can be run to reproduce the lost condition signal issue in
+// the underlying implementation of condition variable (e.g.,
+// https://sourceware.org/bugzilla/show_bug.cgi?id=25847).
 //
 // [ 3] bdlmt::FixedThreadPool(numThreads, maxNumPendingJobs, *bA);
 // [ 3] bdlmt::FixedThreadPool(nT, maxNPJ, mI, *mR, *bA);
@@ -534,51 +542,6 @@ static double getCurrentCpuTime()
 #endif
 }
 
-static bsls::AtomicInt s_continue;
-
-static char s_watchdogText[128];
-
-/// Assign the specified `value` to be displayed if the watchdog expires.
-void setWatchdogText(const char *value)
-{
-    memcpy(s_watchdogText, value, strlen(value) + 1);
-}
-
-/// Watchdog function used to determine when a timeout should occur.  This
-/// function returns without expiration if `0 == s_continue` before one
-/// second elapses.  Upon expiration, `s_watchdogText` is displayed and the
-/// program is aborted.
-extern "C" void *watchdog(void *arg)
-{
-    if (arg) {
-        setWatchdogText(static_cast<const char *>(arg));
-    }
-
-    const int MAX = 100;  // one iteration is a deci-second
-
-    int count = 0;
-
-    while (s_continue) {
-        bslmt::ThreadUtil::microSleep(k_DECISECOND);
-        ++count;
-
-        ASSERTV(s_watchdogText, count < MAX);
-
-        if (MAX == count && s_continue) {
-            // `abort` is preferred here but, on Windows, may result in a
-            // dialog box and the process not terminating.
-
-#ifndef BSLS_PLATFORM_OS_WINDOWS
-            abort();
-#else
-            exit(1);
-#endif
-        }
-    }
-
-    return 0;
-}
-
 static bdlmt::FixedThreadPool *s_performanceTestPool_p;
 static bsls::Types::Int64      s_performanceTestPoolBusyWork;
 
@@ -642,6 +605,21 @@ void performanceTest(FILE       *outputFile,
 
     delete s_performanceTestPool_p;
     s_performanceTestPool_p = 0;
+}
+
+void testJobRecordNowMicroseconds(bsls::AtomicInt64 *now)
+{
+    *now = bsls::SystemTime::nowMonotonicClock().totalMicroseconds();
+}
+
+extern "C" void *logActivity(void *)
+{
+    while (1) {
+        bsl::cout << "***  " << bdlt::CurrentTime::local() << bsl::endl;
+        bslmt::ThreadUtil::microSleep(k_DECISECOND * 600 * 5);
+    }
+
+    return 0;
 }
 
 // ============================================================================
@@ -1131,6 +1109,10 @@ int main(int argc, char *argv[])
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
+    bslmt::TimedCompletionGuard completionGuard(&taDefault);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
+
     switch (test) { case 0:  // case 0 is always the first case
       case 20: {
         // --------------------------------------------------------------------
@@ -1357,14 +1339,6 @@ int main(int argc, char *argv[])
               << endl;
         }
 
-        bslmt::ThreadUtil::Handle watchdogHandle;
-
-        s_continue = 1;
-
-        bslmt::ThreadUtil::create(&watchdogHandle,
-                                  watchdog,
-                                  const_cast<char *>("`drain`"));
-
         Obj mX(4, 4);  const Obj& X = mX;
 
         mX.start();
@@ -1389,10 +1363,6 @@ int main(int argc, char *argv[])
 
             now = bsls::SystemTime::nowMonotonicClock();
         }
-
-        s_continue = 0;
-
-        bslmt::ThreadUtil::join(watchdogHandle);
       } break;
       case 17: {
         // --------------------------------------------------------------------
@@ -1432,13 +1402,10 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "Testing `drain`." << endl;
         {
-            bslmt::ThreadUtil::Handle watchdogHandle;
-
-            s_continue = 1;
-
-            bslmt::ThreadUtil::create(&watchdogHandle,
-                                      watchdog,
-                                      const_cast<char *>("`drain`"));
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
 
             Obj mX(4, 4);  const Obj& X = mX;
 
@@ -1450,14 +1417,15 @@ int main(int argc, char *argv[])
 
             ASSERT(1 == mX.numPendingJobs());
             ASSERT(X.isEnabled());
-
-            s_continue = 0;
-
-            bslmt::ThreadUtil::join(watchdogHandle);
         }
 
         if (verbose) cout << "Testing `shutdown`." << endl;
         {
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
             Obj mX(4, 4);  const Obj& X = mX;
 
             mX.enable();
@@ -1472,6 +1440,11 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "Testing `stop`." << endl;
         {
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
             Obj mX(4, 4);  const Obj& X = mX;
 
             mX.enable();
@@ -1521,22 +1494,9 @@ int main(int argc, char *argv[])
         const int k_NUM_THREADS = 1000000;
         const int k_CAPACITY    =      32;
 
-        bslmt::ThreadUtil::Handle watchdogHandle;
-
-        s_continue = 1;
-
-        bslmt::ThreadUtil::create(
-                               &watchdogHandle,
-                               watchdog,
-                               const_cast<char *>("`start` failure behavior"));
-
         bdlmt::FixedThreadPool mX(k_NUM_THREADS, k_CAPACITY);
 
         ASSERT(0 != mX.start());
-
-        s_continue = 0;
-
-        bslmt::ThreadUtil::join(watchdogHandle);
 #endif
       } break;
       case 15: {
@@ -1672,27 +1632,11 @@ int main(int argc, char *argv[])
 
         bslmt::Barrier barrier(2);
 
-#       ifdef BSLS_PLATFORM_OS_LINUX
-            enum {
-                NUM_ITERATIONS = 5,
-                NUM_ITERATIONS_PER_LINE = 5,
-                NUM_ITERATIONS_PER_DOT = 1
-            };
-#       else
-#           ifdef BSLS_PLATFORM_OS_AIX
-                enum {
-                    NUM_ITERATIONS = 800,
-                    NUM_ITERATIONS_PER_LINE = 200,
-                    NUM_ITERATIONS_PER_DOT = 4
-                };
-#           else
-                enum {
-                    NUM_ITERATIONS = 400,
-                    NUM_ITERATIONS_PER_LINE = 100,
-                    NUM_ITERATIONS_PER_DOT = 2
-                };
-#           endif
-#       endif
+        enum {
+            NUM_ITERATIONS = 5,
+            NUM_ITERATIONS_PER_LINE = 5,
+            NUM_ITERATIONS_PER_DOT = 1
+        };
 
         if (verbose) cout << "Enqueue: " << NUM_ITERATIONS <<
                                                     " iterations." << flush;
@@ -2957,12 +2901,14 @@ int main(int argc, char *argv[])
                           const int busyPool = busyWork[bwPool];
                           if (4 <= numPool) {
                               char s[1024];
-                              sprintf(s, "%s,%i,%i,%i,%i",
-                                      name.c_str(),
-                                      numPush,
-                                      numPool,
-                                      busyPush,
-                                      busyPool);
+                              snprintf(s,
+                                       sizeof s,
+                                       "%s,%i,%i,%i,%i",
+                                       name.c_str(),
+                                       numPush,
+                                       numPool,
+                                       busyPush,
+                                       busyPool);
 
                               if (have.end() == have.find(s)) {
                                   have.insert(s);
@@ -2981,6 +2927,74 @@ int main(int argc, char *argv[])
           }
 
           fclose(f);
+      } break;
+      case -3: {
+        // --------------------------------------------------------------------
+        // LOST CONDITION SIGNAL REPRODUCTION
+        //
+        // Concerns:
+        // 1. The underlying implementation has a lost signal bug in condition
+        //    variable (e.g.,
+        //    https://sourceware.org/bugzilla/show_bug.cgi?id=25847).
+        //
+        // Plan:
+        // 1. Create a `bdlmt::FixedThreadPool`.  Repeatedly enqueue a job and
+        //    wait for the pool to empty.  If the output stops having the text
+        //    from the pool threads (that should occur every minute), the issue
+        //    has been reproduced.  An additional thread outputs text every
+        //    five minutes to aid in detection.  Note that this test typically
+        //    requires *days* to reproduce the issue.
+        // --------------------------------------------------------------------
+
+        if (verbose) {
+            cout << "LOST CONDITION SIGNAL REPRODUCTION" << endl
+                 << "==================================" << endl;
+        }
+
+        bslmt::FastPostSemaphoreImplWorkaroundUtil::
+                                           removePostAlwaysSignalsMitigation();
+
+        bdlmt::FixedThreadPool pool(4, 32);
+        pool.start();
+        while (!pool.isStarted()) {
+            bslmt::ThreadUtil::yield();
+        }
+
+        bslmt::ThreadUtil::Handle logActivityHandle;
+
+        bslmt::ThreadUtil::create(&logActivityHandle,
+                                  logActivity,
+                                  0);
+
+        bdlt::Datetime lastLog = bdlt::CurrentTime::local();
+        bsl::cout << lastLog << bsl::endl;
+
+        bsls::AtomicInt64 stop;
+        stop = 0;
+
+        const Obj::Job job(bdlf::BindUtil::bind(&testJobRecordNowMicroseconds,
+                                                &stop));
+
+        while (1) {
+            bslmt::ThreadUtil::yield();
+            bslmt::ThreadUtil::yield();
+            bslmt::ThreadUtil::yield();
+
+            stop = 0;
+            bdlt::Datetime start = bdlt::CurrentTime::local();
+            pool.enqueueJob(job);
+            while (0 == stop) {
+                bslmt::ThreadUtil::yield();
+            }
+            while (0 != pool.numActiveThreads()) {
+                bslmt::ThreadUtil::yield();
+            }
+
+            if (1 <= (start - lastLog).totalMinutes()) {
+                bsl::cout << start << bsl::endl;
+                lastLog = start;
+            }
+        }
       } break;
       default: {
         cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;

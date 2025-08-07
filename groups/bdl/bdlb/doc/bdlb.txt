@@ -10,7 +10,7 @@
 
 /Hierarchical Synopsis
 /---------------------
- The 'bdlb' package currently has 54 components having 5 levels of physical
+ The 'bdlb' package currently has 57 components having 5 levels of physical
  dependency.  The list below shows the hierarchical ordering of the components.
  The order of components within each level is not architecturally significant,
  just alphabetical.
@@ -30,9 +30,11 @@
      bdlb_optionalprinter
      bdlb_printadapter
      bdlb_variant
+     bdlb_variantprinter
 
   3. bdlb_bitmaskutil
      bdlb_caselessstringviewhash
+     bdlb_doublecompareutil
      bdlb_guidutil
      bdlb_numericparseutil
      bdlb_printmethods
@@ -68,6 +70,7 @@
      bdlb_transparentequalto
      bdlb_transparenthash
      bdlb_transparentless
+     bdlb_transparentstringhash
 
   1. bdlb_nullableallocatedvalue_cpp03                                !PRIVATE!
      bdlb_nullablevalue_cpp03                                         !PRIVATE!
@@ -118,6 +121,9 @@
 :
 : 'bdlb_cstringless':
 :      Provide a standard compatible less-than predicate for C-strings.
+:
+: 'bdlb_doublecompareutil':
+:      Provide "fuzzy" equality/relational operations on `double` values.
 :
 : 'bdlb_float':
 :      Provide floating-point classification types and functions.
@@ -180,7 +186,7 @@
 :      Provide a suite of helper classes for printing `bsl::optional`.
 :
 : 'bdlb_pairutil':
-:      Provide a function that creates a pair of references.
+:      Provide support functions for `bsl::pair`.
 :
 : 'bdlb_pcgrandomgenerator':
 :      Provide a class to generate random numbers using the PCG algorithm.
@@ -233,8 +239,14 @@
 : 'bdlb_transparentless':
 :      Provide a transparent less-than predicate.
 :
+: 'bdlb_transparentstringhash':
+:      Provide a transparent hash functor.
+:
 : 'bdlb_variant':
 :      Provide a variant (discriminated `union`-like) type.
 :
 : 'bdlb_variant_cpp03':                                               !PRIVATE!
 :      Provide C++03 implementation for bdlb_variant.h
+:
+: 'bdlb_variantprinter':
+:      Provide a suite of helper classes for printing `bsl::variant`.

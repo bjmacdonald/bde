@@ -4,6 +4,8 @@
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(baljsn_parserutil_cpp,"$Id$ $CSID$")
 
+#include <baljsn_printutil.h> // for testing only
+
 #include <bdlma_bufferedsequentialallocator.h>
 
 #include <bdlde_base64decoder.h>
@@ -136,6 +138,39 @@ const bsls::Types::Uint64 UINT64_MAX_DIVIDED_BY_10_TO_THE_10 =
                                       UINT64_MAX_VALUE / 10000000000ULL;
 const bsls::Types::Uint64 UINT64_MAX_VALUE_LAST_DIGIT = 5;
 
+int base64Decode(bsl::vector<char>       *value,
+                 const bsl::string_view&  base64String)
+{
+    BSLS_ASSERT(value);
+
+    value->clear();
+
+    bdlde::Base64Decoder base64Decoder(true);
+    int                  length = static_cast<int>(base64String.length());
+
+    value->resize(static_cast<bsl::size_t>(
+                              bdlde::Base64Decoder::maxDecodedLength(length)));
+
+    int rc = base64Decoder.convert(value->begin(),
+                                   base64String.begin(),
+                                   base64String.end());
+
+    if (rc < 0) {
+        return rc;                                                    // RETURN
+    }
+
+    rc = base64Decoder.endConvert(value->begin() +
+                                  base64Decoder.outputLength());
+
+    if (rc < 0) {
+        return rc;                                                    // RETURN
+    }
+
+    value->resize(static_cast<bsl::size_t>(base64Decoder.outputLength()));
+
+    return 0;
+}
+
 }  // close namespace u
 }  // close unnamed namespace
 
@@ -155,6 +190,26 @@ int ParserUtil::getUnquotedString(bsl::string             *value,
                           data,
                           bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
 }
+
+int ParserUtil::getUnquotedString(std::string             *value,
+                                  const bsl::string_view&  data)
+{
+    return bdljsn::StringUtil::readUnquotedString(
+                          value,
+                          data,
+                          bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
+}
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+int ParserUtil::getUnquotedString(std::pmr::string        *value,
+                                  const bsl::string_view&  data)
+{
+    return bdljsn::StringUtil::readUnquotedString(
+                          value,
+                          data,
+                          bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
+}
+#endif
 
 int ParserUtil::getValue(bool *value, const bsl::string_view& data)
 {
@@ -494,33 +549,22 @@ int ParserUtil::getValue(bsl::vector<char>       *value,
         return -1;                                                    // RETURN
     }
 
-    value->clear();
-
-    bdlde::Base64Decoder base64Decoder(true);
-    int                  length = static_cast<int>(base64String.length());
-
-    value->resize(static_cast<bsl::size_t>(
-                              bdlde::Base64Decoder::maxDecodedLength(length)));
-
-    rc = base64Decoder.convert(value->begin(),
-                               base64String.begin(),
-                               base64String.end());
-
-    if (rc < 0) {
-        return rc;                                                    // RETURN
-    }
-
-    rc = base64Decoder.endConvert(value->begin() +
-                                  base64Decoder.outputLength());
-
-    if (rc < 0) {
-        return rc;                                                    // RETURN
-    }
-
-    value->resize(static_cast<bsl::size_t>(base64Decoder.outputLength()));
-
-    return 0;
+    rc = u::base64Decode(value, base64String);
+    return rc;
 }
+
+#if 0
+int ParserUtil::getValue(bsl::vector<char>   *value,
+                         const bdljsn::Json&  data)
+{
+    BSLS_ASSERT(value);
+    BSLS_ASSERT(data.isString());
+
+    int rc =  u::base64Decode(value, data.theString());
+
+    return rc;
+}
+#endif
 
 bool ParserUtil::stripQuotes(bsl::string_view *str)
 {

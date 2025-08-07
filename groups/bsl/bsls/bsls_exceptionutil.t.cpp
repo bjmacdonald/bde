@@ -73,6 +73,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -250,9 +251,16 @@ void noThrowFunction() BSLS_NOTHROW_SPEC
 }
 
 #if !BSLS_DEPRECATE_IS_ACTIVE(BDE, 3, 17)
+# ifdef BSLS_PLATFORM_CMP_GNU
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wdeprecated"
+# endif
 void exceptionSpecFunction() BSLS_EXCEPTION_SPEC((TestExceptionClass))
 {
 }
+# ifdef BSLS_PLATFORM_CMP_GNU
+#  pragma GCC diagnostic pop
+# endif
 #endif // BSLS_DEPRECATE_IS_ACTIVE
 
 struct CustomException : std::exception {
@@ -308,7 +316,7 @@ const char *CustomException::what() const BSLS_EXCEPTION_VIRTUAL_NOTHROW
 
         typedef typename ALLOCATOR::size_type size_type;
 
-        // ```.
+        // ...
 // ```
 // Then, we define the `at` method, which is required to throw an
 // `out_of_range` exception.
@@ -869,7 +877,9 @@ int main(int argc, char *argv[])
             printf("Verify non-aborting test\n");
         }
         {
-            bool executedTest = false;
+            // GCC warns if this variable isn't volatile (even though we can
+            // never actually `longjmp` into this block).
+            volatile bool executedTest = false;
             BEGIN_ABORT_TEST {
                 executedTest = true;
             }

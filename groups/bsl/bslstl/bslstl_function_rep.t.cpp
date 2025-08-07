@@ -40,11 +40,11 @@
 #endif
 
 using std::printf;
+using std::fflush;
 using namespace BloombergLP;
 
 #ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
-#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
 #endif
 
 // ============================================================================
@@ -111,6 +111,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -779,65 +780,65 @@ enum {
 // possibly ORed with `e_HAS_ALLOCATOR`) and each combination of bitwise
 // movable and nothrow move-constructible qualities.
 #define GEN_FUNCTOR_TYPES(SIZE_ALLOC)               \
-    TestFunctor<SIZE_ALLOC                       >, \
-    TestFunctor<SIZE_ALLOC             | e_NTMOVE>, \
-    TestFunctor<SIZE_ALLOC | e_BITWISE           >, \
-    TestFunctor<SIZE_ALLOC | e_BITWISE | e_NTMOVE>
+    TestFunctor<(int)SIZE_ALLOC                       >, \
+    TestFunctor<(int)SIZE_ALLOC             | e_NTMOVE>, \
+    TestFunctor<(int)SIZE_ALLOC | e_BITWISE           >, \
+    TestFunctor<(int)SIZE_ALLOC | e_BITWISE | e_NTMOVE>
 
 // A good variety of functor types touching all the corner cases
 #define COMMON_FUNCTOR_TYPES                             \
-    TestFunctor<e_SML                                 >, \
-    TestFunctor<e_SML                       | e_NTMOVE>, \
-    TestFunctor<e_MED           | e_BITWISE           >, \
-    TestFunctor<e_MED           | e_BITWISE | e_NTMOVE>, \
-    TestFunctor<e_MED | e_ALLOC                       >, \
-    TestFunctor<e_MED | e_ALLOC             | e_NTMOVE>, \
-    TestFunctor<e_SML | e_ALLOC | e_BITWISE           >, \
-    TestFunctor<e_SML | e_ALLOC | e_BITWISE | e_NTMOVE>, \
-    TestFunctor<e_LRG                                 >, \
-    TestFunctor<e_LRG | e_ALLOC | e_BITWISE | e_NTMOVE>
+    TestFunctor<(int)e_SML                                 >, \
+    TestFunctor<(int)e_SML                       | e_NTMOVE>, \
+    TestFunctor<(int)e_MED           | e_BITWISE           >, \
+    TestFunctor<(int)e_MED           | e_BITWISE | e_NTMOVE>, \
+    TestFunctor<(int)e_MED | e_ALLOC                       >, \
+    TestFunctor<(int)e_MED | e_ALLOC             | e_NTMOVE>, \
+    TestFunctor<(int)e_SML | e_ALLOC | e_BITWISE           >, \
+    TestFunctor<(int)e_SML | e_ALLOC | e_BITWISE | e_NTMOVE>, \
+    TestFunctor<(int)e_LRG                                 >, \
+    TestFunctor<(int)e_LRG | e_ALLOC | e_BITWISE | e_NTMOVE>
 
 // A few callable types wrapped in `bslalg::NothrowMovableUtil`.  The small and
 // medium ones are the only ones where behavior would change.
 #define NTWRAP_T(V) bslalg::NothrowMovableWrapper<V >
 #define NTMOVE_FUNCTOR_TYPES                                       \
     NTWRAP_T(PtrToFunc_t                                        ), \
-    NTWRAP_T(TestFunctor<e_SML                                 >), \
-    NTWRAP_T(TestFunctor<e_MED           | e_BITWISE           >), \
-    NTWRAP_T(TestFunctor<e_MED           | e_BITWISE | e_NTMOVE>), \
-    NTWRAP_T(TestFunctor<e_MED | e_ALLOC                       >), \
-    NTWRAP_T(TestFunctor<e_LRG                                 >), \
-    NTWRAP_T(TestFunctor<e_LRG | e_ALLOC             | e_NTMOVE>)
+    NTWRAP_T(TestFunctor<(int)e_SML                                 >), \
+    NTWRAP_T(TestFunctor<(int)e_MED           | e_BITWISE           >), \
+    NTWRAP_T(TestFunctor<(int)e_MED           | e_BITWISE | e_NTMOVE>), \
+    NTWRAP_T(TestFunctor<(int)e_MED | e_ALLOC                       >), \
+    NTWRAP_T(TestFunctor<(int)e_LRG                                 >), \
+    NTWRAP_T(TestFunctor<(int)e_LRG | e_ALLOC             | e_NTMOVE>)
 
 #define SMALL_FUNCTOR_TYPES                              \
-    TestFunctor<e_SML                                 >, \
-    TestFunctor<e_SML                       | e_NTMOVE>, \
-    TestFunctor<e_SML           | e_BITWISE           >, \
-    TestFunctor<e_SML           | e_BITWISE | e_NTMOVE>, \
-    TestFunctor<e_SML | e_ALLOC                       >, \
-    TestFunctor<e_SML | e_ALLOC             | e_NTMOVE>, \
-    TestFunctor<e_SML | e_ALLOC | e_BITWISE           >, \
-    TestFunctor<e_SML | e_ALLOC | e_BITWISE | e_NTMOVE>
+    TestFunctor<(int)e_SML                                 >, \
+    TestFunctor<(int)e_SML                       | e_NTMOVE>, \
+    TestFunctor<(int)e_SML           | e_BITWISE           >, \
+    TestFunctor<(int)e_SML           | e_BITWISE | e_NTMOVE>, \
+    TestFunctor<(int)e_SML | e_ALLOC                       >, \
+    TestFunctor<(int)e_SML | e_ALLOC             | e_NTMOVE>, \
+    TestFunctor<(int)e_SML | e_ALLOC | e_BITWISE           >, \
+    TestFunctor<(int)e_SML | e_ALLOC | e_BITWISE | e_NTMOVE>
 
 #define MEDIUM_FUNCTOR_TYPES                             \
-    TestFunctor<e_MED                                 >, \
-    TestFunctor<e_MED                       | e_NTMOVE>, \
-    TestFunctor<e_MED           | e_BITWISE           >, \
-    TestFunctor<e_MED           | e_BITWISE | e_NTMOVE>, \
-    TestFunctor<e_MED | e_ALLOC                       >, \
-    TestFunctor<e_MED | e_ALLOC             | e_NTMOVE>, \
-    TestFunctor<e_MED | e_ALLOC | e_BITWISE           >, \
-    TestFunctor<e_MED | e_ALLOC | e_BITWISE | e_NTMOVE>
+    TestFunctor<(int)e_MED                                 >, \
+    TestFunctor<(int)e_MED                       | e_NTMOVE>, \
+    TestFunctor<(int)e_MED           | e_BITWISE           >, \
+    TestFunctor<(int)e_MED           | e_BITWISE | e_NTMOVE>, \
+    TestFunctor<(int)e_MED | e_ALLOC                       >, \
+    TestFunctor<(int)e_MED | e_ALLOC             | e_NTMOVE>, \
+    TestFunctor<(int)e_MED | e_ALLOC | e_BITWISE           >, \
+    TestFunctor<(int)e_MED | e_ALLOC | e_BITWISE | e_NTMOVE>
 
 #define LARGE_FUNCTOR_TYPES                              \
-    TestFunctor<e_LRG                                 >, \
-    TestFunctor<e_LRG                       | e_NTMOVE>, \
-    TestFunctor<e_LRG           | e_BITWISE           >, \
-    TestFunctor<e_LRG           | e_BITWISE | e_NTMOVE>, \
-    TestFunctor<e_LRG | e_ALLOC                       >, \
-    TestFunctor<e_LRG | e_ALLOC             | e_NTMOVE>, \
-    TestFunctor<e_LRG | e_ALLOC | e_BITWISE           >, \
-    TestFunctor<e_LRG | e_ALLOC | e_BITWISE | e_NTMOVE>
+    TestFunctor<(int)e_LRG                                 >, \
+    TestFunctor<(int)e_LRG                       | e_NTMOVE>, \
+    TestFunctor<(int)e_LRG           | e_BITWISE           >, \
+    TestFunctor<(int)e_LRG           | e_BITWISE | e_NTMOVE>, \
+    TestFunctor<(int)e_LRG | e_ALLOC                       >, \
+    TestFunctor<(int)e_LRG | e_ALLOC             | e_NTMOVE>, \
+    TestFunctor<(int)e_LRG | e_ALLOC | e_BITWISE           >, \
+    TestFunctor<(int)e_LRG | e_ALLOC | e_BITWISE | e_NTMOVE>
 
 /// Namespace to test `Function_Rep` for target of specified `TYPE`.
 template <class TYPE>

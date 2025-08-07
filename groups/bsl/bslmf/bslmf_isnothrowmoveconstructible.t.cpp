@@ -86,6 +86,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -175,10 +176,7 @@ void aSsErT(bool condition, const char *message, int line)
 // by the `std` trait.
 
 #if defined(BSLMF_ISNOTHROWMOVECONSTRUCTIBLE_USE_NATIVE_ORACLE)
-#if defined(BSLS_PLATFORM_CMP_GNU)                                            \
- && BSLS_PLATFORM_CMP_VERSION >= 110000                                       \
- && BSLS_PLATFORM_CMP_VERSION <  120000                                       \
- && BSLS_COMPILERFEATURES_CPLUSPLUS == 202002L                                \
+# if defined __cpp_aggregate_paren_init
 
 template <class TYPE>
 struct IS_SPECIAL_CASE {
@@ -200,11 +198,11 @@ struct IS_SPECIAL_CASE {
         ) };
 };
 
-#define ORACLE_VALUE(TYPE) (std::is_nothrow_move_constructible<TYPE>::value   \
-                            && !IS_SPECIAL_CASE<TYPE>::value)
-#else
-#define ORACLE_VALUE(TYPE) std::is_nothrow_move_constructible<TYPE>::value
-#endif
+#   define ORACLE_VALUE(TYPE) (std::is_nothrow_move_constructible<TYPE>::value   \
+                               && !IS_SPECIAL_CASE<TYPE>::value)
+# else
+#   define ORACLE_VALUE(TYPE)  std::is_nothrow_move_constructible<TYPE>::value
+# endif
 #else
     // Cannot use oracle if is not available.
 #endif
@@ -802,12 +800,36 @@ int main(int argc, char *argv[])
                                                          true,
                                                          true);
 
+// The following conditional uses exact equality on the compiler version so we
+// can see if a compiler upgrade has fixed the issue or not.  In case you get
+// a compilation error please update the conditional to contain the new version
+// as well as 1941.
+#if defined(_MSC_VER) && _MSC_VER == 1941
+    // MSVC gets confused with `void(..)` somehow in the macros, so we have
+    // to use a typedef for the function types.
+    #define MSVC_FAILS_ON_VOID_ELLIPSIS
+#endif
+
         // C-5 : Function types are not object types, nor cv-qualifiable.
         ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE_TYPE(void(),               false);
+#ifndef MSVC_FAILS_ON_VOID_ELLIPSIS
         ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE_TYPE(int(float,double...), false);
+#else
+        {
+            typedef int FuncType(float, double...);
+            ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE_TYPE(FuncType,         false);
+        }
+#endif
 #ifndef BSLMF_ISNOTHROWMOVECONSTRUCTIBLE_NO_NESTED_FOR_ABOMINABLE_FUNCTIONS
         ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE(void() const,              false);
+#ifndef MSVC_FAILS_ON_VOID_ELLIPSIS
         ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE(int(float,double...) const,false);
+#else
+        {
+            typedef int FuncType(float, double...) const;
+            ASSERT_IS_NOTHROW_MOVE_CONSTRUCTIBLE(FuncType,              false);
+        }
+#endif
 #endif
       } break;
       default: {

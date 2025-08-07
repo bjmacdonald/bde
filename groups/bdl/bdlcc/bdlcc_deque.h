@@ -75,7 +75,7 @@ BSLS_IDENT("$Id: $")
 // and the container has *space* *available* if it is not full.  The high-water
 // mark is set at construction and cannot be changed afterward.  If no
 // high-water mark is specified, the high-water mark of the container is
-// effectively inifinite.  Some of the variants of push operations (described
+// effectively infinite.  Some of the variants of push operations (described
 // below) may fail, and the return status of those operations indicates whether
 // the operation succeeded, failed, or partially succeeded (which may happen,
 // for example, when pushing a range of values).
@@ -403,7 +403,8 @@ BSLS_IDENT("$Id: $")
 // for (int ti = 0; ti < k_NUM_THREADS; ++ti) {
 //     WorkerFunctor functor = { ti, &myDeque, &barrier };
 //
-//     bslmt::ThreadUtil::create(&handles[ti], functor);
+//     int rc = bslmt::ThreadUtil::create(&handles[ti], functor);
+//     assert(0 == rc);
 // }
 // ```
 // Then, wait on the barrier, that will set all the subthreads running:
@@ -1223,12 +1224,11 @@ template <class TYPE>
 inline
 Deque<TYPE>::Proctor::Proctor(Deque<TYPE> *container)
 : d_container_p(0)
+, d_startLength(0)
 {
     if (container) {
         this->load(container);
     }
-
-    // If '0 == container', leave 'd_startLength' uninitialized.
 }
 
 template <class TYPE>
@@ -1328,12 +1328,11 @@ template <class TYPE>
 inline
 Deque<TYPE>::ConstProctor::ConstProctor(const Deque<TYPE> *container)
 : d_container_p(0)
+, d_startLength(0)
 {
     if (container) {
         this->load(container);
     }
-
-    // If '0 == container', leave 'd_startLength' uninitialized.
 }
 
 template <class TYPE>

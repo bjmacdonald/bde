@@ -5,6 +5,8 @@
 #include <bslstl_forwarditerator.h>
 #include <bslstl_string.h>
 
+#include <bsla_maybeunused.h>
+
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>
@@ -407,6 +409,10 @@ using bsls::nameOfType;
 // [37] string operator+(const string&&,     CHAR);
 // [37] string operator+(CHAR,               const string&);
 // [37] string operator+(CHAR,               const string&&);
+// [37] string operator+(const string&,      const string_view &);
+// [37] string operator+(      string&&,     const string_view &);
+// [37] string operator+(const string_view &, const string&);
+// [37] string operator+(const string_view &,       string&&;
 // [42] size_type erase(basic_string& str, const C& c);
 // [42] size_type erase_if(basic_string& str, const UNARY_PRED& pred);
 //-----------------------------------------------------------------------------
@@ -440,6 +446,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -1306,6 +1313,76 @@ class CharacterSearchPredicate
     /// this object's constructor.
     bool operator()(const TYPE chr) const { return d_chr == chr; }
 };
+
+                         // ========================
+                         // class InheritsFromString
+                         // ========================
+
+/// This test class inherits from bsl::string.  It is used for testing methods
+/// that accept `StringViewLike` types.  This was taken from
+/// 'xmlfiltertools::SimpleElement'.
+class InheritsFromString : public bsl::basic_string<char>
+{
+  public:
+    InheritsFromString(const char * value);
+    InheritsFromString(const bsl::string &value);
+  private:
+    void set(const char *value);
+};
+
+                         // ------------------------
+                         // class InheritsFromString
+                         // ------------------------
+
+inline InheritsFromString::InheritsFromString(const char *value)
+{
+    set(value);
+}
+
+inline InheritsFromString::InheritsFromString(const bsl::string &value)
+{
+    set(value.c_str());
+}
+
+inline void InheritsFromString::set(const char *value)
+{
+    this->assign(value);
+}
+
+                        // ===========================
+                        // class InheritsFromStdString
+                        // ===========================
+
+/// This test class inherits from std::string.  It is used for testing methods
+/// that accept `StringViewLike` types.
+class InheritsFromStdString : public std::basic_string<char>
+{
+  public:
+    InheritsFromStdString(const char * value);
+    InheritsFromStdString(const std::string &value);
+  private:
+    void set(const char *value);
+};
+
+                        // ---------------------------
+                        // class InheritsFromStdString
+                        // ---------------------------
+
+inline InheritsFromStdString::InheritsFromStdString(const char *value)
+{
+    set(value);
+}
+
+inline InheritsFromStdString::InheritsFromStdString(const std::string &value)
+{
+    set(value.c_str());
+}
+
+inline void InheritsFromStdString::set(const char *value)
+{
+    this->assign(value);
+}
+
 
 template <class TYPE>
 class FillN
@@ -2326,7 +2403,9 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase42()
 
             Obj uniqueDataElements(data);
             bsl::sort(uniqueDataElements.begin(), uniqueDataElements.end());
-            bsl::unique(uniqueDataElements.begin(), uniqueDataElements.end());
+            BSLA_MAYBE_UNUSED typename Obj::iterator iter =
+                                        bsl::unique(uniqueDataElements.begin(),
+                                                    uniqueDataElements.end());
 
             if (veryVerbose)
                 printf("\t\t...erasing a non-existent character\n");
@@ -2402,6 +2481,23 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase42()
     }
 }
 
+// A brute-force search to see if the specified 'pattern' exists in the
+// specified 'corpus'
+template <class TYPE, class TRAITS>
+bool containsOracle(bsl::basic_string_view<TYPE, TRAITS> pattern,
+                    bsl::basic_string_view<TYPE, TRAITS> corpus)
+{
+    if (pattern.empty()) return true;
+    if (corpus.empty())  return false;
+    if (pattern.size() > corpus.size()) return false;
+    // For each substring of the correct length, is it equal to the pattern?
+    for (size_t i = 0; i <= corpus.size() - pattern.size(); ++i) {
+        if (pattern == corpus.substr(i, pattern.size()))
+            return true;
+        }
+    return false;
+}
+
 template <class TYPE, class TRAITS, class ALLOC>
 void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
 {
@@ -2460,6 +2556,9 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
     //   bool ends_with(basic_string_view characterString) const;
     //   bool ends_with(CHAR_TYPE character) const;
     //   bool ends_with(const CHAR_TYPE *characterString) const;
+    //   bool contains(basic_string_view characterString) const;
+    //   bool contains(CHAR_TYPE character) const;
+    //   bool contains(const CHAR_TYPE *characterString) const;
     // ------------------------------------------------------------------------
 
     typedef bsl::basic_string_view<TYPE> StringView;
@@ -2524,6 +2623,8 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                                                    STR_INDEX + STR_LENGTH)
                                                || (0 == STR_LENGTH);
 
+                        const bool EXP_C_RESULT =
+                                containsOracle(StringView(Str), StringView(X));
                         // Objects for search.
 
                         const StringView  SV(Str.data(), Str.length());
@@ -2543,6 +2644,11 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                         ASSERTV(ty, X, Str, EXP_E_RESULT,
                                 EXP_E_RESULT == X.ends_with(C_STR));
 
+                        ASSERTV(ty, X, Str, EXP_C_RESULT,
+                                EXP_C_RESULT == X.contains(SV));
+                        ASSERTV(ty, X, Str, EXP_C_RESULT,
+                                EXP_C_RESULT == X.contains(C_STR));
+
                         ASSERT(dam.isTotalSame());
                     }
 
@@ -2554,6 +2660,8 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                                                  OBJ_INDEX  == STR_INDEX;
                         const bool E_CH_RESULT = OBJ_LENGTH != 0 &&
                                        OBJ_INDEX + OBJ_LENGTH - 1 == STR_INDEX;
+                        const bool C_CH_RESULT = OBJ_LENGTH != 0 &&
+                                  bsl::find(X.begin(), X.end(), CH) != X.end();
 
                         Tam dam(defaultAllocator_p);
 
@@ -2561,6 +2669,8 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                                 S_CH_RESULT == X.starts_with(CH));
                         ASSERTV(ty, X, CH, E_CH_RESULT,
                                 E_CH_RESULT == X.ends_with(CH));
+                        ASSERTV(ty, X, CH, C_CH_RESULT,
+                                C_CH_RESULT == X.contains(CH));
 
                         ASSERT(dam.isTotalSame());
                     }
@@ -2587,75 +2697,79 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
 
                 bool        d_endsWith;    // expected result of the
                                            // `ends_with`
+
+                bool        d_contains;    // expected result of the `contains`
             } DATA[] = {
-                //LINE  OBJ_SPEC STR_SPEC STARTS_WITH ENDS_WITH
-                //----  -------- -------- ----------- ---------
-                { L_,   "",      "0",     false,      false    },
-                { L_,   "",      "00",    false,      false    },
-                { L_,   "",      "0A",    false,      false    },
-                { L_,   "",      "A0",    false,      false    },
-                { L_,   "",      "000",   false,      false    },
+                //LINE  OBJ_SPEC STR_SPEC STARTS_WITH ENDS_WITH CONTAINS
+                //----  -------- -------- ----------- --------- --------
+                { L_,   "",      "0",     false,      false,    false   },
+                { L_,   "",      "00",    false,      false,    false   },
+                { L_,   "",      "0A",    false,      false,    false   },
+                { L_,   "",      "A0",    false,      false,    false   },
+                { L_,   "",      "000",   false,      false,    false   },
 
-                { L_,   "0",     "",      true,       true     },
-                { L_,   "0",     "0",     true,       true     },
-                { L_,   "0",     "A",     false,      false    },
-                { L_,   "0",     "00",    false,      false    },
-                { L_,   "0",     "0A",    false,      false    },
-                { L_,   "0",     "A0",    false,      false    },
-                { L_,   "0",     "000",   false,      false    },
-                { L_,   "A",     "0",     false,      false    },
-                { L_,   "A",     "A",     true,       true     },
-                { L_,   "A",     "00",    false,      false    },
-                { L_,   "A",     "0A",    false,      false    },
-                { L_,   "A",     "A0",    false,      false    },
-                { L_,   "A",     "000",   false,      false    },
+                { L_,   "0",     "",      true,       true,     true    },
+                { L_,   "0",     "0",     true,       true,     true    },
+                { L_,   "0",     "A",     false,      false,    false   },
+                { L_,   "0",     "00",    false,      false,    false   },
+                { L_,   "0",     "0A",    false,      false,    false   },
+                { L_,   "0",     "A0",    false,      false,    false   },
+                { L_,   "0",     "000",   false,      false,    false   },
+                { L_,   "A",     "0",     false,      false,    false   },
+                { L_,   "A",     "A",     true,       true,     true    },
+                { L_,   "A",     "00",    false,      false,    false   },
+                { L_,   "A",     "0A",    false,      false,    false   },
+                { L_,   "A",     "A0",    false,      false,    false   },
+                { L_,   "A",     "000",   false,      false,    false   },
 
-                { L_,   "00",    "",      true,       true     },
-                { L_,   "00",    "0",     true,       true     },
-                { L_,   "00",    "A",     false,      false    },
-                { L_,   "00",    "00",    true,       true     },
-                { L_,   "00",    "0A",    false,      false    },
-                { L_,   "00",    "A0",    false,      false    },
-                { L_,   "00",    "000",   false,      false    },
-                { L_,   "00",    "00A",   false,      false    },
-                { L_,   "00",    "0A0",   false,      false    },
-                { L_,   "00",    "A00",   false,      false    },
-                { L_,   "00",    "0000",  false,      false    },
+                { L_,   "00",    "",      true,       true,     true    },
+                { L_,   "00",    "0",     true,       true,     true    },
+                { L_,   "00",    "A",     false,      false,    false   },
+                { L_,   "00",    "00",    true,       true,     true    },
+                { L_,   "00",    "0A",    false,      false,    false   },
+                { L_,   "00",    "A0",    false,      false,    false   },
+                { L_,   "00",    "000",   false,      false,    false   },
+                { L_,   "00",    "00A",   false,      false,    false   },
+                { L_,   "00",    "0A0",   false,      false,    false   },
+                { L_,   "00",    "A00",   false,      false,    false   },
+                { L_,   "00",    "0000",  false,      false,    false   },
 
-                { L_,   "0A",    "",      true,       true     },
-                { L_,   "0A",    "0",     true,       false    },
-                { L_,   "0A",    "A",     false,      true     },
-                { L_,   "0A",    "00",    false,      false    },
-                { L_,   "0A",    "0A",    true,       true     },
-                { L_,   "0A",    "A0",    false,      false    },
-                { L_,   "0A",    "000",   false,      false    },
-                { L_,   "0A",    "00A",   false,      false    },
-                { L_,   "0A",    "0A0",   false,      false    },
-                { L_,   "0A",    "A00",   false,      false    },
-                { L_,   "0A",    "0000",  false,      false    },
+                { L_,   "0A",    "",      true,       true,     true    },
+                { L_,   "0A",    "0",     true,       false,    true    },
+                { L_,   "0A",    "A",     false,      true,     true    },
+                { L_,   "0A",    "00",    false,      false,    false   },
+                { L_,   "0A",    "0A",    true,       true,     true    },
+                { L_,   "0A",    "A0",    false,      false,    false   },
+                { L_,   "0A",    "000",   false,      false,    false   },
+                { L_,   "0A",    "00A",   false,      false,    false   },
+                { L_,   "0A",    "0A0",   false,      false,    false   },
+                { L_,   "0A",    "A00",   false,      false,    false   },
+                { L_,   "0A",    "0000",  false,      false,    false   },
 
-                { L_,   "A0",    "",      true,       true     },
-                { L_,   "A0",    "0",     false,      true     },
-                { L_,   "A0",    "A",     true,       false    },
-                { L_,   "A0",    "00",    false,      false    },
-                { L_,   "A0",    "0A",    false,      false    },
-                { L_,   "A0",    "A0",    true,       true     },
-                { L_,   "A0",    "000",   false,      false    },
-                { L_,   "A0",    "00A",   false,      false    },
-                { L_,   "A0",    "0A0",   false,      false    },
-                { L_,   "A0",    "A00",   false,      false    },
-                { L_,   "A0",    "0000",  false,      false    },
+                { L_,   "A0",    "",      true,       true,     true    },
+                { L_,   "A0",    "0",     false,      true,     true    },
+                { L_,   "A0",    "A",     true,       false,    true    },
+                { L_,   "A0",    "00",    false,      false,    false   },
+                { L_,   "A0",    "0A",    false,      false,    false   },
+                { L_,   "A0",    "A0",    true,       true,     true    },
+                { L_,   "A0",    "000",   false,      false,    false   },
+                { L_,   "A0",    "00A",   false,      false,    false   },
+                { L_,   "A0",    "0A0",   false,      false,    false   },
+                { L_,   "A0",    "A00",   false,      false,    false   },
+                { L_,   "A0",    "0000",  false,      false,    false   },
 
-                { L_,   "000",   "",      true,       true     },
-                { L_,   "000",   "0",     true,       true     },
-                { L_,   "000",   "00",    true,       true     },
-                { L_,   "000",   "0A",    false,      false    },
-                { L_,   "000",   "A0",    false,      false    },
-                { L_,   "000",   "000",   true,       true     },
-                { L_,   "000",   "00A",   false,      false    },
-                { L_,   "000",   "0A0",   false,      false    },
-                { L_,   "000",   "A00",   false,      false    },
-                { L_,   "000",   "0000",  false,      false    },
+                { L_,   "000",   "",      true,       true,     true    },
+                { L_,   "000",   "0",     true,       true,     true    },
+                { L_,   "000",   "00",    true,       true,     true    },
+                { L_,   "000",   "0A",    false,      false,    false   },
+                { L_,   "000",   "A0",    false,      false,    false   },
+                { L_,   "000",   "000",   true,       true,     true    },
+                { L_,   "000",   "00A",   false,      false,    false   },
+                { L_,   "000",   "0A0",   false,      false,    false   },
+                { L_,   "000",   "A00",   false,      false,    false   },
+                { L_,   "000",   "0000",  false,      false,    false   },
+                { L_,   "A0A",   "0",     false,      false,    true    },
+                { L_,   "A0A",   "A",     true,       true,     true    },
             };
 
             const size_t NUM_DATA = sizeof DATA / sizeof *DATA;
@@ -2668,6 +2782,7 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                 const size_t  STR_SPEC_LEN = strlen(STR_SPEC);
                 const bool    EXP_S_RES    = DATA[i].d_startsWith;
                 const bool    EXP_E_RES    = DATA[i].d_endsWith;
+                const bool    EXP_C_RES    = DATA[i].d_contains;
 
                 if (veryVerbose) {
                     T_ T_ P_(ty) P_(LINE) P_(OBJ_SPEC) P(STR_SPEC);
@@ -2689,6 +2804,16 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                 const bool EXP_A_E = 0 == OBJ_SPEC_LEN
                                    ? false
                                    : 'A' == OBJ_SPEC[OBJ_SPEC_LEN - 1];
+                const bool EXP_0_C = 0 == OBJ_SPEC_LEN
+                                   ? false
+                                   : std::find(OBJ_SPEC,
+                                               OBJ_SPEC + OBJ_SPEC_LEN,
+                                               '0') != OBJ_SPEC + OBJ_SPEC_LEN;
+                const bool EXP_A_C = 0 == OBJ_SPEC_LEN
+                                   ? false
+                                   : std::find(OBJ_SPEC,
+                                               OBJ_SPEC + OBJ_SPEC_LEN,
+                                               'A') != OBJ_SPEC + OBJ_SPEC_LEN;
 
                 // Populating strings.
 
@@ -2723,6 +2848,9 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                 ASSERTV(LINE, OBJ_SPEC, EXP_0_E,
                         EXP_0_E == X.ends_with(TYPE(0)));
                 ASSERTV(LINE, OBJ_SPEC, EXP_A_E, EXP_A_E == X.ends_with('A'));
+                ASSERTV(LINE, OBJ_SPEC, EXP_0_C,
+                        EXP_0_C == X.contains(TYPE(0)));
+                ASSERTV(LINE, OBJ_SPEC, EXP_A_C, EXP_A_C == X.contains('A'));
 
                 // Testing `string_view` overload.
 
@@ -2730,6 +2858,8 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                         EXP_S_RES == X.starts_with(SV));
                 ASSERTV(LINE, OBJ_SPEC, STR_SPEC, EXP_E_RES,
                         EXP_E_RES == X.ends_with(SV));
+                ASSERTV(LINE, OBJ_SPEC, STR_SPEC, EXP_C_RES,
+                        EXP_C_RES == X.contains(SV));
 
                 ASSERT(dam.isTotalSame());
             }
@@ -2748,33 +2878,36 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
 
                 bool        d_endsWith;    // expected result of the
                                            // `ends_with`
+
+                bool        d_contains;    // expected result of the
+                                           // `contains`
             } DATA[] = {
-                //LINE  OBJ_SPEC STR_SPEC STARTS_WITH ENDS_WITH
-                //----  -------- -------- ----------- ---------
-                { L_,   "0",     "",      true,       true     },
-                { L_,   "0",     "A",     false,      false    },
-                { L_,   "0",     "AA",    false,      false    },
-                { L_,   "0",     "AAA",   false,      false    },
+                //LINE  OBJ_SPEC STR_SPEC STARTS_WITH ENDS_WITH CONTAINS
+                //----  -------- -------- ----------- --------- --------
+                { L_,   "0",     "",      true,       true,     true     },
+                { L_,   "0",     "A",     false,      false,    false    },
+                { L_,   "0",     "AA",    false,      false,    false    },
+                { L_,   "0",     "AAA",   false,      false,    false    },
 
-                { L_,   "00",    "",      true,       true     },
-                { L_,   "00",    "A",     false,      false    },
-                { L_,   "00",    "AA",    false,      false    },
-                { L_,   "00",    "AAA",   false,      false    },
+                { L_,   "00",    "",      true,       true,     true     },
+                { L_,   "00",    "A",     false,      false,    false    },
+                { L_,   "00",    "AA",    false,      false,    false    },
+                { L_,   "00",    "AAA",   false,      false,    false    },
 
-                { L_,   "0A",    "",      true,       true     },
-                { L_,   "0A",    "A",     false,      true     },
-                { L_,   "0A",    "AA",    false,      false    },
-                { L_,   "0A",    "AAA",   false,      false    },
+                { L_,   "0A",    "",      true,       true,     true     },
+                { L_,   "0A",    "A",     false,      true,     true     },
+                { L_,   "0A",    "AA",    false,      false,    false    },
+                { L_,   "0A",    "AAA",   false,      false,    false    },
 
-                { L_,   "A0",    "",      true,       true     },
-                { L_,   "A0",    "A",     true,       false    },
-                { L_,   "A0",    "AA",    false,      false    },
-                { L_,   "A0",    "AAA",   false,      false    },
+                { L_,   "A0",    "",      true,       true,     true     },
+                { L_,   "A0",    "A",     true,       false,    true     },
+                { L_,   "A0",    "AA",    false,      false,    false    },
+                { L_,   "A0",    "AAA",   false,      false,    false    },
 
-                { L_,   "000",   "",      true,       true     },
-                { L_,   "000",   "A",     false,      false    },
-                { L_,   "000",   "AA",    false,      false    },
-                { L_,   "000",   "AAA",   false,      false    },
+                { L_,   "000",   "",      true,       true,     true     },
+                { L_,   "000",   "A",     false,      false,    false    },
+                { L_,   "000",   "AA",    false,      false,    false    },
+                { L_,   "000",   "AAA",   false,      false,    false    },
             };
 
             const size_t NUM_DATA = sizeof DATA / sizeof *DATA;
@@ -2787,6 +2920,7 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                 const size_t  STR_SPEC_LEN = strlen(STR_SPEC);
                 const bool    EXP_S_RES    = DATA[i].d_startsWith;
                 const bool    EXP_E_RES    = DATA[i].d_endsWith;
+                const bool    EXP_C_RES    = DATA[i].d_contains;
 
                 if (veryVerbose) {
                     T_ T_ P_(ty) P_(LINE) P_(OBJ_SPEC) P(STR_SPEC);
@@ -2823,6 +2957,8 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase41()
                         EXP_S_RES == X.starts_with(C_STR));
                 ASSERTV(LINE, OBJ_SPEC, STR_SPEC, EXP_E_RES,
                         EXP_E_RES == X.ends_with(C_STR));
+                ASSERTV(LINE, OBJ_SPEC, STR_SPEC, EXP_C_RES,
+                        EXP_C_RES == X.contains(C_STR));
 
                 ASSERT(dam.isTotalSame());
             }
@@ -3055,6 +3191,10 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
     //   string operator+(const string&&,     CHAR);
     //   string operator+(CHAR,               const string&);
     //   string operator+(CHAR,               const string&&);
+    //   string operator+(const string&,      const string_view &);
+    //   string operator+(      string&&,     const string_view &);
+    //   string operator+(const string_view &,  const string&);
+    //   string operator+(const string_view &,        string&&);
     // ------------------------------------------------------------------------
 
     const char *ty = bsls::NameOf<TYPE>();
@@ -3064,6 +3204,7 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
                             PROPAGATE_ON_CONTAINER_COPY_CONSTRUCTION> StdAlloc;
 
     typedef bsl::basic_string<TYPE, TRAITS, StdAlloc> Obj;
+    typedef bsl::basic_string_view<TYPE, TRAITS>      ObjView;
     typedef std::basic_string<TYPE, TRAITS>           StdString;
 
     static const struct {
@@ -3071,33 +3212,35 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
         const char *d_spec_p;   // specification string
     } DATA[] = {
         //line  spec
-        //----  -------------------------------------
-        { L_,   ""                                   },
-        { L_,   "A"                                  },
-        { L_,   "B"                                  },
-        { L_,   "C"                                  },
-        { L_,   "D"                                  },
-        { L_,   "AB"                                 },
-        { L_,   "BC"                                 },
-        { L_,   "BCA"                                },
-        { L_,   "CAB"                                },
-        { L_,   "CDAB"                               },
-        { L_,   "DABC"                               },
-        { L_,   "ABCDE"                              },
-        { L_,   "EDCBA"                              },
-        { L_,   "ABCDEA"                             },
-        { L_,   "ABCDEAB"                            },
-        { L_,   "BACDEABC"                           },
-        { L_,   "CBADEABCD"                          },
-        { L_,   "CBADEABCDAB"                        },
-        { L_,   "CBADEABCDABC"                       },
-        { L_,   "CBADEABCDABCDE"                     },
-        { L_,   "CBADEABCDABCDEA"                    },
-        { L_,   "CBADEABCDABCDEAB"                   },
-        { L_,   "CBADEABCDABCDEABCBADEAB"            },
-        { L_,   "CBADEABCDABCDEABCBADEABC"           },
-        { L_,   "CBADEABCDABCDEABCBADEABCDABCDEA"    },
-        { L_,   "CBADEABCDABCDEABCBADEABCDABCDEABCD" }
+        //----  -------------------------------------------------
+        { L_,   ""                                               },
+        { L_,   "A"                                              },
+        { L_,   "B"                                              },
+        { L_,   "C"                                              },
+        { L_,   "D"                                              },
+        { L_,   "AB"                                             },
+        { L_,   "BC"                                             },
+        { L_,   "BCA"                                            },
+        { L_,   "CAB"                                            },
+        { L_,   "CDAB"                                           },
+        { L_,   "DABC"                                           },
+        { L_,   "ABCDE"                                          },
+        { L_,   "EDCBA"                                          },
+        { L_,   "ABCDEA"                                         },
+        { L_,   "ABCDEAB"                                        },
+        { L_,   "BACDEABC"                                       },
+        { L_,   "CBADEABCD"                                      },
+        { L_,   "CBADEABCDAB"                                    },
+        { L_,   "CBADEABCDABC"                                   },
+        { L_,   "CBADEABCDABCDE"                                 },
+        { L_,   "CBADEABCDABCDEA"                                },
+        { L_,   "CBADEABCDABCDEAB"                               },
+        { L_,   "CBADEABCDABCDEABCBADEAB"                        },
+        { L_,   "CBADEABCDABCDEABCBADEABC"                       },
+        { L_,   "CBADEABCDABCDEABCBADEABCDABCDEA"                },
+        { L_,   "CBADEABCDABCDEABCBADEABCDABCDEABCD"             },
+        { L_,   "CBADEABCDABCDEABCBADEABCDABCDEABCDEABCDE"       },
+        { L_,   "CBADEABCDABCDEABCBADEABCDABCDEABCDEABCDEABCDE"  }
     };
 
     const size_t NUM_DATA = sizeof DATA / sizeof *DATA;
@@ -3142,7 +3285,8 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
         for (size_t i = 0; i < LEN_L; ++i) {
             SPEC_L.push_back(RAW_SPEC_L[i]);
         }
-        const TYPE *PCL = SPEC_L.c_str();
+        const TYPE    *PCL = SPEC_L.c_str();
+        const ObjView  VWL(SPEC_L);
 
         Obj             mXL(SPEC_L, sla);
         const Obj&      XL = mXL;
@@ -3160,7 +3304,8 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
             for (size_t j = 0; j < LEN_R; ++j) {
                 SPEC_R.push_back(RAW_SPEC_R[j]);
             }
-            const TYPE *PCR = SPEC_R.c_str();
+            const TYPE    *PCR = SPEC_R.c_str();
+            const ObjView  VWR(SPEC_R);
 
             if (veryVerbose) { T_ T_ P_(RAW_SPEC_L) P(RAW_SPEC_R) }
 
@@ -3288,6 +3433,23 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
                         ua == (XL + CR).get_allocator().allocator());
             }
 
+            // TYPE + string_view
+            expUsedAllocTotal    = ua->numBytesTotal() + EXP_ALLOCATED_BYTES;
+            expNotUsedAllocTotal = nua->numBytesTotal();
+
+            ASSERTV(EXPECTED == XL + VWR);
+            ASSERTV(expUsedAllocTotal,
+                    EXP_ALLOCATED_BYTES,
+                    ua->numBytesTotal(),
+                    expUsedAllocTotal    == ua->numBytesTotal());
+            ASSERTV(expNotUsedAllocTotal,
+                    EXP_ALLOCATED_BYTES,
+                    nua->numBytesTotal(),
+                    expNotUsedAllocTotal == nua->numBytesTotal());
+
+            ASSERTV(ty, LINE_L, LINE_R,
+                    ua == (XL + VWR).get_allocator().allocator());
+
             // Reference providing non-modifiable access to `bsl::string`
             // object is passed as `rhs`, therefore we monitor the `ra`
             // allocator.
@@ -3354,6 +3516,24 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
                 ASSERTV(ty, LINE_L, LINE_R,
                         ua == (CL  + XR).get_allocator().allocator());
             }
+
+            // string_view + TYPE
+
+            expUsedAllocTotal    = ua->numBytesTotal() + EXP_ALLOCATED_BYTES;
+            expNotUsedAllocTotal = nua->numBytesTotal();
+
+            ASSERTV(EXPECTED == VWL + XR);
+            ASSERTV(expUsedAllocTotal,
+                    EXP_ALLOCATED_BYTES,
+                    ua->numBytesTotal(),
+                    expUsedAllocTotal    == ua->numBytesTotal());
+            ASSERTV(expNotUsedAllocTotal,
+                    EXP_ALLOCATED_BYTES,
+                    nua->numBytesTotal(),
+                    expNotUsedAllocTotal == nua->numBytesTotal());
+
+            ASSERTV(ty, LINE_L, LINE_R,
+                    ua == (VWL + XR).get_allocator().allocator());
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
             // According to the paper mentioned above, moveable object
@@ -3538,6 +3718,40 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
                                       .get_allocator()
                                       .allocator());
                 }
+
+                // bsl::basic_string&& + string_view
+
+                Obj        mXML5(sla);
+                const Obj& XML5 = mXML5;
+
+                mXML5.reserve(CAPACITY);
+                mXML5.append(PCL);
+
+                ASSERTV(INITIAL_CAPACITY == XML5.capacity());
+
+                expUsedAllocTotal    =
+                                   ua->numBytesTotal() + EXP_REALLOCATED_BYTES;
+                expNotUsedAllocTotal = nua->numBytesTotal();
+
+                ASSERTV(ty, LINE_L, LINE_R, CAPACITY,
+                        EXPECTED == MoveUtil::move(mXML5) + VWR);
+                ASSERTV(expUsedAllocTotal,
+                        EXP_REALLOCATED_BYTES,
+                        ua->numBytesTotal(),
+                        expUsedAllocTotal    == ua->numBytesTotal());
+                ASSERTV(expNotUsedAllocTotal,
+                        EXP_REALLOCATED_BYTES,
+                        nua->numBytesTotal(),
+                        expNotUsedAllocTotal == nua->numBytesTotal());
+
+                Obj mXMLA5(sla);
+                mXMLA5.reserve(CAPACITY);
+                mXMLA5.append(VWR);
+
+                ASSERTV(ty, LINE_L, LINE_R,
+                        ua == (MoveUtil::move(mXMLA5) + VWR)
+                                  .get_allocator()
+                                  .allocator());
             }
 
             // Rvalue reference points to the `rhs` parameter, therefore the
@@ -3676,6 +3890,41 @@ void TestDriver<TYPE, TRAITS, ALLOC>::testCase37()
                                       .get_allocator()
                                       .allocator());
                 }
+
+                // string_view + bsl::basic_string&&
+
+                Obj        mXMR5(sra);
+                const Obj& XMR5 = mXMR5;
+
+                mXMR5.reserve(CAPACITY);
+                mXMR5.append(PCR);
+
+                ASSERTV(INITIAL_CAPACITY == XMR5.capacity());
+
+                expUsedAllocTotal    =
+                                   ua->numBytesTotal() + EXP_REALLOCATED_BYTES;
+                expNotUsedAllocTotal = nua->numBytesTotal();
+
+                ASSERTV(ty, LINE_L, LINE_R, CAPACITY,
+                        EXPECTED == VWL + MoveUtil::move(mXMR5));
+                ASSERTV(expUsedAllocTotal,
+                        EXP_REALLOCATED_BYTES,
+                        ua->numBytesTotal(),
+                        expUsedAllocTotal    == ua->numBytesTotal());
+                ASSERTV(expNotUsedAllocTotal,
+                        EXP_REALLOCATED_BYTES,
+                        nua->numBytesTotal(),
+                        expNotUsedAllocTotal == nua->numBytesTotal());
+
+                Obj mXMRA5(sra);
+                mXMRA5.reserve(CAPACITY);
+                mXMRA5.append(PCR);
+
+                ASSERTV(ty, LINE_L, LINE_R,
+                        ua == (VWL + MoveUtil::move(mXMRA5))
+                                  .get_allocator()
+                                  .allocator());
+
             }
 #endif  // BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
         }
@@ -7258,7 +7507,19 @@ void TestDriver<TYPE,TRAITS,ALLOC>::testCase24Negative()
     if (veryVerbose) printf("\tcompare(pos1, n1, s)\n");
 
     {
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wnonnull"
+  // gcc does not understand that `BSLS_ASSERT_SAFE` here throws and gives a
+  // warning for essentially unreachable code.
+  //
+  // argument 1 null where non-null expected [-Wnonnull]
+  //    return __builtin_strlen(__s);
+#endif
         ASSERT_SAFE_FAIL(X.compare(0, X.size(), nullStr));
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic pop
+#endif
         ASSERT_SAFE_PASS(X.compare(0, X.size(), X.c_str()));
     }
 
@@ -21814,6 +22075,10 @@ int main(int argc, char *argv[])
         //   string operator+(const string&&,     CHAR);
         //   string operator+(CHAR,               const string&);
         //   string operator+(CHAR,               const string&&);
+        //   string operator+(const string&,      const string_view &);
+        //   string operator+(      string&&,     const string_view &);
+        //   string operator+(const string_view &,  const string&);
+        //   string operator+(const string_view &,        string&&);
         // --------------------------------------------------------------------
 
         if (verbose) printf("\n" "TESTING `operator+`\n"
@@ -21828,6 +22093,81 @@ int main(int argc, char *argv[])
         TestDriver<wchar_t>::testCase37<true> ();
         if (verbose) printf("\n... with `wchar_t` and default allocator.\n");
         TestDriver<wchar_t>::testCase37<false>();
+
+        if (verbose) printf("\tTesting objects that inherit from string\n");
+
+        // Some libraries, such as 'iru' and 'xmlfiltertools', have classes
+        // that inherit (publicly) from bsl::string.
+        {
+            bsl::string           st[] = { "st0", "st1", "st2", "st3", "st4",
+                                           "st5", "st6", "st7", "st8", "st9"};
+            std::string           ss[] = { "ss0", "ss1", "ss2", "ss3", "ss4",
+                                           "ss5", "ss6", "ss7", "ss8", "ss9"};
+            bsl::string_view      sv[] = { "sv0", "sv1", "sv2", "sv3", "sv4",
+                                           "sv5", "sv6", "sv7", "sv8", "sv9"};
+            InheritsFromString    is[] = { "is0", "is1", "is2", "is3", "is4",
+                                           "is5", "is6", "is7", "is8", "is9"};
+            InheritsFromStdString ih[] = { "ih0", "ih1", "ih2", "ih3", "ih4",
+                                           "ih5", "ih6", "ih7", "ih8", "ih9"};
+
+            ASSERT("st0st1" == (st[0] + st[1]));  // string + string
+            ASSERT("is0is1" == (is[0] + is[1]));  // IFString + IFString
+            ASSERT("ih0ih1" == (ih[0] + ih[1]));  // IFSString + IFSString
+            // interestingly, string_view + string_view was not proposed
+
+            // lvalues
+            ASSERT("st0sv1" == (st[0] + sv[1]));  // string + string_view
+            ASSERT("sv0st1" == (sv[0] + st[1]));  // string_view + string
+            ASSERT("st0is1" == (st[0] + is[1]));  // string + IFString
+            ASSERT("is0st1" == (is[0] + st[1]));  // IFString + string
+            ASSERT("sv0is1" == (sv[0] + is[1]));  // string_view + IFString
+            ASSERT("is0sv1" == (is[0] + sv[1]));  // IFString + string_view
+            ASSERT("st0ih1" == (st[0] + ih[1]));  // string + IFSString
+            ASSERT("ih0st1" == (ih[0] + st[1]));  // IFSString + string
+
+            ASSERT("ss0st1" == (ss[0] + st[1]));  // std::string + bsl::string
+            ASSERT("st0ss1" == (st[0] + ss[1]));  // bsl::string + std::string
+         // These ought to come from the standard library (and will in C++26)
+         // ASSERT("ss0sv1" == (ss[0] + sv[1]));  // std::string + string_view
+         // ASSERT("sv0ss1" == (sv[0] + ss[1]));  // string_view + std::string
+            ASSERT("ss0is1" == (ss[0] + is[1]));  // std::string + IFString
+            ASSERT("is0ss1" == (is[0] + ss[1]));  // IFString + std::string
+            ASSERT("ss0ih1" == (ss[0] + ih[1]));  // std::string + IFSString
+            ASSERT("ih0ss1" == (ih[0] + ss[1]));  // IFSString + std::string
+
+            // rvalues
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
+            typedef bslmf::MovableRefUtil MU;
+
+            // string + string
+            ASSERT("st0st1" == (MU::move(st[0]) + st[1]));
+            ASSERT("st2st1" == (st[2] + MU::move(st[1])));
+            ASSERT("st2st3" == (MU::move(st[2]) + MU::move(st[3])));
+
+            // IFString + IFString
+            ASSERT("is0is1" == (MU::move(is[0]) + is[1]));
+            ASSERT("is2is1" == (is[2] + MU::move(is[1])));
+            ASSERT("is2is3" == (MU::move(is[2]) + MU::move(is[3])));
+
+            // string + string_view
+            ASSERT("sv0st4" == (sv[0] + MU::move(st[4])));
+            ASSERT("st5sv1" == (MU::move(st[5]) + sv[1]));
+
+            // IFString + string_view
+            ASSERT("sv0is4" == (sv[0] + MU::move(is[4])));
+            ASSERT("is5sv1" == (MU::move(is[5]) + sv[1]));
+
+            // string + IFString
+            ASSERT("st6is6" == (MU::move(st[6]) + is[6]));
+            ASSERT("st7is6" == (st[7] + MU::move(is[6])));
+            ASSERT("st7is7" == (MU::move(st[7]) + MU::move(is[7])));
+
+            // IFString + string
+            ASSERT("is8st8" == (MU::move(is[8]) + st[8]));
+            ASSERT("is9st8" == (is[9] + MU::move(st[8])));
+            ASSERT("is9st9" == (MU::move(is[9]) + MU::move(st[9])));
+#endif
+        }
       } break;
       case 36: {
         // --------------------------------------------------------------------

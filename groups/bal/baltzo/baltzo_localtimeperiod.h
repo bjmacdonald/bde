@@ -148,10 +148,6 @@ BSLS_IDENT("$Id: $")
 
 #include <bsl_iosfwd.h>
 
-#ifndef BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-#include <bsl_algorithm.h>
-#endif // BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-
 namespace BloombergLP {
 namespace baltzo {
 
@@ -282,7 +278,7 @@ class LocalTimePeriod {
 
     /// Return `get_allocator().mechanism()`.
     ///
-    /// @DEPRECATED Use `get_allocator()` instead.
+    /// @DEPRECATED: Use `get_allocator()` instead.
     bslma::Allocator *allocator() const;
 
     /// Return a reference providing non-modifiable access to the

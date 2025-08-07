@@ -23,12 +23,12 @@ BSLS_IDENT("$Id: $ $CSID: $")
 //
 ///Attributes
 ///----------
-// ```
-// Name          Type               Default
-// ----------    ---------------    ----------------------------------
-// datetimeTz    bdlt::DatetimeTz   January 1, 0001, 24:00:00.000+0000
-// timeZoneId    bsl::string        ""
-// ```
+//
+// | Name        | Type              | Default                            |
+// | ----------- | ----------------- | ---------------------------------- |
+// | datetimeTz  | bdlt::DatetimeTz  | January 1, 0001, 24:00:00.000+0000 |
+// | timeZoneId  | bsl::string       | ""                                 |
+//
 // * `datetimeTz`: date, time, and offset from UTC of the local time.
 // * `timeZoneId`: unique identifier representing the local time zone.
 //
@@ -109,12 +109,6 @@ BSLS_IDENT("$Id: $ $CSID: $")
 #include <bsl_iosfwd.h>
 #include <bsl_string.h>
 
-#ifndef BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-#include <bslalg_typetraits.h>
-
-#include <bsl_algorithm.h>
-#endif // BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-
 namespace BloombergLP {
 namespace baltzo {
 
@@ -150,7 +144,7 @@ class LocalDatetime {
     /// Return the most current BDEX streaming version number supported by
     /// this class.
     ///
-    /// @DEPRECATED Use `maxSupportedBdexVersion(int)` instead.
+    /// @DEPRECATED: Use `maxSupportedBdexVersion(int)` instead.
     static int maxSupportedBdexVersion();
 
 #endif // BDE_OMIT_INTERNAL_DEPRECATED -- pending deprecation
@@ -276,7 +270,7 @@ class LocalDatetime {
 
     /// Return `get_allocator().mechanism()`.
     ///
-    /// @DEPRECATED Use `get_allocator()` instead.
+    /// @DEPRECATED: Use `get_allocator()` instead.
     bslma::Allocator *allocator() const;
 
     /// Return the allocator used by this object to supply memory.  Note that

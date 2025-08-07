@@ -267,6 +267,7 @@ static void realaSsErT(bool b, const char *s, int i)
     {
         if (b) {
             printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+            fflush(stdout);
             if (testStatus >= 0 && testStatus <= 100) ++testStatus;
         }
     }
@@ -693,13 +694,6 @@ int printDatum(FILE        *outStream,
                const char  *suffix,
                const ITYPE& valueI);
 
-/// Create a temporary file and store its name in the user-supplied buffer
-/// at the address pointed to by the specified `result`.  Return `true` if
-/// the temporary file was successfully created, and `false` otherwise.  The
-/// behavior is undefined unless the buffer pointed to by the specified
-/// `result` is at least `PATH_BUFFER_SIZE` bytes long.
-bool tempFileName(char *result);
-
 int printDatum(FILE        *outStream,
                const char  *identifierI,
                const char  *connector,
@@ -787,6 +781,12 @@ int printDatum(FILE        *outStream,
                    suffix);
 }
 
+/// Create a temporary file using the specified 'testCase' value and store its
+/// name in the user-supplied buffer at the address pointed to by the specified
+/// `result`.  Return `true` if the temporary file was successfully created,
+/// and `false` otherwise.  The behavior is undefined unless the buffer pointed
+/// to by the specified `result` is at least `PATH_BUFFER_SIZE` bytes long.
+
 bool tempFileName(char *result, int testCase)
 {
     ASSERT(result);
@@ -798,8 +798,26 @@ bool tempFileName(char *result, int testCase)
         return false;                                                 // RETURN
     }
 #else
-    ::snprintf(result, PATH_BUFFER_SIZE,
-                             "./tmp.bsls_bsltestutil.%d.txt.XXXXXX", testCase);
+
+// Suppress incorrect warning in UBSAN builds.
+#ifdef BDE_BUILD_TARGET_UBSAN
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation="
+#endif
+#endif
+
+    ::snprintf(result,
+               PATH_BUFFER_SIZE,
+               "./tmp.bsls_bsltestutil.%d.txt.XXXXXX",
+               testCase);
+
+#ifdef BDE_BUILD_TARGET_UBSAN
+#ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+#endif
+
     if (::strnlen(result, PATH_BUFFER_SIZE-1) >= PATH_BUFFER_SIZE-1) {
         printf("tempFileName: buffer overflow\n");
         return false;
@@ -1508,7 +1526,7 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\nError %s(%d):"
+                     "I: %d    (context)\nError %s(%d):"
                          " idx > LOOP_ITERATIONS    (failed)\n",
                      I,
                      __FILE__,
@@ -1564,7 +1582,8 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\tJ: %d\nError %s(%d): idx > LOOP_ITERATIONS"
+                     "I: %d\tJ: %d    (context)\n"
+                         "Error %s(%d): idx > LOOP_ITERATIONS"
                          "    (failed)\n",
                      I,
                      J,
@@ -1621,7 +1640,7 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\tJ: %d\tK: %d\nError %s(%d):"
+                     "I: %d\tJ: %d\tK: %d    (context)\nError %s(%d):"
                          " idx > LOOP_ITERATIONS    (failed)\n",
                      I,
                      J,
@@ -1682,7 +1701,7 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\tJ: %d\tK: %d\tL: %d\nError %s(%d):"
+                     "I: %d\tJ: %d\tK: %d\tL: %d    (context)\nError %s(%d):"
                          " idx > LOOP_ITERATIONS    (failed)\n",
                      I,
                      J,
@@ -1746,7 +1765,8 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d\nError %s(%d):"
+                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d    (context)\n"
+                         "Error %s(%d):"
                          " idx > LOOP_ITERATIONS    (failed)\n",
                      I,
                      J,
@@ -1813,7 +1833,8 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d\tN: %d\nError %s(%d):"
+                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d\tN: %d    (context)\n"
+                         "Error %s(%d):"
                          " idx > LOOP_ITERATIONS    (failed)\n",
                      I,
                      J,
@@ -1893,7 +1914,8 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d\tN: %d\tO: %d\n"
+                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d\tN: %d\tO:"
+                           " %d    (context)\n"
                            "Error %s(%d): idx > LOOP_ITERATIONS    (failed)\n",
                      I,
                      J,
@@ -1975,7 +1997,8 @@ void TestDriver::testCase8(OutputRedirector *output)
             ASSERT(output->load());
             snprintf(s_expectedOutput,
                      BUFFER_SIZE,
-                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d\tN: %d\tO: %d\tV: %d\n"
+                     "I: %d\tJ: %d\tK: %d\tL: %d\tM: %d\tN: %d\tO: %d\tV: %d"
+                           "    (context)\n"
                            "Error %s(%d): idx > LOOP_ITERATIONS    (failed)\n",
                      I,
                      J,
@@ -2981,7 +3004,7 @@ int main(int argc, char *argv[])
                 { __LINE__,  SCHAR_MAX, 0,     "SCHAR_MAX" },
                 { __LINE__,  SCHAR_MIN, 0,     "SCHAR_MIN" },
                 { __LINE__,  '\x50',    0,     "positive signed character" },
-                { __LINE__,  '\xcc',    0,     "negative signed character" },
+                { __LINE__,  -52,       0,     "negative signed character" },
             };
             TestDriver::testCase3<signed char>(&output,
                                                DATA,

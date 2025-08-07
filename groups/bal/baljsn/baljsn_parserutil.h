@@ -13,9 +13,9 @@ BSLS_IDENT("$Id: $")
 //@SEE_ALSO: baljsn_decoder, baljsn_printutil
 //
 //@DESCRIPTION: This component provides a `struct` of utility functions,
-// `baljsn::ParserUtil`, for decoding data in the JSON format into a `bdeat`
+// `baljsn::ParserUtil`, for decoding data in the JSON format into a `bdlat`
 // Simple type.  The primary method is `getValue`, which decodes into a
-// specified object and is overloaded for all `bdeat` Simple types.
+// specified object and is overloaded for all `bdlat` Simple types.
 //
 // Refer to the details of the JSON encoding format supported by this utility
 // in the package documentation file (doc/baljsn.txt).
@@ -28,11 +28,11 @@ BSLS_IDENT("$Id: $")
 ///---------------------------------------------------------
 // Suppose we want to de-serialize some JSON data into an object.
 //
-// First, we define a struct, `Employee`, to contain the data:
+// First, we define a `struct`, `Employee`, to contain the data:
 // ```
 // struct Employee {
 //     bsl::string d_name;
-//     bdlt::Date   d_date;
+//     bdlt::Date  d_date;
 //     int         d_age;
 // };
 // ```
@@ -59,13 +59,14 @@ BSLS_IDENT("$Id: $")
 // ```
 // Finally, we will verify that the values are as expected:
 // ```
-// assert("John Smith"            == employee.d_name);
+// assert("John Smith"             == employee.d_name);
 // assert(bdlt::Date(1985, 06, 24) == employee.d_date);
-// assert(21                      == employee.d_age);
+// assert(21                       == employee.d_age);
 // ```
 
 #include <balscm_version.h>
 
+#include <bdljsn_json.h>
 #include <bdljsn_stringutil.h>
 
 #include <bdlb_variant.h>
@@ -74,17 +75,19 @@ BSLS_IDENT("$Id: $")
 
 #include <bdlt_iso8601util.h>
 
+#include <bsla_unreachable.h>
+
 #include <bsls_assert.h>
+#include <bsls_libraryfeatures.h>
 #include <bsls_types.h>
 
 #include <bsl_limits.h>
-#include <bsl_cstring.h>
+#include <bsl_cstring.h>  // `bsl::strncmp`
 #include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
 
 #include <string>
-#include <vector>
 
 namespace BloombergLP {
 namespace baljsn {
@@ -94,8 +97,8 @@ namespace baljsn {
                             // =================
 
 ///This class provides utility functions for decoding data in the JSON
-///format into a `bdeat` Simple type.  The primary method is `getValue`,
-///which decodes into a specified object and is overloaded for all `bdeat`
+///format into a `bdlat` Simple type.  The primary method is `getValue`,
+///which decodes into a specified object and is overloaded for all `bdlat`
 ///Simple types.
 struct ParserUtil {
 
@@ -170,11 +173,25 @@ struct ParserUtil {
     /// non-zero value otherwise.
     static int getQuotedString(bsl::string             *value,
                                const bsl::string_view&  data);
+    static int getQuotedString(std::string             *value,
+                               const bsl::string_view&  data);
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+    static int getQuotedString(std::pmr::string        *value,
+                               const bsl::string_view&  data);
+#endif
 
     /// Load into the specified `value` the string value in the specified
     /// `data`.  Return 0 on success and a non-zero value otherwise.
     static int getUnquotedString(bsl::string             *value,
-                               const bsl::string_view&  data);
+                                 const bsl::string_view&  data);
+    static int getUnquotedString(std::string             *value,
+                                 const bsl::string_view&  data);
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+    static int getUnquotedString(std::pmr::string        *value,
+                                 const bsl::string_view&  data);
+#endif
+
+                  // Overloads for `const bsl::string_view&`
 
     /// Load into the specified `value` the characters read from the
     /// specified `data`.  Return 0 on success or a non-zero value on
@@ -232,6 +249,12 @@ struct ParserUtil {
     /// non-zero value otherwise.
     static int getValue(bsl::string             *value,
                         const bsl::string_view&  data);
+    static int getValue(std::string             *value,
+                        const bsl::string_view&  data);
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+    static int getValue(std::pmr::string        *value,
+                        const bsl::string_view&  data);
+#endif
 
     /// If the specified `*str` is at least two characters long and begins
     /// and ends with quotation marks ("), then remove the first and last
@@ -258,6 +281,28 @@ int ParserUtil::getQuotedString(bsl::string             *value,
                           data,
                           bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
 }
+
+inline
+int ParserUtil::getQuotedString(std::string             *value,
+                                const bsl::string_view&  data)
+{
+    return bdljsn::StringUtil::readString(
+                          value,
+                          data,
+                          bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
+}
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+inline
+int ParserUtil::getQuotedString(std::pmr::string        *value,
+                                const bsl::string_view&  data)
+{
+    return bdljsn::StringUtil::readString(
+                          value,
+                          data,
+                          bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
+}
+#endif
 
 template <class TYPE>
 int ParserUtil::getUnsignedIntegralValue(TYPE                    *value,
@@ -338,10 +383,11 @@ int ParserUtil::getDateAndTimeValue(TYPE                    *value,
         return -1;                                                    // RETURN
     }
 
-    return bdlt::Iso8601Util::parse(
+    int rc = bdlt::Iso8601Util::parse(
            value,
            data.data() + 1,
            static_cast<int>(data.length() - k_STRING_LENGTH_WITH_QUOTES));
+    return rc;
 }
 
 inline
@@ -426,6 +472,26 @@ int ParserUtil::getValue(bsl::string *value, const bsl::string_view& data)
 }
 
 inline
+int ParserUtil::getValue(std::string *value, const bsl::string_view& data)
+{
+    return bdljsn::StringUtil::readString(
+                          value,
+                          data,
+                          bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
+}
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+inline
+int ParserUtil::getValue(std::pmr::string *value, const bsl::string_view& data)
+{
+    return bdljsn::StringUtil::readString(
+                          value,
+                          data,
+                          bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE);
+}
+#endif
+
+inline
 int ParserUtil::getValue(bdlt::Date *value, const bsl::string_view& data)
 {
     return getDateAndTimeValue(value, data);
@@ -479,8 +545,8 @@ int ParserUtil::getValue(DatetimeOrDatetimeTz    *value,
 {
     return getDateAndTimeValue(value, data);
 }
-}  // close package namespace
 
+}  // close package namespace
 }  // close enterprise namespace
 
 #endif

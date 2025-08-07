@@ -38,6 +38,7 @@ static int testStatus = 0;
 static void aSsErT(int c, const char *s, int i) {
     if (c) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -296,7 +297,7 @@ struct my_Type
         my_String asString() const {
             if (INT == d_type) {
                 char temp[15];
-                sprintf(temp, "%d", d_int);
+                snprintf(temp, sizeof temp, "%d", d_int);
                 return my_String(temp);                               // RETURN
             }
             else {

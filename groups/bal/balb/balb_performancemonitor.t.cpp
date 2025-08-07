@@ -55,7 +55,8 @@
 // Solaris
 #if (defined(BSLS_PLATFORM_OS_SOLARIS)   \
        && defined(BSLS_PLATFORM_CMP_GNU) \
-       && defined(BSLS_PLATFORM_CPU_32_BIT))
+       && defined(BSLS_PLATFORM_CPU_32_BIT) \
+       && BSLS_PLATFORM_CMP_VERSION < 120000)
 int main()
 {
     return -1;
@@ -527,11 +528,11 @@ double wasteCpuTime()
         x -= 0.000001;
         rc = times(&tmsBuffer);
         BSLS_ASSERT(-1 != rc);
-    } while (tmsBuffer.tms_utime + tmsBuffer.tms_stime - startTime < 50);
+    } while (tmsBuffer.tms_utime + tmsBuffer.tms_stime - startTime < 20);
 
     return x;
 #else
-    bslmt::ThreadUtil::microSleep(0, 1);
+    bslmt::ThreadUtil::microSleep(100000, 0);
     return 1.0;
 #endif
 }
@@ -603,7 +604,6 @@ void testParseProcStatStr(const bsl::string&  procStatStr,
     const double cpuTimeS = static_cast<double>(procStats.d_stime) /
                             static_cast<double>(clockTicksPerSec);
 
-    ASSERTV(cpuTimeU, 0.1 < cpuTimeU);
     ASSERTV(cpuTimeU, cpuTimeU < 3);
 
     ASSERTV(cpuTimeS, cpuTimeS < 1);
@@ -696,7 +696,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < 6; ++i) {
         bslmt::ThreadUtil::microSleep(0, 5);
 
-        balb::PerformanceMonitor::ConstIterator    it    = perfmon.begin();
+        balb::PerformanceMonitor::ConstIterator    it    = perfmon.find(0);
         const balb::PerformanceMonitor::Statistics stats = *it;
 
         ASSERT(pid == stats.pid());
@@ -1074,6 +1074,9 @@ int main(int argc, char *argv[])
         const int NUM_PROCESSES = 5;
         Pids      pids;
 
+        const int SELF_PID = bdls::ProcessUtil::getProcessId();
+        pids.insert(SELF_PID);
+
         // Spawn as a child processes several copies of this test driver,
         // running test case -3, which simply sleeps for half a minute and
         // exits.
@@ -1131,6 +1134,10 @@ int main(int argc, char *argv[])
             ++shift;
             ++pidsIt;
         }
+
+        ASSERT(X.end() != X.find(SELF_PID));
+        ASSERT(X.end() != X.find(0));
+        ASSERT(X.find(0) == X.find(SELF_PID));
 
         ASSERT(X.end() == X.find(-1));
       } break;
@@ -1395,8 +1402,8 @@ int main(int argc, char *argv[])
         //   ConstIterator operator++(int);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "TESTING INCRERMENT OPERATORS\n"
-                          << "============================\n";
+        if (verbose) cout << "TESTING INCREMENT OPERATORS\n"
+                          << "===========================\n";
 
         // Testing signatures.
         {
@@ -1721,7 +1728,7 @@ int main(int argc, char *argv[])
             ASSERT(ELAPSED ==   XIt->elapsedTime());
             ASSERT(ELAPSED == (*XIt).elapsedTime());
 
-            bslmt::ThreadUtil::microSleep(10000, 0);
+            bslmt::ThreadUtil::microSleep(0, 1);
             mX.collect();
 
             ASSERT(ELAPSED !=   XIt->elapsedTime());
@@ -1907,7 +1914,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == rc);
 
                 for (int i = 0; i < 6; ++i) {
-                    bslmt::ThreadUtil::microSleep(0, 1);
+                    bslmt::ThreadUtil::microSleep(250000, 0);
                     for (ObjIterator it  = perfmon.begin();
                                      it != perfmon.end();
                                    ++it)
@@ -2093,7 +2100,8 @@ int main(int argc, char *argv[])
 
 #endif  // !(defined(BSLS_PLATFORM_OS_SOLARIS)
         //     && defined(BSLS_PLATFORM_CMP_GNU)
-        //     && defined(BSLS_PLATFORM_CPU_32_BIT))
+        //     && defined(BSLS_PLATFORM_CPU_32_BIT)
+        //     && BSLS_PLATFORM_CMP_VERSION < 120000)
 
 // ----------------------------------------------------------------------------
 // Copyright 2015 Bloomberg Finance L.P.

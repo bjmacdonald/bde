@@ -309,7 +309,7 @@ int formatScientific(char                      *buffer,
     const int k_MAX_EXPONENT_LENGTH = 6;
     char      exp[k_MAX_EXPONENT_LENGTH];
     int       exponentLength =
-        bsl::sprintf(&exp[0], "%+.*d", cfg.expWidth(), exponent);
+         bsl::snprintf(&exp[0], sizeof exp, "%+.*d", cfg.expWidth(), exponent);
 
     int outputLength = 1 + (cfg.precision() > 0 || cfg.showpoint()) +
                        cfg.precision() + static_cast<int>(sizeof 'E') +
@@ -353,7 +353,7 @@ int formatScientific(char                      *buffer,
 /// unspecified state, with the returned value indicating the necessary
 /// size.  The behavior is undefined if the `length` is negative and
 /// `buffer` is not null.  The `buffer` is permitted to be null if the
-/// `length` is not  positive.  This can be used to determine the necessary
+/// `length` is not positive.  This can be used to determine the necessary
 /// buffer size.
 template <class DECIMAL>
 int formatNatural(char                      *buffer,
@@ -382,12 +382,82 @@ int formatNatural(char                      *buffer,
     DecimalFormatConfig config(cfg);
 
     if (e <= 0 && adjustedExponent >= -6) {
-        config.setPrecision(-e);
+        if (-1 == config.precision()) {
+            config.setPrecision(-e);
+        }
         return formatFixed(buffer, length, value, config);            // RETURN
     }
 
-    config.setPrecision(maxDigit - 1);
+    if (-1 == config.precision()) {
+        config.setPrecision(maxDigit - 1);
+    }
     return  formatScientific(buffer, length, value, config);
+}
+
+/// Convert the specified decimal `value` to a character string using
+/// `e_SCIENTIFIC` style and the specified `cfg` formatting options but
+/// using the natural precision of `value`.  Load the result into the
+/// specified `buffer`.  If the length of resultant string exceeds the
+/// specified `length`, then the `buffer` will be left in an unspecified
+/// state, with the returned value indicating the necessary size.  The
+/// behavior is undefined if the `length` is negative and `buffer` is not
+/// null.  The `buffer` is permitted to be null if the `length` is not
+/// positive.  This can be used to determine the necessary buffer size.
+template <class DECIMAL>
+int formatScientificWithNaturalPrecision(char                      *buffer,
+                                         int                        length,
+                                         DECIMAL                    value,
+                                         const DecimalFormatConfig& cfg)
+{
+    BSLS_ASSERT(buffer || length < 0);
+
+    typedef typename DecimalTraits<DECIMAL>::Significand SIGNIFICAND;
+
+    int         sign;
+    int         e;
+    SIGNIFICAND s;
+    int         cls = DecimalImpUtil::decompose(&sign, &s, &e, value);
+    (void)cls;
+    BSLS_ASSERT(cls == FP_ZERO || cls == FP_NORMAL || cls == FP_SUBNORMAL);
+
+    int maxDigit = getMostSignificandPlace(s);
+
+    DecimalFormatConfig config(cfg);
+
+    config.setPrecision(maxDigit - 1);
+    return formatScientific(buffer, length, value, config);
+}
+
+/// Convert the specified decimal `value` to character string using
+/// `e_FIXED` style and the specified `cfg` formatting options but using
+/// the natural precision of `value`.  Load the result into the specified
+/// `buffer`.  If the length of resultant string exceeds the specified
+/// `length`, then the `buffer` will be left in an unspecified state, with
+/// the returned value indicating the necessary size.  The behavior is
+/// undefined if the `length` is negative and `buffer` is not null.  The
+/// `buffer` is permitted to be null if the `length` is not  positive.  This
+/// can be used to determine the necessary buffer size.
+template <class DECIMAL>
+int formatFixedWithNaturalPrecision(char                      *buffer,
+                                    int                        length,
+                                    DECIMAL                    value,
+                                    const DecimalFormatConfig& cfg)
+{
+    BSLS_ASSERT(buffer || length < 0);
+
+    typedef typename DecimalTraits<DECIMAL>::Significand SIGNIFICAND;
+
+    int         sign;
+    int         e;
+    SIGNIFICAND s;
+    int         cls = DecimalImpUtil::decompose(&sign, &s, &e, value);
+    (void)cls;
+    BSLS_ASSERT(cls == FP_ZERO || cls == FP_NORMAL || cls == FP_SUBNORMAL);
+
+    DecimalFormatConfig config(cfg);
+    // if the exponent is larger than 0 there are no decimal digits
+    config.setPrecision(e < 0 ? -e : 0);
+    return formatFixed(buffer, length, value, config);                // RETURN
 }
 
 int formatSpecial(char        *buffer,
@@ -414,7 +484,7 @@ int formatImpl(char                      *buffer,
                const DecimalFormatConfig& cfg)
 {
     BSLS_ASSERT(buffer || length < 0);
-    BSLS_ASSERT(cfg.precision() >= 0);
+    BSLS_ASSERT(cfg.precision() >= -1);
 
     typedef typename DecimalTraits<DECIMAL>::Significand SIGNIFICAND;
 
@@ -423,7 +493,9 @@ int formatImpl(char                      *buffer,
     int         exponent;
     int         cls = DecimalImpUtil::decompose(&sign, &s, &exponent, value);
 
-    char  signSymbol('+');
+    char  signSymbol(cfg.sign() == DecimalFormatConfig::e_POSITIVE_AS_SPACE
+                   ? ' '
+                   : '+');
     int   signLength(0);
 
     if (-1 == sign || cfg.sign() != DecimalFormatConfig::e_NEGATIVE_ONLY) {
@@ -437,29 +509,42 @@ int formatImpl(char                      *buffer,
     char *it            = buffer + signLength;
     int   decimalLength = 0;
 
+    const bool naturalPrecision = -1 == cfg.precision();
+
     switch (cls) {
       case FP_NORMAL:
       case FP_SUBNORMAL:
       case FP_ZERO: {
-        if (DecimalFormatConfig::e_NATURAL != cfg.style()) {
+        if (!naturalPrecision) {
             value = DecimalImpUtil::normalize(value);
         }
 
         switch (cfg.style()) {
           case DecimalFormatConfig::e_SCIENTIFIC: {
-
-              decimalLength = formatScientific(it, bufferLength, value, cfg);
-
+            if (naturalPrecision) {
+                decimalLength = formatScientificWithNaturalPrecision(
+                                                                  it,
+                                                                  bufferLength,
+                                                                  value,
+                                                                  cfg);
+            }
+            else {
+                decimalLength = formatScientific(it, bufferLength, value, cfg);
+            }
           } break;
           case DecimalFormatConfig::e_FIXED: {
-
-              decimalLength = formatFixed(it, bufferLength, value, cfg);
-
+              if (naturalPrecision) {
+                  decimalLength = formatFixedWithNaturalPrecision(it,
+                                                                  bufferLength,
+                                                                  value,
+                                                                  cfg);
+              }
+              else {
+                  decimalLength = formatFixed(it, bufferLength, value, cfg);
+              }
           } break;
           case DecimalFormatConfig::e_NATURAL: {
-
-              decimalLength = formatNatural(it, bufferLength, value, cfg);
-
+            decimalLength = formatNatural(it, bufferLength, value, cfg);
           } break;
           default: {
             BSLS_ASSERT(0 == "Unexpected format style value");
@@ -741,8 +826,10 @@ DecimalImpUtil::ValueType32 DecimalImpUtil::normalize(ValueType32 value)
         result = (sign == 1) ? result : negate(result);
       } break;
 
-      default:
+      default: {
+        result = makeDecimalRaw32(0, 0);  // suppress compile warning
         BSLS_ASSERT(false);
+      } break;
     }
 
     return result;
@@ -791,8 +878,10 @@ DecimalImpUtil::ValueType64 DecimalImpUtil::normalize(ValueType64 value)
         result = (sign == 1) ? result : negate(result);
       } break;
 
-      default:
+      default: {
+        result = makeDecimalRaw64(0, 0);  // suppress compile warning
         BSLS_ASSERT(false);
+      } break;
     }
 
     return result;

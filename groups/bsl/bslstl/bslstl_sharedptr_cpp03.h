@@ -21,14 +21,14 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Sun Sep  1 18:48:19 2024
+// Generated on Thu May 22 15:59:53 2025
 // Command line: sim_cpp11_features.pl bslstl_sharedptr.h
 
 #ifdef COMPILING_BSLSTL_SHAREDPTR_H
 
 #if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
-        // Here and throughout the file wherever 'auto_ptr' is used, suspend
-        // GCC reporting of deprecated declarations since the use of 'auto_ptr'
+        // Here and throughout the file wherever `auto_ptr` is used, suspend
+        // GCC reporting of deprecated declarations since the use of `auto_ptr`
         // in this standard interface is required.
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -46,14 +46,14 @@
 # undef BSLSTL_SHAREDPTR_SUPPORTS_SFINAE_CHECKS
 #endif
 
-// If the macro 'BSLSTL_SHAREDPTR_SUPPORTS_SFINAE_CHECKS' is defined, then a
+// If the macro `BSLSTL_SHAREDPTR_SUPPORTS_SFINAE_CHECKS` is defined, then a
 // conforming C++11 compiler will define the constructors in this component in
 // such a way that they will not be selected during overload resolution unless
 // they would instantiate correctly.  This means that code depending on the
-// result of 'is_constructible' and similar traits will have the expected
+// result of `is_constructible` and similar traits will have the expected
 // behavior.  There is no attempt to support this feature in C++03.
 //
-// Support for SFINAE-queries on the constructability of a 'shared_ptr' depend
+// Support for SFINAE-queries on the constructability of a `shared_ptr` depend
 // on a variety of C++11 language features, including "expression-SFINAE".
 // However, the main language feature that enables SFINAE elimination of a
 // constructor is the ability to use default template arguments in a function
@@ -61,7 +61,7 @@
 // rather than add additional default arguments to the constructor signatures,
 // as there are so many constructor overloads in this component that there is a
 // real risk of introducing ambiguities that would need to be worked around.
-// Therefore, the 'BSLS_COMPILERFEATURES_SUPPORT_DEFAULT_TEMPLATE_ARGS' macro
+// Therefore, the `BSLS_COMPILERFEATURES_SUPPORT_DEFAULT_TEMPLATE_ARGS` macro
 // serves as our proxy for whether SFINAE-constructors are enabled in this
 // component.  Note that the MSVC 2015 compiler almost supported
 // "expression-SFINAE", to the extent that it works for this component, unlike
@@ -159,9 +159,10 @@
 // expression, and so it is preferable to discard the expression where
 // possible.
 #if defined(BSLSTL_SHAREDPTR_SUPPORTS_SFINAE_CHECKS)
-# if !defined(BSLS_PLATFORM_CMP_CLANG)                             \
-  || !defined(__APPLE_CC__) && BSLS_PLATFORM_CMP_VERSION >= 120000 \
-  ||  defined(__APPLE_CC__) && BSLS_PLATFORM_CMP_VERSION >  130000
+#if !defined(BSLS_PLATFORM_CMP_CLANG) ||                                      \
+    !defined(__apple_build_version__) && BSLS_PLATFORM_CMP_VERSION >=         \
+                                             120000 ||                        \
+    defined(__apple_build_version__) && BSLS_PLATFORM_CMP_VERSION > 130000
 #  define BSLSTL_SHAREDPTR_SFINAE_DISCARD(EXPRESSION) \
      static_cast<void>(EXPRESSION)
 # else
@@ -1438,8 +1439,6 @@ class shared_ptr {
 // }}} END GENERATED CODE
 #endif
 
-    /// [**DEPRECATED**] Use `reset` instead.
-    ///
     /// Modify this shared pointer to manage the same modifiable object (if
     /// any) as the specified `source` shared pointer to the (template
     /// parameter) type `ANY_TYPE`, and refer to the modifiable object at
@@ -1463,6 +1462,8 @@ class shared_ptr {
     /// ```
     /// Further note that the behavior of this method is the same as
     /// `reset(source, object)`.
+    ///
+    /// @DEPRECATED: Use `reset` instead.
     template <class ANY_TYPE>
     void loadAlias(const shared_ptr<ANY_TYPE>&  source,
                    ELEMENT_TYPE                *object);
@@ -1489,18 +1490,16 @@ class shared_ptr {
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
     // DEPRECATED BDE LEGACY MANIPULATORS
 
-    /// [**DEPRECATED**] Use `reset` instead.
-    ///
     /// Reset this shared pointer to the empty state.  If this shared
     /// pointer is managing a (possibly shared) object, then release the
     /// reference to the shared object, calling the associated deleter to
     /// destroy the shared object if this shared pointer is the last
     /// reference.  Note that the behavior of this method is the same as
     /// `reset()`.
+    ///
+    /// @DEPRECATED: Use `reset` instead.
     void clear() BSLS_KEYWORD_NOEXCEPT;
 
-    /// [**DEPRECATED**] Use `reset` instead.
-    ///
     /// Modify this shared pointer to manage the modifiable object of the
     /// (template parameter) type `COMPATIBLE_TYPE` at the specified `ptr`
     /// address and to refer to `(ELEMENT_TYPE *)ptr`.  If this shared
@@ -1521,11 +1520,11 @@ class shared_ptr {
     /// state, which will be reclaimed when the last reference is destroyed.
     /// Also note also that the behavior of this method is the same as
     /// `reset(ptr)`.
+    ///
+    /// @DEPRECATED: Use `reset` instead.
     template <class COMPATIBLE_TYPE>
     void load(COMPATIBLE_TYPE *ptr);
 
-    /// [**DEPRECATED**] Use `reset` instead.
-    ///
     /// Modify this shared pointer to manage the modifiable object of the
     /// (template parameter) type `COMPATIBLE_TYPE` at the specified `ptr`
     /// address and to refer to `(ELEMENT_TYPE *)ptr`.  If this shared
@@ -1551,12 +1550,12 @@ class shared_ptr {
     /// ```
     /// *this = shared_ptr<ELEMENT_TYPE>(ptr, basicAllocator);
     /// ```
+    ///
+    /// @DEPRECATED: Use `reset` instead.
     template <class COMPATIBLE_TYPE>
     void load(COMPATIBLE_TYPE               *ptr,
               BloombergLP::bslma::Allocator *basicAllocator);
 
-    /// [**DEPRECATED**] Use `reset` instead.
-    ///
     /// Modify this shared pointer to manage the modifiable object of the
     /// (template parameter) type `COMPATIBLE_TYPE` at the specified `ptr`
     /// address, refer to `(ELEMENT_TYPE *)ptr` and use the specified
@@ -1596,6 +1595,8 @@ class shared_ptr {
     /// ```
     /// *this = shared_ptr<ELEMENT_TYPE>(ptr, deleter, basicAllocator);
     /// ```
+    ///
+    /// @DEPRECATED: Use `reset` instead.
     template <class COMPATIBLE_TYPE, class DELETER>
     void load(COMPATIBLE_TYPE               *ptr,
               const DELETER&                 deleter,
@@ -1693,7 +1694,7 @@ class shared_ptr {
     /// reliable in a multi-threaded program, where a weak pointer may be
     /// locked on another thread.
     ///
-    /// DEPRECATED: This function is deprecated in C++17 because its
+    /// @DEPRECATED: This function is deprecated in C++17 because its
     /// correctness is not guaranteed since the value returned by the used
     /// `use_count` function is approximate.
     bool unique() const BSLS_KEYWORD_NOEXCEPT;
@@ -1727,21 +1728,21 @@ class shared_ptr {
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
     // DEPRECATED BDE LEGACY ACCESSORS
 
-    /// [**DEPRECATED**] Use `use_count` instead.
-    ///
     /// Return a "snapshot" of the number of shared pointers (including this
     /// one) that share ownership of the object managed by this shared
     /// pointer.  Note that the behavior of this function is the same as
     /// `use_count`, and the result may be unreliable in multi-threaded code
     /// for the same reasons.
+    ///
+    /// @DEPRECATED: Use `use_count` instead.
     int numReferences() const BSLS_KEYWORD_NOEXCEPT;
 
-    /// [**DEPRECATED**] Use `get` instead.
-    ///
     /// Return the address providing modifiable access to the object
     /// referred to by this shared pointer, or 0 if this shared pointer does
     /// not refer to an object.  Note that the behavior of this function is
     /// the same as `get`.
+    ///
+    /// @DEPRECATED: Use `get` instead.
     element_type *ptr() const BSLS_KEYWORD_NOEXCEPT;
 #endif // BDE_OMIT_INTERNAL_DEPRECATED
 };
@@ -3233,25 +3234,23 @@ make_shared(const typename remove_extent<ARRAY_TYPE>::type& value);
 
 // unbounded array overloads
 
-/// Return a `shared_ptr` object referring to and managing a new
-/// `ARRAY_TYPE` object, where `ARRAY_TYPE` is a unbounded array.  The
-/// specified `basicAllocator` will be used to supply a single contiguous
-/// region of memory holding the returned shared pointer's internal
-/// representation and the new `ARRAY_TYPE` containing the specified
-/// `numElements` number of elements, and each element in the array is
-/// default constructed.
+/// Return a `shared_ptr` object referring to and managing a new `ARRAY_TYPE`
+/// object, where `ARRAY_TYPE` is a unbounded array.  The default allocator
+/// will be used to supply a single contiguous region of memory holding the
+/// returned shared pointer's internal representation and the new `ARRAY_TYPE`
+/// containing the specified `numElements` number of elements, and each element
+/// in the array is default constructed.
 template<class ARRAY_TYPE>
 typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
                    shared_ptr<ARRAY_TYPE> >::type
 make_shared(size_t numElements);
 
-/// Return a `shared_ptr` object referring to and managing a new
-/// `ARRAY_TYPE` object, where `ARRAY_TYPE` is a unbounded array.  The
-/// specified `basicAllocator` will be used to supply a single contiguous
-/// region of memory holding the returned shared pointer's internal
-/// representation and the new `ARRAY_TYPE` containing the specified
-/// `numElements` number of elements, and each element in the array is
-/// constructed from the specified `value`.
+/// Return a `shared_ptr` object referring to and managing a new `ARRAY_TYPE`
+/// object, where `ARRAY_TYPE` is a unbounded array.  The default allocator
+/// will be used to supply a single contiguous region of memory holding the
+/// returned shared pointer's internal representation and the new `ARRAY_TYPE`
+/// containing the specified `numElements` number of elements, and each element
+/// in the array is constructed from the specified `value`.
 template<class ARRAY_TYPE>
 typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
                    shared_ptr<ARRAY_TYPE> >::type
@@ -3282,12 +3281,12 @@ typename enable_if<is_bounded_array<ARRAY_TYPE>::value,
                    shared_ptr<ARRAY_TYPE> >::type
 make_shared_for_overwrite();
 
-/// Return a `shared_ptr` object referring to and managing a new
-/// `ARRAY_TYPE` object, where `ARRAY_TYPE` is a unbounded array.  The
-/// specified `basicAllocator` will be used to supply a single contiguous
-/// region of memory holding the returned shared pointer's internal
-/// representation and the new `ARRAY_TYPE` containing the specified
-/// `numElements` number of elements, and the array is default-constructed.
+/// Return a `shared_ptr` object referring to and managing a new `ARRAY_TYPE`
+/// object, where `ARRAY_TYPE` is a unbounded array.  The default allocator
+/// will be used to supply a single contiguous region of memory holding the
+/// returned shared pointer's internal representation and the new `ARRAY_TYPE`
+/// containing the specified `numElements` number of elements, and the array is
+/// default-constructed.
 template<class ARRAY_TYPE>
 typename enable_if<is_unbounded_array<ARRAY_TYPE>::value,
                    shared_ptr<ARRAY_TYPE> >::type
@@ -3547,13 +3546,13 @@ class weak_ptr {
     /// the same as that of `lock`.
     shared_ptr<ELEMENT_TYPE> acquireSharedPtr() const BSLS_KEYWORD_NOEXCEPT;
 
-    /// [**DEPRECATED**] Use `use_count` instead.
-    ///
     /// Return a "snapshot" of the current number of shared pointers that
     /// share ownership of the object referred to by this weak pointer, or 0
     /// if this weak pointer is in the empty state.  Note that the behavior
     /// of this method is the same as that of `use_count`, and the result
     /// may be unreliable in multi-threaded code for the same reasons.
+    ///
+    /// @DEPRECATED: Use `use_count` instead.
     int numReferences() const BSLS_KEYWORD_NOEXCEPT;
 #endif // BDE_OMIT_INTERNAL_DEPRECATED
 };
@@ -3951,7 +3950,7 @@ namespace bslstl {
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE) &&                        \
     defined(BSLS_PLATFORM_CMP_MSVC) &&                                        \
     BSLS_PLATFORM_CMP_VERSION >= 1936 && BSLS_PLATFORM_CMP_VERSION <= 1937
-// Microsoft needs a workaround to correctly handle calling 'sizeof' on an
+// Microsoft needs a workaround to correctly handle calling `sizeof` on an
 // unevaluated expression.  This compiler bug was introduced in Visual Studio
 // 2022 version 17.6 (cl 19.36, released May 2022).  The report to Microsoft is
 // https://developercommunity.visualstudio.com/t/C-templates:-new-compiler-error-in-MSV/10381900
@@ -3974,8 +3973,8 @@ struct SharedPtr_TestIsCallable {
         char d_padding[17];
     };
 
-    // The two structs 'TrueType' and 'FalseType' are guaranteed to have
-    // distinct sizes, so that a 'sizeof(expression)' query, where 'expression'
+    // The two structs `TrueType` and `FalseType` are guaranteed to have
+    // distinct sizes, so that a `sizeof(expression)` query, where `expression`
     // returns one of these two types, will give different answers depending on
     // which type is returned.
 
@@ -4061,7 +4060,7 @@ struct SharedPtr_TestIsCallable<RESULT(&)(PARAM)>
 // MSVC 2017 expression-SFINAE has a regression that is failing in two
 // additional cases:
 //  1) for pointers to object types
-//  2) where '0' is used for a null pointer literal, deducing as 'int'.
+//  2) where `0` is used for a null pointer literal, deducing as `int`.
 // We resolve those issues with a couple more specializations below.
 
 template <class TYPE>

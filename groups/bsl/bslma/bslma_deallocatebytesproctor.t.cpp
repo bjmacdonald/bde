@@ -60,6 +60,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -159,7 +160,7 @@ void *EnhancedTestAllocator::do_allocate(std::size_t bytes,
                                          std::size_t alignment)
 {
     // Call base-class allocate function
-    void *ret = Base::do_allocate(bytes, alignment);
+    void *ret = Base::allocate(bytes);
 
     // Store size and alignment in cache
     CacheEntry& cs = d_cache[d_nextCacheSlot];
@@ -188,7 +189,7 @@ void EnhancedTestAllocator::do_deallocate(void        *p,
     }
 
     // Call base-class deallocate function
-    Base::do_deallocate(p, bytes, alignment);
+    Base::deallocate(p);
 }
 
 template <class TYPE>

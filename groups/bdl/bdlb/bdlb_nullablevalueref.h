@@ -94,12 +94,16 @@ BSLS_IDENT("$Id: $")
 #include <bslstl_optional.h>              // bsl::optional, bsl::nullopt_t
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Fri Sep 15 15:38:58 2023
+// Generated on Mon Jan 13 08:32:07 2025
 // Command line: sim_cpp11_features.pl bdlb_nullablevalueref.h
+
 # define COMPILING_BDLB_NULLABLEVALUEREF_H
 # include <bdlb_nullablevalueref_cpp03.h>
 # undef COMPILING_BDLB_NULLABLEVALUEREF_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -329,19 +333,19 @@ class NullableValueRef {
     TYPE& makeValueInplace(ARGS&&... args);
 #endif
 
-    BSLS_DEPRECATE_FEATURE("bdl", "NullableValueRef::valueOr",
-                                                      "Use 'value_or' instead")
     /// Return the value of the underlying object of a (template parameter)
     /// `TYPE` if this object is non-null, and the specified `otherValue`
     /// otherwise.  Note that this method returns *by* *value*, so may be
     /// inefficient in some contexts.
+    BSLS_DEPRECATE_FEATURE("bdl", "NullableValueRef::valueOr",
+                                                      "Use 'value_or' instead")
     TYPE valueOr(const TYPE& otherValue) const;
 
-    BSLS_DEPRECATE_FEATURE("bdl", "NullableValueRef::valueOrNull",
-                                 "Use 'has_value() ? &value() : NULL' instead")
     /// Return an address providing non-modifiable access to the underlying
     /// object of a (template parameter) `TYPE` if this object is non-null,
     /// and 0 otherwise.
+    BSLS_DEPRECATE_FEATURE("bdl", "NullableValueRef::valueOrNull",
+                                 "Use 'has_value() ? &value() : NULL' instead")
     const TYPE *valueOrNull() const;
 };
 

@@ -1,5 +1,17 @@
 // bslstl_bitset.t.cpp                                                -*-C++-*-
+#include <bsls_platform.h>
+
+// The following pragma needs to be before the inclusion of bslstl_bitset.h.
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+#endif
+
 #include <bslstl_bitset.h>
+
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
+#pragma GCC diagnostic pop
+#endif
 
 #include <bsla_maybeunused.h>
 
@@ -134,6 +146,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;

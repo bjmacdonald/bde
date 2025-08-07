@@ -107,6 +107,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -177,10 +178,7 @@ void debugprint(const Obj& val) {
 /// `left`, and `right`.
 static Obj& gg(Obj *result, Color color, Obj *parent, Obj *left, Obj *right)
 {
-    result->setColor(color);
-    result->setParent(parent);
-    result->setLeftChild(left);
-    result->setRightChild(right);
+    result->reset(parent, left, right, color);
     return *result;
 }
 
@@ -1419,8 +1417,10 @@ int main(int argc, char *argv[])
         // Verify the object's attribute values.
         // -------------------------------------
 
-        mX.setColor(D1);
+        // parent pointer must be set first for setColor not to use
+        // uninitialized memory as the color is stored in the parent pointer.
         mX.setParent(D2);
+        mX.setColor(D1);
         mX.setLeftChild(D3);
         mX.setRightChild(D4);
 
@@ -1637,8 +1637,11 @@ int main(int argc, char *argv[])
         if (verbose) printf("\n Create an object `w`.\n");
 
         Obj mW;  const Obj& W = mW;
-        mW.setColor(D1);
+        // parent pointer must be set first for setColor not to use
+        // uninitialized memory as the color is stored in the parent
+        // pointer.
         mW.setParent(D2);
+        mW.setColor(D1);
         mW.setLeftChild(D3);
         mW.setRightChild(D4);
 

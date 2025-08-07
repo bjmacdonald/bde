@@ -158,6 +158,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -633,7 +634,12 @@ struct BadBoy {
         if (veryVerbose) printf( "BadBoy Created!\n" );
     }
 
-    ~BadBoy() BSLS_KEYWORD_NOEXCEPT_SPECIFICATION(false) {
+#ifdef BSLS_PLATFORM_CMP_MSVC
+  #pragma warning(push)
+  #pragma warning(disable : 4722)  // destructor never returns
+#endif
+    ~BadBoy() BSLS_KEYWORD_NOEXCEPT_SPECIFICATION(false)
+    {
         if (veryVerbose) printf( "BadBoy Destroyed!\n" );
         bsls::Assert::failByThrow(bsls::AssertViolation(
                                    "`failByThrow` handler called from ~BadBoy",
@@ -641,6 +647,9 @@ struct BadBoy {
                                    9,"L"));
      }
 };
+#ifdef BSLS_PLATFORM_CMP_MSVC
+  #pragma warning(pop)
+#endif
 
 // Declaration of function that must appear after main in order to test the
 // configuration macros.

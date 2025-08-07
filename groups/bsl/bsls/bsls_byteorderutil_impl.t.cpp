@@ -24,6 +24,7 @@
 using namespace BloombergLP;
 using std::printf;
 using std::fprintf;
+using std::fflush;
 
 // ============================================================================
 //                      STANDARD BDE ASSERT TEST MACROS
@@ -39,6 +40,7 @@ void aSsErT(bool b, const char *s, int i)
 {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }

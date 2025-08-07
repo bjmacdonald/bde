@@ -40,6 +40,7 @@
 // [ 4] reference front();
 // [ 4] reference back();
 // [ 4] reference operator[](size_type);
+// [ 4] reference at[](size_type);
 // [ 4] bool empty() noexcept;
 // [ 4] size_type extent;
 // [ 4] size_type size() noexcept;
@@ -76,6 +77,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -122,17 +124,26 @@ void aSsErT(bool condition, const char *message, int line)
 // only if we're not using `std::span`, because all three implementations of
 // std::span add `noexcept` to `front`, `back`, `first`, `last`, and `subspan`,
 // as well as the `(pointer, pointer)` and `(pointer, size)` constructors.
-#ifndef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifndef BSLSTL_SPAN_IS_ALIASED
     #define NOEXCEPT_TEST_ONLY_BSL_SPAN                                       1
 #endif
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT
-#define ASSERT_NOEXCEPT(...)       BSLS_ASSERT( noexcept(__VA_ARGS__))
-#define ASSERT_NOT_NOEXCEPT(...)   BSLS_ASSERT(!noexcept(__VA_ARGS__))
+#define ASSERT_NOEXCEPT(...)       ASSERT( noexcept(__VA_ARGS__))
+#define ASSERT_NOT_NOEXCEPT(...)   ASSERT(!noexcept(__VA_ARGS__))
 #else
-#define ASSERT_NOEXCEPT(...)       BSLS_ASSERT(true)
-#define ASSERT_NOT_NOEXCEPT(...)   BSLS_ASSERT(true)
+#define ASSERT_NOEXCEPT(...)
+#define ASSERT_NOT_NOEXCEPT(...)
 #endif
+
+// We want to test `span::at` only if we're using our own implementation or we
+// have a C++26 compliant standard library.
+#if !defined(BSLSTL_SPAN_IS_ALIASED) ||                                      \
+     defined(BSLS_LIBRARYFEATURES_HAS_CPP26_BASELINE_LIBRARY)
+    #define TEST_BSL_SPAN_AT                                                  1
+#endif
+
+using namespace BloombergLP;
 
 //=============================================================================
 //                             USAGE EXAMPLE
@@ -261,7 +272,11 @@ void TestBasicConstructors()
         bsl::span<const int>    sD1b(sS);
         bsl::span<const int, 3> sS2a(sD);
 
+#if !(BSLS_PLATFORM_OS_DARWIN                          \
+      && BSLS_PLATFORM_CMP_CLANG                       \
+      && BSLS_PLATFORM_CMP_VERSION<=180000)
         ASSERT_NOEXCEPT(bsl::span<const int, 5>(sS));
+#endif
         ASSERT_NOEXCEPT(bsl::span<const int   >(sS));
         ASSERT_NOEXCEPT(bsl::span<const int, 3>(sD));
         ASSERT_NOEXCEPT(bsl::span<const int   >(sD));
@@ -319,6 +334,27 @@ void TestBasicConstructors()
         ASSERT(&arr[5] == psD2b.data());
         ASSERT(5       == psD2b.size());
     }
+
+    // constexpr copy constructor and assignment
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP14
+    {
+        constexpr static int val1 = 5;
+
+        constexpr bsl::span<const int, 1> psS(&val1, 1);
+        constexpr bsl::span<const int>    psD(&val1, 1);
+        constexpr bsl::span<const int, 1> psS1(psS);
+        constexpr bsl::span<const int>    psD1(psD);
+
+        static_assert(1     == psS1.size());
+        static_assert(&val1 == psS1.data());
+        static_assert(5     == psS1[0]);
+
+        static_assert(1     == psD1.size());
+        static_assert(&val1 == psD1.data());
+        static_assert(5     == psD1[0]);
+    }
+#endif
+
 }
 
 
@@ -472,6 +508,23 @@ void TestContainerConstructors()
     }
 }
 
+#ifdef TEST_BSL_SPAN_AT
+/// Return `true` if accessing the `idx`th element of the span `s` throws an
+/// `out_of_range` exception
+template <class TYPE, size_t EXTENT>
+bool doesAtThrow(bsl::span<TYPE, EXTENT> s, size_t idx)
+{
+    try {
+        (void) s.at(idx);
+    }
+    catch (const std::out_of_range&) {
+        return true;
+    }
+    return false;
+}
+#endif
+
+
 /// Test the accessors of bsl::span.
 void TestAccessors()
 {
@@ -593,6 +646,36 @@ void TestAccessors()
     ASSERT(7 == dSpan[7]);
     ASSERT(6 == cdSpan[1]);
 
+#ifdef TEST_BSL_SPAN_AT
+    // at()
+    ASSERT(7 == sSpan.at(7));
+    ASSERT(6 == csSpan.at(1));
+    ASSERT(7 == dSpan.at(7));
+    ASSERT(6 == cdSpan.at(1));
+
+    ASSERT(!doesAtThrow(sSpan,   0));
+    ASSERT(!doesAtThrow(sSpan,   9));
+    ASSERT( doesAtThrow(sSpan,  10));
+    ASSERT( doesAtThrow(sSpan, 100));
+
+    ASSERT(!doesAtThrow(csSpan,   0));
+    ASSERT(!doesAtThrow(csSpan,   3));
+    ASSERT( doesAtThrow(csSpan,   4));
+    ASSERT( doesAtThrow(csSpan, 100));
+
+    ASSERT(!doesAtThrow(dSpan,   0));
+    ASSERT(!doesAtThrow(dSpan,   9));
+    ASSERT( doesAtThrow(dSpan,  10));
+    ASSERT( doesAtThrow(dSpan, 100));
+
+    ASSERT(!doesAtThrow(cdSpan,   0));
+    ASSERT(!doesAtThrow(cdSpan,   3));
+    ASSERT( doesAtThrow(cdSpan,   4));
+    ASSERT( doesAtThrow(cdSpan, 100));
+
+    ASSERT( doesAtThrow(zsSpan,   0));
+    ASSERT( doesAtThrow(zdSpan,   0));
+#endif
 }
 
 /// Test the various ways of making a smaller span from an original
@@ -1356,6 +1439,7 @@ int main(int argc, char *argv[])
         //   reference front();
         //   reference back();
         //   reference operator[](size_type);
+        //   reference at(size_type);
         //   bool empty() noexcept;
         //   size_type extent;
         //   size_type size() noexcept;
@@ -1464,6 +1548,16 @@ int main(int argc, char *argv[])
         ASSERT(7 == ss0[2]);
 
         ASSERT(bsl::dynamic_extent == size_t(-1));
+
+        ASSERT((bsl::is_trivially_copyable<bsl::span<int>    >::value));
+        ASSERT((bsl::is_trivially_copyable<bsl::span<int, 6> >::value));
+        ASSERT((bsl::is_trivially_copyable<bsl::span<bsl::string>    >::value));
+        ASSERT((bsl::is_trivially_copyable<bsl::span<bsl::string, 6> >::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::span<int> >::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::span<int, 6> >::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::span<bsl::string> >::value));
+        ASSERT((bslmf::IsTriviallyCopyableCheck<bsl::span<bsl::string, 6> >::value));
+
       } break;
       default: {
         fprintf(stderr, "WARNING: CASE `%d' NOT FOUND.\n", test);

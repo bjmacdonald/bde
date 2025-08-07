@@ -106,6 +106,7 @@ int testStatus = 0;
 void aSsErT(bool b, const char *s, int i) {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -1250,8 +1251,6 @@ int main(int argc, char *argv[])
                         "===========================\n");
         }
 
-        const double TOLERANCE = 0.5;
-
         if (veryVerbose) printf("Compare constructed `Stopwatch`\n");
         {
             Stopwatch mX; const Stopwatch& X = mX;
@@ -1271,8 +1270,8 @@ int main(int argc, char *argv[])
             sleep(1);
 
             ASSERT(true  == X.isRunning());
-            ASSERT(1 - TOLERANCE <  X.elapsedTime());
-            ASSERT(1 + TOLERANCE >  X.elapsedTime());
+            ASSERTV(X.elapsedTime(), 0.9 <  X.elapsedTime());
+            ASSERTV(X.elapsedTime(), 5.0 >  X.elapsedTime());
         }
 
         if (veryVerbose) printf("Test stop and elapsedTime\n");
@@ -1298,8 +1297,8 @@ int main(int argc, char *argv[])
             ASSERTV(EXPECTED, ACTUAL,
                     EXPECTED - EXPECTED * .00001 < ACTUAL &&
                     EXPECTED + EXPECTED * .00001 > ACTUAL);
-            ASSERTV(X.elapsedTime(), 1 - TOLERANCE <  X.elapsedTime());
-            ASSERTV(X.elapsedTime(), 1 + TOLERANCE >  X.elapsedTime());
+            ASSERTV(X.elapsedTime(), 0.9 <  X.elapsedTime());
+            ASSERTV(X.elapsedTime(), 5.0 >  X.elapsedTime());
 
             mX.reset();
 

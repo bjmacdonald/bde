@@ -574,6 +574,7 @@ BSLS_IDENT("$Id: $")
 
 #include <bslscm_version.h>
 
+#include <bslstl_algorithm.h>
 #include <bslstl_equalto.h>
 #include <bslstl_hash.h>
 #include <bslstl_hashtable.h>
@@ -619,12 +620,16 @@ BSLS_IDENT("$Id: $")
 #endif
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Thu Oct 21 10:11:37 2021
+// Generated on Mon Jan 13 08:31:39 2025
 // Command line: sim_cpp11_features.pl bslstl_unorderedmultimap.h
+
 # define COMPILING_BSLSTL_UNORDEREDMULTIMAP_H
 # include <bslstl_unorderedmultimap_cpp03.h>
 # undef COMPILING_BSLSTL_UNORDEREDMULTIMAP_H
+
+// clang-format on
 #else
 
 namespace bsl {
@@ -1474,6 +1479,21 @@ class unordered_multimap {
     /// `key` would be inserted.
     size_type bucket(const key_type& key) const;
 
+    /// Return the index of the bucket, in the array of buckets maintained
+    /// by this unordered map, where values having a key equivalent to the
+    /// specified `key` would be inserted.
+    ///
+    /// Note: implemented inline due to Sun CC compilation error.
+    template <class LOOKUP_KEY>
+    typename enable_if<
+           BloombergLP::bslmf::IsTransparentPredicate<HASH, LOOKUP_KEY>::value
+        && BloombergLP::bslmf::IsTransparentPredicate<EQUAL,LOOKUP_KEY>::value,
+                      size_type>::type
+    bucket(const LOOKUP_KEY& key) const
+    {
+        return d_impl.bucketIndexForKey(key);
+    }
+
     /// Return the number of buckets in the array of buckets maintained by
     /// this unordered multimap.
     size_type bucket_count() const BSLS_KEYWORD_NOEXCEPT;
@@ -1884,6 +1904,19 @@ bool operator!=(
 #endif
 
 // FREE FUNCTIONS
+
+/// Erase all the elements in the specified unordered_multimap `m` that satisfy
+/// the specified predicate `predicate`.  Return the number of elements
+/// erased.
+template <class KEY,
+          class VALUE,
+          class HASH,
+          class EQUAL,
+          class ALLOCATOR,
+          class PREDICATE>
+typename unordered_multimap<KEY, VALUE, HASH, EQUAL, ALLOCATOR>::size_type
+erase_if(unordered_multimap<KEY, VALUE, HASH, EQUAL, ALLOCATOR>&    m,
+                                                          PREDICATE predicate);
 
 /// Exchange the value, hasher, key-equality functor, and `max_load_factor`
 /// of the specified `a` object with those of the specified `b` object; also
@@ -2706,6 +2739,20 @@ bool bsl::operator!=(
 #endif
 
 // FREE FUNCTIONS
+template <class KEY,
+          class VALUE,
+          class HASH,
+          class EQUAL,
+          class ALLOCATOR,
+          class PREDICATE>
+inline
+typename bsl::unordered_multimap<KEY, VALUE, HASH, EQUAL, ALLOCATOR>::size_type
+bsl::erase_if(unordered_multimap<KEY, VALUE, HASH, EQUAL, ALLOCATOR>& m,
+                                                           PREDICATE predicate)
+{
+    return BloombergLP::bslstl::AlgorithmUtil::containerEraseIf(m, predicate);
+}
+
 template <class KEY, class VALUE, class HASH, class EQUAL, class ALLOCATOR>
 inline
 void bsl::swap(bsl::unordered_multimap<KEY, VALUE, HASH, EQUAL, ALLOCATOR>& a,

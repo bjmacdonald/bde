@@ -16,6 +16,7 @@
 
 #include <bsl_algorithm.h>
 #include <bsl_climits.h>
+#include <bsl_cmath.h>
 #include <bsl_cstdint.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
@@ -50,48 +51,48 @@ using bsl::size_t;
 //=============================================================================
 //                             TEST PLAN
 //
-//: o Test case 1 is the BREATHING TEST.
-//:
-//: o Test case 2 tests the validity checking routines on valid UTF-8
-//:   sequences.
-//:
-//: o Test case 3 tests the behavior of byte-order marks.
-//:
-//: o Test case 4 tests the behavior of surrogates.
-//:
-//: o Test case 5 tests that the "raw" functions that count code points count
-//:   correctly on valid strings.
-//:
-//: o Test case 6 runs a table-driven test on valid and invalid UTF-8 strings
-//:   and observes that the various overloads of 'isValid' and
-//:   'numCodePointsIfValid' all detect the invalid sequences.
-//:
-//: o Test case 7 tests the 'advance' functions on one very long string of
-//:   valid UTF-8 of real, human-generated prose in Chinese, Hindi, French, and
-//:   Greek and code points of all sizes (but no embedded '\0's).
-//:
-//: o Test case 8 tests the various functions, including, for the first time,
-//:   'readIfValid', on valid randomly-generated UTF-8 sequences.
-//:
-//: o Test case 9 is the "broken glass" test -- testing strings that contain a
-//:   mix of valid and invalid UTF-8, using a mix of table data and
-//:   randomly-generated data.
-//:
-//: o Test case 10 tests 'numBytesRaw'.
-//:
-//: o Test case 11 is a table-driven test to test functions returning code
-//:   point aspects ('codePointValue' and 'numBytesInCodePoint').
-//:
-//: o Test case 12 tests 'appendUtf8CodePoint' on valid Unicode characters.
-//:
-//: o Test case 13 is a table-driven test of the 'toAscii' class method.
-//:
-//: o Test case 14 is negative testing.
-//:
-//: o Test cases 15, 16, and 17 are USAGE EXAMPLES.
+//  - Test case 1 is the BREATHING TEST.
+//
+//  - Test case 2 tests the validity checking routines on valid UTF-8
+//    sequences.
+//
+//  - Test case 3 tests the behavior of byte-order marks.
+//
+//  - Test case 4 tests the behavior of surrogates.
+//
+//  - Test case 5 tests that the "raw" functions that count code points count
+//    correctly on valid strings.
+//
+//  - Test case 6 runs a table-driven test on valid and invalid UTF-8 strings
+//    and observes that the various overloads of `isValid` and
+//    `numCodePointsIfValid` all detect the invalid sequences.
+//
+//  - Test case 7 tests the `advance` functions on one very long string of
+//    valid UTF-8 of real, human-generated prose in Chinese, Hindi, French, and
+//    Greek and code points of all sizes (but no embedded '\0's).
+//
+//  - Test case 8 tests the various functions, including, for the first time,
+//    `readIfValid`, on valid randomly-generated UTF-8 sequences.
+//
+//  - Test case 9 is the "broken glass" test -- testing strings that contain a
+//    mix of valid and invalid UTF-8, using a mix of table data and
+//    randomly-generated data.
+//
+//  - Test case 10 tests `numBytesRaw`.
+//
+//  - Test case 11 is a table-driven test to test functions returning code
+//    point aspects (`codePointValue` and `numBytesInCodePoint`).
+//
+//  - Test case 12 tests `appendUtf8CodePoint` on valid Unicode characters.
+//
+//  - Test case 13 is a table-driven test of the `toAscii` class method.
+//
+//  - Test case 14 is negative testing.
+//
+//  - Test cases 15, 16, and 17 are USAGE EXAMPLES.
 //
 //-----------------------------------------------------------------------------
-// To fit functions on one line, 'typedef const char cchar'.
+// To fit functions on one line, `typedef const char cchar`.
 //
 // CLASS METHODS
 // [ 4] IntPtr advanceIfValid(int *, const char **, const char *, int);
@@ -157,15 +158,17 @@ using bsl::size_t;
 // [ 8] size_t readIfValid(int *, char *, size_t, streambuf *);
 // [ 9] IntPtr readIfValid(int *, cchar *, size_t, streambuf *);
 // [13] const char *toAscii(IntPtr);
+// [18] const char *advancePastValidOrInvalidCodePoint(const char *, IntPtr);
+// [19] IntPtr replaceErrors(string,  const bsl::string_view&, unsigned);
 //-----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
 // [ 2] TABLE-DRIVEN ENCODING / DECODING / VALIDATION TEST
 // [14] NEGATIVE TESTING
-// [18] USAGE EXAMPLE 1
-// [19] USAGE EXAMPLE 2
-// [20] USAGE EXAMPLE 3
+// [20] USAGE EXAMPLE 1
+// [21] USAGE EXAMPLE 2
+// [22] USAGE EXAMPLE 3
 // [-1] random number generator
-// [-2] 'utf8Encode', 'decode'
+// [-2] `utf8Encode`, `decode`
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
 // ----------------------------------------------------------------------------
@@ -1850,14 +1853,14 @@ const char * const charUtf8MultiLang = (const char *) utf8MultiLang;
 
 enum { NUM_UTF8_MULTI_LANG_CODE_POINTS = 11781 };
 
-/// Returns the specified `str` in a human-readable hex format.
+/// Returns the specified `sv` in a human-readable hex format.
 static
-bsl::string dumpStr(const bsl::string& str)
+bsl::string dumpStr(const bsl::string_view& sv)
 {
     bsl::string ret;
 
-    const char *begin = str.c_str();
-    const char *end   = &*str.end();
+    const char *begin = sv.data();
+    const char *end   = begin + sv.length();
 
     for (const char *pc = begin; pc < end; ++pc) {
         if (begin != pc) {
@@ -1878,8 +1881,8 @@ bsl::string dumpStr(const bsl::string& str)
 static inline
 int intAbs(int x)
 {
-    x = x < 0 ? -x : x;
-    return x < 0 ? ~x : x;
+    return x < 0 ? (INT_MIN == x ? INT_MAX : -x)
+                 : x;
 }
 
 /// Return a pseudo-random unsigned integer.
@@ -2701,6 +2704,14 @@ bsl::string tmpFileName(int test)
     return ret;
 }
 
+/// Return `true` if the specified `str` contains any ASCII and `false`
+/// otherwise.
+bool containsAscii(const char *str)
+{
+    for (; *str && (*str & 0x80); ++str) {}
+    return *str != 0;
+}
+
 }  // close namespace u
 }  // close unnamed namespace
 
@@ -2711,15 +2722,15 @@ bsl::string tmpFileName(int test)
 namespace USAGE_3 {
 
 //
-///Example 3: Validating UTF-8 Read from a 'bsl::streambuf'
+///Example 3: Validating UTF-8 Read from a `bsl::streambuf`
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // In this usage example, we will demonstrate reading and validating UTF-8
 // from a stream.
 //
-// We write a function to read valid UTF-8 to a 'bsl::string'.  We don't know
+// We write a function to read valid UTF-8 to a `bsl::string`.  We don't know
 // how long the input will be, so we don't know how long to make the string
 // before we start.  We will grow the string in small, 32-byte increments.
-//..
+// ```
 
     /// Read valid UTF-8 from the specified streambuf `sb` to the specified
     /// `output`.  Return 0 if the input was exhausted without encountering
@@ -2747,8 +2758,8 @@ namespace USAGE_3 {
             output->resize(len + numBytes);
             if (0 < status) {
                 // Buffer was full before the end of input was encountered.
-                // Note that 'numBytes' may be up to 3 bytes less than
-                // 'k_READ_LENGTH'.
+                // Note that `numBytes` may be up to 3 bytes less than
+                // `k_READ_LENGTH`.
 
                 BSLS_ASSERT(k_READ_LENGTH - 4 < numBytes);
 
@@ -2763,8 +2774,8 @@ namespace USAGE_3 {
                 return 0;                                             // RETURN
             }
             else {
-                // Invalid UTF-8 encountered; the value of 'status' indicates
-                // the exact nature of the problem.  'numBytes' returned from
+                // Invalid UTF-8 encountered; the value of `status` indicates
+                // the exact nature of the problem.  `numBytes` returned from
                 // the above call indicated the number of valid UTF-8 bytes
                 // read before encountering the invalid UTF-8.
 
@@ -2778,7 +2789,7 @@ if (verbose) {
             }
         }
     }
-//..
+// ```
 
 }  // close namespace USAGE_3
 
@@ -2880,7 +2891,7 @@ const Obj::ErrorStatus IIO = Obj::k_INVALID_INITIAL_OCTET;
 const Obj::ErrorStatus VTL = Obj::k_VALUE_LARGER_THAN_0X10FFFF;
 const Obj::ErrorStatus SUR = Obj::k_SURROGATE;
 
-static const struct {
+static const struct Data {
     int         d_lineNum;    // source line number
 
     const char *d_utf8_p;     // UTF-8 input string
@@ -3089,12 +3100,157 @@ static const struct {
 };
 enum { NUM_DATA = sizeof DATA / sizeof *DATA };
 
+namespace TEST_CASE_REPLACE_ERRORS {
+
+/// Load into the specified `in` a randomly-generated input string for testing
+/// `replaceErrors` having the specified `numCodePoints`, including one or more
+/// invalid ones if the specified `valid` is `false`.  Load into the specified
+/// `exp` the expected output of `replaceErrors`, replacing the invalid code
+/// points with the specified `errorSequence` and loading their number into the
+/// specified `numErrors`.  The behavior is undefined if
+/// `!valid && 0 == numCodePoints`.
+void makeTest(bsl::string  *exp,
+              bsl::string  *in,
+              int          *numErrors,
+              const char   *errorSequence,
+              int           numCodePoints,
+              bool          valid)
+{
+    BSLS_ASSERT_SAFE(valid ? (0 <= numCodePoints) : (0 < numCodePoints));
+
+    // We will be calling this function many times in a row with each error
+    // sequence.  Only check `Obj::isValid(errorSequence)` when `errorSequence`
+    // does not match the value it had on the last iteration.
+
+    static const char *prevErrorSequence = 0;
+    BSLS_ASSERT_SAFE(prevErrorSequence == errorSequence ||
+                                                  Obj::isValid(errorSequence));
+    prevErrorSequence = errorSequence;    (void) prevErrorSequence;
+
+    exp->clear();
+    in ->clear();
+    *numErrors = 0;
+
+    // The table `DATA` (above) contains snippets of UTF-8 with information
+    // about them in other fields.  We iterate building our input, one code
+    // point per successful iteration, selecting UTF-8 snippets from `DATA`
+    // once per iteration.  After selecting a snippet, we examine many criteria
+    // and if it is not appropriate reject the snippet calling `continue` to go
+    // back to the top of the loop and start again.
+    //
+    // For valid snippets, `CODE_POINTS` is the number of code points in the
+    // snippet (we only want to do one code point per iterations) and for
+    // invalid code points, `CODE_POINTS` is a negative code indicating the
+    // nature of the probelm.
+    //
+    // Valid sequences are used only if `CODE_POINTS == 1`.
+    //
+    // For invalid sequences, we reject them unless `0 == ERROR_OFFSET` since
+    // otherwise there is a valid sequence followed by an invalid one --
+    // multiple code points.
+    //
+    // For invalid sequences of points, if the current code point is `UCO`
+    // (unexpected continuation octet) and the previous octet is `EIT` (an
+    // incomplete octet) reject the sequence as the two might merge into a
+    // correct sequence, throwing off the anticipated number of errors.
+    //
+    // For invalid code points, we never use them if `CODE_POINTS == NCO` since
+    // `NCO` means a sequence where an incomplete sequence is interrupted by
+    // another sequence, which means there are multiple code points.  Many
+    // invalid sequences in `DATA` have a ASCII character tacked on, meaning
+    // multiple code points, so we exclude invalid code points if they have
+    // any ASCII in them (ASCII characters alone are never invalid).
+
+    int prevCodePoint = 0;
+    for (int ii = numCodePoints; 0 < ii; ) {
+        const unsigned  rand         = u::randNum();
+        const Data&     data         = DATA[rand % NUM_DATA];
+        const char     *INPUT        = data.d_utf8_p;
+        const int       CODE_POINTS  = data.d_numCodePoints;
+        const int       ERROR_OFFSET = data.d_errOffset;
+        const bool      IS_VALID     = data.d_isValid;
+
+        if (IS_VALID) {
+            if (CODE_POINTS != 1) {
+                // We want one code point per iteration, so the number of code
+                // points in `*in` will sum to 'numCodePoints'.
+
+                continue;
+            }
+            else if (!valid && 1 == ii && 0 == *numErrors) {
+                // If it's the last iteration, the string is not supposed to be
+                // valid, and haven't injected any errors into the string yet,
+                // don't make the last code point a valid one.
+
+                continue;
+            }
+
+            *exp += INPUT;
+            *in  += INPUT;
+        }
+        else {
+            if (valid) {
+                // `*in` is to be valid, should have no invalid code points
+
+                continue;
+            }
+            else if (0 != ERROR_OFFSET) {
+                // We want the error code point to be at the start of the
+                // code point.
+
+                continue;
+            }
+            else if (UCO == CODE_POINTS && EIT == prevCodePoint) {
+                // `INPUT` begins with a continuation octet and the previous
+                // code point was incomplete, they will join together to
+                // potentially erase the error, rather than having two errors.
+
+                continue;
+            }
+            else if (u::containsAscii(INPUT) || NCO == CODE_POINTS) {
+                // These are both signs that `INPUT` contains more than one
+                // code point.
+
+                continue;
+            }
+
+            ++*numErrors;
+            *exp += errorSequence;
+            if (UCO == CODE_POINTS) {
+                // unexpected continuation octet, use only the first byte
+
+                *in += *INPUT;
+            }
+            else if (0xf8 == (0xf8 & *INPUT)) {
+                // garbage header byte, use only that byte
+
+                *in += *INPUT;
+            }
+            else {
+                // use whole sequence
+
+                *in +=  INPUT;
+            }
+        }
+
+        --ii;
+        prevCodePoint = CODE_POINTS;
+    }
+
+    BSLS_ASSERT_SAFE(Obj::isValid(*exp));
+    const bool wasValid = Obj::isValid(*in);
+    BSLS_ASSERT_SAFE(wasValid == valid);    (void) wasValid;
+    BSLS_ASSERT_SAFE(wasValid == (0 == *numErrors));
+}
+
+}  // close namespace TEST_CASE_REPLACE_ERRORS
+
 //=============================================================================
 //                              FUZZ TESTING
 //-----------------------------------------------------------------------------
 //                              Overview
 //                              --------
-// The following function, 'LLVMFuzzerTestOneInput', is the entry point for the
+// The following function, `LLVMFuzzerTestOneInput`, is the entry point for the
 // clang fuzz testing facility.  See {http://bburl/BDEFuzzTesting} for details
 // on how to build and run with fuzz testing enabled.
 //-----------------------------------------------------------------------------
@@ -3132,12 +3288,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
       case 10: {
         // --------------------------------------------------------------------
-        // TESTING 'toAscii'
+        // TESTING `toAscii`
         //
         // Plan:
         //   Obtain a code point from the fuzz data directly.  If there is not
-        //   enough data to receive required 'IntPtr' value then the default
-        //   value ('0') is used.
+        //   enough data to receive required `IntPtr` value then the default
+        //   value (`0`) is used.
         //
         // Testing:
         //   const char *toAscii(IntPtr value);
@@ -3165,11 +3321,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 9: {
         // --------------------------------------------------------------------
-        // TESTING 'readIfValid'
+        // TESTING `readIfValid`
         //
         // Plan:
         //   Use the fuzz data as a UTF-8 string and its length as the length
-        //   of this string to create the required 'streambuf'.
+        //   of this string to create the required `streambuf`.
         //
         // Testing:
         //   size_type readIfValid(int *, char *, size_type, bsl::streambuf *);
@@ -3191,11 +3347,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 8: {
         // --------------------------------------------------------------------
-        // TESTING 'numCodePointsRaw'
+        // TESTING `numCodePointsRaw`
         //
         // Plan:
         //   Use the fuzz data as a UTF-8 string and its length as the length
-        //   of this string.  Call 'numCodePointsIfValid' first to verify the
+        //   of this string.  Call `numCodePointsIfValid` first to verify the
         //   validity of this string to avoid undefined behavior.
         //
         // Testing:
@@ -3231,7 +3387,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 7: {
         // --------------------------------------------------------------------
-        // TESTING 'numCodePointsIfValid'
+        // TESTING `numCodePointsIfValid`
         //
         // Plan:
         //   Use the fuzz data as a UTF-8 string and its length as the length
@@ -3271,13 +3427,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 6: {
         // --------------------------------------------------------------------
-        // TESTING 'numBytesRaw'
+        // TESTING `numBytesRaw`
         //
         // Plan:
         //   Obtain a code point from the fuzz data directly.  If there is not
-        //   enough data to receive required 'IntPtr' value, then use every
-        //   non-negative value up to 'sizeof(IntPtr)'. Use the fuzz data and
-        //   its length as the parameters for the 'string_view' object's
+        //   enough data to receive required `IntPtr` value, then use every
+        //   non-negative value up to `sizeof(IntPtr)`. Use the fuzz data and
+        //   its length as the parameters for the `string_view` object's
         //   construction.
         //
         // Testing:
@@ -3310,7 +3466,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 5: {
         // --------------------------------------------------------------------
-        // TESTING 'numBytesInCodePoint'
+        // TESTING `numBytesInCodePoint`
         //
         // Plan:
         //   Use the fuzz data as a UTF-8 string containing at least one
@@ -3335,13 +3491,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 4: {
         // --------------------------------------------------------------------
-        // TESTING 'appendUtf8CodePoint'
+        // TESTING `appendUtf8CodePoint`
         //
         // Plan:
         //   Obtain a code point from the fuzz data directly.  If there is not
-        //   enough data to receive required 'unsigned int' value, then use
-        //   every non-negative value up to 'sizeof(unsigned int)'. Use the
-        //   fuzz data and its length as the parameters for 'output' string
+        //   enough data to receive required `unsigned int` value, then use
+        //   every non-negative value up to `sizeof(unsigned int)`. Use the
+        //   fuzz data and its length as the parameters for `output` string
         //   construction.
         //
         // Testing:
@@ -3370,7 +3526,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 3: {
         // --------------------------------------------------------------------
-        // TESTING 'advanceRaw'
+        // TESTING `advanceRaw`
         //
         // Plan:
         //   Obtain the number of code points from the fuzz data directly, use
@@ -3435,7 +3591,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 2: {
         // --------------------------------------------------------------------
-        // TESTING 'advanceIfValid'
+        // TESTING `advanceIfValid`
         //
         // Plan:
         //   Obtain the number of code points from the fuzz data directly, use
@@ -3495,11 +3651,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
       } break;
       case 1: {
         // --------------------------------------------------------------------
-        // TESTING 'isValid'
+        // TESTING `isValid`
         //
         // Plan:
         //   Use the fuzz data as a UTF-8 string and its length as the length
-        //   of this string to invoke 'isValid' method.
+        //   of this string to invoke `isValid` method.
         //
         // Testing:
         //   bool isValid(const char *string);
@@ -3558,36 +3714,36 @@ int main(int argc, char *argv[])
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;;
 
-    // CONCERN: 'BSLS_REVIEW' failures should lead to test failures.
+    // CONCERN: `BSLS_REVIEW` failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
     switch (test) { case 0:  // Zero is always the leading case.
-      case 20: {
+      case 22: {
         // --------------------------------------------------------------------
-        // USAGE EXAMPLE 3: 'readIfValid'
+        // USAGE EXAMPLE 3: `readIfValid`
         //
         // Concerns:
-        //: 1 Demonstrate the 'readIfValid' function.
+        // 1. Demonstrate the `readIfValid` function.
         //
         // Plan:
-        //: 1 Create a function, 'utf8StreambufToString', that uses the
-        //:   'readIfValid' function to stream and check UTF-8 from a
-        //:   'streambuf' to a 'bsl::string'.
-        //:
-        //: 2 Stream trivial and non-trivial valid UTF-8 to the string.
-        //:
-        //: 3 Append invalid UTF-8 to the non-trivial valid UTF-8 string.
-        //:
-        //: 4 Try to input that with our function and observe that the valid
-        //:   UTF-8 preceding the invalid code point gets input, and show how
-        //:   the 'status' returned through the argument list of 'readIfValid'
-        //:   shows the nature of the UTF-8 error.
+        // 1. Create a function, `utf8StreambufToString`, that uses the
+        //    `readIfValid` function to stream and check UTF-8 from a
+        //    `streambuf` to a `bsl::string`.
+        //
+        // 2. Stream trivial and non-trivial valid UTF-8 to the string.
+        //
+        // 3. Append invalid UTF-8 to the non-trivial valid UTF-8 string.
+        //
+        // 4. Try to input that with our function and observe that the valid
+        //    UTF-8 preceding the invalid code point gets input, and show how
+        //    the `status` returned through the argument list of `readIfValid`
+        //    shows the nature of the UTF-8 error.
         //
         // Testing:
         //   USAGE EXAMPLE 3
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "USAGE EXAMPLE 3: 'readIfValid'\n"
+        if (verbose) cout << "USAGE EXAMPLE 3: `readIfValid`\n"
                              "==============================\n";
 
         using namespace USAGE_3;
@@ -3644,33 +3800,33 @@ int main(int argc, char *argv[])
         ASSERT(out.length() == validLen);
         ASSERT(validChineseUtf8 == out);
       } break;
-      case 19: {
+      case 21: {
         // --------------------------------------------------------------------
-        // USAGE EXAMPLE 2: 'advance'
+        // USAGE EXAMPLE 2: `advance`
         //
         // Concerns:
-        //: 1 Demonstrate the 'advance*' functions.
+        // 1. Demonstrate the `advance*` functions.
         //
         // Plan:
-        //: 1 Use the 'appendUtf8CodePoint' function to build an example
-        //:   string, then advance through it.
+        // 1. Use the `appendUtf8CodePoint` function to build an example
+        //    string, then advance through it.
         //
         // Testing:
         //   USAGE EXAMPLE 2
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "USAGE EXAMPLE 2: 'advance'\n"
+        if (verbose) cout << "USAGE EXAMPLE 2: `advance`\n"
                              "==========================\n";
 
 //
 ///Example 2: Advancing Over a Given Number of Code Points
 ///- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// In this example, we will use the various 'advance' functions to advance
+// In this example, we will use the various `advance` functions to advance
 // through a UTF-8 string.
 //
-// First, build the string using 'appendUtf8CodePoint', keeping track of how
+// First, build the string using `appendUtf8CodePoint`, keeping track of how
 // many bytes are in each Unicode code point:
-//..
+// ```
     bsl::string string;
     bdlde::Utf8Util::appendUtf8CodePoint(&string, 0xff00);        // 3 bytes
     bdlde::Utf8Util::appendUtf8CodePoint(&string, 0x1ff);         // 2 bytes
@@ -3682,19 +3838,19 @@ int main(int argc, char *argv[])
                                         // last continuation byte is invalid)
     bdlde::Utf8Util::appendUtf8CodePoint(&string, 'w');           // 1 byte
     bdlde::Utf8Util::appendUtf8CodePoint(&string, '\n');          // 1 byte
-//..
+// ```
 // Then, declare a few variables we'll need:
-//..
+// ```
     bsls::Types::IntPtr  rc;
     int                  status;
     const char          *result;
     const char *const start = string.c_str();
-//..
+// ```
 // Next, try advancing 2 code points, then 3, then 4, observing that the value
 // returned is the number of Unicode code points advanced.  Note that since
-// we're only advancing over valid UTF-8, we can use either 'advanceRaw' or
-// 'advanceIfValid':
-//..
+// we're only advancing over valid UTF-8, we can use either `advanceRaw` or
+// `advanceIfValid`:
+// ```
     rc = bdlde::Utf8Util::advanceRaw(              &result, start, 2);
     ASSERT(2 == rc);
     ASSERT(3 + 2 == result - start);
@@ -3721,30 +3877,30 @@ int main(int argc, char *argv[])
     ASSERT(0 == status);
     ASSERT(4 == rc);
     ASSERT(3 + 2 + 1 + 4 == result - start);
-//..
+// ```
 // Then, try advancing by more code points than are present using
-// 'advanceIfValid', and wind up stopping when we encounter invalid input.  The
-// behavior of 'advanceRaw' is undefined if it is used on invalid input, so we
+// `advanceIfValid`, and wind up stopping when we encounter invalid input.  The
+// behavior of `advanceRaw` is undefined if it is used on invalid input, so we
 // cannot use it here.  Also note that we will stop at the beginning of the
 // invalid Unicode code point, and not at the first incorrect byte, which is
 // two bytes later:
-//..
+// ```
     rc = bdlde::Utf8Util::advanceIfValid(&status, &result, start, INT_MAX);
     ASSERT(0 != status);
     ASSERT(5 == rc);
     ASSERT(3 + 2 + 1 + 4 + 4                 == result - start);
     ASSERT(static_cast<int>(string.length()) >  result - start);
-//..
+// ```
 // Now, doctor the string to replace the invalid code point with a valid one,
 // so the string is entirely correct UTF-8:
-//..
+// ```
     string[3 + 2 + 1 + 4 + 4 + 2] = static_cast<char>(0x8a);
-//..
+// ```
 // Finally, advance using both functions by more code points than are in the
 // string and in both cases wind up at the end of the string.  Note that
-// 'advanceIfValid' does not return an error (non-zero) value to 'status' when
+// `advanceIfValid` does not return an error (non-zero) value to `status` when
 // it encounters the end of the string:
-//..
+// ```
     rc = bdlde::Utf8Util::advanceRaw(             &result, start, INT_MAX);
     ASSERT(8 == rc);
     ASSERT(3 + 2 + 1 + 4 + 4 + 3 + 1 + 1     == result - start);
@@ -3755,25 +3911,25 @@ int main(int argc, char *argv[])
     ASSERT(8 == rc);
     ASSERT(3 + 2 + 1 + 4 + 4 + 3 + 1 + 1     == result - start);
     ASSERT(static_cast<int>(string.length()) == result - start);
-//..
+// ```
       } break;
-      case 18: {
+      case 20: {
         // --------------------------------------------------------------------
-        // USAGE EXAMPLE 1: 'isValid' AND 'numCodePoints*'
+        // USAGE EXAMPLE 1: `isValid` AND `numCodePoints*`
         //
         // Concerns:
-        //: 1 Demonstrate the routines by encoding some UTF-8 strings and
-        //:   validating them and counting their code points.
+        // 1. Demonstrate the routines by encoding some UTF-8 strings and
+        //    validating them and counting their code points.
         //
         // Plan:
-        //: 1 Create both UTF-8 and modified UTF-8 strings and validate them.
+        // 1. Create both UTF-8 and modified UTF-8 strings and validate them.
         //
         // Testing:
         //   USAGE EXAMPLE 1
         // --------------------------------------------------------------------
 
         if (verbose) cout <<
-                           "USAGE EXAMPLE 1: 'isValid' AND 'numCodePoints*'\n"
+                           "USAGE EXAMPLE 1: `isValid` AND `numCodePoints*`\n"
                            "===============================================\n";
 
 ///Usage
@@ -3786,7 +3942,7 @@ int main(int argc, char *argv[])
 // strings and demonstrate those that are valid and those that are not.
 //
 // First, we build an unquestionably valid UTF-8 string:
-//..
+// ```
     bsl::string string;
     bdlde::Utf8Util::appendUtf8CodePoint(&string, 0xff00);
     bdlde::Utf8Util::appendUtf8CodePoint(&string, 0x856);
@@ -3797,30 +3953,30 @@ int main(int argc, char *argv[])
     bdlde::Utf8Util::appendUtf8CodePoint(&string, 0x1abcd);
     bdlde::Utf8Util::appendUtf8CodePoint(&string, '.');
     bdlde::Utf8Util::appendUtf8CodePoint(&string, '\n');
-//..
+// ```
 // Then, we check its validity and measure its length:
-//..
+// ```
     ASSERT(true == bdlde::Utf8Util::isValid(string.data(), string.length()));
     ASSERT(true == bdlde::Utf8Util::isValid(string.c_str()));
 
     ASSERT(   9 == bdlde::Utf8Util::numCodePointsRaw(string.data(),
                                                      string.length()));
     ASSERT(   9 == bdlde::Utf8Util::numCodePointsRaw(string.c_str()));
-//..
-// Next, we encode a lone surrogate value, '0xd8ab', that we encode as the raw
+// ```
+// Next, we encode a lone surrogate value, `0xd8ab`, that we encode as the raw
 // 3-byte sequence "\xed\xa2\xab" to avoid validation:
-//..
+// ```
     bsl::string stringWithSurrogate = string + "\xed\xa2\xab";
 
     ASSERT(false == bdlde::Utf8Util::isValid(stringWithSurrogate.data(),
                                              stringWithSurrogate.length()));
     ASSERT(false == bdlde::Utf8Util::isValid(stringWithSurrogate.c_str()));
-//..
-// Then, we cannot use 'numCodePointsRaw' to count the code points in
-// 'stringWithSurrogate', since the behavior of that method is undefined unless
-// the string is valid.  Instead, the 'numCodePointsIfValid' method can be used
+// ```
+// Then, we cannot use `numCodePointsRaw` to count the code points in
+// `stringWithSurrogate`, since the behavior of that method is undefined unless
+// the string is valid.  Instead, the `numCodePointsIfValid` method can be used
 // on strings whose validity we are uncertain of:
-//..
+// ```
     const char *invalidPosition = 0;
 
     bsls::Types::IntPtr rc;
@@ -3838,22 +3994,22 @@ int main(int argc, char *argv[])
     ASSERT(rc < 0);
     ASSERT(bdlde::Utf8Util::k_SURROGATE == rc);
     ASSERT(invalidPosition == stringWithSurrogate.data() + string.length());
-//..
+// ```
 // Now, we encode 0, which is allowed.  However, note that we cannot use any
 // interfaces that take a null-terminated string for this case:
-//..
+// ```
     bsl::string stringWithNull = string;
     stringWithNull += '\0';
-//..
+// ```
     ASSERT(true == bdlde::Utf8Util::isValid(stringWithNull.data(),
                                             stringWithNull.length()));
 
     ASSERT(  10 == bdlde::Utf8Util::numCodePointsRaw(stringWithNull.data(),
                                                      stringWithNull.length()));
-//..
-// Finally, we encode '0x3a' (':') as an overlong value using 2 bytes, which is
+// ```
+// Finally, we encode `0x3a` (':') as an overlong value using 2 bytes, which is
 // not valid UTF-8 (since ':' can be "encoded" in 1 byte):
-//..
+// ```
     bsl::string stringWithOverlong = string;
     stringWithOverlong += static_cast<char>(0xc0);        // start of 2-byte
                                                           // sequence
@@ -3875,48 +4031,643 @@ int main(int argc, char *argv[])
     ASSERT(rc < 0);
     ASSERT(bdlde::Utf8Util::k_OVERLONG_ENCODING == rc);
     ASSERT(invalidPosition == stringWithOverlong.data() + string.length());
-//..
+// ```
+      } break;
+      case 19: {
+        // --------------------------------------------------------------------
+        // TESTING: `ImpUtil::replaceErrors`
+        //
+        // Concerns:
+        // 1. That the function will not modify correct UTF-8 sequences.
+        //
+        // 2. That the strings returned by the function are always valid.
+        //
+        // 3. That the function correctly replaces the error sequences with
+        //    the desired replacement sequence.
+        //
+        // 4. If the replacement code point is 0, error sequences are omitted
+        //    and replaced with nothing.
+        //
+        // 5. If the replacement code point is not 0, the number of code points
+        //    in the sequence is unchanged.
+        //
+        // 6. If no replacement code point is specified,
+        //    `Obj::k_ERROR_CODE_POINT` is substituted.
+        //
+        // 7. All types of invalid code points are replaced.
+        //
+        // 8. QoI: Asserted precondition violations are detected when asserts
+        //    are enabled.
+        //
+        // Plan:
+        //   The global table `DATA` above contains many snippets of UTF-8,
+        //   including every type of valid sequence and every type of invalid
+        //   seqence.  None of the sequences in `DATA` include any of the error
+        //   sequences (explained below).  The error sequences (in the table
+        //   `errorTypes` below) are all uninteresting valid UTF-8 sequences.
+        //
+        //   `DATA` also contains several fields describing attributes of the
+        //   code snippets such as the type of error contained in the snippet,
+        //   if any (each snippet has at most one UTF-8 error).
+        //
+        // 1. In the outer loop, cycle through the rows of the `errorTypes`
+        //    table, and for each row, get `utf32ErrorCodePoint` and
+        //    `errorSequence` (where `errorSequence` is the UTF-8 equivalent of
+        //    `utf32ErrorCodePoint`).  We will pass the UTF-32 form to the
+        //    function under test, and expect to find the UTF-8 form in the
+        //    resulting output.
+        //
+        // 2. Examine the UTF-8 sequences in each element of `DATA` to verify
+        //    that none of them contain the current `errorSequence`, so that
+        //    we know later on, when examining output, that any instances of
+        //    `errorSequence` encountered were put there by `replaceErrors`.
+        //
+        // 3. Iterate through all the sequences in `DATA` and run
+        //    `replaceErrors` on each one.  Verify that the return value of
+        //    `replaceErrors`, the number of errors encountered, is consistent
+        //    with the `is valid` boolean value from `DATA`.
+        //
+        // 4. Iterate through sequence lengths for 2 to 15, calling
+        //    `TC::makeTest`, which splices together single code point
+        //    sequences randomly chosen from `DATA` and calculates `exp`, the
+        //    expected string output from `replaceErrors`, and `numErrors`, the
+        //    expected number of errors found (and return value).  Afterward,
+        //    confirm that both the string output and return value of
+        //    `replaceErrors` are as predicted by `TC::makeTest`.
+        //
+        // 5. In loops 3 and 4, iterate between using `bsl::string`,
+        //    `std::string`, and `std::pmr::string` (where supported),
+        //    assigning the strings to a `string_view` afterward, which is then
+        //    followed by a single block of code verifying that the contents of
+        //    the `string_view` (and therefore of whatever kind of string) are
+        //    as expected.
+        //
+        // 6. Verify that, in appropriate build modes, defensive checks are
+        //    performed on the `utf32ErrorCodePoint` argument.  This is done
+        //    with negative testing using the `BSLS_ASSERTTEST_*`.
+        //
+        // Testing:
+        //   IntPtr replaceErrors(string,  const bsl::string_view&, unsigned);
+        // --------------------------------------------------------------------
+
+        namespace TC = TEST_CASE_REPLACE_ERRORS;
+
+        const bsl::size_t npos      = bsl::string::npos;
+
+        struct ErrorType {
+            const unsigned int  d_utf32ErrorCodePoint;
+            const char         *d_errorSequence;
+        } errorTypes[] = {
+            { '?',                     "?" },
+            { Obj::k_ERROR_CODE_POINT, "\xef\xbf\xbd" },
+            { 0,                       "" },
+        };
+        enum { k_NUM_ERROR_TYPES = sizeof errorTypes / sizeof *errorTypes };
+
+        enum StringType { k_BSL,
+                          k_STD,
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                          k_PMR,
+#endif
+                          k_NUM_STRING_TYPES };
+
+        for (int ei = 0; ei < k_NUM_ERROR_TYPES; ++ei) {
+            const unsigned int utf32ErrorCodePoint =
+                                        errorTypes[ei].d_utf32ErrorCodePoint;
+            const char *errorSequence = errorTypes[ei].d_errorSequence;
+
+            // Verify that 'errorSequence' does not occur in any of the
+            // sequences in 'DATA'.
+
+            if (*errorSequence) {
+                for (int ti = 0; ti < NUM_DATA; ++ti) {
+                    ASSERT(npos == bsl::string_view(DATA[ti].d_utf8_p).find(
+                                                               errorSequence));
+                }
+            }
+
+            if (verbose) {
+                cout << "Error substitution string: \"" <<
+                                           u::dumpStr(errorSequence) << "\"\n";
+
+                if (veryVerbose || 0 == ei) cout <<
+                            "Sequential traverse through single code points\n";
+            }
+
+            bsl::size_t maxLen = 0;
+            enum { k_MAX_SEQUENCE_LEN = 20 };
+            int validNumBytes[  k_MAX_SEQUENCE_LEN] = { 0 };
+            int invalidNumBytes[k_MAX_SEQUENCE_LEN] = { 0 };
+            for (int ti = 0; ti < NUM_DATA; ++ti) {
+                const Data& data         = DATA[ti];
+                const int   LINE         = data.d_lineNum;
+                const char *INPUT        = data.d_utf8_p;
+                const bool  IS_VALID     = data.d_isValid;
+
+                // single code point input, valid or invalid
+
+                bsl::string      outBsl;
+                bsl::string      outStd;
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                std::pmr::string outPmr;
+#endif
+                bsl::string_view outSv;
+                bsl::string_view in = INPUT;
+
+                if (veryVeryVerbose && 0 == ei) {
+                    cout << "  " <<
+                                  (IS_VALID ? "    valid: " : "  invalid: ") <<
+                                                        u::dumpStr(in) << endl;
+                }
+
+                maxLen = bsl::max(maxLen, in.length());
+                ASSERT(maxLen < k_MAX_SEQUENCE_LEN);
+                if (IS_VALID) {
+                    ++validNumBytes[  in.length()];
+                }
+                else {
+                    ++invalidNumBytes[in.length()];
+                }
+
+                IntPtr     rc;
+                StringType st   = static_cast<StringType>(
+                                               (ti + ei) % k_NUM_STRING_TYPES);
+                bool       dflt = (0 == ti % 5) &&
+                                Obj::k_ERROR_CODE_POINT == utf32ErrorCodePoint;
+                switch (st) {
+                  case k_BSL: {
+                    rc = dflt ? Obj::replaceErrors(&outBsl,
+                                                   in)
+                              : Obj::replaceErrors(&outBsl,
+                                                   in,
+                                                   utf32ErrorCodePoint);
+                    outSv = outBsl;
+                  } break;
+                  case k_STD: {
+                    rc = dflt ? Obj::replaceErrors(&outStd,
+                                                   in)
+                              : Obj::replaceErrors(&outStd,
+                                                   in,
+                                                   utf32ErrorCodePoint);
+                    outSv = outStd;
+                  } break;
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                  case k_PMR: {
+                    rc = dflt ? Obj::replaceErrors(&outPmr,
+                                                   in)
+                              : Obj::replaceErrors(&outPmr,
+                                                   in,
+                                                   utf32ErrorCodePoint);
+                    outSv = outPmr;
+                  } break;
+#endif
+                  default: {
+                    BSLS_ASSERT_INVOKE_NORETURN("invalid 'st'");
+                  } break;
+                }
+                ASSERTV(LINE, IS_VALID, rc, u::dumpStr(in), IS_VALID == !rc);
+                if (utf32ErrorCodePoint) {
+                    // 'errorSequence' never appears in the table, so there
+                    // should be exactly 'rc' occurrences of it present in
+                    // 'outSv'.
+
+                    bsl::size_t pos = 0;
+                    for (int ii = 0; ii < rc; ++ii, ++pos) {
+                        pos = outSv.find(errorSequence, pos);
+                        if (npos == pos) {
+                            ASSERTV(ei, ti, ii, u::dumpStr(outSv),
+                                                              rc, npos != pos);
+                            break;
+                        }
+                    }
+                    ASSERT(npos == outSv.find(errorSequence, pos));
+                }
+                ASSERT(!IS_VALID || outSv == in);
+            }
+            if (veryVerbose && 0 == ei) {
+                cout << " Num valid sequences: ";
+                int jj = k_MAX_SEQUENCE_LEN - 1;
+                for (; 0 < jj; --jj) {
+                    if (validNumBytes[jj]) {
+                        ++jj;
+                        break;
+                    }
+                }
+                for (int ii = 0; ii < jj; ++ii) {
+                    cout << (ii ? ", " : "") << validNumBytes[ii];
+                }
+                cout << "\n Num invalid sequences: ";
+                for (jj = k_MAX_SEQUENCE_LEN - 1; 0 < jj; --jj) {
+                    if (invalidNumBytes[jj]) {
+                        ++jj;
+                        break;
+                    }
+                }
+                for (int ii = 0; ii < jj; ++ii) {
+                    cout << (ii ? ", " : "") << invalidNumBytes[ii];
+                }
+                cout << endl;
+            }
+
+            // Restart random # generator so we'll get exactly the same set
+            // of 'in' strings for each 'ei'.
+
+            u::randAccum = 0;
+            (void) u::randNum();
+            (void) u::randNum();
+
+            // We've already tested all cases of 0 and 1 code point, so test
+            // cases of 2 or more code points.
+
+            if (verbose && 0 == ei) cout <<
+               "Testing cases of random sequences of 2 or more code points:\n";
+
+            for (int numCodePoints = 2; numCodePoints < 16; ++numCodePoints) {
+                // We want the number of iterations to grow as the number of
+                // code points rises.  Growing linearly or by the square of the
+                // number of code points is not aggressive enough, growing by
+                // the cube would be too much.  Growing by `numCodePoints^2.5`
+                // is just right and this has been calibrated to be thorough
+                // yet not to use too much CPU time.
+
+                const int numIterations =
+                              32 * static_cast<int>(::pow(numCodePoints, 2.5));
+
+                if (veryVerbose) {
+                    cout << "  Iteration with " << numCodePoints <<
+                                      " code points, errorSequence: \"" <<
+                                           u::dumpStr(errorSequence) << "\"\n";
+                }
+
+                for (int ti = 0; ti < numIterations; ++ti) {
+                    bsl::string exp, in;
+                    int numErrors = 0;
+
+                    // 1/8 of the test cases will be valid and all the rest
+                    // will be invalid.
+
+                    const bool validCase = 0 == (ti & 7);
+
+                    TC::makeTest(&exp,
+                                 &in,
+                                 &numErrors,
+                                 errorSequence,
+                                 numCodePoints,
+                                 validCase);
+                    ASSERTV(ti, u::dumpStr(exp), Obj::isValid(exp));
+
+                    // Give traces of the input `in` and expected output `exp`.
+                    // These traces could be very, very volumninous, so dump
+                    // them only for one value of `errorSequnce` of "?", and
+                    // dump all iterations only if `veryVeryVeryVerbose`.  If
+                    // only `veryVeryVerbose` is set, then dump out only the
+                    // first 40 iterations.
+
+                    if (0 == ei && (veryVeryVeryVerbose ||
+                                               (ti < 40 && veryVeryVerbose))) {
+                        cout << (validCase ? "      " : "    in") <<
+                                    "valid:  in: " << u::dumpStr(in) << endl <<
+                              "             exp: " << u::dumpStr(exp) << endl;
+                    }
+
+                    bsl::string      outBsl;
+                    bsl::string      outStd;
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                    std::pmr::string outPmr;
+#endif
+                    bsl::string_view outSv;
+                    IntPtr           rc;
+                    StringType       st   = static_cast<StringType>(
+                                               (ti + ei) % k_NUM_STRING_TYPES);
+                    bool             dflt = (0 == ti % 5) &&
+                                Obj::k_ERROR_CODE_POINT == utf32ErrorCodePoint;
+                    switch (st) {
+                      case k_BSL: {
+                        rc = dflt ? Obj::replaceErrors(&outBsl,
+                                                       in)
+                                  : Obj::replaceErrors(&outBsl,
+                                                       in,
+                                                       utf32ErrorCodePoint);
+                        outSv = outBsl;
+                      } break;
+                      case k_STD: {
+                        rc = dflt ? Obj::replaceErrors(&outStd,
+                                                       in)
+                                  : Obj::replaceErrors(&outStd,
+                                                       in,
+                                                       utf32ErrorCodePoint);
+                        outSv = outStd;
+                      } break;
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                      case k_PMR: {
+                        rc = dflt ? Obj::replaceErrors(&outPmr,
+                                                       in)
+                                  : Obj::replaceErrors(&outPmr,
+                                                       in,
+                                                       utf32ErrorCodePoint);
+                        outSv = outPmr;
+                      } break;
+#endif
+                      default: {
+                        BSLS_ASSERT_INVOKE_NORETURN("invalid 'st'");
+                      } break;
+                    }
+                    ASSERTV(ti, numErrors, rc, u::dumpStr(in),
+                                                              numErrors == rc);
+                    ASSERTV(ti, ei, st, u::dumpStr(exp), u::dumpStr(outSv),
+                                                 u::dumpStr(in), exp == outSv);
+                    ASSERTV(ti, u::dumpStr(outSv), Obj::isValid(outSv));
+                    ASSERTV(ti, u::dumpStr(in), rc, validCase,
+                                                             !rc == validCase);
+                    if (utf32ErrorCodePoint) {
+                        // 'errorSequence' never appears in the table, so there
+                        // should be exactly 'numErrors' occurrences of it
+                        // present in 'outSv'.
+
+                        bsl::size_t pos = 0;
+                        for (int ii = 0; ii < numErrors; ++ii, ++pos) {
+                            pos = outSv.find(errorSequence, pos);
+                            if (npos == pos) {
+                                ASSERTV(ei, ti, ii, u::dumpStr(outSv),
+                                                       numErrors, npos != pos);
+                                break;
+                            }
+                        }
+                        ASSERT(npos == outSv.find(errorSequence, pos));
+                    }
+
+                    const int expNumCodePoints = utf32ErrorCodePoint
+                                               ? numCodePoints
+                                               : numCodePoints - numErrors;
+                    const char *invalidStr = 0;
+                    rc = Obj::numCodePointsIfValid(&invalidStr, outSv);
+                    ASSERT(!invalidStr);
+                    ASSERTV(ti, u::dumpStr(outSv), rc, numCodePoints,
+                                                              expNumCodePoints,
+                                                       expNumCodePoints == rc);
+                }
+            }
+        }
+      } break;
+      case 18: {
+        // --------------------------------------------------------------------
+        // TESTING: `ImpUtil::advancePastValidOrInvalidCodePoint`
+        //
+        // Concerns:
+        // 1. That the function under test advances one UTF-8 code point
+        //    * given a valid UTF-8 code point.
+        //
+        //    * given an invalid UTF-8 code point
+        //
+        // 2. That the function under test will return the length in bytes of
+        //    of the first code point in `input`, not to be longer than
+        //    `input.length()`, regardless of what comes after it, except in
+        //    the case of an incomplete invalid code point followed by a
+        //    continuation octet that would make it whole.
+        //
+        // Plan:
+        // 1. Test the function on sequences containing single valid code
+        //    points.
+        //    * Function should advance the length of the code point.
+        //
+        //    * Append anything else onto the valid code point and observe that
+        //      it makes no difference to advancing over that first code point.
+        //
+        //    * Append any other valid sequence and observe that we can
+        //      seamlessly traverse the whole string (with multiple calls) and
+        //      the number of code points adds up correctly.
+        //
+        // 2. Test the function on a single invalid code point.
+        //    * Should advance the length of the code point.
+        //
+        //    * Append anything except for appending a continuation octet to
+        //      an incomplete sequence and observe that we advance the same
+        //      distance in a single call.
+        //
+        // 3. Test on a single truncated or invalid leading octet code point.
+        //    * Should advance the length of the truncated code point.
+        //
+        //    * Appending anything other than a continuation octer should make
+        //      no difference to the distance traversed in a single call.
+        //
+        // Testing:
+        //   char *advancePastValidOrInvalidCodePoint(const char *, IntPtr);
+        // --------------------------------------------------------------------
+
+        if (verbose) {
+            cout << "TESTING: `ImpUtil::advancePastValidOrInvalidCodePoint`\n"
+                    "======================================================\n";
+        }
+
+        if (verbose) cout << "Single valid code point\n";
+        for (int ti = 0; ti < NUM_DATA; ++ti) {
+            const Data& data         = DATA[ti];
+            const int   LINE         = data.d_lineNum;
+            const char *INPUT        = data.d_utf8_p;
+            const int   NUM_BYTES    = data.d_numBytes;
+            const int   CODE_POINTS  = data.d_numCodePoints;
+            const bool  IS_VALID     = data.d_isValid;
+
+            if (!IS_VALID || 1 != CODE_POINTS || NUM_BYTES < 1) {
+                continue;
+            }
+
+            // single valid code point
+
+            ASSERT(Obj::isValid(INPUT));
+
+            IntPtr ret = ImpUtil::advancePastValidOrInvalidCodePoint(INPUT);
+            ASSERTV(LINE, NUM_BYTES == ret);
+
+            // Tacking on anything should make no difference to the first code
+            // point.
+
+            for (int tj = 0; tj < NUM_DATA; ++tj) {
+                const Data& jData         = DATA[tj];
+                const int   JLINE         = jData.d_lineNum;
+                const char *JINPUT        = jData.d_utf8_p;
+                const int   JCODE_POINTS  = jData.d_numCodePoints;
+                const bool  JIS_VALID     = jData.d_isValid;
+
+                bsl::string s(INPUT);
+                s += JINPUT;
+                const char *pc  = s.c_str();
+                ASSERT(Obj::isValid(pc) == JIS_VALID);
+
+                // Tacking on anything should make no difference to the first
+                // code point.
+
+                ret = ImpUtil::advancePastValidOrInvalidCodePoint(pc);
+                ASSERTV(LINE, JLINE, ret, NUM_BYTES, NUM_BYTES == ret);
+
+                // If what we tacked on is valid, the number of code points in
+                // the whole string should add up.
+
+                if (!JIS_VALID) {
+                    continue;
+                }
+                ASSERT(Obj::isValid(pc));
+
+                bsl::string_view view(pc);
+
+                int ii = 0;
+                for (; !view.empty(); ++ii) {
+                    ret = ImpUtil::advancePastValidOrInvalidCodePoint(view);
+                    view.remove_prefix(ret);
+                }
+                ASSERTV(u::dumpStr(INPUT), u::dumpStr(JINPUT),
+                                                 CODE_POINTS, JCODE_POINTS, ii,
+                                             CODE_POINTS + JCODE_POINTS == ii);
+                ASSERTV(Obj::numCharacters(s.c_str()) == ii);
+            }
+        }
+
+        if (verbose) cout << "Sequences with single invalid code points\n";
+        for (int ti = 0; ti < NUM_DATA; ++ti) {
+            const Data& data         = DATA[ti];
+            const int   LINE         = data.d_lineNum;
+            const char *INPUT        = data.d_utf8_p;
+            int         NUM_BYTES    = data.d_numBytes;
+            int         CODE_POINTS  = data.d_numCodePoints;
+            const int   ERROR_OFFSET = data.d_errOffset;
+            const bool  IS_VALID     = data.d_isValid;
+
+            if (0 != ERROR_OFFSET || u::containsAscii(INPUT) ||
+                                                          NCO == CODE_POINTS) {
+                continue;
+            }
+            if (IS_VALID) {
+                if (CODE_POINTS != 1 || NUM_BYTES < 2) {
+                    continue;
+                }
+                --NUM_BYTES;
+                CODE_POINTS = EIT;
+            }
+            ASSERT(1 <= NUM_BYTES);
+            if (0xf8 == (0xf8 & *INPUT)) {
+                ASSERT(IIO == CODE_POINTS);
+                NUM_BYTES = 1;
+            }
+
+            bsl::string s(INPUT, NUM_BYTES);
+
+            // single erroneous code point
+
+            IntPtr ret = ImpUtil::advancePastValidOrInvalidCodePoint(s);
+            ASSERTV(LINE, NUM_BYTES == ret);
+
+            // Tacking on anything else that doesn't complete a valid code
+            // point should make no difference.
+
+            for (int tj = 0; tj < NUM_DATA; ++tj) {
+                const Data& jData         = DATA[tj];
+                const int   JLINE         = jData.d_lineNum;
+                const char *JINPUT        = jData.d_utf8_p;
+                const int   JCODE_POINTS  = jData.d_numCodePoints;
+
+                if (EIT == CODE_POINTS && UCO == JCODE_POINTS) {
+                    continue;
+                }
+
+                s.assign(INPUT, NUM_BYTES);
+                s += JINPUT;
+
+                ret = ImpUtil::advancePastValidOrInvalidCodePoint(s);
+                ASSERTV(LINE, JLINE, ret, NUM_BYTES, NUM_BYTES == ret);
+            }
+        }
+
+        if (verbose) cout << "Single truncated valid code point, not ascii\n";
+        for (int ti = 0; ti < NUM_DATA; ++ti) {
+            const Data& data         = DATA[ti];
+            const int   LINE         = data.d_lineNum;
+            const char *INPUT        = data.d_utf8_p;
+            int         NUM_BYTES    = data.d_numBytes;
+            int         CODE_POINTS  = data.d_numCodePoints;
+            const int   ERROR_OFFSET = data.d_errOffset;
+            const bool  IS_VALID     = data.d_isValid;
+
+            if (0 != ERROR_OFFSET) {
+                continue;
+            }
+            if (!(EIT == CODE_POINTS)) {
+                if (IS_VALID && CODE_POINTS == 1 && 2 <= NUM_BYTES) {
+                    CODE_POINTS = EIT;
+                    --NUM_BYTES;
+                }
+                else if (IIO == CODE_POINTS) {
+                    NUM_BYTES = 1;
+                }
+                else {
+                    continue;
+                }
+            }
+
+            IntPtr ret = ImpUtil::advancePastValidOrInvalidCodePoint(INPUT);
+            ASSERTV(LINE, NUM_BYTES, NUM_BYTES == ret);
+
+            // Tacking on anything other than a continuation octet should make
+            // no difference.
+
+            for (int tj = 0; tj < NUM_DATA; ++tj) {
+                const Data& jData         = DATA[tj];
+                const int   JLINE         = jData.d_lineNum;
+                const char *JINPUT        = jData.d_utf8_p;
+                const int   JCODE_POINTS  = jData.d_numCodePoints;
+
+                if (UCO == JCODE_POINTS) {
+                    continue;
+                }
+
+                bsl::string s(INPUT, NUM_BYTES);
+                s += JINPUT;
+
+                ret = ImpUtil::advancePastValidOrInvalidCodePoint(INPUT);
+                ASSERTV(LINE, JLINE, ret, NUM_BYTES, u::dumpStr(s),
+                                                             NUM_BYTES == ret);
+            }
+        }
       } break;
       case 17: {
         // --------------------------------------------------------------------
-        // TESTING: 'isValidCodePoint'
+        // TESTING: `isValidCodePoint`
         //
         // Concern:
-        //: 1 That for a valid code point, 'isValidCodePoint' returns 'true'
-        //:   and loads 'status' with the number of bytes in that code point.
-        //:
-        //: 2 The for an invalid code point, 'isValidCodePoint' returns 'false'
-        //:   and loads 'status' with the correct error status indicator.
-        //:
-        //: 3 That valid code-points of 1, 2, 3, and 4 bytes are tested.
-        //:
-        //: 4 That invalid code points are tested for each of the categories of
-        //:   errors found in  'ErrorStatus'.
-        //:
-        //: 5 QoI: Asserted precondition violations are detected when enabled.
+        // 1. That for a valid code point, `isValidCodePoint` returns `true`
+        //    and loads `status` with the number of bytes in that code point.
+        //
+        // 2. The for an invalid code point, `isValidCodePoint` returns `false`
+        //    and loads `status` with the correct error status indicator.
+        //
+        // 3. That valid code-points of 1, 2, 3, and 4 bytes are tested.
+        //
+        // 4. That invalid code points are tested for each of the categories of
+        //    errors found in  `ErrorStatus`.
+        //
+        // 5. QoI: Asserted precondition violations are detected when enabled.
         //
         // Plan:
-        //: 1 Perform a table-based test using the table of test data defined
-        //:   above in 'DATA'.
-        //:
-        //:   1 For intermediate byte in the array of test data, verify bytes
-        //:     that complete a valid code-point return 'true' and the correct
-        //:     number of bytes in that code-point, and bytes that do not
-        //:     complete a code-point return 'false' and
-        //:     'k_UNEXPECTED_CONTINUATION_OCTET'.
-        //:
-        //:   2 For terminating bytes in the input array, verify the return
-        //:      status information matches the data table specification.
-        //:
-        //: 2 Verify that, in appropriate build modes, defensive checks are
-        //:   triggered.
+        // 1. Perform a table-based test using the table of test data defined
+        //    above in `DATA`.
+        //
+        //   1. For intermediate byte in the array of test data, verify bytes
+        //      that complete a valid code-point return `true` and the correct
+        //      number of bytes in that code-point, and bytes that do not
+        //      complete a code-point return `false` and
+        //      `k_UNEXPECTED_CONTINUATION_OCTET`.
+        //
+        //   2. For terminating bytes in the input array, verify the return
+        //       status information matches the data table specification.
+        //
+        // 2. Verify that, in appropriate build modes, defensive checks are
+        //    triggered.
         //
         // Testing:
         //   bool isValidCodePoint(int *, const char *, size_type)
         // --------------------------------------------------------------------
 
         if (verbose) {
-            bsl::cout << "\tTESTING: 'isValidCodePoint'" << bsl::endl;
+            bsl::cout << "\tTESTING: `isValidCodePoint`" << bsl::endl;
         }
 
         for (int i = 0; i < NUM_DATA; ++i) {
@@ -3930,11 +4681,11 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            // 'ERROR_OFFSET' is the offset of the expected error in the string
-            // (always the last code-point of input), or -1 if 'INPUT' is valid
+            // `ERROR_OFFSET` is the offset of the expected error in the string
+            // (always the last code-point of input), or -1 if `INPUT` is valid
             // UTF-8.
             //
-            // 'ERROR_STATUS' is either the number of code-points in the
+            // `ERROR_STATUS` is either the number of code-points in the
             // string, or the error code expected for the last code-point.
 
             const char *position = INPUT;
@@ -3944,15 +4695,15 @@ int main(int argc, char *argv[])
                                            ? end
                                            : INPUT + ERROR_OFFSET;
 
-            // The expected results ('ERROR_OFFSET' and 'ERROR_STATUS') pertain
+            // The expected results (`ERROR_OFFSET` and `ERROR_STATUS`) pertain
             // only to the last-code point in the data.  All intermediate
             // positions should be either valid code points, or
-            // 'k_UNEXPECTED_CONTINUATION_OCTET'.
+            // `k_UNEXPECTED_CONTINUATION_OCTET`.
 
             int status;
 
-            // 'numBytesInCodePoint' can only be called on a valid code-point,
-            // so we must first verify position is prior to 'errorOffset' (if
+            // `numBytesInCodePoint` can only be called on a valid code-point,
+            // so we must first verify position is prior to `errorOffset` (if
             // there was an error offset).
 
             while (position < errorPosition &&
@@ -4018,67 +4769,67 @@ int main(int argc, char *argv[])
       } break;
       case 16: {
         // --------------------------------------------------------------------
-        // TESTING: 'getLineAndColumnNumber'
+        // TESTING: `getLineAndColumnNumber`
         //
-        // This test makes use of 'Utf8Util_ImpUtil', which provides a
-        // 'getLineAndColumnNumber' that expose a buffer and buffersi
+        // This test makes use of `Utf8Util_ImpUtil`, which provides a
+        // `getLineAndColumnNumber` that expose a buffer and buffersi
         // specifically for testing purposes.  This allows comprehensive
         // testing reads across the end of a buffer.
         //
         // Concern:
-        //: 1 Verify 'getLineAndColumnNumber' returns the line number, UTF-8
-        //:   based column number, and start offset for the byte offset
-        //:   provided in the document.
-        //:
-        //: 2 Verify correct return values for documents including
-        //:   1, 2, 3, and 4 byte code-points.
-        //:
-        //: 3 WHITE BOX: Verify correct return values even where
-        //:   code-points and lines are split across internal read-buffer
-        //:   boundaries.
-        //:
-        //: 4 Verify 'Utf8Util' overloads correctly forward their arguments to
-        //:   the 'Utf8Util_ImpUtil' implementation
-        //:
-        //: 6 Verify the function correctly determines lines based on the
-        //:   supplied delimeter character.
-        //:
-        //: 7 Verify searching for offsets beyond the document return an
-        //:   error.
-        //:
-        //: 8 Verify documents containing invalid UTF-8 characters return
-        //:    an error status.
-        //:
-        //: 9 QoI: Asserted precondition violations are detected when enabled.
-        //:
+        // 1. Verify `getLineAndColumnNumber` returns the line number, UTF-8
+        //    based column number, and start offset for the byte offset
+        //    provided in the document.
+        //
+        // 2. Verify correct return values for documents including
+        //    1, 2, 3, and 4 byte code-points.
+        //
+        // 3. WHITE BOX: Verify correct return values even where
+        //    code-points and lines are split across internal read-buffer
+        //    boundaries.
+        //
+        // 4. Verify `Utf8Util` overloads correctly forward their arguments to
+        //    the `Utf8Util_ImpUtil` implementation
+        //
+        // 6. Verify the function correctly determines lines based on the
+        //    supplied delimeter character.
+        //
+        // 7. Verify searching for offsets beyond the document return an
+        //    error.
+        //
+        // 8. Verify documents containing invalid UTF-8 characters return
+        //     an error status.
+        //
+        // 9. QoI: Asserted precondition violations are detected when enabled.
+        //
         // Plan:
-        //: 1 Using a test input containing several lines of UTF-8 containing
-        //:   code-points of multiple lengths, use a table-based test to
-        //:   verify the expected return values for all the offsets.  Iterate
-        //:   over different temporary read-buffer lengths to verify that
-        //:   spliting reads across buffer boundaries functions correctly.
-        //:
-        //: 2 Test that search for an offset beyond the test input reports an
-        //:   error.
-        //:
-        //: 3 Using the same table based approach as (1), test the public
-        //:   facing overloads (without varying buffer lengths).
-        //:
-        //: 4 For a simple string containing a variety of characters, test
-        //:   supplying different delimeter characters.
-        //:
-        //: 5 For a simple string containing an invalid UTF-8 code point, test
-        //:   that an error status is returned.
-        //:
-        //: 6 Verify that, in appropriate build modes, defensive checks are
-        //:   triggered.
+        // 1. Using a test input containing several lines of UTF-8 containing
+        //    code-points of multiple lengths, use a table-based test to
+        //    verify the expected return values for all the offsets.  Iterate
+        //    over different temporary read-buffer lengths to verify that
+        //    spliting reads across buffer boundaries functions correctly.
+        //
+        // 2. Test that search for an offset beyond the test input reports an
+        //    error.
+        //
+        // 3. Using the same table based approach as (1), test the public
+        //    facing overloads (without varying buffer lengths).
+        //
+        // 4. For a simple string containing a variety of characters, test
+        //    supplying different delimeter characters.
+        //
+        // 5. For a simple string containing an invalid UTF-8 code point, test
+        //    that an error status is returned.
+        //
+        // 6. Verify that, in appropriate build modes, defensive checks are
+        //    triggered.
         //
         // Testing:
         //   getLineAndColumnNumber(...)
         // --------------------------------------------------------------------
 
         if (verbose) {
-            bsl::cout << "\tTESTING: 'getLineAndColumnNumber'" << bsl::endl;
+            bsl::cout << "\tTESTING: `getLineAndColumnNumber`" << bsl::endl;
         }
         // A 1 byte encoded char (U+0078, latin lowercase x)
         #define U1_1 'x'
@@ -4128,7 +4879,7 @@ int main(int argc, char *argv[])
 
         struct LineDate {
             int    d_line;
-            Uint64 d_offset;              // input offset into 'documentPtr'
+            Uint64 d_offset;              // input offset into `documentPtr`
             Uint64 d_expectedLine;        // expected line number
             Uint64 d_expectedColumn;      // expected column number
             Uint64 d_expectedStartLine;   // expected start line
@@ -4246,7 +4997,7 @@ int main(int argc, char *argv[])
 
         }
         if (verbose) {
-            bsl::cout << "\t\tTesting overloads forward arguments" << bsl::endl;
+            cout << "\t\tTesting overloads forward arguments" << endl;
         }
         {
             for (int i = 0; i < NUM_DATA; ++i) {
@@ -4387,7 +5138,7 @@ int main(int argc, char *argv[])
       } break;
       case 15: {
         // --------------------------------------------------------------------
-        // REPRODUCE WINDOWS 'sputbackc' BUG ON EOF.
+        // REPRODUCE WINDOWS `sputbackc` BUG ON EOF.
         // --------------------------------------------------------------------
 
         const bsl::string& fileName = u::tmpFileName(test);
@@ -4404,7 +5155,16 @@ int main(int argc, char *argv[])
 
         if (verbose) {
             cout << "File contents: \"" << flush;
+
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
             system(catStr.c_str());
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
+#pragma GCC diagnostic pop
+#endif
+
             cout << "\"\n";
         }
 
@@ -4477,26 +5237,26 @@ int main(int argc, char *argv[])
         // NEGATIVE TESTING
         //
         // Concern:
-        //: 1 That all the functions in this component properly assert their
-        //:   preconditions to avoid undefined behavior.
-        //:
-        //: 2 That those functions that take their input as a string pointer,
-        //:   length pair will tolerate being passed a null pointer when the
-        //:   length is 0, and will not tolerate being passed a null pointer
-        //:   when '0 < length'.
+        // 1. That all the functions in this component properly assert their
+        //    preconditions to avoid undefined behavior.
+        //
+        // 2. That those functions that take their input as a string pointer,
+        //    length pair will tolerate being passed a null pointer when the
+        //    length is 0, and will not tolerate being passed a null pointer
+        //    when `0 < length`.
         //
         // Plan:
-        //: 1 Go through every function in the component, first calling them in
-        //:   such a way that they function properly, then calling them with
-        //:   every possible pointer argument passed null when it shouldn't be,
-        //:   and confirm that this is caught in an assert using the
-        //:   'bsls_asserttest' component.
-        //:
-        //: 2 For the functions that take their input as a 'ptr, length' pair,
-        //:   call them with null ptrs while passing a 0 to the 'length' field
-        //:   and verify that the function works properly, then pass it exactly
-        //:   the same arguments except with the 'length == 1', and observe
-        //:   that this is caught with an exception.
+        // 1. Go through every function in the component, first calling them in
+        //    such a way that they function properly, then calling them with
+        //    every possible pointer argument passed null when it shouldn't be,
+        //    and confirm that this is caught in an assert using the
+        //    `bsls_asserttest` component.
+        //
+        // 2. For the functions that take their input as a `ptr, length` pair,
+        //    call them with null ptrs while passing a 0 to the `length` field
+        //    and verify that the function works properly, then pass it exactly
+        //    the same arguments except with the `length == 1`, and observe
+        //    that this is caught with an exception.
         //
         // Testing:
         //   NEGATIVE TESTING
@@ -4942,29 +5702,62 @@ int main(int argc, char *argv[])
                 ASSERT(UGH == buf);
                 ASSERT(INIT_INT == status);
             }
+
+            if (verbose) cout << "replaceErrors\n";
+            {
+                namespace TC4 = BDLDE_UTF8UTIL_CASE_4;
+                enum { k_NUM_SURROGATES = sizeof TC4::surrogates /
+                                                     sizeof *TC4::surrogates };
+
+                bsl::string out, *nullStr = 0;
+                bsl::string_view nullSv;
+                ASSERT_FAIL(Obj::replaceErrors(nullStr, ""));
+                ASSERT_PASS(Obj::replaceErrors(&out, ""));
+                ASSERT_FAIL(Obj::replaceErrors(&out, nullSv));
+                for (int ii = 0; ii < 10 * 1000; ++ii) {
+                    ASSERT_PASS(Obj::replaceErrors(&out, "", ii));
+                }
+                ASSERT_PASS(Obj::replaceErrors(&out, "", '?'));
+                ASSERT_PASS(Obj::replaceErrors(&out, "", 0xfffd));
+                ASSERT_PASS(Obj::replaceErrors(&out, "", 0xffff));
+                ASSERT_PASS(Obj::replaceErrors(&out, "", 0x10ffff));
+                for (int ii = 0; ii < k_NUM_SURROGATES; ++ii) {
+                    const int surrogate = TC4::surrogates[ii];
+                    ASSERT_FAIL(Obj::replaceErrors(&out, "", surrogate));
+                }
+                ASSERT_FAIL(Obj::replaceErrors(&out, "", 0x110000));
+                ASSERT_FAIL(Obj::replaceErrors(&out, "", INT_MAX));
+                ASSERT_FAIL(Obj::replaceErrors(&out, "", UINT_MAX));
+            }
+
+            if (verbose) cout << "advancePastValidOrInvalidCodePoint\n";
+            {
+                ASSERT_PASS(ImpUtil::advancePastValidOrInvalidCodePoint(" "));
+                ASSERT_FAIL(ImpUtil::advancePastValidOrInvalidCodePoint(""));
+            }
         }
 #endif
       } break;
       case 13: {
         // --------------------------------------------------------------------
-        // TESTING 'toAscii'
+        // TESTING `toAscii`
         //
         // Concerns:
-        //: 1 That 'toAscii' correctly translates 'ErrorStatus' values to
-        //:   strings.
+        // 1. That `toAscii` correctly translates `ErrorStatus` values to
+        //    strings.
         //
         // Plan:
-        //: 1 Create a table of all valid 'ErrorStatus' values and their
-        //:   expected string forms.
-        //:
-        //: 2 Iterate through the table, calling 'toAscii' and checking its
-        //:   return value.
+        // 1. Create a table of all valid `ErrorStatus` values and their
+        //    expected string forms.
+        //
+        // 2. Iterate through the table, calling `toAscii` and checking its
+        //    return value.
         //
         // Testing:
         //   const char *toAscii(IntPtr);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "TESTING 'toAscii'\n"
+        if (verbose) cout << "TESTING `toAscii`\n"
                              "=================\n";
 
         static const char *NOT_FOUND = "(* unrecognized value *)";
@@ -5004,18 +5797,18 @@ int main(int argc, char *argv[])
       } break;
       case 12: {
         // --------------------------------------------------------------------
-        // TESTING 'appendUtf8CodePoint'
+        // TESTING `appendUtf8CodePoint`
         //
         // Concerns:
-        //: 1 The method under test produce the expected results on valid
-        //:   code points.  The principal concern is that the append is
-        //:   performed correctly.
+        // 1. The method under test produce the expected results on valid
+        //    code points.  The principal concern is that the append is
+        //    performed correctly.
         //
         // Plan:
-        //: 1 Use the table-driven approach to verify correct behavior when
-        //:   appending various valid code points to both empty and non-empty
-        //:   strings.  This is sufficient since the routine under test is
-        //:   implemented in terms of an already tested component.
+        // 1. Use the table-driven approach to verify correct behavior when
+        //    appending various valid code points to both empty and non-empty
+        //    strings.  This is sufficient since the routine under test is
+        //    implemented in terms of an already tested component.
         //
         // Testing:
         //   int appendUtf8CodePoint(bsl::string *, unsigned int);
@@ -5024,7 +5817,7 @@ int main(int argc, char *argv[])
         //   int appendUtf8Character(bsl::string *, unsigned int);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING 'appendUtf8CodePoint'\n"
+        if (verbose) cout << "\nTESTING `appendUtf8CodePoint`\n"
                                "=============================\n";
 
         for (int ti = 0; ti < u::NUM_INTERESTING_CODEPOINTS; ++ti) {
@@ -5083,12 +5876,12 @@ int main(int argc, char *argv[])
         // TESTING CODE POINT ASPECT GETTERS
         //
         // Concerns:
-        //: 1 The methods under test produce the expected results on valid
-        //:   UTF-8 code points.
+        // 1. The methods under test produce the expected results on valid
+        //    UTF-8 code points.
         //
         // Plan:
-        //: 1 Use the table-driven approach to verify correct behavior on
-        //:   various valid UTF-8 code points.
+        // 1. Use the table-driven approach to verify correct behavior on
+        //    various valid UTF-8 code points.
         //
         // Testing:
         //   int codePointValue(const char *);
@@ -5118,23 +5911,23 @@ int main(int argc, char *argv[])
       } break;
       case 10: {
         // --------------------------------------------------------------------
-        // TESTING 'numBytesRaw'
+        // TESTING `numBytesRaw`
         //
         // Concerns:
-        //: 1 The method under test produce the expected results on valid UTF-8
-        //:   strings whether or not embedded '\0' characters are present.
+        // 1. The method under test produce the expected results on valid UTF-8
+        //    strings whether or not embedded '\0' characters are present.
         //
         // Plan:
-        //: 1 Use the table-driven approach to verify correct behavior on
-        //:   various valid UTF-8 strings.  Append a '\0' to each candidate
-        //:   string, then repeat appending each table entry again.
+        // 1. Use the table-driven approach to verify correct behavior on
+        //    various valid UTF-8 strings.  Append a '\0' to each candidate
+        //    string, then repeat appending each table entry again.
         //
         // Testing:
         //   IntPtr numBytesRaw(const bslstl::StringRef&, IntPtr);
         //   IntPtr numBytesIfValid(const bslstl::StringRef&, IntPtr);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING 'numBytesRaw'\n"
+        if (verbose) cout << "\nTESTING `numBytesRaw`\n"
                                "=====================\n";
 
         for (int ti = 0; ti < u::NUM_INTERESTING_CODEPOINTS; ++ti) {
@@ -5195,61 +5988,61 @@ int main(int argc, char *argv[])
         // TESTING CORRECT + BROKEN GLASS
         //
         // CONCERN:
-        //: 1 That 'advanceIfValid' will detect all forms of error sequences
-        //:   and properly terminate and report them, when the incorrect
-        //:   sequences are surrounded by correct UTF-8.
-        //:
-        //: 2 That 'advanceIfValid', 'isValid', 'numCodePointsIfValid', and
-        //:   'readIfValid' will, given invalid UTF-8 embedded in a string,
-        //:   correctly identify the nature of the invalid UTF-8, and in cases
-        //:   where the offset of the problem is returned, will return the
-        //:   correct offset.
-        //:
-        //: 3 In the case of 'readIfValid', that it will leave the input
-        //:   'bsl::streambuf' positioned right after the end of the leading
-        //:   valid UTF-8 (if any) and before the invalid UTF-8 code point.
+        // 1. That `advanceIfValid` will detect all forms of error sequences
+        //    and properly terminate and report them, when the incorrect
+        //    sequences are surrounded by correct UTF-8.
+        //
+        // 2. That `advanceIfValid`, `isValid`, `numCodePointsIfValid`, and
+        //    `readIfValid` will, given invalid UTF-8 embedded in a string,
+        //    correctly identify the nature of the invalid UTF-8, and in cases
+        //    where the offset of the problem is returned, will return the
+        //    correct offset.
+        //
+        // 3. In the case of `readIfValid`, that it will leave the input
+        //    `bsl::streambuf` positioned right after the end of the leading
+        //    valid UTF-8 (if any) and before the invalid UTF-8 code point.
         //
         // PLAN:
-        //: 1 In this test case, we test incorrect UTF-8 sequences both
-        //:   preceded by, and sometimes followed by, correct UTF-8 input.
-        //:
-        //: 2 We set the boolean 'useZero', which indicates whether our random
-        //:   value generation is allowed to generate ASCII '\0' bytes in
-        //:   otherwise correct UTF-8 input.  We don't want to do this most of
-        //:   the time, since it precludes calling interfaces that take
-        //:   null-terminated input.
-        //:
-        //: 3 We randomly generate 'correctStr', several random correct UTF-8
-        //:   code points.
-        //:
-        //: 4 We iterate over the global 'DATA[]' array, skipping the sequences
-        //:   of correct UTF-8 in it, focusing instead on only the incorrect
-        //:   sequences.
-        //:
-        //: 5 We look at ERROR_CODE, the expected error code for the invalid
-        //:   UTF-8 sequence.  It it's 'EIT' (end of buffer truncation), we
-        //:   generate a random valid UTF-8 sequence of the same type and
-        //:   truncate it by the same amount.  For other values of ERROR_CODE,
-        //:   we simply use the error string from 'DATA[]'.  In either case, we
-        //:   append this error string to 'str', the test string.
-        //:
-        //: 6 If there are no embedded '\0's in the input, we call all
-        //:   overloads of 'advanceIfValid', 'isValid' and
-        //:   'numCodePointsIfValid' that take null-terminated strings, and
-        //:   observe that they return a status of 'ERROR_CODE' and if they
-        //:   return 'invalidString', that 'invalidString' is correct.
-        //:
-        //: 7 We then call all overloads of 'advanceIfValid', 'isValid',
-        //:   'numCodePointsIfValid', and 'readValidUtf8ToBuffer' that pass the
-        //:   length of the string, and confirm that they return the error code
-        //:   'ERROR_CODE'.  If there are no embedded '\0's in 'str', we also
-        //:   call the overloads that take null-terminated input.
-        //:
-        //: 8 We then append a valid code point to 'str'.  If 'ERROR_CODE' was
-        //:   'EIT' (end of buffer truncation), we change 'ERROR_CODE' to 'NCO'
-        //:   (non-continuation octet).
-        //:
-        //: 9 We now repeat step '6'.
+        // 1. In this test case, we test incorrect UTF-8 sequences both
+        //    preceded by, and sometimes followed by, correct UTF-8 input.
+        //
+        // 2. We set the boolean `useZero`, which indicates whether our random
+        //    value generation is allowed to generate ASCII '\0' bytes in
+        //    otherwise correct UTF-8 input.  We don't want to do this most of
+        //    the time, since it precludes calling interfaces that take
+        //    null-terminated input.
+        //
+        // 3. We randomly generate `correctStr`, several random correct UTF-8
+        //    code points.
+        //
+        // 4. We iterate over the global `DATA[]` array, skipping the sequences
+        //    of correct UTF-8 in it, focusing instead on only the incorrect
+        //    sequences.
+        //
+        // 5. We look at ERROR_CODE, the expected error code for the invalid
+        //    UTF-8 sequence.  It it's `EIT` (end of buffer truncation), we
+        //    generate a random valid UTF-8 sequence of the same type and
+        //    truncate it by the same amount.  For other values of ERROR_CODE,
+        //    we simply use the error string from `DATA[]`.  In either case, we
+        //    append this error string to `str`, the test string.
+        //
+        // 6. If there are no embedded '\0's in the input, we call all
+        //    overloads of `advanceIfValid`, `isValid` and
+        //    `numCodePointsIfValid` that take null-terminated strings, and
+        //    observe that they return a status of `ERROR_CODE` and if they
+        //    return `invalidString`, that `invalidString` is correct.
+        //
+        // 7. We then call all overloads of `advanceIfValid`, `isValid`,
+        //    `numCodePointsIfValid`, and `readValidUtf8ToBuffer` that pass the
+        //    length of the string, and confirm that they return the error code
+        //    `ERROR_CODE`.  If there are no embedded '\0's in `str`, we also
+        //    call the overloads that take null-terminated input.
+        //
+        // 8. We then append a valid code point to `str`.  If `ERROR_CODE` was
+        //    `EIT` (end of buffer truncation), we change `ERROR_CODE` to `NCO`
+        //    (non-continuation octet).
+        //
+        // 9. We now repeat step '6'.
         //
         // Testing:
         //   IntPtr advanceIfValid(int *, cchar **,  cchar *, IntPtr);
@@ -5279,12 +6072,12 @@ int main(int argc, char *argv[])
         correctStr.reserve(k_MAX_INPUT_LEN);    // reserve longer than the
                                                 // longest length we will use,
                                                 // so no manipulation of this
-                                                // 'string' will result in a
+                                                // `string` will result in a
                                                 // reallocation and a move of
                                                 // the buffer.
 
         str.reserve(k_MAX_INPUT_LEN + 10);      // enough room to copy
-                                                // 'correctStr' and tack some
+                                                // `correctStr` and tack some
                                                 // carnage on to the end of it.
 
         out.reserve(k_MAX_INPUT_LEN + 14);      // enough room for output from
@@ -5331,9 +6124,9 @@ int main(int argc, char *argv[])
                 if (EIT == ERROR_STATUS &&
                              30 <= u::intAbs(tj - k_NUM_USE_ZERO_ITERATIONS)) {
                     // In the end of buffer truncation cases, instead of taking
-                    // 'ERROR_STR', manufacture a valid multibyte sequence of
+                    // `ERROR_STR`, manufacture a valid multibyte sequence of
                     // the same indicated length and then truncate it to the
-                    // length of 'ERROR_STR'.
+                    // length of `ERROR_STR`.
 
                     const IntPtr len = bsl::strlen(ERROR_STR + OFFSET);
                     const int    intendedLen = u::intendedSequenceLength(
@@ -5657,57 +6450,57 @@ int main(int argc, char *argv[])
         // TESTING EXHAUSTIVE CORRECT SEQUENCES
         //
         // CONCERN:
-        //: 1 That 'advanceIfValid' and 'advanceRaw' perform as documented on
-        //:   computer-generated sequences of correct UTF-8 input.
+        // 1. That `advanceIfValid` and `advanceRaw` perform as documented on
+        //    computer-generated sequences of correct UTF-8 input.
         //
         // PLAN:
-        //: 1 We create static functions 'appendRand*Char(bsl::string*)' that
-        //:   will append one random Unicode code point of the 4 possible valid
-        //:   lengths to a string.
-        //:
-        //: 2 There are 5 types of code points we will have in the input
-        //:   strings: non-zero Unicode values of the 4 possible lengths, and
-        //:   the zero char.  We represent string containing up to two of each
-        //:   of those values with a vector 'vec' of integers, where value
-        //:   '1-4' represent non-zero Unicode code points of the length
-        //:   indicated by the number, and 0 representing a 0 code point.
-        //:
-        //: 3 We do our tests twice, once where we don't include any 0 code
-        //:   points for testing functions that take zero-terminated input, and
-        //:   again including 0 code points, by iterating on 'useZero',
-        //:   effectively a boolean.
-        //:
-        //: 4 We have an integer key, where the bottom several bits of the
-        //:   value indicate whether Unicode code points of a given length will
-        //:   be present in the value.  The key is 8 bits long if 0 is not
-        //:   used, 10 bits long if 0 is used (two bits for each length, to
-        //:   indicate the presence or absence of up to 2 instances of Unicode
-        //:   code points).
-        //:
-        //: 5 The key is processed into 'vec', where each element of vec
-        //:   indicates the Unicode code point length (or 0 value) of a Unicode
-        //:   code point to be present in the test string.
-        //:
-        //: 6 We then iterate through all permutations of 'vec'.
-        //:
-        //: 7 For each permutation, we translate 'vec' into a string, using the
-        //:   'appendRaw*Char' functions described above.
-        //:
-        //: 8 We then call all forms of 'advance*' function on this string, and
-        //:   observe that the return values are as expected.
-        //:
-        //: 9 We then call 'readValidUtf8ToBuffer' on the input with a variety
-        //:    of output buffer lengths.
-        //:
-        //: 10 We then push a random garbage char onto the end of the string.
-        //:   Since we 'reserve'd a long length for the string, this will not
-        //:   cause a reallocation of the buffer or invalidation of any of our
-        //:   pointers at or into the string.
-        //:
-        //: 11 We then call the 'advance' functions that either don't take 0
-        //:    terminated input, or that are passed 'numCodePoints', which will
-        //:    tell the 'advance*' to finish before examining the garbage byte,
-        //:    and observe the functions succeed.
+        // 1. We create static functions `appendRand*Char(bsl::string*)` that
+        //    will append one random Unicode code point of the 4 possible valid
+        //    lengths to a string.
+        //
+        // 2. There are 5 types of code points we will have in the input
+        //    strings: non-zero Unicode values of the 4 possible lengths, and
+        //    the zero char.  We represent string containing up to two of each
+        //    of those values with a vector `vec` of integers, where value
+        //    `1-4` represent non-zero Unicode code points of the length
+        //    indicated by the number, and 0 representing a 0 code point.
+        //
+        // 3. We do our tests twice, once where we don't include any 0 code
+        //    points for testing functions that take zero-terminated input, and
+        //    again including 0 code points, by iterating on `useZero`,
+        //    effectively a boolean.
+        //
+        // 4. We have an integer key, where the bottom several bits of the
+        //    value indicate whether Unicode code points of a given length will
+        //    be present in the value.  The key is 8 bits long if 0 is not
+        //    used, 10 bits long if 0 is used (two bits for each length, to
+        //    indicate the presence or absence of up to 2 instances of Unicode
+        //    code points).
+        //
+        // 5. The key is processed into `vec`, where each element of vec
+        //    indicates the Unicode code point length (or 0 value) of a Unicode
+        //    code point to be present in the test string.
+        //
+        // 6. We then iterate through all permutations of `vec`.
+        //
+        // 7. For each permutation, we translate `vec` into a string, using the
+        //    `appendRaw*Char` functions described above.
+        //
+        // 8. We then call all forms of `advance*` function on this string, and
+        //    observe that the return values are as expected.
+        //
+        // 9. We then call `readValidUtf8ToBuffer` on the input with a variety
+        //     of output buffer lengths.
+        //
+        // 10. We then push a random garbage char onto the end of the string.
+        //    Since we `reserve`d a long length for the string, this will not
+        //    cause a reallocation of the buffer or invalidation of any of our
+        //    pointers at or into the string.
+        //
+        // 11. We then call the `advance` functions that either don't take 0
+        //     terminated input, or that are passed `numCodePoints`, which will
+        //     tell the `advance*` to finish before examining the garbage byte,
+        //     and observe the functions succeed.
         //
         // Testing:
         //   IntPtr advanceIfValid(int *, const char **, const char *, int);
@@ -5741,7 +6534,7 @@ int main(int argc, char *argv[])
 
         str.reserve(k_MAX_INPUT_LEN);   // reserve longer than the longest
                                         // length we will use, so no
-                                        // manipulation of this 'string' will
+                                        // manipulation of this `string` will
                                         // result in a reallocation and a move
                                         // of the buffer.
         out.reserve(k_MAX_INPUT_LEN + 4);
@@ -5898,7 +6691,7 @@ int main(int argc, char *argv[])
 
             bdlsb::FixedMemInStreamBuf fsb(0, 0);
 
-            const char badChar = static_cast<char>(0xf8);     // 'f8' is ALWAYS
+            const char badChar = static_cast<char>(0xf8);     // `f8` is ALWAYS
                                                               // illegal UTF-8
             IntPtr sbLen0 = bsl::max<IntPtr>(strLength - 3, 0);
             const IntPtr sbEnd = strLength;
@@ -5984,11 +6777,11 @@ int main(int argc, char *argv[])
                 }
             }
 
-            // Now we tack an extra non-zero garbage char on the end 'str', and
-            // make sure that it makes no difference when when 'strLength' and
-            // 'numCodePointsExp' dictate that it will not be read.
+            // Now we tack an extra non-zero garbage char on the end `str`, and
+            // make sure that it makes no difference when when `strLength` and
+            // `numCodePointsExp` dictate that it will not be read.
 
-            // Don't use 'c == 0' as we already tested that above.
+            // Don't use `c == 0` as we already tested that above.
 
             char c = char(u::randUnsigned() % 256 - 128);
             c = c ? c : 'a';
@@ -6106,13 +6899,13 @@ int main(int argc, char *argv[])
         // TESTING REAL PROSE
         //
         // Concerns:
-        //: 1 That 'advanceIfValid' and 'advanceRaw', in both their forms, can
-        //:   handle a long sequence of correct UTF-8.
+        // 1. That `advanceIfValid` and `advanceRaw`, in both their forms, can
+        //    handle a long sequence of correct UTF-8.
         //
         // Plan:
-        //: 1 Run both forms of 'advanceIfValid' and 'advanceRaw', respectively
-        //:   on our string 'charUtf8MultiLang', and observe that they count
-        //:   the code points correctly, and don't report any errors.
+        // 1. Run both forms of `advanceIfValid` and `advanceRaw`, respectively
+        //    on our string `charUtf8MultiLang`, and observe that they count
+        //    the code points correctly, and don't report any errors.
         //
         // Testing:
         //   IntPtr advanceIfValid(int *, const char **, const char *, int);
@@ -6220,15 +7013,15 @@ int main(int argc, char *argv[])
       } break;
       case 6: {
         // --------------------------------------------------------------------
-        // TESTING 'isValid' & 'numCodePointsIfValid'
+        // TESTING `isValid` & `numCodePointsIfValid`
         //
         // Concerns:
-        //: 1 The methods under test produce the expected results on both
-        //:   valid and invalid UTF-8 strings.
+        // 1. The methods under test produce the expected results on both
+        //    valid and invalid UTF-8 strings.
         //
         // Plan:
-        //: 1 Use the table-driven approach to verify correct behavior on
-        //:   various valid and invalid UTF-8 strings.
+        // 1. Use the table-driven approach to verify correct behavior on
+        //    various valid and invalid UTF-8 strings.
         //
         // Testing:
         //   bool isValid(const char *s);
@@ -6241,7 +7034,7 @@ int main(int argc, char *argv[])
         //   IntPtr numCodePointsIfValid(**err, const char *s, int len);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING 'isValid' & 'numCodePointsIfValid'\n"
+        if (verbose) cout << "\nTESTING `isValid` & `numCodePointsIfValid`\n"
                                "==========================================\n";
 
         IntPtr rc;
@@ -6358,15 +7151,15 @@ int main(int argc, char *argv[])
       } break;
       case 5: {
         // --------------------------------------------------------------------
-        // TESTING 'numCharactersRaw'
+        // TESTING `numCharactersRaw`
         //
         // Concerns:
-        //: 1 The methods under test produce the expected results on both
-        //:   valid and invalid UTF-8 strings.
+        // 1. The methods under test produce the expected results on both
+        //    valid and invalid UTF-8 strings.
         //
         // Plan:
-        //: 1 Use the table-driven approach to verify correct behavior on
-        //:   various valid and invalid UTF-8 strings.
+        // 1. Use the table-driven approach to verify correct behavior on
+        //    various valid and invalid UTF-8 strings.
         //
         // Testing:
         //   IntPtr numCharacters(const char *s);
@@ -6379,7 +7172,7 @@ int main(int argc, char *argv[])
         //   IntPtr numCharacters(const char *s, int len);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "TESTING 'numCharactersRaw'" << endl
+        if (verbose) cout << "TESTING `numCharactersRaw`" << endl
                           << "==========================" << endl;
 
         for (int ti = 0; ti < NUM_DATA; ++ti) {
@@ -6439,13 +7232,13 @@ int main(int argc, char *argv[])
         // translated to UTF-16.
         //
         // Concerns:
-        //: 1 Create some strings containing surrogate pairs and verify that
-        //:   the validation routines interpret them properly.
+        // 1. Create some strings containing surrogate pairs and verify that
+        //    the validation routines interpret them properly.
         //
         // Plan:
-        //: 1 Create a large number of strings containing valid and invalid
-        //:   surrogates and verify that the validation routines handle them
-        //:   properly.
+        // 1. Create a large number of strings containing valid and invalid
+        //    surrogates and verify that the validation routines handle them
+        //    properly.
         //
         // Testing:
         //   bool isValid(const char *s);
@@ -6537,13 +7330,13 @@ int main(int argc, char *argv[])
         // TESTING BYTE-ORDER MARK
         //
         // Concerns:
-        //: 1 Verify byte-order mark is accepted by all the validation
-        //:   routines.
+        // 1. Verify byte-order mark is accepted by all the validation
+        //    routines.
         //
         // Plan:
-        //: 1 Create a byte-order mark and feed it to the validation routines,
-        //:   it should always be acceptable.  Also create UTF-16 BOM's of both
-        //:   byte orders, they should be rejected.
+        // 1. Create a byte-order mark and feed it to the validation routines,
+        //    it should always be acceptable.  Also create UTF-16 BOM's of both
+        //    byte orders, they should be rejected.
         //
         // Testing:
         //   bool isValid(const char *s);
@@ -6637,18 +7430,18 @@ int main(int argc, char *argv[])
         // TABLE-DRIVEN ENCODING / DECODING / VALIDATION TEST
         //
         // Concerns:
-        //: 1 Test encoding, decoding, and validation on data that is table
-        //:   driven rather than randomly generated.
+        // 1. Test encoding, decoding, and validation on data that is table
+        //    driven rather than randomly generated.
         //
         // Plan:
-        //: 1 Encode some const char strings with specific values, try encoding
-        //:   them and verify the expected results are yields.  Run the
-        //:   validation routines on them and verify the expected results.
-        //:   Code various forms of invalid strings and observe that the
-        //:   validators reject them appropriately.  Several types of encodings
-        //:   are represented.  UTF-8 zero, Modified UTF-8 zero, many values
-        //:   that are valid in both UTF-8 and modified UTF-8, overlong values
-        //:   other than zero, blatantly invalid values, and short values.
+        // 1. Encode some const char strings with specific values, try encoding
+        //    them and verify the expected results are yields.  Run the
+        //    validation routines on them and verify the expected results.
+        //    Code various forms of invalid strings and observe that the
+        //    validators reject them appropriately.  Several types of encodings
+        //    are represented.  UTF-8 zero, Modified UTF-8 zero, many values
+        //    that are valid in both UTF-8 and modified UTF-8, overlong values
+        //    other than zero, blatantly invalid values, and short values.
         //
         // Testing:
         //   TABLE-DRIVEN ENCODING / DECODING / VALIDATION TEST
@@ -7003,11 +7796,11 @@ int main(int argc, char *argv[])
         // BREATHING TEST
         //
         // Concerns:
-        //: 1 Test basic methods
+        // 1. Test basic methods
         //
         // Plan:
-        //: 1 Test the various test functions and verify that they work as
-        //:   designed.
+        // 1. Test the various test functions and verify that they work as
+        //    designed.
         //
         // Testing:
         //   BREATHING TEST
@@ -7386,12 +8179,12 @@ int main(int argc, char *argv[])
         // RANDOM NUMBER GENERATORS TEST
         //
         // Concerns:
-        //: 1 Random number generators work properly.
+        // 1. Random number generators work properly.
         //
         // Plan:
-        //: 1 Test the various random number generators 2 ways -- print out a
-        //:   bunch of values for visual inspection, and run a much larger
-        //:   number of values for programmatic verification.
+        // 1. Test the various random number generators 2 ways -- print out a
+        //    bunch of values for visual inspection, and run a much larger
+        //    number of values for programmatic verification.
         //
         // Testing:
         //   random number generator
@@ -7483,14 +8276,14 @@ int main(int argc, char *argv[])
         // VERIFY TEST APPARATUS
         //
         // Concerns:
-        //: 1 The test apparatus works properly.
+        // 1. The test apparatus works properly.
         //
         // Plan:
-        //: 1 Test the various test functions and verify that they work as
-        //:   expected.
+        // 1. Test the various test functions and verify that they work as
+        //    expected.
         //
         // Testing:
-        //   'utf8Encode', 'decode'
+        //   `utf8Encode`, `decode`
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nVERIFY TEST APPARATUS\n"

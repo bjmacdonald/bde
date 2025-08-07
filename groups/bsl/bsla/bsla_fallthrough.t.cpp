@@ -70,6 +70,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -159,9 +160,11 @@ bool veryVeryVerbose;
 // ```
 // Next, we see that a `BSLA_FALLTHROUGH;` works within an `if` block, provided
 // that it's in the last statement in the flow of control before falling
-// through:
+// through, except on Microsoft Visual C++ that does not support it:
 // ```
+#if !defined(BSLS_PLATFORM_CMP_MSVC)
                     BSLA_FALLTHROUGH;
+#endif
                 }
                 else {
                     return 0;                                         // RETURN
@@ -204,7 +207,8 @@ int test_FALLTHROUGH_function(int i)
     switch (i) {
       case 0: {
         if (verbose) {
-#if BSLA_FALLTHROUGH_IS_ACTIVE
+#if defined(BSLA_FALLTHROUGH_IS_ACTIVE) && !defined(BSLS_PLATFORM_CMP_MSVC)
+// Microsoft Visual C++ does not like the annotation here, warns.
             {{{{ BSLA_FALLTHROUGH; }}}}
 #else
             return 3;                                                 // RETURN

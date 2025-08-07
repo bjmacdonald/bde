@@ -36,6 +36,7 @@ static void aSsErT(bool b, const char *s, int i)
 {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) {
             ++testStatus;
         }
@@ -1254,6 +1255,7 @@ int main(int argc, char *argv[])
             //---- -----------------
             { L_, ".h",         Util::k_HEADER },
             { L_, ".cpp",       Util::k_IMPL   },
+            { L_, ".gob",       Util::k_IMPL   },
 
             { L_, ".t.cpp",     Util::k_TTEST  },
             { L_, ".g.cpp",     Util::k_GTEST  },

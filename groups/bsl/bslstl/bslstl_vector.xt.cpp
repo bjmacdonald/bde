@@ -69,6 +69,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(BSLS_PLATFORM_CMP_CLANG)
+  #pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
+  #if BSLS_PLATFORM_CMP_VERSION >= 100000
+    #pragma clang diagnostic ignored "-Wdeprecated-copy"
+  #endif
+#endif
+
+#ifdef BSLS_PLATFORM_CMP_SUN
+# pragma error_messages (off, SEC_ARR_OUTSIDE_BOUND_READ)
+#endif
+
 // Don't put any `using` declaration or directive here, see swap helpers below.
 
 //=============================================================================
@@ -2793,16 +2804,11 @@ void debugprint(const BitwiseNotAssignable& v)
 
 /// Non-copyable but movable type.
 class MoveOnlyType {
-
-    // DATA
-    void *ptr;
   public:
     // CREATORS
 
     /// Create a `MoveOnlyType` object.
-    MoveOnlyType() : ptr(0)
-    {
-    }
+    MoveOnlyType() = default;
     MoveOnlyType(MoveOnlyType &&) = default;
     MoveOnlyType(const MoveOnlyType &) = delete;
 
@@ -19745,8 +19751,7 @@ int main(int argc, char *argv[])
                       signed char,
                       const char *,
                       bsltf::AllocTestType,
-                      bsltf::TemplateTestFacility::ObjectPtr,
-                      bsltf::TemplateTestFacility::FunctionPtr);
+                      bsltf::TemplateTestFacility::ObjectPtr);
       } break;
       case 19: {
         // --------------------------------------------------------------------

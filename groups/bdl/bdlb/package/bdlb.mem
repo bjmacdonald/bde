@@ -12,6 +12,7 @@ bdlb_chartype
 bdlb_cstringequalto
 bdlb_cstringhash
 bdlb_cstringless
+bdlb_doublecompareutil
 bdlb_float
 bdlb_functionoutputiterator
 bdlb_guid
@@ -50,5 +51,7 @@ bdlb_transformiterator
 bdlb_transparentequalto
 bdlb_transparenthash
 bdlb_transparentless
+bdlb_transparentstringhash
 bdlb_variant
 bdlb_variant_cpp03
+bdlb_variantprinter

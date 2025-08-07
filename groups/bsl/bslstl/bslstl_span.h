@@ -144,7 +144,9 @@ BSLS_IDENT("$Id: $")
 #include <bsls_compilerfeatures.h>
 #include <bsls_libraryfeatures.h>
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#if defined (BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY) && \
+   !(defined(BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED) &&          \
+    (BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED < 20))
 #include <span>
 namespace bsl {
     using std::dynamic_extent;
@@ -152,8 +154,10 @@ namespace bsl {
     using std::as_bytes;
     using std::as_writable_bytes;
 }
-#else
+#define BSLSTL_SPAN_IS_ALIASED
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY & not disabled
 
+#ifndef BSLSTL_SPAN_IS_ALIASED
 #include <bslmf_assert.h>
 #include <bslmf_enableif.h>
 #include <bslmf_integralconstant.h>
@@ -284,7 +288,7 @@ struct Span_Utility
                 bsl::nullptr_t>::type
             > >
         : public bsl::true_type {};
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 };
 
@@ -310,6 +314,9 @@ class span {
     static const size_type extent = EXTENT;
 // BDE_VERIFY pragma: pop
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(span, bsl::is_trivially_copyable);
+
     // CREATORS
 
     /// Construct an empty `span` object.  The behavior is undefined unless
@@ -318,8 +325,7 @@ class span {
 
     /// Create a span that refers to the same data as the specified
     /// `original` object.
-    BSLS_KEYWORD_CONSTEXPR_CPP14 span(const span& original)
-                                                         BSLS_KEYWORD_NOEXCEPT;
+    //! BSLS_KEYWORD_CONSTEXPR_CPP14 span(const span&) noexcept = default;
 
     /// Construct a span that refers to the specified `count` consecutive
     /// objects starting from the specified `ptr`.  The behavior is
@@ -359,7 +365,7 @@ class span {
          Span_Utility::IsArrayConvertible<
                                       const t_OTHER_TYPE, element_type>::value,
          void *>::type = NULL) BSLS_KEYWORD_NOEXCEPT;
-#endif
+#endif  // BSLSTL_ARRAY_IS_ALIASED
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
     /// Construct a span from the specified std::array `arr`.  This
@@ -383,7 +389,7 @@ class span {
          Span_Utility::IsArrayConvertible<
                                       const t_OTHER_TYPE, element_type>::value,
          void *>::type = NULL) BSLS_KEYWORD_NOEXCEPT;
-#endif
+#endif // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
     /// Construct a span from the specified span `other`.  This constructor
     /// participates in overload resolution only if `t_OTHER_TYPE(*)[]` is
@@ -523,6 +529,11 @@ class span {
         return d_data_p[index];
     }
 
+    /// Return a reference to the element at the specified `index`.  Throws
+    /// an `out_of_range` exception if `index >= size()`.
+    BSLS_KEYWORD_CONSTEXPR_CPP14
+    reference at(size_type index) const;
+
     //                      ITERATOR OPERATIONS
 
 
@@ -550,8 +561,7 @@ class span {
 
     /// Assign to this span the value of the specified `rhs` object, and
     /// return a reference providing modifiable access to this span.
-    BSLS_KEYWORD_CONSTEXPR_CPP14
-    span& operator=(const span&) BSLS_KEYWORD_NOEXCEPT;
+    //! constexpr span& operator=(const span&) noexcept = default;
 
     /// Exchange the value of this span with the value of the specified
     /// `other` object.
@@ -584,6 +594,9 @@ class span<TYPE, dynamic_extent> {
     static const size_type extent = dynamic_extent;
 // BDE_VERIFY pragma: pop
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(span, bsl::is_trivially_copyable);
+
     // CREATORS
 
     /// Construct an empty `span` object.
@@ -591,8 +604,7 @@ class span<TYPE, dynamic_extent> {
 
     /// Create a span that refers to the same data as the specified
     /// `original` object.
-    BSLS_KEYWORD_CONSTEXPR_CPP14 span(const span& original)
-                                                         BSLS_KEYWORD_NOEXCEPT;
+    //! BSLS_KEYWORD_CONSTEXPR_CPP14 span(const span&) noexcept = default;
 
     /// Construct a span that refers to the specified `count` consecutive
     /// objects starting from the specified `ptr`.
@@ -628,7 +640,7 @@ class span<TYPE, dynamic_extent> {
            Span_Utility::IsArrayConvertible<
                                       const t_OTHER_TYPE, element_type>::value,
            void *>::type = NULL) BSLS_KEYWORD_NOEXCEPT;
-#endif
+#endif  // BSLSTL_ARRAY_IS_ALIASED
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
     /// Construct a span from the specified std::array `arr`.  This
@@ -651,7 +663,7 @@ class span<TYPE, dynamic_extent> {
          Span_Utility::IsArrayConvertible<
                                       const t_OTHER_TYPE, element_type>::value,
          void *>::type = NULL) BSLS_KEYWORD_NOEXCEPT;
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
     /// Construct a span from the specified bsl::vector `v`.  This
@@ -703,7 +715,7 @@ class span<TYPE, dynamic_extent> {
              Span_Utility::IsArrayConvertible<
                                       const CHAR_TYPE, element_type>::value,
                void *>::type = NULL) BSLS_KEYWORD_NOEXCEPT;
-#endif
+#endif  // no BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
     template <class CONTAINER>
@@ -727,7 +739,7 @@ class span<TYPE, dynamic_extent> {
     , d_size(bsl::size(c))
     {
     }
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
     /// Construct a span from the specified span `other`.  This constructor
     /// participates in overload resolution only if `t_OTHER_TYPE(*)[]` is
@@ -818,6 +830,11 @@ class span<TYPE, dynamic_extent> {
     BSLS_KEYWORD_CONSTEXPR_CPP14
     reference operator[](size_type index) const;
 
+    /// Return a reference to the element at the specified `index`.  Throws
+    /// an `out_of_range` exception if `index >= size()`.
+    BSLS_KEYWORD_CONSTEXPR_CPP14
+    reference at(size_type index) const;
+
     //                      ITERATOR OPERATIONS
 
     /// Return an iterator providing modifiable access to the first element
@@ -844,13 +861,7 @@ class span<TYPE, dynamic_extent> {
 
     /// Assign to this span the value of the specified `rhs` object, and
     /// return a reference providing modifiable access to this span.
-    BSLS_KEYWORD_CONSTEXPR_CPP14
-    span& operator=(const span& rhs) BSLS_KEYWORD_NOEXCEPT
-    {
-        d_data_p = rhs.d_data_p;
-        d_size = rhs.d_size;
-        return *this;
-    }
+    //! constexpr span& operator=(const span&) noexcept = default;
 
     /// Exchange the value of this span with the value of the specified
     /// `other` object.
@@ -882,7 +893,7 @@ span(bsl::array<TYPE, SIZE> &) -> span<TYPE, SIZE>;
 /// `span`.
 template <class TYPE, size_t SIZE>
 span(const bsl::array<TYPE, SIZE> &) -> span<const TYPE, SIZE>;
-#endif
+#endif  // not BSLSTL_ARRAY_IS_ALIASED
 
 /// Deduce the template parameters `TYPE` and `SIZE` from the corresponding
 /// template parameters of the `std::array` supplied to the constructor of
@@ -905,7 +916,7 @@ span(bsl::vector<TYPE, ALLOCATOR> &) -> span<TYPE>;
 /// parameter of the `bsl::vector` supplied to the constructor of `span`.
 template <class TYPE, class ALLOCATOR>
 span(const bsl::vector<TYPE, ALLOCATOR> &) -> span<const TYPE>;
-#endif
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_CTAD
 
 // FREE FUNCTIONS
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
@@ -934,7 +945,7 @@ template <class TYPE>
 BSLS_KEYWORD_CONSTEXPR_CPP14 span<std::byte, dynamic_extent>
 as_writable_bytes(span<TYPE, dynamic_extent> s) BSLS_KEYWORD_NOEXCEPT;
 
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
 
 /// Exchange the value of the specified `a` object with the value of the
 /// specified `b` object.
@@ -960,13 +971,6 @@ bsl::span<TYPE, EXTENT>::span() BSLS_KEYWORD_NOEXCEPT
 : d_data_p(NULL)
 {
     BSLMF_ASSERT(EXTENT == 0);
-}
-
-template <class TYPE, size_t EXTENT>
-BSLS_KEYWORD_CONSTEXPR_CPP14 inline
-bsl::span<TYPE, EXTENT>::span(const span &original) BSLS_KEYWORD_NOEXCEPT
-: d_data_p(original.d_data_p)
-{
 }
 
 template <class TYPE, size_t EXTENT>
@@ -1022,7 +1026,7 @@ bsl::span<TYPE, EXTENT>::span(const bsl::array<t_OTHER_TYPE, EXTENT>& arr,
 : d_data_p(arr.data())
 {
 }
-#endif
+#endif  // not BSLSTL_ARRAY_IS_ALIASED
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 template <class TYPE, size_t EXTENT>
@@ -1046,7 +1050,7 @@ bsl::span<TYPE, EXTENT>::span(const std::array<t_OTHER_TYPE, EXTENT>& arr,
 : d_data_p(arr.data())
 {
 }
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 template <class TYPE, size_t EXTENT>
 template <class t_OTHER_TYPE>
@@ -1154,6 +1158,19 @@ bsl::span<TYPE, EXTENT>::subspan(size_type offset, size_type count) const
     return ReturnType(data() + offset, count);
 }
 
+template <class TYPE, size_t EXTENT>
+BSLS_KEYWORD_CONSTEXPR_CPP14 inline
+typename bsl::span<TYPE, EXTENT>::reference
+bsl::span<TYPE, EXTENT>::at(size_type index) const
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(index >= size())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BloombergLP::bslstl::StdExceptUtil::throwOutOfRange(
+                           "span<T, static_extent>::at(index): invalid index");
+    }
+    return d_data_p[index];
+}
+
 //                          ITERATOR OPERATIONS
 template <class TYPE, size_t EXTENT>
 BSLS_KEYWORD_CONSTEXPR_CPP14 inline
@@ -1190,15 +1207,6 @@ bsl::span<TYPE, EXTENT>::rend() const BSLS_KEYWORD_NOEXCEPT
 // MANIPULATORS
 template <class TYPE, size_t EXTENT>
 BSLS_KEYWORD_CONSTEXPR_CPP14 inline
-bsl::span<TYPE, EXTENT>&
-bsl::span<TYPE, EXTENT>::operator=(const span &rhs) BSLS_KEYWORD_NOEXCEPT
-{
-    d_data_p = rhs.d_data_p;
-    return *this;
-}
-
-template <class TYPE, size_t EXTENT>
-BSLS_KEYWORD_CONSTEXPR_CPP14 inline
 void bsl::span<TYPE, EXTENT>::swap(span &other) BSLS_KEYWORD_NOEXCEPT
 {
     pointer p = d_data_p;
@@ -1216,15 +1224,6 @@ BSLS_KEYWORD_CONSTEXPR_CPP14 inline
 bsl::span<TYPE, bsl::dynamic_extent>::span() BSLS_KEYWORD_NOEXCEPT
 : d_data_p(NULL)
 , d_size(0)
-{
-}
-
-template <class TYPE>
-BSLS_KEYWORD_CONSTEXPR_CPP14 inline
-bsl::span<TYPE, bsl::dynamic_extent>::span(const span& original)
-                                                          BSLS_KEYWORD_NOEXCEPT
-: d_data_p(original.d_data_p)
-, d_size(original.d_size)
 {
 }
 
@@ -1282,7 +1281,7 @@ bsl::span<TYPE, bsl::dynamic_extent>::span(
 , d_size(SIZE)
 {
 }
-#endif
+#endif  // not BSLSTL_ARRAY_IS_ALIASED
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 template <class TYPE>
@@ -1311,7 +1310,7 @@ bsl::span<TYPE, bsl::dynamic_extent>::span(
 , d_size(SIZE)
 {
 }
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 #ifndef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 template <class TYPE>
@@ -1373,7 +1372,7 @@ inline bsl::span<TYPE, bsl::dynamic_extent>::span(
 , d_size(sv.size())
 {
 }
-#endif
+#endif  // no BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 template <class TYPE>
 template <class t_OTHER_TYPE, size_t OTHER_EXTENT>
@@ -1520,6 +1519,19 @@ bsl::span<TYPE, bsl::dynamic_extent>::operator[](size_type index) const
     return d_data_p[index];
 }
 
+template <class TYPE>
+BSLS_KEYWORD_CONSTEXPR_CPP14 inline
+typename bsl::span<TYPE, bsl::dynamic_extent>::reference
+bsl::span<TYPE, bsl::dynamic_extent>::at(size_type index) const
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(index >= size())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BloombergLP::bslstl::StdExceptUtil::throwOutOfRange(
+                          "span<T, dynamic_extent>::at(index): invalid index");
+    }
+    return d_data_p[index];
+}
+
 // MANIPULATORS
 template <class TYPE>
 BSLS_KEYWORD_CONSTEXPR_CPP14 inline
@@ -1615,7 +1627,7 @@ bsl::as_writable_bytes(bsl::span<TYPE, bsl::dynamic_extent> s)
 }
 
 // BDE_VERIFY pragma: pop
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
 
 template <class TYPE, size_t EXTENT>
 BSLS_KEYWORD_CONSTEXPR_CPP14 inline
@@ -1626,8 +1638,9 @@ bsl::swap(bsl::span<TYPE, EXTENT>& a, bsl::span<TYPE, EXTENT>& b)
     a.swap(b);
 }
 
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
-#endif  // INCLUDED_BSLSTL_SPAN
+#endif  // BSLSTL_SPAN_IS_ALIASED
+
+#endif
 
 // ----------------------------------------------------------------------------
 // Copyright 2022 Bloomberg Finance L.P.

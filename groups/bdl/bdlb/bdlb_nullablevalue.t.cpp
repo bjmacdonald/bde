@@ -58,11 +58,11 @@
 # include <bsl_tuple.h>
 #endif
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 # include <optional>
 # include <string>
 # include <variant>
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -256,11 +256,6 @@ void aSsErT(bool condition, const char *message, int line)
 //                  COMPONENT-SPECIFIC MACROS FOR TESTING
 //-----------------------------------------------------------------------------
 
-#if defined(BSLS_PLATFORM_CMP_IBM)                                            \
- ||(defined(BSLS_PLATFORM_CMP_SUN) && BSLS_PLATFORM_CMP_VERSION < 0x5130)
-# define BDLB_FUNCTION_DOES_NOT_DECAY_TO_POINTER_TO_FUNCTION 1
-#endif
-
 // ============================================================================
 //                       GLOBAL TEST VALUES
 // ----------------------------------------------------------------------------
@@ -281,38 +276,6 @@ const int   MAX_NUM_PARAMS = 5; // max in simulation of variadic templates
                                  "123456789012345678901234567890123"
 #endif
 BSLMF_ASSERT(sizeof SUFFICIENTLY_LONG_STRING > sizeof(bsl::string));
-
-// NOTE: A bug in the IBM xlC compiler (Version: 12.01.0000.0012) was worked
-// around with the following otherwise unnecessary overload added to the
-// interface:
-// ```
-//  TYPE& makeValue(const TYPE& value);
-// ```
-// However, it was decided that we would not change the interface to cater to
-// xlC and had the client modify their code instead.
-//
-// The obscure test case (distilled from DRQS 98587609) that demonstrates the
-// issue could not be replicated in the test driver because it apparently
-// requires two translation units (`paramutil.cpp` and `client.cpp` below):
-// ```
-//  // paramutil.h
-//  namespace ParamUtil {
-//      extern const char L_SOME_STRING[];
-//  }
-//
-//  // paramutil.cpp
-//  #include <paramutil.h>
-//  namespace ParamUtil {
-//      const char L_SOME_STRING[] = "L_SOME_STRING";
-//  }
-//
-//  // client.cpp
-//  #include <paramutil.h>
-//  ...
-//      bdlb::NullableValue<bsl::string> mX;
-//      mX.makeValue(ParamUtil::L_SOME_STRING);
-//  ...
-// ```
 
 //=============================================================================
 //                      GLOBAL HELPER FUNCTIONS FOR TESTING
@@ -622,10 +585,10 @@ void testRelationalOperations(const INIT_TYPE& lesserVal,
     typedef bsl::optional< FIRST_TYPE>        FIRST_BO_TYPE;
     typedef bsl::optional<SECOND_TYPE>        SECOND_BO_TYPE;
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
     typedef std::optional< FIRST_TYPE>        FIRST_SO_TYPE;
     typedef std::optional<SECOND_TYPE>        SECOND_SO_TYPE;
-#endif
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
     testRelationalOperationsNonNull<FIRST_TYPE,    SECOND_NV_TYPE>(lesserVal,
                                                                    greaterVal);
@@ -648,7 +611,7 @@ void testRelationalOperations(const INIT_TYPE& lesserVal,
     testRelationalOperationsBothNull<FIRST_NV_TYPE, SECOND_BO_TYPE>();
     testRelationalOperationsBothNull<FIRST_BO_TYPE, SECOND_NV_TYPE>();
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
     testRelationalOperationsNonNull<FIRST_SO_TYPE, SECOND_NV_TYPE>(lesserVal,
                                                                    greaterVal);
     testRelationalOperationsNonNull<FIRST_NV_TYPE, SECOND_SO_TYPE>(lesserVal,
@@ -659,10 +622,11 @@ void testRelationalOperations(const INIT_TYPE& lesserVal,
 
     testRelationalOperationsBothNull<FIRST_NV_TYPE, SECOND_SO_TYPE>();
     testRelationalOperationsBothNull<FIRST_SO_TYPE, SECOND_NV_TYPE>();
-#endif
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
 
 #if defined BSLS_COMPILERFEATURES_SUPPORT_THREE_WAY_COMPARISON &&             \
-    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+    defined BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS &&                        \
+	defined BSLSTL_OPTIONAL_USES_STD_ALIASES
 
     ASSERTV((
         bsl::three_way_comparable_with<FIRST_TYPE, SECOND_NV_TYPE> ==
@@ -6789,7 +6753,8 @@ struct Foo {
 template <class t_TYPE>
 void Foo::foo()
 {
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+#if defined(BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS) && \
+    defined(BSLSTL_OPTIONAL_USES_STD_ALIASES)
     // Even more weirdly, the issue goes away if `NullableValue` is
     // instantiated with `t_TYPE` instead of a fixed type.
     bdlb::NullableValue<int> nv = 1;
@@ -7802,7 +7767,7 @@ int main(int argc, char *argv[])
          << "TEST `operator<<` FOR `std::optional` AND `std::variant`" << endl
          << "========================================================" << endl;
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#ifdef BSLSTL_OPTIONAL_USES_STD_ALIASES
 
         bsl::ostringstream oss;
 
@@ -7871,7 +7836,7 @@ int main(int argc, char *argv[])
 #else
         if (verbose) cout << "SKIP: Not Available: "
                              "`std::optional`, `std::variant`" << endl;
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#endif  // BSLSTL_OPTIONAL_USES_STD_ALIASES
       } break;
       case 32: {
         // --------------------------------------------------------------------
@@ -11869,10 +11834,8 @@ int main(int argc, char *argv[])
                 ObjType mY;  const ObjType& Y = mY;
                 ASSERT( Y.isNull());
 
-#if !defined(BDLB_FUNCTION_DOES_NOT_DECAY_TO_POINTER_TO_FUNCTION)
                 mY.makeValue(dummyFunction);   // decay
                 ASSERT(!Y.isNull());
-#endif
             }
         }
 
@@ -12073,10 +12036,8 @@ int main(int argc, char *argv[])
                 const ObjType X(&dummyFunction);  // explicitly take address
                 ASSERT(!X.isNull());
 
-#if !defined(BDLB_FUNCTION_DOES_NOT_DECAY_TO_POINTER_TO_FUNCTION)
                 const ObjType Y(dummyFunction);   // decay
                 ASSERT(!Y.isNull());
-#endif
             }
 
             if (verbose) cout <<

@@ -581,12 +581,16 @@ BSLS_IDENT("$Id: $")
 #endif
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Thu Oct 21 10:11:37 2021
+// Generated on Mon Jan 13 08:31:39 2025
 // Command line: sim_cpp11_features.pl bslstl_multimap.h
+
 # define COMPILING_BSLSTL_MULTIMAP_H
 # include <bslstl_multimap_cpp03.h>
 # undef COMPILING_BSLSTL_MULTIMAP_H
+
+// clang-format on
 #else
 
 namespace bsl {
@@ -1935,6 +1939,17 @@ bool operator>=(const multimap<KEY, VALUE, COMPARATOR, ALLOCATOR>& lhs,
 
 // FREE FUNCTIONS
 
+/// Erase all the elements in the specified multimap `m` that satisfy the
+/// specified predicate `predicate`.  Return the number of elements erased.
+template <class KEY,
+          class VALUE,
+          class COMPARATOR,
+          class ALLOCATOR,
+          class PREDICATE>
+typename multimap<KEY, VALUE, COMPARATOR, ALLOCATOR>::size_type
+erase_if(multimap<KEY, VALUE, COMPARATOR, ALLOCATOR>&               m,
+                                                          PREDICATE predicate);
+
 /// Exchange the value and comparator of the specified `a` object with those
 /// of the specified `b` object; also exchange the allocator of `a` with
 /// that of `b` if the (template parameter) type `ALLOCATOR` has the
@@ -2905,6 +2920,20 @@ bool bsl::operator>=(
 #endif  // BSLALG_SYNTHTHREEWAYUTIL_AVAILABLE
 
 // FREE FUNCTIONS
+template <class KEY,
+          class VALUE,
+          class COMPARATOR,
+          class ALLOCATOR,
+          class PREDICATE>
+inline
+typename bsl::multimap<KEY, VALUE, COMPARATOR, ALLOCATOR>::size_type
+bsl::erase_if(bsl::multimap<KEY, VALUE, COMPARATOR, ALLOCATOR>&      m,
+                                                           PREDICATE predicate)
+{
+    return BloombergLP::bslstl::AlgorithmUtil::containerEraseIf(m, predicate);
+}
+
+
 template <class KEY, class VALUE, class COMPARATOR, class ALLOCATOR>
 inline
 void bsl::swap(bsl::multimap<KEY, VALUE, COMPARATOR, ALLOCATOR>& a,

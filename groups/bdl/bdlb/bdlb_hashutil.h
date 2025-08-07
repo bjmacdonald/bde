@@ -92,9 +92,9 @@ BSLS_IDENT("$Id: $")
 //   public:
 //     // CLASS METHODS
 //
-//     // Return a hash value calculated from the specified `object` using
-//     // the specified `size` as the number of slots.  The hash value
-//     // is guaranteed to be in the range [0, size).
+//     /// Return a hash value calculated from the specified `object` using
+//     /// the specified `size` as the number of slots.  The hash value
+//     /// is guaranteed to be in the range [0, size).
 //     static int hash(const UserDefinedTickerType& object, int size);
 //
 //     // Rest of the class definition omitted...
@@ -321,9 +321,9 @@ BSLS_IDENT("$Id: $")
 //
 //     // CREATORS
 //
-//     // Create a generator returning integers in a sequence starting at
-//     // the optionally specified `first` integer, with the optionally
-//     // specified `increment`.
+//     /// Create a generator returning integers in a sequence starting at
+//     /// the optionally specified `first` integer, with the optionally
+//     /// specified `increment`.
 //     explicit SequentialIntegers(int first = 1, int increment = 1)
 //         : d_current(first), d_inc(increment) {}
 //
@@ -766,8 +766,6 @@ struct HashUtil {
                               int         stringLength,
                               int         modulus);
 
-    static unsigned int hash1(const char *data, int length);
-
     /// Return an unsigned integer hash value corresponding to the specified
     /// `data` of the specified `length` (in bytes).  The behavior is
     /// undefined unless `0 <= length`.  Note that if `data` is 0, then
@@ -779,6 +777,7 @@ struct HashUtil {
     /// assumed to be independent (i.e., there are no known correlations
     /// between the results of the two hash functions given the same input
     /// data).
+    static unsigned int hash1(const char *data, int length);
     static unsigned int hash2(const char *data, int length);
 
     /// Return an unsigned integer hash value corresponding to the specified

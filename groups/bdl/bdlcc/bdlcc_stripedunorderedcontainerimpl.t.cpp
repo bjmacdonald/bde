@@ -10,7 +10,9 @@
 #include <bdlb_randomdevice.h>
 
 #include <bslim_testutil.h>
+
 #include <bslmt_threadutil.h>
+#include <bslmt_timedcompletionguard.h>
 #include <bslmt_semaphore.h>
 
 #include <bslma_allocator.h>
@@ -42,6 +44,7 @@
 #include <bsls_atomic.h>
 #include <bsls_buildtarget.h>
 #include <bsls_nameof.h>
+#include <bsls_timeinterval.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>     // `BloombergLP::bsls::Types::Int64`
 
@@ -50,11 +53,13 @@
 #include <bsl_cstdlib.h>    // `atoi`
 #include <bsl_cmath.h>      // `sqrt`
 #include <bsl_cstdio.h>     // `sprintf`
+#include <bsl_format.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>     // `allocate_shared`
 #include <bsl_ostream.h>    // `operator<<`
 #include <bsl_sstream.h>
+#include <bsl_stdexcept.h>  // `runtime_error`
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsl_unordered_map.h>
@@ -131,7 +136,6 @@ using namespace bsl;
 // [18] bsl::size_t insertUnique(const KEY& key, VALUE&& value);
 // [10] void insertBulkAlways(RANDOMIT first, last);
 // [10] bsl::size_t insertBulkUnique(RANDOMIT first, last);
-// [15] void maxLoadFactor(float newMaxLoadFactor);
 // [15] void rehash(bsl::size_t numBuckets);
 // [12] int setComputedValueAll(const KEY& key, functor);
 // [12] int setComputedValueFirst(const KEY& key, functor);
@@ -283,8 +287,9 @@ typedef bdlcc::StripedUnorderedContainerImpl_TestUtil<int, bsl::string>
 typedef bsls::Types::Int64                            TimeType;
 typedef bsl::pair<int, bsl::string>                   PairType;
 
-/// Pointer to StripedUnorderedContainerImpl_TestUtil object
 typedef struct ThreadData {
+
+    /// Pointer to StripedUnorderedContainerImpl_TestUtil object
     Strip_TestUtilType *d_stripTestUtil_p;
 
     /// sleep time, microsec
@@ -530,7 +535,7 @@ struct TestComputedValueUpdater {
 };
 
 /// Test locking for the various `bdlcc:StripedUnorderedContainerImpl`
-///methods.
+/// methods.
 void testLocking()
 {
     // ------------------------------------------------------------------------
@@ -1350,6 +1355,23 @@ class TestDriver {
                                                 VALUE,
                                                 PairStdAllocator> > TestValues;
 
+    /// Functor for testCase24 - a visitor that throws an exception after
+    /// visiting `throwAfter` elements.
+    struct TestCase24ThrowingVisitor
+    {
+        int  d_count;
+        int  d_throwAfter;  // Trigger exception after this many calls.
+        TestCase24ThrowingVisitor(int throwAfter);
+
+        bool operator()(VALUE*, const KEY&);
+    };
+
+    /// Functor for testCase24 - a visitor that does nothing
+    struct TestCase24NoOpVisitor
+    {
+        bool operator()(const VALUE&, const KEY&);
+    };
+
     /// Functor for testCase23 - eraseIfValuePredicate.
     struct TestCase23ValuePredicate {
 
@@ -1527,10 +1549,40 @@ class TestDriver {
     static void testCase18();
     static void testCase19();
     static void testCase20();
-
-    /// Code for test cases 1 to 23.
     static void testCase23();
+
+    /// Code for test cases 1 to 24.
+    static void testCase24();
 };
+
+template <class KEY, class VALUE, class HASH, class EQUAL>
+TestDriver<KEY, VALUE, HASH, EQUAL>::TestCase24ThrowingVisitor::
+    TestCase24ThrowingVisitor(int throwAfter)
+: d_count(0)
+, d_throwAfter(throwAfter)
+{
+}
+
+template <class KEY, class VALUE, class HASH, class EQUAL>
+bool TestDriver<KEY, VALUE, HASH, EQUAL>::TestCase24ThrowingVisitor::operator()(
+                                                                     VALUE*,
+                                                                     const KEY&)
+{
+    ++d_count;
+    if (d_count > d_throwAfter)
+    {
+        throw bsl::runtime_error("Visitor exception");
+    }
+    return true; // continue visiting if no exception.
+}
+
+template <class KEY, class VALUE, class HASH, class EQUAL>
+bool TestDriver<KEY, VALUE, HASH, EQUAL>::TestCase24NoOpVisitor::operator()(
+                                                                 const VALUE&,
+                                                                 const KEY&)
+{
+    return true;
+}
 
 template <class KEY, class VALUE, class HASH, class EQUAL>
 TestDriver<KEY, VALUE, HASH, EQUAL>::TestCase23ValuePredicate::
@@ -2476,7 +2528,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase19()
             ASSERTV(s_testCase19_visitedElements.size(),
                     0 == s_testCase19_visitedElements.size());
         }
-    } // END Testing with duplicate values - fail
+    }  // END Testing with duplicate values - fail
 }
 
 template <class KEY, class VALUE, class HASH, class EQUAL>
@@ -3402,14 +3454,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase15()
     //   2. Verify that `loadFactor` is bigger than the current
     //      `maxLoadFactor.`
     //
-    //   3. Set `maxLoadFactor` to a large number and confirm that the number
-    //      of buckets does not change.
-    //
-    //   4. Set `maxLoadFactor` to its previous value (1.0), which is smaller
-    //      than the current loadFactor, and confirm that the number of buckets
-    //      does change.
-    //
-    //   5. Directly call `rehash` with double the number of the existing
+    //   3. Directly call `rehash` with double the number of the existing
     //      buckets, and confirm that the number of buckets doubled.  Wrap the
     //      call with `BSLMA_TESTALLOCATOR_EXCEPTION_TEST` macro.
     //
@@ -3417,7 +3462,6 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase15()
     //   void rehash(bsl::size_t numBuckets);
     //   void disableRehash();
     //   void enableRehash();
-    //   void maxLoadFactor(float newMaxLoadFactor);
     //   bool isRehashEnabled() const;
     //   bool canRehash() const;
     //   float maxLoadFactor() const;
@@ -3587,7 +3631,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase15()
     } // END Loop on bucket sizes
     ASSERT(dam.isTotalSame());
 
-    // Test `disable`, `enable`, `maxLoadFactor`, and explicit `rehash`.
+    // Test `disable`, `enable`, and explicit `rehash`.
     //
     // Note that we skip initial bucket count of 64, as it will not rehash for
     // the test values we use here.
@@ -3630,22 +3674,6 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase15()
         // Confirm that no memory was allocated in `enableRehash`,
         // `loadFactor`, and `maxLoadFactor`.
         ASSERTV(sam.isTotalSame());
-
-        // Set `maxLoadFactor` to a large value, and confirm no rehash
-        // happened.
-        float curMaxLoadFactor = X.maxLoadFactor();
-        mX.maxLoadFactor(1e6);
-        ASSERTV(LENG, X.maxLoadFactor(), 1e6 == X.maxLoadFactor());
-        ASSERTV(LENG,
-                X.bucketCount(),
-                initialNumBuckets == X.bucketCount());
-
-        // Set `maxLoadFactor` to its original value, and confirm rehash
-        // happened.
-        mX.maxLoadFactor(curMaxLoadFactor);
-        ASSERTV(LENG,
-                X.bucketCount(),
-                initialNumBuckets < X.bucketCount());
 
         // Directly call `rehash`, doubling the number of buckets, within
         // exception macros, and confirm that the number of buckets doubled.
@@ -7757,6 +7785,94 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase23()
 }
 
 template <class KEY, class VALUE, class HASH, class EQUAL>
+void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase24()
+{
+    if (verbose)
+    {
+        cout << "\nTEST EXCEPTION SAFETY FOR VISITOR FUNCTIONS (No Deadlock)" << endl;
+    }
+
+    bslma::TestAllocator         da("default",  veryVeryVeryVerbose);
+    bslma::DefaultAllocatorGuard dag(&da);
+    bslma::TestAllocator         oa("object",   veryVeryVeryVerbose);
+    bslma::TestAllocator         sa("supplied", veryVeryVeryVerbose);
+
+    // CONCERN: In no case does memory come from the default allocator.
+    bslma::TestAllocatorMonitor dam(&da);
+
+    const KEY keyOne = bsltf::TemplateTestFacility::create<KEY>(1);
+    const KEY keyTwo = bsltf::TemplateTestFacility::create<KEY>(2);
+    const KEY keyThree = bsltf::TemplateTestFacility::create<KEY>(3);
+    const KEY keyFour = bsltf::TemplateTestFacility::create<KEY>(4);
+
+    const VALUE valueOne = bsltf::TemplateTestFacility::create<VALUE>(1);
+    const VALUE valueTwo = bsltf::TemplateTestFacility::create<VALUE>(2);
+    const VALUE valueThree = bsltf::TemplateTestFacility::create<VALUE>(3);
+    const VALUE valueFour = bsltf::TemplateTestFacility::create<VALUE>(4);
+
+    // Create a container instance.
+    Obj container(128, 8, &oa);
+
+    const bsl::size_t NUM_ENTRIES = 3;
+
+    // Insert several elements.
+    container.insertUnique(keyOne, valueOne);
+    container.insertUnique(keyTwo, valueTwo);
+    container.insertUnique(keyThree, valueThree);
+
+    ASSERTV(container.size(), container.size() == NUM_ENTRIES);
+
+    // 1. Call visit() with a throwing visitor function.
+    {
+        TestCase24ThrowingVisitor throwingVisitorImpl(2);  // Throw after 2 iterations.
+        typename Obj::VisitorFunction visitor(throwingVisitorImpl);
+
+        dam.reset(); // `bsl::function` constructor allocates from the default
+                        // allocator.
+
+        bool exceptionCaught = false;
+        try
+        {
+            container.visit(visitor);
+        }
+        catch (const bsl::runtime_error& ex)
+        {
+            exceptionCaught = true;
+            if (verbose)
+            {
+                cout << "Caught expected exception: " << ex.what() << endl;
+            }
+        }
+        ASSERTV(exceptionCaught);
+    }
+
+    // After the exception, verify that the container remains operational.
+    // 2. Call visitReadOnly to count elements.
+    {
+        TestCase24NoOpVisitor noOpVisitorImpl;
+        typename Obj::ReadOnlyVisitorFunction visitor(noOpVisitorImpl);
+
+        dam.reset(); // `bsl::function` constructor allocates from the default
+                        // allocator.
+
+        int rc = container.visitReadOnly(visitor);
+        ASSERTV(rc, rc == static_cast<int>(container.size()));
+    }
+
+    // 3. Insert another element.
+    {
+        container.insertUnique(keyFour, valueFour);
+        ASSERTV(container.size(), container.size() == NUM_ENTRIES + 1);
+    }
+
+    if (verbose)
+    {
+         cout << "Container remains fully operational after the visitor exception."
+              << endl;
+    }
+}
+
+template <class KEY, class VALUE, class HASH, class EQUAL>
 void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase7()
 {
     // ------------------------------------------------------------------------
@@ -9731,9 +9847,18 @@ int main(int argc, char *argv[])
     bslma::Default::setGlobalAllocator(&globalAllocator);
     bslma::TestAllocatorMonitor gam(&globalAllocator);
 
+    bslmt::TimedCompletionGuard completionGuard(&defaultAllocator);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
+
+
     // BDE_VERIFY pragma: -TP17 These are defined in the various test functions
     switch (test) { case 0:
       // BDE_VERIFY pragma: -TP05 Defined in the various test functions
+      case 24: {
+        RUN_EACH_TYPE(TestDriver, testCase24, TEST_TYPES_REGULAR);
+        break;
+      }
       case 23: {
         RUN_EACH_TYPE(TestDriver, testCase23, TEST_TYPES_REGULAR);
         break;

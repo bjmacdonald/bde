@@ -18,20 +18,20 @@ BSLS_IDENT("$Id$")
 //
 ///Attributes
 ///----------
-// ```
-// Name        Type      Default          Simple Constraints
-// ---------   ------    ---------------  ------------------
-// style       Style     e_NATURAL        none
-// precision   int       0                >= 0
-// sign        Sign      e_NEGATIVE_ONLY  none
-// infinity    string    "inf"            none
-// nan         string    "nan"            none
-// snan        string    "snan"           none
-// point       char      '.'              none
-// exponent    char      'e'              none
-// showpoint   bool      false            none
-// expwidth    int       2                >= 1, <= 4
-// ```
+//
+// | Name      | Type   | Default         | Simple Constraints |
+// | --------- | ------ | --------------- | ------------------ |
+// | style     | Style  | e_NATURAL       | none               |
+// | precision | int    | 0               | >= -1              |
+// | sign      | Sign   | e_NEGATIVE_ONLY | none               |
+// | infinity  | string | "inf"           | none               |
+// | nan       | string | "nan"           | none               |
+// | snan      | string | "snan"          | none               |
+// | point     | char   | '.'             | none               |
+// | exponent  | char   | 'e'             | none               |
+// | showpoint | bool   | false           | none               |
+// | expwidth  | int    | 2               | >= 1, <= 4         |
+//
 // * `style`: control how the decimal number is written.  If `style` is
 //   `e_SCIENTIFIC`, the number is written as its sign, then a single digit,
 //   then the decimal point, then `precision` digits, then the `exponent`
@@ -43,15 +43,17 @@ BSLS_IDENT("$Id$")
 //   `e_NATURAL`, the number is written according to the description of
 //   `to-scientific-string` found in
 //   http://speleotrove.com/decimal/decarith.pdf (and no other specified
-//   formatting values are used, including precision).
-// * `precision`: control how many digits are written after the decimal point
-//   if the decimal number is rendered in `e_FIXED` and `e_SCIENTIFIC`
-//   formats.  Note that `precision` attribute is ignored in `e_NATURAL`
-//   format.
+//   formatting values are used, except precision that has to be set to -1 to
+//   get the actual natural format with the natural precision).
+// * `precision`: control how many digits are written after the decimal point.
+//   When -1 is specified for precision, the number is written using its
+//   natural precision in every format, while specifying a zero or positive
+//   precision overrides said natural precision.
 // * `sign`: control how the sign is output.  If a decimal value has its sign
 //   bit set, a `-` is always written.  Otherwise, if `sign` is
 //   `e_NEGATIVE_ONLY`, no sign is written.  If it is `e_ALWAYS`, a `+` is
-//   written.
+//   written.  If it is `e_POSITIVE_AS_SPACE` a space character is written in
+//   case the value is positive, while a negative sign for negative values.
 // * `infinity`: specify a string to output infinity value.
 // * `nan`: specify a string to output NaN value.
 // * `snan`: specify a string to output signaling NaN value.
@@ -80,8 +82,9 @@ class DecimalFormatConfig {
   public:
     // TYPES
     enum Sign {
-        e_NEGATIVE_ONLY,  // no sign output when sign bit is not set
-        e_ALWAYS          // output '+' when sign bit is not set
+        e_NEGATIVE_ONLY,     // no sign output if sign bit isn't set, else '-'
+        e_ALWAYS,            // output '+' when sign bit is not set, else '-'
+        e_POSITIVE_AS_SPACE  // output ' ' when sign bit is not set, else '-'
     };
 
     enum Style {
@@ -132,18 +135,17 @@ class DecimalFormatConfig {
 
     /// Create an object of this class having the specified `precision` to
     /// control how many digits are written after a decimal point.  The
-    /// behavior is undefined if `precision` is negative.  Optionally
-    /// specify `style` to control how the number is written.  If it is not
-    /// specified, `e_NATURAL` is used.  Optionally specify `sign` to
-    /// control how the sign is output.  If is not specified,
-    /// `e_NEGATIVE_ONLY` is used.  Optionally specify `infinity` as a
-    /// string to output infinity value.  If it is not specified, "inf" is
-    /// used.  Optionally specify `nan` as a string to output NaN value.  If
-    /// it is not specified, "nan" is used.  Optionally specify `snan` as a
-    /// string to output signaling NaN value.  If it is not specified,
-    /// "snan" is used.  The behavior is undefined unless the pointers to
-    /// `infinity`, `nan` and `snan` remain valid for the lifetime of this
-    /// object.  Optionally specify `point` as the character to use for
+    /// behavior is undefined unless `precision >= -1`.  Optionally specify
+    /// `style` to control how the number is written.  If it is not specified,
+    /// `e_NATURAL` is used.  Optionally specify `sign` to control how the sign
+    /// is output.  If is not specified, `e_NEGATIVE_ONLY` is used.  Optionally
+    /// specify `infinity` as a string to output infinity value.  If it is not
+    /// specified, "inf" is used.  Optionally specify `nan` as a string to
+    /// output NaN value.  If it is not specified, "nan" is used.  Optionally
+    /// specify `snan` as a string to output signaling NaN value.  If it is not
+    /// specified, "snan" is used.  The behavior is undefined unless the
+    /// pointers to `infinity`, `nan` and `snan` remain valid for the lifetime
+    /// of this object.  Optionally specify `point` as the character to use for
     /// decimal points.  If it is not specified, `.` is used.  Optionally
     /// specify `exponent` as the character to use for exponent.  If it is
     /// not specified, `e` is used.  Optionally specify `showpoint` to force
@@ -151,9 +153,8 @@ class DecimalFormatConfig {
     /// to force at least that many digits to be written for an exponent, up
     /// to the number of digits in the largest supported exponent.  If it is
     /// not specified, 2 is used.  The behavior is undefined unless
-    /// `expWidth` is 1, 2, 3, or 4.  See the Attributes section under
-    /// @DESCRIPTION in the component-level documentation for information on
-    /// the class attributes.
+    /// `expWidth` is 1, 2, 3, or 4.  See the [](#Attributes) section for
+    /// information on the class attributes.
     explicit
     DecimalFormatConfig(int         precision,
                         Style       style     = e_NATURAL,
@@ -169,7 +170,7 @@ class DecimalFormatConfig {
     // MANIPULATORS
 
     /// Set the `precision` attribute of this object to the specified
-    /// `value`.  Behavior is undefined if `value` is negative.
+    /// `value`.  Behavior is undefined unless `value >= -1`.
     void setPrecision (int value);
 
     /// Set the `style` attribute of this object to the specified `value`.
@@ -306,7 +307,7 @@ DecimalFormatConfig::DecimalFormatConfig(int         precision,
     , d_showpoint(showpoint)
     , d_expWidth(expWidth)
 {
-    BSLS_ASSERT(precision >= 0);
+    BSLS_ASSERT(precision >= -1);
     BSLS_ASSERT(infinity);
     BSLS_ASSERT(nan);
     BSLS_ASSERT(snan);
@@ -316,9 +317,9 @@ DecimalFormatConfig::DecimalFormatConfig(int         precision,
 
 // MANIPULATORS
 inline
-void DecimalFormatConfig::setPrecision (int value)
+void DecimalFormatConfig::setPrecision(int value)
 {
-    BSLS_ASSERT(value >= 0);
+    BSLS_ASSERT(value >= -1);
     d_precision = value;
 }
 

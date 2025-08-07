@@ -296,6 +296,9 @@ using bsls::nameOfType;
 // [41] bool ends_with(basic_string_view characterString) const;
 // [41] bool ends_with(CHAR_TYPE character) const;
 // [41] bool ends_with(const CHAR_TYPE *characterString) const;
+// [41] bool contains(basic_string_view characterString) const;
+// [41] bool contains(CHAR_TYPE character) const;
+// [41] bool contains(const CHAR_TYPE *characterString) const;
 //
 // FREE OPERATORS:
 // [ 6] bool operator==(const string<C,CT,A>&, const string<C,CT,A>&);
@@ -408,6 +411,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -3095,9 +3099,20 @@ void TestDriver<TYPE,TRAITS,ALLOC>::testCase9Negative()
     if (verbose) printf("\tassigning a NULL C-string\n");
 
     {
-        const TYPE *s = 0;
-        (void) s; // to disable "unused variable" warning
+        const TYPE *s = 0;  (void)s;
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wnonnull"
+  // gcc does not understand that `BSLS_ASSERT_SAFE` here throws and gives a
+  // warning for essentially unreachable code.
+  //
+  // argument 1 null where non-null expected [-Wnonnull]
+  //    return __builtin_strlen(__s);
+#endif
         ASSERT_SAFE_FAIL(X = s);
+#ifdef BSLS_PLATFORM_CMP_GNU
+  #pragma GCC diagnostic pop
+#endif
     }
 
     if (verbose) printf("\tassigning a valid C-string\n");

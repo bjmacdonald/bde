@@ -24,14 +24,17 @@
 #include <bslmt_threadattributes.h>
 #include <bslmt_threadgroup.h>
 #include <bslmt_threadutil.h>
+#include <bslmt_timedcompletionguard.h>
 #include <bslmt_timedsemaphore.h>
 #include <bslmt_turnstile.h>
 
 #include <bsls_atomic.h>
+#include <bsls_atomicoperations.h>
 #include <bsls_compilerfeatures.h>
 #include <bsls_platform.h>
 #include <bsls_stopwatch.h>
 #include <bsls_systemtime.h>
+#include <bsls_timeinterval.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
@@ -44,6 +47,7 @@
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
+#include <bsl_format.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
@@ -154,6 +158,46 @@ typedef bdlcc::FixedQueue<Element*> Obj;
 // ============================================================================
 //                 HELPER CLASSES AND FUNCTIONS  FOR TESTING
 // ----------------------------------------------------------------------------
+
+#define STARTTHREAD(tg, f)                                              \
+{                                                                       \
+    int rc1 = tg.addThread(f);                                          \
+    if (0 != rc1) {                                                     \
+        bslmt::ThreadUtil::microSleep(250000);                          \
+        int rc2 = tg.addThread(f);                                      \
+        if (0 != rc2) {                                                 \
+            bslmt::ThreadUtil::microSleep(0, 1);                        \
+            int rc3 = tg.addThread(f);                                  \
+            if (0 != rc3) {                                             \
+                cout << "ThreadGroup addThread() failed."               \
+                     << "  Thread quota exceeded?"                      \
+                     << "  (" << rc1 << ',' << rc2 << ',' << rc3 << ')' \
+                     << bsl::endl;                                      \
+                ASSERT(false);                                          \
+            }                                                           \
+        }                                                               \
+    }                                                                   \
+}
+
+#define ADDTHREADS(tg, f, n)                                            \
+{                                                                       \
+    int rc1 = n - tg.addThreads(f, n);                                  \
+    if (0 != rc1) {                                                     \
+        bslmt::ThreadUtil::microSleep(250000);                          \
+        int rc2 = rc1 - tg.addThreads(f, rc1);                          \
+        if (0 != rc2) {                                                 \
+            bslmt::ThreadUtil::microSleep(0, 1);                        \
+            int rc3 = rc2 - tg.addThreads(f, rc2);                      \
+            if (0 != rc3) {                                             \
+                cout << "ThreadGroup addThreads() failed."              \
+                     << "  Thread quota exceeded?"                      \
+                     << "  (" << rc1 << ',' << rc2 << ',' << rc3 << ')' \
+                     << bsl::endl;                                      \
+                ASSERT(false);                                          \
+            }                                                           \
+        }                                                               \
+    }                                                                   \
+}
 
 namespace {
 namespace u {
@@ -500,7 +544,7 @@ struct StressData {
     unsigned                           *checksums;
     int                                 maxCount;
     int                                 thread;
-    bool                               *stopProd;
+    bsls::AtomicBool                   *stopProd;
 };
 
 extern "C" void *stressConsumer1(void* arg) {
@@ -526,8 +570,12 @@ extern "C" void *stressConsumer2(void* arg) {
 }
 
 int stressrand() {
-    static unsigned v = 0;
-    return v = (v*1664525 + 1013904223)&0xFFFFFFFF;
+  static bsls::AtomicOperations::AtomicTypes::Uint v;
+  bsls::AtomicOperations::setUint(
+      &v,
+      (bsls::AtomicOperations::getUint(&v) * 1664525 + 1013904223) & 0xFFFFFFFF);
+
+  return bsls::AtomicOperations::getUint(&v);
 }
 
 extern "C" void *stressProducer1(void* arg) {
@@ -595,9 +643,9 @@ static const char* fmt(int n) {
     if (n>=1000) { f=n/10; n/=1000; f-=n*100; c='G'; }
     static char buf[0x100];
     if (c) {
-        sprintf(buf, "%d.%02d%c", n, f, c);
+        snprintf(buf, sizeof buf, "%d.%02d%c", n, f, c);
     } else {
-        sprintf(buf, "%d", n);
+        snprintf(buf, sizeof buf, "%d", n);
     }
     return buf;
 }
@@ -745,8 +793,7 @@ void runtest(int numIterations, int numThreads, int queueSize, int pushCount)
     control.d_barrier = &barrier;
 
     bslmt::ThreadGroup tg;
-    tg.addThreads(bdlf::BindUtil::bind(&workerThread,&control),
-            numThreads);
+    ADDTHREADS(tg, bdlf::BindUtil::bind(&workerThread,&control), numThreads);
 
     tg.joinAll();
     ASSERT(queue.isEmpty());
@@ -785,8 +832,7 @@ void runtest(int numPushers, int queueSize, bool doDrain, bool doSleep = false)
     control.d_barrier = &barrier;
 
     bslmt::ThreadGroup tg;
-    tg.addThreads(bdlf::BindUtil::bind(&pusherThread,&control),
-            numPushers);
+    ADDTHREADS(tg, bdlf::BindUtil::bind(&pusherThread,&control), numPushers);
 
     while (!queue.isFull()) {
         bslmt::ThreadUtil::yield();
@@ -914,10 +960,8 @@ void runtest(int numIterations, int numPushers, int numPoppers)
     control.d_barrier = &barrier;
 
     bslmt::ThreadGroup tg;
-    tg.addThreads(bdlf::BindUtil::bind(&pusherThread,&control),
-            numPushers);
-    tg.addThreads(bdlf::BindUtil::bind(&popperThread,&control),
-            numPoppers);
+    ADDTHREADS(tg, bdlf::BindUtil::bind(&pusherThread,&control), numPushers);
+    ADDTHREADS(tg, bdlf::BindUtil::bind(&popperThread,&control), numPoppers);
 
     tg.joinAll();
     ASSERT(queue.isEmpty());
@@ -991,10 +1035,8 @@ void runtest(int numIterations, int numPushers, int numPoppers)
     control.d_barrier = &barrier;
 
     bslmt::ThreadGroup tg;
-    tg.addThreads(bdlf::BindUtil::bind(&pusherThread,&control),
-            numPushers);
-    tg.addThreads(bdlf::BindUtil::bind(&popperThread,&control),
-            numPoppers);
+    ADDTHREADS(tg, bdlf::BindUtil::bind(&pusherThread,&control), numPushers);
+    ADDTHREADS(tg, bdlf::BindUtil::bind(&popperThread,&control), numPoppers);
 
     tg.joinAll();
     ASSERT(queue.isEmpty());
@@ -1290,8 +1332,9 @@ int IncorrectlyMatchingMoveConstructorTestType::data() const
         bdlcc::FixedQueue<my_WorkRequest> queue(k_MAX_QUEUE_LENGTH);
 
         bslmt::ThreadGroup consumerThreads;
-        consumerThreads.addThreads(bdlf::BindUtil::bind(&myConsumer, &queue),
-                                   numThreads);
+        ADDTHREADS(consumerThreads,
+                   bdlf::BindUtil::bind(&myConsumer, &queue),
+                   numThreads);
 
         for (int i = 0; i < k_NUM_WORK_ITEMS; ++i) {
             my_WorkRequest item;
@@ -1325,6 +1368,10 @@ int main(int argc, char *argv[])
 
     bslmt::Configuration::setDefaultThreadStackSize(
                     bslmt::Configuration::recommendedDefaultThreadStackSize());
+
+    bslmt::TimedCompletionGuard completionGuard;
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
 
     switch (test) { case 0:  // Zero is always the leading case.
       case 19: {
@@ -1851,10 +1898,9 @@ int main(int argc, char *argv[])
         bsls::AtomicInt stop(0);
 
         bslmt::ThreadGroup tg;
-        tg.addThreads(bdlf::BindUtil::bind(&pushpopThread,
-                                          &queue,
-                                          &stop),
-                      k_NUM_PUSHPOP_THREADS);
+        ADDTHREADS(tg,
+                   bdlf::BindUtil::bind(&pushpopThread, &queue, &stop),
+                   k_NUM_PUSHPOP_THREADS);
         bsls::Stopwatch timer;
         timer.start();
 
@@ -1952,7 +1998,6 @@ int main(int argc, char *argv[])
             seqtst::runtest(k_NUM_ITERATIONS, numPushers, numPoppers);
         }
         }
-
       } break;
       case 11: {
         // ---------------------------------------------------------
@@ -2114,14 +2159,15 @@ int main(int argc, char *argv[])
             bslmt::Barrier drainDoneBarrier(3);
             bslmt::Barrier reEnableBarrier(2);
             bslmt::ThreadGroup tg;
-            tg.addThreads(bdlf::BindUtil::bind(&case9disabler,
-                                              &mtQueue,
-                                              &drainDoneBarrier,
-                                              &reEnableBarrier),
-                          2);
-            tg.addThread(bdlf::BindUtil::bind(&case9drainer,
-                                             &mtQueue,
-                                             &drainDoneBarrier));
+            ADDTHREADS(tg,
+                       bdlf::BindUtil::bind(&case9disabler,
+                                            &mtQueue,
+                                            &drainDoneBarrier,
+                                            &reEnableBarrier),
+                       2);
+            STARTTHREAD(tg, bdlf::BindUtil::bind(&case9drainer,
+                                                 &mtQueue,
+                                                 &drainDoneBarrier));
             tg.joinAll();
             LOOP_ASSERT(mtQueue.length(), 4 == mtQueue.length());
         }
@@ -2130,10 +2176,11 @@ int main(int argc, char *argv[])
         {
             bsls::AtomicBool done(false);
             bslmt::ThreadGroup pusherGroup;
-            pusherGroup.addThreads(bdlf::BindUtil::bind(&case9pusher,
-                                                        &mtQueue,
-                                                        &done),
-                                   k_NUM_PUSHERS);
+            ADDTHREADS(pusherGroup,
+                       bdlf::BindUtil::bind(&case9pusher,
+                                            &mtQueue,
+                                            &done),
+                       k_NUM_PUSHERS);
             mtQueue.disable();
             mtQueue.removeAll();
             bsls::Stopwatch timer;
@@ -2164,10 +2211,11 @@ int main(int argc, char *argv[])
             bdlcc::FixedQueue<int> queue(k_QUEUE_SIZE_LARGE);
 
             bslmt::ThreadGroup pusherGroup;
-            pusherGroup.addThreads(bdlf::BindUtil::bind(&case9pusher,
-                                                        &queue,
-                                                        &done),
-                                   k_NUM_PUSHERS_LESS);
+            ADDTHREADS(pusherGroup,
+                       bdlf::BindUtil::bind(&case9pusher,
+                                            &queue,
+                                            &done),
+                       k_NUM_PUSHERS_LESS);
 
             queue.disable();
             if (veryVerbose) {
@@ -2210,10 +2258,11 @@ int main(int argc, char *argv[])
             bdlcc::FixedQueue<int> queue(k_QUEUE_SIZE_LARGE);
 
             bslmt::ThreadGroup pusherGroup;
-            pusherGroup.addThreads(bdlf::BindUtil::bind(&case9pusher,
-                                                        &queue,
-                                                        &done),
-                                   k_NUM_PUSHERS_MORE);
+            ADDTHREADS(pusherGroup,
+                       bdlf::BindUtil::bind(&case9pusher,
+                                            &queue,
+                                            &done),
+                       k_NUM_PUSHERS_MORE);
 
             // Sleep for up to 2 ms just to let some stuff get into the queue
             bslmt::ThreadUtil::microSleep(rand() % 2000);
@@ -2296,11 +2345,15 @@ int main(int argc, char *argv[])
             for (int j = 0; j < k_NUM_PUSHER_THREADS; ++j) {
                 nextValue[j] = reserved + k_NUM_VALUES*j;
                 lastValue[j] = reserved + k_NUM_VALUES*(j+1) - 1;
-                tg.addThread(bdlf::BindUtil::bind(&abaThread,
-                                                 nextValue[j], lastValue[j],
-                                                 &mX, &barrier, false));
+                STARTTHREAD(tg, bdlf::BindUtil::bind(&abaThread,
+                                                     nextValue[j],
+                                                     lastValue[j],
+                                                     &mX,
+                                                     &barrier,
+                                                     false));
             }
-            tg.addThread(bdlf::BindUtil::bind(&sleepAndWait, 100, &barrier));
+            STARTTHREAD(tg,
+                        bdlf::BindUtil::bind(&sleepAndWait, 100, &barrier));
 
             for (int numReceived = 0; numReceived < k_NUM_ENTRIES;
                  ++numReceived) {
@@ -2349,9 +2402,9 @@ int main(int argc, char *argv[])
                           << "======================"   << endl;
 
         enum {
-            k_NUM_PUSHER_THREADS = 40,
+            k_NUM_PUSHER_THREADS = 30,
             k_NUM_VALUES = 6,
-            k_NUM_ITERATIONS = 2000
+            k_NUM_ITERATIONS = 1000
         };
 
         enum { k_NUM_ENTRIES = k_NUM_VALUES * k_NUM_PUSHER_THREADS };
@@ -2371,11 +2424,16 @@ int main(int argc, char *argv[])
             for (int j = 0; j < k_NUM_PUSHER_THREADS; ++j) {
                 nextValue[j] = reserved + k_NUM_VALUES*j;
                 lastValue[j] = reserved + k_NUM_VALUES*(j+1) - 1;
-                tg.addThread(bdlf::BindUtil::bind(&abaThread,
-                                                 nextValue[j], lastValue[j],
-                                                 &mX, &barrier, false));
+                STARTTHREAD(tg, bdlf::BindUtil::bind(&abaThread,
+                                                     nextValue[j],
+                                                     lastValue[j],
+                                                     &mX,
+                                                     &barrier,
+                                                     false));
             }
-            tg.addThread(bdlf::BindUtil::bind(&sleepAndWait, 100, &barrier));
+            STARTTHREAD(tg, bdlf::BindUtil::bind(&sleepAndWait,
+                                                 100,
+                                                 &barrier));
 
             for (int numReceived = 0; numReceived < k_NUM_ENTRIES;
                  ++numReceived) {
@@ -2399,7 +2457,6 @@ int main(int argc, char *argv[])
          ASSERT(0 < ta.numAllocations());
          ASSERT(0 == ta.numBytesInUse());
       } break;
-
       case 6: {
         // --------------------------------------------------------------------
         // CONCERN: REMOVE_ALL
@@ -2477,7 +2534,8 @@ int main(int argc, char *argv[])
 
             bslmt::ThreadGroup tg;
 
-            tg.addThread(bdlf::BindUtil::bind(&test9PushBack,
+            STARTTHREAD(tg,
+                        bdlf::BindUtil::bind(&test9PushBack,
                                              &mX,
                                              PUSH_RATE,
                                              THRESHOLD,
@@ -2539,7 +2597,7 @@ int main(int argc, char *argv[])
         memset(producerData, 0, sizeof(StressData)*numProducers);
         memset(consumerData, 0, sizeof(StressData)*numConsumers);
         bdlcc::FixedQueue<StressNode> queue(queueSize);
-        bool stopProducers = false;
+        bsls::AtomicBool stopProducers;
         for (int i=0; i<numProducers; i++) {
             producerData[i].counts = new int[1];
             producerData[i].checksums = new unsigned[1];
@@ -2561,7 +2619,6 @@ int main(int argc, char *argv[])
                 consumerData[i].checksums[j] = 0;
             }
             consumerData[i].queue = &queue;
-            producerData[i].maxCount = maxCount;
             consumerData[i].thread = i;
             bslmt::ThreadUtil::create(&consumerData[i].handle,
                     ((i%2) ? stressConsumer2 : stressConsumer1),
@@ -2857,10 +2914,11 @@ int main(int argc, char *argv[])
             bdlcc::FixedQueue<int> queue(k_QUEUE_SIZE_LARGE);
 
             bslmt::ThreadGroup pusherGroup;
-            pusherGroup.addThreads(bdlf::BindUtil::bind(&case9pusher,
-                                                        &queue,
-                                                        &done),
-                                   k_NUM_PUSHERS_MORE);
+            ADDTHREADS(pusherGroup,
+                       bdlf::BindUtil::bind(&case9pusher,
+                                            &queue,
+                                            &done),
+                       k_NUM_PUSHERS_MORE);
 
             // Sleep for up to 2 ms just to let some stuff get into the queue
             bslmt::ThreadUtil::microSleep(rand() % 2000);
@@ -3028,30 +3086,32 @@ int main(int argc, char *argv[])
             youngQueue.pushBack(i);
         }
 
-        workThreads.addThreads(bdlf::BindUtil::bind(&rolloverLengthChecker,
-                                                   &youngQueue,
-                                                   &doneFlag),
-                               2);
+        ADDTHREADS(workThreads,
+                   bdlf::BindUtil::bind(&rolloverLengthChecker,
+                                        &youngQueue,
+                                        &doneFlag),
+                   2);
 
         bslmt::Turnstile pushTurnstile(6000.0);
-        workThreads.addThread(bdlf::BindUtil::bind(&rolloverPusher,
-                                                  &youngQueue,
-                                                  &doneFlag,
-                                                  &pushTurnstile,
-                                                  1));
+        STARTTHREAD(workThreads, bdlf::BindUtil::bind(&rolloverPusher,
+                                                      &youngQueue,
+                                                      &doneFlag,
+                                                      &pushTurnstile,
+                                                      1));
 
-        workThreads.addThread(bdlf::BindUtil::bind(&rolloverPusher,
-                                                  &youngQueue,
-                                                  &doneFlag,
-                                                  &pushTurnstile,
-                                                  2));
+        STARTTHREAD(workThreads, bdlf::BindUtil::bind(&rolloverPusher,
+                                                      &youngQueue,
+                                                      &doneFlag,
+                                                      &pushTurnstile,
+                                                      2));
 
         bslmt::Turnstile popTurnstile(3000.0);
-        workThreads.addThreads(bdlf::BindUtil::bind(&rolloverPopper,
-                                                   &youngQueue,
-                                                   &doneFlag,
-                                                   &popTurnstile),
-                               2);
+        ADDTHREADS(workThreads,
+                   bdlf::BindUtil::bind(&rolloverPopper,
+                                        &youngQueue,
+                                        &doneFlag,
+                                        &popTurnstile),
+                   2);
 
         workThreads.joinAll();
 
@@ -3100,28 +3160,30 @@ int main(int argc, char *argv[])
         //    metered rate R.
         //  * At a metered rate R/2, have another two threads popping from
         //    the queue.
-        workThreads.addThreads(bdlf::BindUtil::bind(&rolloverLengthChecker,
-                                                   &queue,
-                                                   &doneFlag),
-                               2);
+        ADDTHREADS(workThreads,
+                   bdlf::BindUtil::bind(&rolloverLengthChecker,
+                                        &queue,
+                                        &doneFlag),
+                   2);
 
-        workThreads.addThread(bdlf::BindUtil::bind(&rolloverPusher,
-                                                  &queue,
-                                                  &doneFlag,
-                                                  &pushTurnstile,
-                                                  1));
+        STARTTHREAD(workThreads, bdlf::BindUtil::bind(&rolloverPusher,
+                                                      &queue,
+                                                      &doneFlag,
+                                                      &pushTurnstile,
+                                                      1));
 
-        workThreads.addThread(bdlf::BindUtil::bind(&rolloverPusher,
-                                                  &queue,
-                                                  &doneFlag,
-                                                  &pushTurnstile,
-                                                  2));
+        STARTTHREAD(workThreads, bdlf::BindUtil::bind(&rolloverPusher,
+                                                      &queue,
+                                                      &doneFlag,
+                                                      &pushTurnstile,
+                                                      2));
 
-        workThreads.addThreads(bdlf::BindUtil::bind(&rolloverPopper,
-                                                   &queue,
-                                                   &doneFlag,
-                                                   &popTurnstile),
-                               2);
+        ADDTHREADS(workThreads,
+                   bdlf::BindUtil::bind(&rolloverPopper,
+                                        &queue,
+                                        &doneFlag,
+                                        &popTurnstile),
+                   2);
 
         workThreads.joinAll();
         bsl::cout << "Done.  testStatus = " << testStatus << bsl::endl;

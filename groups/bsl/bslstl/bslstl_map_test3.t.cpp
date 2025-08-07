@@ -276,6 +276,7 @@ void aSsErT(bool b, const char *s, int i)
 {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -736,8 +737,17 @@ struct TransparentComparator
                     // class TransparentlyComparable
                     // =============================
 
+// When one of these is passed to an `emplace`-like method, it is passed by
+// universal reference, and can (and should) be converted to int as a non-const
+// object.  However, C++03 doesn't have universal references, and instead we
+// pass the object as a const lvalue.  This causes the creation of the object
+// in the container to fail (at compile time), because `operator int()` is
+// non-const.  So, for C++03, we make the conversion work with a const source.
 class TransparentlyComparable {
     // DATA
+#if BSLS_COMPILERFEATURES_CPLUSPLUS < 201103L
+    mutable
+#endif
     int d_conversionCount;  // number of times `operator int` has been called
     int d_value;            // the value
 
@@ -760,9 +770,19 @@ class TransparentlyComparable {
 
     /// Return the current value of this object.
     operator int()
+#if BSLS_COMPILERFEATURES_CPLUSPLUS < 201103L
+    const
+#endif
     {
         ++d_conversionCount;
         return d_value;
+    }
+
+    /// return a count of the number of times this object has been converted to
+    /// an int.
+    void resetConversionCount()
+    {
+        d_conversionCount = 0;
     }
 
     // ACCESSORS
@@ -809,107 +829,271 @@ void testTransparentComparator(Container& container,
     typedef typename Container::const_iterator Iterator;
     typedef typename Container::size_type      Count;
 
-    int expectedConversionCount = 0;
+    const int expectedConversionCount = isTransparent ? 0 : 1;
 
     TransparentlyComparable existingKey(initKeyValue);
     TransparentlyComparable nonExistingKey(initKeyValue ? -initKeyValue
                                                         : -100);
 
-    ASSERT(existingKey.conversionCount() == expectedConversionCount);
+    {
+        // Testing `find`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    // Testing `find`.
+        const Iterator EXISTING_F = container.find(existingKey);
+        ASSERT(container.end()               != EXISTING_F);
+        ASSERT(existingKey.value()           == EXISTING_F->first);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    const Iterator EXISTING_F = container.find(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Iterator NON_EXISTING_F = container.find(nonExistingKey);
+        ASSERT(container.end()                  == NON_EXISTING_F);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
+    }
+    {
+        // Testing `contains`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
+
+        const bool EXISTING_CONTAINS = container.contains(existingKey);
+        ASSERT(true == EXISTING_CONTAINS);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
+
+        const bool NON_EXISTING_CONTAINS = container.contains(nonExistingKey);
+        ASSERT(false == NON_EXISTING_CONTAINS);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(container.end()               != EXISTING_F);
-    ASSERT(existingKey.value()           == EXISTING_F->first);
-    ASSERT(existingKey.conversionCount() == expectedConversionCount);
+    {
+        // Testing `count`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const Iterator NON_EXISTING_F = container.find(nonExistingKey);
-    ASSERT(container.end()                  == NON_EXISTING_F);
-    ASSERT(nonExistingKey.conversionCount() == expectedConversionCount);
+        const Count EXISTING_C = container.count(existingKey);
+        ASSERT(1                       == EXISTING_C);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    // Testing `contains`.
-
-    const bool EXISTING_CONTAINS = container.contains(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Count NON_EXISTING_C = container.count(nonExistingKey);
+        ASSERT(0                       == NON_EXISTING_C);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(true == EXISTING_CONTAINS);
-    ASSERT(existingKey.conversionCount() == expectedConversionCount);
+    {
+        // Testing `lower_bound`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const bool NON_EXISTING_CONTAINS = container.contains(nonExistingKey);
-    ASSERT(false == NON_EXISTING_CONTAINS);
-    ASSERT(nonExistingKey.conversionCount() == expectedConversionCount);
+        const Iterator EXISTING_LB = container.lower_bound(existingKey);
+        ASSERT(existingKey.value() == EXISTING_LB->first);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    // Testing `count`.
-
-    const Count EXISTING_C = container.count(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Iterator NON_EXISTING_LB = container.lower_bound(nonExistingKey);
+        ASSERT(container.begin()       == NON_EXISTING_LB);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(1                       == EXISTING_C);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
+    {
+        // Testing `upper_bound`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const Count NON_EXISTING_C = container.count(nonExistingKey);
-    ASSERT(0                       == NON_EXISTING_C);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
+        TransparentlyComparable upperBoundValue(initKeyValue + 1);
+        const Iterator          EXPECTED_UB = container.find(upperBoundValue);
+        const Iterator          EXISTING_UB = container.upper_bound(existingKey);
+        ASSERT(EXPECTED_UB             == EXISTING_UB);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    // Testing `lower_bound`.
-
-    const Iterator EXISTING_LB = container.lower_bound(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Iterator NON_EXISTING_UB = container.upper_bound(nonExistingKey);
+        ASSERT(container.begin()       == NON_EXISTING_UB);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(EXISTING_F              == EXISTING_LB);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
+    {
+        // Testing `equal_range`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const Iterator NON_EXISTING_LB = container.lower_bound(nonExistingKey);
-
-    ASSERT(container.begin()       == NON_EXISTING_LB);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
-
-    // Testing `upper_bound`.
-
-    TransparentlyComparable upperBoundValue(initKeyValue + 1);
-    const Iterator          EXPECTED_UB = container.find(upperBoundValue);
-    const Iterator          EXISTING_UB = container.upper_bound(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
-    }
-
-    ASSERT(EXPECTED_UB             == EXISTING_UB);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
-
-    const Iterator NON_EXISTING_UB = container.upper_bound(nonExistingKey);
-
-    ASSERT(container.begin()       == NON_EXISTING_UB);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
-
-    // Testing `equal_range`.
-
-    const bsl::pair<Iterator, Iterator> EXISTING_ER =
+        const bsl::pair<Iterator, Iterator> EXISTING_ER =
                                             container.equal_range(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
-    }
+        ASSERT(EXISTING_ER.first != EXISTING_ER.second);
+        ASSERT(1 == static_cast<Count>(
+                        bsl::distance(EXISTING_ER.first, EXISTING_ER.second)));
+        for (Iterator it = EXISTING_ER.first; it != EXISTING_ER.second; ++it) {
+            ASSERT(existingKey.value() == it->first);
+        }
 
-    ASSERT(EXISTING_LB             == EXISTING_ER.first);
-    ASSERT(EXPECTED_UB             == EXISTING_ER.second);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    const bsl::pair<Iterator, Iterator> NON_EXISTING_ER =
+        const bsl::pair<Iterator, Iterator> NON_EXISTING_ER =
                                          container.equal_range(nonExistingKey);
 
-    ASSERT(NON_EXISTING_LB         == NON_EXISTING_ER.first);
-    ASSERT(NON_EXISTING_UB         == NON_EXISTING_ER.second);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
+        ASSERT(NON_EXISTING_ER.first == NON_EXISTING_ER.second);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
+    }
+
+    {
+        // Testing `at`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
+
+        try {
+            ASSERT(existingKey.value() == container.at(existingKey));
+        }
+        catch (const std::out_of_range &) {
+            ASSERT(false);
+        }
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
+
+        try {
+            (void) container.at(nonExistingKey);
+            ASSERT(false);
+        }
+        catch (const std::out_of_range &) {
+        }
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
+    }
+}
+
+/// Search for a value equal to the specified `initKeyValue` in the
+/// specified `container`, and count the number of conversions expected
+/// based on the specified `isTransparent`.  Since these tests can modify
+/// the container, we make a copy of it for each test.
+template <class t_CONTAINER>
+void testTransparentComparatorMutable(const t_CONTAINER& container,
+                                      bool               isTransparent,
+                                      int                initKeyValue)
+{
+    typedef typename t_CONTAINER::size_type      Count;
+    typedef typename t_CONTAINER::iterator       Iterator;
+
+    const int expectedConversionCount = isTransparent ? 0 : 1;
+    const Count size = container.size();
+
+    TransparentlyComparable existingKey(initKeyValue);
+    TransparentlyComparable nonExistingKey(initKeyValue ? -initKeyValue
+                                                        : -100);
+
+    {
+        // Testing `operator []`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
+
+        t_CONTAINER c(container);
+        // with an existing key
+        ASSERT(existingKey.value() == c[existingKey]);
+        ASSERT(size == c.size());
+        ASSERTV(expectedConversionCount, existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
+
+        // with a non-existing key
+
+        // Note: We always get a conversion here; if we don't have a transparent
+        // comparator, then the value gets converted, and when the lookup fails,
+        // it gets inserted into the map.  If we do have a transparent comparator,
+        // the lookup is done w/o conversion, but then the value gets converted
+        // in order to put it into the map.
+        (void) c[nonExistingKey];
+        ASSERT(size + 1 == c.size());
+        ASSERTV(1 == nonExistingKey.conversionCount());
+    }
+
+    {
+        // Testing `insert_or_assign` (w/o hint).
+        typedef bsl::pair<Iterator, bool>  Ret;
+
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
+
+        t_CONTAINER        c(container);
+        const Count size = container.size();
+
+        // with an existing key
+        Ret existingIA = c.insert_or_assign(existingKey, 1000);
+        ASSERT(size == c.size());
+        ASSERT(!existingIA.second);
+        ASSERT(existingKey.value() == existingIA.first->first);
+        ASSERT(1000 == existingIA.first->second);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   existingKey.conversionCount(),
+                expectedConversionCount == existingKey.conversionCount());
+
+        // with a non-existing key
+
+        // Note: We always get a conversion here; if we don't have a
+        // transparent comparator, then the value gets converted, and when the
+        // lookup fails, it gets inserted into the map.  If we do have a
+        // transparent comparator, the lookup is done w/o conversion, but then
+        // the value gets converted in order to put it into the map.
+        Ret nonExistingIA = c.insert_or_assign(nonExistingKey, 1000);
+        ASSERT(size + 1 == c.size());
+        ASSERT( nonExistingIA.second);
+        ASSERT(nonExistingKey.value() == nonExistingIA.first->first);
+        ASSERT(1000 == nonExistingIA.first->second);
+        ASSERTV(isTransparent,
+               1, nonExistingKey.conversionCount(),
+               1 == nonExistingKey.conversionCount());
+    }
+
+    {
+        // Testing `insert_or_assign` (w/a hint).
+
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
+
+        t_CONTAINER        c(container);
+        const Count size = container.size();
+
+        // with an existing key
+        Iterator existingIter = c.insert_or_assign(c.cbegin(), existingKey, 1000);
+        ASSERT(size == c.size());
+        ASSERT(existingKey.value() == existingIter->first);
+        ASSERT(1000 == existingIter->second);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   existingKey.conversionCount(),
+                expectedConversionCount == existingKey.conversionCount());
+
+        // with a non-existing key
+
+        // Note: We always get a conversion here; if we don't have a
+        // transparent comparator, then the value gets converted, and when the
+        // lookup fails, it gets inserted into the map.  If we do have a
+        // transparent comparator, the lookup is done w/o conversion, but then
+        // the value gets converted in order to put it into the map.
+        Iterator nonExistingIter = c.insert_or_assign(c.cbegin(), nonExistingKey, 1000);
+        ASSERT(size + 1 == c.size());
+        ASSERT(nonExistingKey.value() == nonExistingIter->first);
+        ASSERT(1000 == nonExistingIter->second);
+        ASSERTV(isTransparent,
+               1, nonExistingKey.conversionCount(),
+               1 == nonExistingKey.conversionCount());
+    }
 }
 
               // ====================================================
@@ -2041,6 +2225,8 @@ TestDriver<KEY, VALUE, COMP, ALLOC>::testCase32a_RunTest(Obj   *target,
     BSLMF_ASSERT((0 <= NUM_KEY_ARGS   && NUM_KEY_ARGS   <= 3));
     BSLMF_ASSERT((0 <= NUM_VALUE_ARGS && NUM_VALUE_ARGS <= 3));
 
+    const bool hintWasEnd = (hint == target->end());
+
     // In C++17, these become the simpler-to-name `bool_constant`.
 
     static const bsl::integral_constant<bool, NK1 == 1> MOVE_K1 = {};
@@ -2273,7 +2459,11 @@ TestDriver<KEY, VALUE, COMP, ALLOC>::testCase32a_RunTest(Obj   *target,
 
         proctor.release();
 
-        ASSERTV(inserted, inserted == (&(*result) != &(*hint)));
+        // If `hint` was the end iterator, it was invalidated by the insertion
+        // (and we should not dereference it, even if it wasn't invalidated).
+        ASSERTV(inserted, hintWasEnd,
+                (hintWasEnd && inserted) ||
+                (!hintWasEnd && (inserted == (&*result != &*hint))));
 
         ASSERTV(MOVE_K1, AK1.movedFrom(),
                MOVE_K1 == (MoveState::e_MOVED == AK1.movedFrom()) || 2 == NK1);
@@ -3903,7 +4093,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase32()
     };
     const int NUM_DATA = static_cast<int>(sizeof DATA / sizeof *DATA);
 
-    const int MAX_LENGTH = 10;
+    const int MAX_LENGTH = 32;
 
     if (verbose) printf("\nTesting `emplace` with hint.\n");
     {
@@ -4588,7 +4778,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase31()
     };
     const int NUM_DATA = static_cast<int>(sizeof DATA / sizeof *DATA);
 
-    const int MAX_LENGTH = 10;
+    const int MAX_LENGTH = 32;
 
     if (verbose) printf("\nTesting `emplace` without exceptions.\n");
     {
@@ -5268,7 +5458,7 @@ void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase29()
     };
     const int NUM_DATA = static_cast<int>(sizeof DATA / sizeof *DATA);
 
-    const int MAX_LENGTH = 10;
+    const int MAX_LENGTH = 32;
 
     if (verbose) printf("\nTesting `insert` without exceptions.\n");
     {
@@ -5742,7 +5932,7 @@ struct TestDeductionGuides {
         typedef std::allocator       <bsl::pair<const T7, T7>> SA7;
         typedef std::initializer_list<bsl::pair<const T7, T7>> IL7;
 
-        IL7      il7({{1L, 1L}, {2L, 3L}});
+        IL7      il7{{1L, 1L}, {2L, 3L}};
         bsl::map m7a(il7);
         bsl::map m7b(il7, CompT7{});
         bsl::map m7c(il7, CompT7{}, BA7{});
@@ -5762,7 +5952,7 @@ struct TestDeductionGuides {
         typedef std::allocator       <bsl::pair<const T8, T8>> SA8;
         typedef std::initializer_list<bsl::pair<const T8, T8>> IL8;
 
-        IL8      il8({{3LL, 3LL}, {2LL, 1LL}});
+        IL8      il8{{3LL, 3LL}, {2LL, 1LL}};
         bsl::map m8a(il8, BA8{});
         bsl::map m8b(il8, a1);
         bsl::map m8c(il8, a2);
@@ -6233,6 +6423,8 @@ int main(int argc, char *argv[])
         //   CONCERN: `lower_bound` properly handles transparent comparators.
         //   CONCERN: `upper_bound` properly handles transparent comparators.
         //   CONCERN: `equal_range` properly handles transparent comparators.
+        //   CONCERN: `operator []` properly handles transparent comparators.
+        //   CONCERN: `at`          properly handles transparent comparators.
         // --------------------------------------------------------------------
 
         if (verbose) printf("\n" "TESTING TRANSPARENT COMPARATOR" "\n"
@@ -6263,31 +6455,32 @@ int main(int argc, char *argv[])
         ASSERT(NUM_DATA == XT.size() );
 
         for (int i = 0; i < NUM_DATA; ++i) {
-            const int VALUE = DATA[i];
+            const int KEY = DATA[i];
             if (veryVerbose) {
-                printf("Testing transparent comparators with a value of %d\n",
-                       VALUE);
+                printf("Testing transparent comparators with a key of %d\n",
+                       KEY);
             }
 
             if (veryVerbose) {
                 printf("\tTesting const non-transparent map.\n");
             }
-            testTransparentComparator( XNT, false, VALUE);
+            testTransparentComparator( XNT, false, KEY);
 
             if (veryVerbose) {
                 printf("\tTesting mutable non-transparent map.\n");
             }
-            testTransparentComparator(mXNT, false, VALUE);
-
+            testTransparentComparator       (mXNT, false, KEY);
+            testTransparentComparatorMutable(mXNT, false, KEY);
             if (veryVerbose) {
                 printf("\tTesting const transparent map.\n");
             }
-            testTransparentComparator( XT,  true,  VALUE);
+            testTransparentComparator( XT,  true,  KEY);
 
             if (veryVerbose) {
                 printf("\tTesting mutable transparent map.\n");
             }
-            testTransparentComparator(mXT,  true,  VALUE);
+            testTransparentComparator       (mXT,  true,  KEY);
+            testTransparentComparatorMutable(mXT,  true,  KEY);
         }
       } break;
       case 38: {

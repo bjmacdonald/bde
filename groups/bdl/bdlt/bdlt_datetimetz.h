@@ -423,27 +423,27 @@ class DatetimeTz {
 
     // DEPRECATED METHODS
 
-    /// **DEPRECATED**: replaced by `utcDatetime.`
-    ///
     /// Return a `Datetime` object having the value of the UTC datetime
     /// represented by this object.  Note that if `0 != offset()`, the
     /// returned value is equal to `localDatetime()` minus `offset()`
     /// minutes, and `localDatetime()` otherwise.
+    ///
+    /// @DEPRECATED: replaced by `utcDatetime.`
     Datetime gmtDatetime() const;
 
-    /// **DEPRECATED**: Use `maxSupportedBdexVersion(int)` instead.
-    ///
     /// Return the most current BDEX streaming version number supported by
     /// this class.
+    ///
+    /// @DEPRECATED: Use `maxSupportedBdexVersion(int)` instead.
     static int maxSupportedBdexVersion();
 
-    /// **DEPRECATED**: replaced by `setDatetimeTzIfValid`.
-    ///
     /// If the specified `localDatetime` and `offset` represent a valid
     /// `DatetimeTz` value (see `isValid`), set the local datetime and the
     /// time zone offset of this object to the `localDatetime` and `offset`
     /// values respectively and return 0, leave this object unmodified and
     /// return a non-zero value otherwise.
+    ///
+    /// @DEPRECATED: replaced by `setDatetimeTzIfValid`.
     int validateAndSetDatetimeTz(const Datetime& localDatetime, int offset);
 
 #endif // BDE_OPENSOURCE_PUBLICATION -- pending deprecation
@@ -582,7 +582,10 @@ STREAM& DatetimeTz::bdexStreamIn(STREAM& stream, int version)
             Datetime localDatetime;
             localDatetime.bdexStreamIn(stream, version);
 
-            int offset;
+            // Note that we have to initialize 'offset' to a value in order to
+            // silence potential -Wmaybe-uninitialized.
+
+            int offset = 0;
             stream.getInt32(offset);
 
             if (stream && isValid(localDatetime, offset)) {

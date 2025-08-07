@@ -13,12 +13,16 @@
 #include <bsls_compilerfeatures.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Thu Oct 21 10:11:37 2021
+// Generated on Wed Jan 15 11:40:30 2025
 // Command line: sim_cpp11_features.pl bslmf_nthparameter.t.cpp
+
 # define COMPILING_BSLMF_NTHPARAMETER_T_CPP
 # include <bslmf_nthparameter_cpp03.t.cpp>
 # undef COMPILING_BSLMF_NTHPARAMETER_T_CPP
+
+// clang-format on
 #else
 
 using namespace BloombergLP;
@@ -43,6 +47,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;

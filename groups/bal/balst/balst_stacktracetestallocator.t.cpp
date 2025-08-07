@@ -51,10 +51,13 @@
 
 # pragma optimize("", off)
 
+#else
+
+# include <sys/stat.h>    // chmod
+
 #endif
 
 using namespace BloombergLP;
-using bsl::cin;
 using bsl::cout;
 using bsl::cerr;
 using bsl::endl;
@@ -286,6 +289,109 @@ enum { e_CAN_FIND_SYMBOLS = !e_WINDOWS };
 enum { e_CAN_FIND_SYMBOLS = 1 };
 #endif
 
+namespace u {
+
+/// Return a pointer to the new delete allocator singleton.
+bslma::Allocator *nda()
+{
+    // We use the new delete allocator here, because if we want to track down
+    // accidental uses of the default allocator, we'll want to put a breakpoint
+    // on `bslma::TestAllocator::allocate`.
+
+    return &bslma::NewDeleteAllocator::singleton();
+}
+
+/// Check that:
+/// * `test` (== `atoi(argv[1]`) is above the specified `topCaseIndex` and
+///   less than or equal to `2 * topCaseIndex`.
+///
+/// * The executable file name `argv[0]` matches expectations for a "condemned"
+///   executable.
+void checkCondemnedExecutableName(int topCaseIndex, char **argv)
+{
+    int test = bsl::atoi(argv[1]);
+
+    ASSERTV(test, topCaseIndex, topCaseIndex < test);
+    ASSERTV(test, topCaseIndex, test <= 2 * topCaseIndex);
+    ASSERTV(argv[0], bsl::strstr(argv[0], "_condemned_"));
+    ASSERTV(argv[0], test, bsl::strstr(argv[0], argv[1]));
+}
+
+/// Copy the file `fromFileName` to a new file `toFileName`.
+void copyExecutable(const char *toFileName,
+                    const char *fromFileName)
+{
+    using namespace bsl;
+    typedef bdls::FilesystemUtil   Util;
+    typedef bsl::char_traits<char> Traits;
+
+    // `FilesystemUtil` functions use the default allocator on Windows.
+
+    bslma::DefaultAllocatorGuard guard(u::nda());
+
+    (void) Util::remove(toFileName);
+    const Util::Offset fileSize = Util::getFileSize(fromFileName);
+
+    {
+        ofstream toStream(  toFileName,   ios_base::out | ios_base::binary);
+        ifstream fromStream(fromFileName, ios_base::in  | ios_base::binary);
+
+        ASSERT(toStream.  good());
+        ASSERT(fromStream.good());
+
+        streambuf *toSb   = toStream.  rdbuf();
+        streambuf *fromSb = fromStream.rdbuf();
+
+        copy(istreambuf_iterator<char>(fromSb),
+             istreambuf_iterator<char>(),
+             ostreambuf_iterator<char>(toSb));
+
+        // Since we operated directly on the `streambuf`s, the `fstream`s were
+        // uninformed about how it went.  Query the `streambuf`s directly to
+        // verify that it went OK.
+
+        const Traits::pos_type toOff = toSb->pubseekoff(0, ios_base::cur);
+        ASSERTV(fileSize, toOff, fileSize == toOff);
+        ASSERT(Traits::eof() == fromSb->sbumpc());
+    }    // close the streams
+
+    ASSERT(Util::getFileSize(toFileName) == fileSize);
+
+#ifdef BSLS_PLATFORM_OS_UNIX
+    int rc = ::chmod(toFileName, 0777);
+    ASSERT(0 == rc);
+#endif
+}
+
+/// Copy the executable `argv[0]` to a "condemned" copy and then run that copy
+/// with `argv[2]` == "--erase", which will result in the condemned copy being
+/// erased at the beginning of the test.
+void doEraseTest(int argc, char **argv)
+{
+    bsl::string cmd(argv[0], u::nda());
+    cmd += "_condemned_";
+    cmd += argv[1];            // `test` in text form
+    cmd += ".t";
+
+    // `cmd` is now the child exec name
+
+    u::copyExecutable(cmd.c_str(), argv[0]);
+
+    // command: run the test case
+
+    cmd += ' ';
+    cmd += argv[1];
+    cmd += " --erase";
+    for (int ii = 2; ii < argc; ++ii) {
+        cmd += ' ';
+        cmd += argv[ii];
+    }
+    int rc = ::system(cmd.c_str());
+    ASSERT(0 == rc);
+    testStatus += bsl::abs(rc);
+}
+
+}  // close namespace u
 }  // close unnamed namespace
 
 // ============================================================================
@@ -605,22 +711,38 @@ void my_assertHandlerLongJmp(const char *,  // text
     longjmp(my_setJmpBuf, true);
 }
 
-void my_failureHandlerLongJmp()
-{
-#ifdef BSLS_PLATFORM_OS_WINDOWS
-    // setjmp / longjmp is flaky on Windows
+struct my_FailureHandlerLongJmp {
+    // The Solaris GNU compiler, when optimized in C++11 or beyond, somehow
+    // corrupts memory if 'longjmp' is called from a d'tor.  For reasons I
+    // don't understand, the problem goes away if this handler is a functor and
+    // not a free function.
+    //
+    // It was very hard to narrow down, but if the handler is a free function
+    // in a 'bsl::function<void()>', it somehow corrupts the 'bsl::function'
+    // object such that the next assignment to that 'bsl::function' object
+    // results in either a segfault or an illegal instruction.  The problem
+    // mysteriously comes and goes as debug traces are added and removed.  If
+    // the 'bsl::function' contains a functor and not a ptr to a free function,
+    // the problem somehow doesn't happen.
 
-    ASSERT(0);
+    void operator()() {
+#ifdef BSLS_PLATFORM_OS_WINDOWS
+        // setjmp / longjmp is flaky on Windows
+
+        ASSERT(0);
 #endif
 
-    longjmp(my_setJmpBuf, true);
-}
+        longjmp(my_setJmpBuf, true);
+    }
+};
 
 bool my_failureHandlerFlag = false;
-void my_failureHandlerSetFlag()
-{
-    my_failureHandlerFlag = true;
-}
+struct my_FailureHandlerSetFlag {
+    void operator()()
+    {
+        my_failureHandlerFlag = true;
+    }
+};
 
 #ifdef BSLS_PLATFORM_OS_WINDOWS
 enum { ABORT_LIMIT = 1 };
@@ -1031,7 +1153,32 @@ int main(int argc, char *argv[])
     veryVerbose     = argc > 3;
     veryVeryVerbose = argc > 4;
 
-    cout << "TEST " << __FILE__ << " CASE " << test << endl;
+    enum { k_TOP_USAGE_CASE_INDEX = 23 };
+
+    const bool eraseExecutable = 2 < argc && !bsl::strcmp("--erase", argv[2]);
+    if (eraseExecutable) {
+        // `FilesystemUtil` functions uses the default allocator on Windows.
+
+        bslma::DefaultAllocatorGuard guard(u::nda());
+
+        u::checkCondemnedExecutableName(k_TOP_USAGE_CASE_INDEX, argv);
+
+        int rc = bdls::FilesystemUtil::remove(argv[0]);
+        ASSERT(0 == rc);
+        ASSERT(!bdls::FilesystemUtil::exists(argv[0]));
+
+        test        -= k_TOP_USAGE_CASE_INDEX;
+
+        verbose     =  veryVerbose;
+        veryVerbose =  veryVeryVerbose;
+    }
+
+    cout << "TEST " << __FILE__ << " CASE " << test <<
+                                   (eraseExecutable ? " --erase" : "") << endl;
+
+    if (verbose && eraseExecutable) {
+        cout << argv[0] << " erased\n";
+    }
 
     // Change the handler return policy not to abort.
     {
@@ -1086,7 +1233,7 @@ int main(int argc, char *argv[])
     }
 
     switch (test) { case 0:
-      case 23: {
+      case k_TOP_USAGE_CASE_INDEX: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //
@@ -1966,9 +2113,14 @@ int main(int argc, char *argv[])
                             ASSERT(ABORT);
                         }
                         else {
-                            ta.setFailureHandler(ABORT
-                                                 ? &my_failureHandlerLongJmp
-                                                 : &my_failureHandlerSetFlag);
+                            if (ABORT) {
+                                ta.setFailureHandler(
+                                                   my_FailureHandlerLongJmp());
+                            }
+                            else {
+                                ta.setFailureHandler(
+                                                   my_FailureHandlerSetFlag());
+                            }
                             my_failureHandlerFlag = false;
 
                             ta.deallocate(ptr);
@@ -2029,9 +2181,14 @@ int main(int argc, char *argv[])
                             ASSERT(ABORT);
                         }
                         else {
-                            ta.setFailureHandler(ABORT
-                                                 ? &my_failureHandlerLongJmp
-                                                 : &my_failureHandlerSetFlag);
+                            if (ABORT) {
+                                ta.setFailureHandler(
+                                                   my_FailureHandlerLongJmp());
+                            }
+                            else {
+                                ta.setFailureHandler(
+                                                   my_FailureHandlerSetFlag());
+                            }
 
                             my_failureHandlerFlag = false;
 
@@ -2161,8 +2318,14 @@ int main(int argc, char *argv[])
                     ASSERT(ABORT);
                 }
                 else {
-                    tba.setFailureHandler(ABORT ? &my_failureHandlerLongJmp
-                                                : &my_failureHandlerSetFlag);
+                    if (ABORT) {
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
+                        tba.setFailureHandler(my_FailureHandlerLongJmp());
+                    }
+                    else {
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
+                        tba.setFailureHandler(my_FailureHandlerSetFlag());
+                    }
 
                     void *ptr = tba.allocate(6);
 
@@ -2209,8 +2372,12 @@ int main(int argc, char *argv[])
                     ASSERT(ABORT);
                 }
                 else {
-                    ta.setFailureHandler(ABORT ? &my_failureHandlerLongJmp
-                                               : &my_failureHandlerSetFlag);
+                    if (ABORT) {
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
+                    }
+                    else {
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
+                    }
 
                     ASSERT(oss. str().empty());
                     ASSERT(oss2.str().empty());
@@ -2263,8 +2430,12 @@ int main(int argc, char *argv[])
                     ASSERT(ABORT);
                 }
                 else {
-                    ta.setFailureHandler(ABORT ? &my_failureHandlerLongJmp
-                                               : &my_failureHandlerSetFlag);
+                    if (ABORT) {
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
+                    }
+                    else {
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
+                    }
 
                     ASSERT(oss.str().empty());
 
@@ -2307,8 +2478,12 @@ int main(int argc, char *argv[])
                     ASSERT(ABORT);
                 }
                 else {
-                    ta.setFailureHandler(ABORT ? &my_failureHandlerLongJmp
-                                               : &my_failureHandlerSetFlag);
+                    if (ABORT) {
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
+                    }
+                    else {
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
+                    }
 
                     ASSERT(oss.str().empty());
 
@@ -2351,8 +2526,12 @@ int main(int argc, char *argv[])
                     ASSERT(ABORT);
                 }
                 else {
-                    ta.setFailureHandler(ABORT ? &my_failureHandlerLongJmp
-                                               : &my_failureHandlerSetFlag);
+                    if (ABORT) {
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
+                    }
+                    else {
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
+                    }
 
                     ASSERT(oss.str().empty());
 
@@ -2397,8 +2576,12 @@ int main(int argc, char *argv[])
                     ASSERT(ABORT);
                 }
                 else {
-                    ta.setFailureHandler(ABORT ? &my_failureHandlerLongJmp
-                                               : &my_failureHandlerSetFlag);
+                    if (ABORT) {
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
+                    }
+                    else {
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
+                    }
 
                     ASSERT(oss.str().empty());
 
@@ -2443,8 +2626,12 @@ int main(int argc, char *argv[])
                     ASSERT(ABORT);
                 }
                 else {
-                    ta.setFailureHandler(ABORT ? &my_failureHandlerLongJmp
-                                               : &my_failureHandlerSetFlag);
+                    if (ABORT) {
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
+                    }
+                    else {
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
+                    }
 
                     ASSERT(oss.str().empty());
 
@@ -2493,8 +2680,12 @@ int main(int argc, char *argv[])
                         ASSERT(ABORT);
                     }
                     else {
-                        ta.setFailureHandler(ABORT ?&my_failureHandlerLongJmp
-                                                   :&my_failureHandlerSetFlag);
+                        if (ABORT) {
+                            ta.setFailureHandler(my_FailureHandlerLongJmp());
+                        }
+                        else {
+                            ta.setFailureHandler(my_FailureHandlerSetFlag());
+                        }
 
                         ASSERT(oss.str().empty());
 
@@ -2657,15 +2848,6 @@ int main(int argc, char *argv[])
 #ifdef BSLS_PLATFORM_OS_WINDOWS
         break;
 #endif
-#if defined(BSLS_PLATFORM_OS_SOLARIS) && defined(BSLS_PLATFORM_CMP_GNU) &&    \
-    defined(BDE_BUILD_TARGET_OPT)
-        // There seems to be a compiler bug in Solaris GNU compilers where,
-        // with the optimizer on, the `longjmp` here corrupts a nearby
-        // automatic variable.  Let's face it -- doing a `longjmp` out of a
-        // d'tor is not a very important test.
-
-        break;
-#endif
 
         if (verbose) Q(Longjmp on destruction with blocks outstanding);
         {
@@ -2710,7 +2892,7 @@ int main(int argc, char *argv[])
                     ASSERT(pta->numBlocksInUse() == numAllocs);
                 }
                 else {
-                    pta->setFailureHandler(&my_failureHandlerLongJmp);
+                    pta->setFailureHandler(my_FailureHandlerLongJmp());
 
                     if (veryVerbose) P(staBlocks);
 
@@ -3378,10 +3560,10 @@ int main(int argc, char *argv[])
                 }
                 else {
                     if (FAILURE_LONGJMP) {
-                        ta.setFailureHandler(&my_failureHandlerLongJmp);
+                        ta.setFailureHandler(my_FailureHandlerLongJmp());
                     }
                     else {
-                        ta.setFailureHandler(&my_failureHandlerSetFlag);
+                        ta.setFailureHandler(my_FailureHandlerSetFlag());
                     }
 
                     my_failureHandlerFlag = false;
@@ -3568,8 +3750,20 @@ int main(int argc, char *argv[])
         }
       }  break;
       default: {
-        cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;
-        testStatus = -1;
+        BSLS_ASSERT_OPT(!eraseExecutable);
+
+        ASSERTV(test, k_TOP_USAGE_CASE_INDEX < test);
+
+        if (!e_WINDOWS && test <= 2 * k_TOP_USAGE_CASE_INDEX) {
+            // Run test case `test - k_TOP_USAGE_CASE_INDEX` with erasing the
+            // executable.
+
+            u::doEraseTest(argc, argv);
+        }
+        else {
+            cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;
+            testStatus = -1;
+        }
       }
     }
 

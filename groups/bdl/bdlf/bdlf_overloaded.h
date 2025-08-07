@@ -8,7 +8,7 @@ BSLS_IDENT("$Id: $")
 //@PURPOSE: Provide a type for constructing overload sets.
 //
 //@CLASSES:
-//  Overloaded: template for overload sets
+//  bdlf::Overloaded: template for overload sets
 //
 //@SEE_ALSO: bslstl_variant, bdljsn_json
 //
@@ -26,8 +26,8 @@ BSLS_IDENT("$Id: $")
 ///-----
 // This section illustrates intended use of this component.
 //
-// Basic Usage
-/// - - - - -
+///Example 1: Basic Usage
+/// - - - - - - - - - - -
 // First, create a bsl::variant object that can contain several different
 // types.
 // ```
@@ -36,9 +36,9 @@ BSLS_IDENT("$Id: $")
 // Next, Create an Overload object containing several options:
 // ```
 // bdlf::Overloaded over{
-//       [](unsigned)           {return 1;}
-//     , [](double)             {return 2;}
-//     , [](const bsl::string&) {return 3;}
+//       [] (unsigned)           {return 1;}
+//     , [] (double)             {return 2;}
+//     , [] (const bsl::string&) {return 3;}
 //     };
 // ```
 // Set the value of variant, and then call std::visit, passing the overload set
@@ -69,11 +69,11 @@ namespace bdlf {
                        // class Overloaded_FunctionPointer
                        // ================================
 
+/// Overloaded_FunctionPointer wraps a function pointer.  It is implicitly
+/// constructible from the pointer, and provides an `operator()` method that
+/// calls through to the underlying function.
 template <class RET, class ...ARGS>
 struct Overloaded_FunctionPointer
-    // Overloaded_FunctionPointer wraps a function pointer.  It is implicitly
-    // constructible from the pointer, and provides an 'operator()' method
-    // that calls through to the underlying function.
 {
     // TYPES
     using FpType = RET (*)(ARGS...);
@@ -88,8 +88,7 @@ struct Overloaded_FunctionPointer
 
     // ACCESSORS
 
-    /// Call the function passed to the constructor with the specified
-    /// `args`.
+    /// Call the function passed to the constructor with the specified `args`.
     RET operator()(ARGS&&... args) const;
 };
 
@@ -97,11 +96,11 @@ struct Overloaded_FunctionPointer
                    // class Overloaded_NoexceptFunctionPointer
                    // ========================================
 
+/// Overloaded_NoexceptFunctionPointer wraps a function pointer.  It is
+/// implicitly constructible from the pointer, and provides an `operator()`
+/// method that calls through to the underlying function.
 template <class RET, class ...ARGS>
 struct Overloaded_NoexceptFunctionPointer
-    // Overloaded_NoexceptFunctionPointer wraps a function pointer.  It is
-    // implicitly constructible from the pointer, and provides an 'operator()'
-    // method that calls through to the underlying function.
 {
 
     // TYPES
@@ -117,8 +116,7 @@ struct Overloaded_NoexceptFunctionPointer
 
     // ACCESSORS
 
-    /// Call the function passed to the constructor with the specified
-    /// `args`.
+    /// Call the function passed to the constructor with the specified `args`.
     RET operator()(ARGS&&... args) const noexcept;
 };
 
@@ -126,12 +124,12 @@ struct Overloaded_NoexceptFunctionPointer
                    // class Overloaded_MemberFunctionPointer
                    // ======================================
 
+/// The class Overloaded_MemberFunctionPointer wraps a member function
+/// pointer.  It is implicitly constructible from the pointer, and provides
+/// an `operator()` that takes an object of the appropriate type and other
+/// arguments, and forwards them on to the underlying function.
 template <class OBJ, class RET, class ...ARGS>
 struct Overloaded_MemberFunctionPointer
-    // The class Overloaded_MemberFunctionPointer wraps a member function
-    // pointer.  It is implicitly constructible from the pointer, and provides
-    // an 'operator()' that takes an object of the appropriate type and other
-    // arguments, and forwards them on to the underlying function.
 {
     // TYPES
     using FpType = RET (OBJ::*)(ARGS...);
@@ -146,9 +144,8 @@ struct Overloaded_MemberFunctionPointer
 
     // ACCESSORS
 
-    /// Call the member function passed to the constructor using the
-    /// specified `obj` with the specified `args`, and return the result of the
-    /// call.
+    /// Call the member function passed to the constructor using the specified
+    /// `obj` with the specified `args`, and return the result of the call.
     RET operator()(OBJ * obj, ARGS&&... args) const;
 };
 
@@ -156,12 +153,12 @@ struct Overloaded_MemberFunctionPointer
                  // class Overloaded_ConstMemberFunctionPointer
                  // ===========================================
 
+/// The class Overloaded_ConstMemberFunctionPointer wraps a member function
+/// pointer.  It is implicitly constructible from the pointer, and provides
+/// an `operator()` that takes an object of the appropriate type and other
+/// arguments, and forwards them on to the underlying function.
 template <class OBJ, class RET, class ...ARGS>
 struct Overloaded_ConstMemberFunctionPointer
-    // The class Overloaded_ConstMemberFunctionPointer wraps a member function
-    // pointer.  It is implicitly constructible from the pointer, and provides
-    // an 'operator()' that takes an object of the appropriate type and other
-    // arguments, and forwards them on to the underlying function.
 {
     // TYPES
     using FpType = RET (OBJ::*)(ARGS...) const;
@@ -176,9 +173,8 @@ struct Overloaded_ConstMemberFunctionPointer
 
     // ACCESSORS
 
-    /// Call the member function passed to the constructor using the
-    /// specified `obj` with the specified `args`, and return the result of the
-    /// call.
+    /// Call the member function passed to the constructor using the specified
+    /// `obj` with the specified `args`, and return the result of the call.
     RET operator()(const OBJ * obj, ARGS&&... args) const;
 };
 
@@ -186,12 +182,12 @@ struct Overloaded_ConstMemberFunctionPointer
                 // class Overloaded_NoexceptMemberFunctionPointer
                 // ==============================================
 
+/// The class Overloaded_NoexceptMemberFunctionPointer wraps a member function
+/// pointer.  It is implicitly constructible from the pointer, and provides an
+/// `operator()` that takes an object of the appropriate type and other
+/// arguments, and forwards them on to the underlying function.
 template <class OBJ, class RET, class ...ARGS>
 struct Overloaded_NoexceptMemberFunctionPointer
-    // The class Overloaded_NoexceptMemberFunctionPointer wraps a member
-    // function pointer.  It is implicitly constructible from the pointer, and
-    // provides an 'operator()' that takes an object of the appropriate type
-    // and other arguments, and forwards them on to the underlying function.
 {
     // TYPES
     using FpType = RET (OBJ::*)(ARGS...) noexcept;
@@ -206,9 +202,8 @@ struct Overloaded_NoexceptMemberFunctionPointer
 
     // ACCESSORS
 
-    /// Call the member function passed to the constructor using the
-    /// specified `obj` with the specified `args`, and return the result of the
-    /// call.
+    /// Call the member function passed to the constructor using the specified
+    /// `obj` with the specified `args`, and return the result of the call.
     RET operator()(OBJ * obj, ARGS&&... args) const noexcept;
 };
 
@@ -216,12 +211,12 @@ struct Overloaded_NoexceptMemberFunctionPointer
              // class Overloaded_ConstNoexceptMemberFunctionPointer
              // ===================================================
 
+/// The class Overloaded_ConstNoexceptMemberFunctionPointer wraps a member
+/// function pointer.  It is implicitly constructible from the pointer, and
+/// provides an `operator()` that takes an object of the appropriate type
+/// and other arguments, and forwards them on to the underlying function.
 template <class OBJ, class RET, class ...ARGS>
 struct Overloaded_ConstNoexceptMemberFunctionPointer
-    // The class Overloaded_ConstNoexceptMemberFunctionPointer wraps a member
-    // function pointer.  It is implicitly constructible from the pointer, and
-    // provides an 'operator()' that takes an object of the appropriate type
-    // and other arguments, and forwards them on to the underlying function.
 {
     // TYPES
     using FpType = RET (OBJ::*)(ARGS...) const noexcept;
@@ -236,13 +231,14 @@ struct Overloaded_ConstNoexceptMemberFunctionPointer
 
     // ACCESSORS
 
-    /// Call the member function passed to the constructor using the
-    /// specified `obj` with the specified `args`, and return the result of the
-    /// call.
+    /// Call the member function passed to the constructor using the specified
+    /// `obj` with the specified `args`, and return the result of the call.
     RET operator()(const OBJ * obj, ARGS&&... args) const noexcept;
 
 };
 
+// Implementation Notes
+// --------------------
 // Given a callable, figure out what the appropriate wrapper is.  For class
 // types, (lambdas, say) there is no wrapper; the class can be used directly.
 // For function pointers, we use Overloaded_FunctionPointer or
@@ -302,11 +298,11 @@ struct Overloaded_Wrapper<RET (OBJ::*)(ARGS...) const noexcept> {
                                 // class Overloaded
                                 // ================
 
+// `Overloaded` is a structure that holds a series of objects that have
+// an `operator()`, and provides the ability to call one of them determined
+// by the parameters that are passed to the operator.
 template<class... TS>
 struct Overloaded : Overloaded_Wrapper<TS>::Type...
-    // 'Overloaded' is a structure that holds a series of objects that have
-    // an 'operator()', and provides the ability to call one of them determined
-    // by the parameters that are passed to the operator.
 {
     using Overloaded_Wrapper<TS>::Type::operator()...;
 };

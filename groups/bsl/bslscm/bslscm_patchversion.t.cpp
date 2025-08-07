@@ -21,6 +21,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
     bool     veryVeryVerbose = argc > 4;
     bool veryVeryVeryVerbose = argc > 5;
 
-    (void)aSsErT;               // suppress warning
+    (void)&aSsErT;              // suppress warning
     (void)veryVerbose;          // suppress warning
     (void)veryVeryVerbose;      // suppress warning
     (void)veryVeryVeryVerbose;  // suppress warning

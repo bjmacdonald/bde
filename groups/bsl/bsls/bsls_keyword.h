@@ -10,11 +10,13 @@ BSLS_IDENT("$Id: $")
 //@CLASSES:
 //
 //@MACROS:
+//  BSLS_KEYWORD_CONSTEVAL_CPP20: C++20 `consteval` keyword
 //  BSLS_KEYWORD_CONSTEXPR: C++11 `constexpr` keyword
 //  BSLS_KEYWORD_CONSTEXPR_MEMBER: for `constexpr` data members (Deprecated)
 //  BSLS_KEYWORD_CONSTEXPR_RELAXED: C++14 `constexpr` keyword (Deprecated)
 //  BSLS_KEYWORD_CONSTEXPR_CPP14: C++14 `constexpr` keyword
 //  BSLS_KEYWORD_CONSTEXPR_CPP17: C++17 `constexpr` keyword
+//  BSLS_KEYWORD_CONSTEXPR_CPP20: C++20 `constexpr` keyword
 //  BSLS_KEYWORD_DELETED: C++11 `= delete` function definition
 //  BSLS_KEYWORD_EXPLICIT: C++11 `explicit` for conversion operators
 //  BSLS_KEYWORD_FINAL: C++11 `final` keyword
@@ -25,6 +27,7 @@ BSLS_IDENT("$Id: $")
 //  BSLS_KEYWORD_NOEXCEPT_OPERATOR(expr): C++11 `noexcept` operation
 //  BSLS_KEYWORD_NOEXCEPT_SPECIFICATION(...): C++11 noexcept function qualifier
 //  BSLS_KEYWORD_OVERRIDE: C++11 `override` keyword
+//  BSLS_KEYWORD_THREAD_LOCAL: C++11 `thread_local` keyword
 //
 //@DESCRIPTION: This component provides a suite of macros that simplify the use
 // of language keywords that may not exist in all supported dialects of the C++
@@ -40,6 +43,10 @@ BSLS_IDENT("$Id: $")
 ///-------------
 // The following are the macros provided by this component.
 //
+//: `BSLS_KEYWORD_CONSTEVAL_CPP20`:
+//:     This macro inserts the keyword `consteval` when compiling with C++20
+//:     or later mode and inserts nothing when compiling with earlier modes.
+//:
 //: `BSLS_KEYWORD_CONSTEXPR`:
 //:     This macro inserts the keyword `constexpr` when compiling with C++11
 //:     or later mode and inserts nothing when compiling with C++03 mode.
@@ -66,6 +73,11 @@ BSLS_IDENT("$Id: $")
 //:     or later mode and inserts nothing when compiling with C++03/C++11/C++14
 //:     mode.  See Example 2 below for a better description of the differences
 //:     between `constexpr` between C++11, C++14, and C++17.
+//:
+//: `BSLS_KEYWORD_CONSTEXPR_CPP20`:
+//:     This macro inserts the keyword `constexpr` when compiling with C++20
+//:     or later mode and inserts nothing when compiling with
+//:     C++03/C++11/C++14/C++17 mode.
 //:
 //: `BSLS_KEYWORD_DELETED`:
 //:     This macro inserts the text `= delete` when compiling with C++11
@@ -114,6 +126,24 @@ BSLS_IDENT("$Id: $")
 //: `BSLS_KEYWORD_OVERRIDE`
 //:     This macro inserts the keyword `override` when compiling with C++11
 //:     or later mode and inserts nothing when compiling with C++03 mode.
+//:
+//: `BSLS_KEYWORD_THREAD_LOCAL`
+//:     This macro inserts the keyword `thread_local` when compiling with C++11
+//:     or later mode and inserts a non-standard compiler-specific keyword in
+//:     C++03 mode.  **Note that** the behaviour of the non-standard keyword is
+//:     slightly different:
+//:         1) It does not imply `static` at block scope; therefore `static`
+//:            must always be specified explicitly on block-scope declarations
+//:            that use `BSLS_KEYWORD_THREAD_LOCAL`;
+//:         2) The initializer must be a compile-time constant expression.
+//:            Note that C++03 does not have `constexpr` functions, so the
+//:            initializer cannot contain any explicit function calls.  If the
+//:            variable is of class type, a nontrivial constructor cannot be
+//:            used, and the destructor must be trivial.  Also note that, in
+//:            order to produce a constant expression, it is not necessary to
+//:            provide an explicit value for the variable or for all its
+//:            members, due to the implicit zero-initialization of thread-local
+//:            variables.
 //
 ///Using `CONSTEXPR` Macros Portably
 ///---------------------------------
@@ -529,6 +559,12 @@ BSLS_IDENT("$Id: $")
 
 #include <bsls_compilerfeatures.h>
 
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20
+# define BSLS_KEYWORD_CONSTEVAL_CPP20  consteval
+#else
+# define BSLS_KEYWORD_CONSTEVAL_CPP20
+#endif
+
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR
 # define BSLS_KEYWORD_CONSTEXPR        constexpr
 # define BSLS_KEYWORD_CONSTEXPR_MEMBER constexpr
@@ -549,6 +585,12 @@ BSLS_IDENT("$Id: $")
 # define BSLS_KEYWORD_CONSTEXPR_CPP17 constexpr
 #else
 # define BSLS_KEYWORD_CONSTEXPR_CPP17
+#endif
+
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20
+#define BSLS_KEYWORD_CONSTEXPR_CPP20 constexpr
+#else
+#define BSLS_KEYWORD_CONSTEXPR_CPP20
 #endif
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_DELETED_FUNCTIONS
@@ -599,6 +641,12 @@ BSLS_IDENT("$Id: $")
 # define BSLS_KEYWORD_OVERRIDE   override
 #else
 # define BSLS_KEYWORD_OVERRIDE
+#endif
+
+#if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L
+# define BSLS_KEYWORD_THREAD_LOCAL thread_local
+#else
+# define BSLS_KEYWORD_THREAD_LOCAL __thread
 #endif
 
 // ----------------------------------------------------------------------------

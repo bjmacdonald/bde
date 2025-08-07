@@ -13,6 +13,8 @@
 
 #include <balxml_decoder.h>
 
+#include <balb_testmessages.h>             // for testing only
+
 #include <balxml_decoderoptions.h>
 #include <balxml_errorinfo.h>
 #include <balxml_minireader.h>
@@ -22,6 +24,7 @@
 #include <s_baltst_customstring.h>
 #include <s_baltst_customizedbase64binary.h>
 #include <s_baltst_customizedhexbinary.h>
+#include <s_baltst_depthtestmessageutil.h>
 #include <s_baltst_employee.h>
 #include <s_baltst_enumerated.h>
 #include <s_baltst_generatetestarray.h>
@@ -55,8 +58,6 @@
 #include <s_baltst_testsequence.h>
 #include <s_baltst_testtaggedvalue.h>
 #include <s_baltst_topchoice.h>
-
-#include <bslim_testutil.h>
 
 #include <bdlat_attributeinfo.h>
 #include <bdlat_choicefunctions.h>
@@ -103,6 +104,7 @@
 #include <bslmf_issame.h>
 
 #include <bsls_assert.h>
+#include <bsls_asserttestexception.h>
 #include <bsls_buildtarget.h>
 #include <bsls_keyword.h>
 #include <bsls_platform.h>
@@ -199,10 +201,12 @@ namespace Test = s_baltst;
 // [ 7] baexml_Decoder_PrepareSubContext
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [16] USAGE EXAMPLES
+// [17] USAGE EXAMPLES
 // [22] REPRODUCE SCENARIO FROM DRQS 169438741
 // [23] REPRODUCE SCENARIO FROM DRQS 171405619
 // [24] DECODING CUSTOMIZED HEX AND BASE64 BINARY DATA
+// [25] MAXDEPTH IS RESPECTED
+// [26] REPRODUCE SCENARIO FROM DRQS 175214775
 // [-1] TESTING VALID & INVALID UTF-8: e_STRING
 // [-1] TESTING VALID & INVALID UTF-8: e_STREAMBUF
 // [-1] TESTING VALID & INVALID UTF-8: e_ISTREAM
@@ -4439,6 +4443,189 @@ int main(int argc, char *argv[])
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
     switch (test) { case 0:  // Zero is always the leading case.
+      case 26: {
+        // --------------------------------------------------------------------
+        // REPRODUCE SCENARIO FROM DRQS 175214775
+        //
+        // Concerns:
+        // 1. Decoding an invalid XML input that is not well-formed should
+        //    cause an error.
+        //
+        //
+        // Plan:
+        // 1. Attempt to decode some invalid XML input. Verify that an error is
+        //    reported. (C-1)
+        //
+        // Testing:
+        //   DRQS 175214775
+        // --------------------------------------------------------------------
+
+#ifdef BDE_BUILD_TARGET_EXC
+        bsls::ReviewFailureHandlerGuard logReviewGuard(
+                                                   &bsls::Review::failByThrow);
+
+        balxml::MiniReader     reader;
+        balxml::ErrorInfo      errInfo;
+        balxml::DecoderOptions options;
+
+        balxml::Decoder decoder(&options,
+                                &reader,
+                                &errInfo,
+                                &bsl::cerr,
+                                &bsl::cerr);
+
+        struct {
+            const char *d_input;
+            bool        d_isValid;
+            bool        d_ReviewHit;
+        } DATA[] = {
+            {"<>",                            true , true  },
+            {"<,>",                           false, false },
+            {"<:>",                           false, false },
+            {"<><SimpleRequest data=\"\"/>",  true,  true  },
+            {"<><SimpleRequest> <data>Hello</data> "
+              "<responseLength>64</responseLength> "
+              "</SimpleRequest>",             true,  true  },
+            {"<SimpleRequest <data>Hello</data> "
+              "<responseLength>64</responseLength> "
+              ">",                            false, false },
+            {"<SimpleRequest><data name=''>", false, false },
+            {"</>",                           false, false },
+            // -------------------------
+            {"<SimpleRequest> <data>Hello</data> "
+              "<responseLength>64</responseLength> "
+              "</SimpleRequest>",             true,  false }
+        };
+        const int NUM_DATA = sizeof(DATA) / sizeof(DATA[0]);
+
+        for (int i = 0; i < NUM_DATA; ++i) {
+            const char *INPUT = DATA[i].d_input;
+            const bool  IS_VALID = DATA[i].d_isValid;
+            const bool  IS_REVIEW = DATA[i].d_ReviewHit;
+
+            bdlsb::FixedMemInStreamBuf isb(INPUT, strlen(INPUT));
+            s_baltst::SimpleRequest    request;
+            int rc = 0;
+            try {
+                rc = decoder.decode(&isb, &request);
+                // If review is not hit, check the status.
+                ASSERTV(i, rc, IS_VALID, IS_VALID == ( 0 == rc));
+                ASSERTV(i, rc, IS_REVIEW, false == IS_REVIEW);
+            } catch (const bsls::AssertTestException& e) {
+                ASSERTV(i, rc, IS_VALID, IS_VALID == ( 0 == rc));
+                ASSERTV(i, rc, IS_REVIEW, true  == IS_REVIEW);
+            }
+        }
+#endif  // BDE_BUILD_TARGET_EXC
+
+      } break;
+      case 25: {
+        // --------------------------------------------------------------------
+        // MAXDEPTH IS RESPECTED
+        //
+        // Concerns:
+        // 1. The `maxDepth` configuration option is repected.
+        //
+        // Plan:
+        // 1. Manually determine the `maxDepth` value required for various
+        //    messages in a table-driven technique.
+        //
+        // 2. Using those messages, ensure that decoding fails if the
+        //    `maxDepth` configuration option is too low, and succeeds when it
+        //    is correct.
+        //
+        // Testing:
+        //   `option.setMaxDepth()`
+        // --------------------------------------------------------------------
+
+        if (verbose) cout
+             << "\nMAXDEPTH IS RESPECTED"
+             << "\n====================="
+             << endl;
+
+        balxml::MiniReader     xml_reader;
+        balxml::ErrorInfo      e;
+
+        typedef s_baltst::DepthTestMessage DepthTestMessage;
+        typedef s_baltst::DepthTestMessageUtil DTMU;
+
+        for (int i = 0; i < DTMU::k_NUM_MESSAGES; ++i) {
+            balb::FeatureTestMessage object;
+
+            const DepthTestMessage& TEST_MESSAGE = DTMU::s_TEST_MESSAGES[i];
+
+            const char *XML   = TEST_MESSAGE.d_XML_text_p;
+            const int   LINE  = i;
+            const int   DEPTH = TEST_MESSAGE.d_depthXML;
+
+            // Set depth too low, expect failure
+            {
+                bsl::istringstream ss(XML);
+                balxml::DecoderOptions xml_options;
+                xml_options.setSkipUnknownElements(true);
+                xml_options.setMaxDepth(DEPTH - 1);
+
+                balxml::Decoder xml_decoder(&xml_options, &xml_reader, &e);
+
+                int rc = xml_decoder.decode(ss.rdbuf(), &object);
+                if (0 == rc) {
+                    cout << "Unexpectedly succeeded to decode from "
+                         << "initialization data (i="
+                         << i << ", LINE=" << LINE
+                         << "): " << xml_decoder.loggedMessages() << endl;
+
+                    if (balb::FeatureTestMessage::SELECTION_ID_UNDEFINED ==
+                        object.selectionId()) {
+                        cout
+                            << "Decoded unselected choice from initialization "
+                            << "data"
+                            << " (LINE =" << LINE
+                            << "):" << endl;
+                        rc = 9;
+                    }
+                }
+
+                ASSERTV(LINE,
+                        DEPTH,
+                        xml_options.maxDepth(),
+                        rc,
+                        0 != rc);
+            }
+
+            // Set depth correctly, expect success
+            {
+                bsl::istringstream ss(XML);
+                balxml::DecoderOptions xml_options;
+                xml_options.setSkipUnknownElements(true);
+                xml_options.setMaxDepth(DEPTH);
+                balxml::Decoder xml_decoder(&xml_options, &xml_reader, &e);
+
+                int rc = xml_decoder.decode(ss.rdbuf(), &object);
+                if (0 != rc) {
+                    cout << "Unexpectedly failed to decode from "
+                         << "initialization data (i="
+                         << i << ", LINE=" << LINE
+                         << "): " << xml_decoder.loggedMessages() << endl;
+                }
+
+                if (balb::FeatureTestMessage::SELECTION_ID_UNDEFINED ==
+                    object.selectionId()) {
+                    cout
+                        << "Decoded unselected choice from initialization "
+                        << "data"
+                        << " (LINE =" << LINE
+                        << "):" << endl;
+                    rc = 9;
+                }
+
+                ASSERTV(LINE,
+                        DEPTH,
+                        xml_options.maxDepth(),
+                        rc,
+                        0 == rc);
+            }
+        }
+      } break;
       case 24: {
         // --------------------------------------------------------------------
         // DECODING CUSTOMIZED HEX AND BASE64 BINARY DATA

@@ -13,10 +13,12 @@
 #include <bdlb_randomdevice.h>
 
 #include <bslim_testutil.h>
-#include <bslmt_threadutil.h>
+
 #include <bslmt_semaphore.h>
+#include <bslmt_threadutil.h>
 #include <bslmt_throughputbenchmark.h>
 #include <bslmt_throughputbenchmarkresult.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bslma_allocator.h>
 #include <bslma_default.h>
@@ -47,6 +49,7 @@
 #include <bsls_buildtarget.h>
 #include <bsls_nameof.h>
 #include <bsls_performancehint.h>
+#include <bsls_timeinterval.h>
 #include <bsls_timeutil.h>  // `HashPerformance`
 #include <bsls_types.h>     // `BloombergLP::bsls::Types::Int64`
 
@@ -55,6 +58,7 @@
 #include <bsl_cstdlib.h>    // `atoi`, `rand`
 #include <bsl_cmath.h>      // `sqrt`
 #include <bsl_cstdio.h>     // `sprintf`
+#include <bsl_format.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>     // allocate_shared
@@ -130,7 +134,6 @@ using namespace bsl;
 // [ 3] bsl::size_t insert(const KEY& key, const VALUE& value);
 // [17] bsl::size_t insert(const KEY& key, VALUE&& value);
 // [ 9] bsl::size_t insertBulk(RANDOMIT first, last);
-// [14] void maxLoadFactor(float newMaxLoadFactor);
 // [14] void rehash(bsl::size_t numBuckets);
 // [11] int setComputedValue(const KEY& key, visitor);
 // [10] bsl::size_t setValue(const KEY& key, const VALUE& value);
@@ -1558,7 +1561,7 @@ int HashPerformance::initRead(HashPerformance *hashPerf_p, VecIntType& args)
 
     bsl::vector<PairType> insertData(size, hashPerf_p->d_allocator_p);
     for (int i = 0; i < size; ++i) {
-        bsl::sprintf(buf, "V%d", key);
+        bsl::snprintf(buf, sizeof buf, "V%d", key);
         insertData[i] = PairType(key, buf);
         key += sparsity;
     }
@@ -1590,8 +1593,14 @@ int HashPerformance::initRead2(HashPerformance *hashPerf_p, VecIntType& args)
 
     bsl::vector<PairType2> insertData(size, hashPerf_p->d_allocator_p);
     for (int i = 0; i < size; ++i) {
-        bsl::sprintf(buf, "VABCDEFGHIJKLMNOABCDEFGHIJKLMNO%d%10d%10d%10d%10d",
-                                       keyGen, keyGen, keyGen, keyGen, keyGen);
+        bsl::snprintf(buf,
+                      sizeof buf,
+                      "VABCDEFGHIJKLMNOABCDEFGHIJKLMNO%d%10d%10d%10d%10d",
+                      keyGen,
+                      keyGen,
+                      keyGen,
+                      keyGen,
+                      keyGen);
         bsl::string      key(buf);
         bsl::vector<int> value(10);
         for (int j = 0; j < 10; ++j) value[j] = i + j;
@@ -1734,8 +1743,14 @@ int HashPerformance::testReadWrite2(HashPerformance *hashPerf_p,
 
     for (int i = 0; i < size; ++i) {
         int keyGen = rand() % range;
-        bsl::sprintf(buf, "VABCDEFGHIJKLMNOABCDEFGHIJKLMNO%d%10d%10d%10d%10d",
-                                       keyGen, keyGen, keyGen, keyGen, keyGen);
+        bsl::snprintf(buf,
+                      sizeof buf,
+                      "VABCDEFGHIJKLMNOABCDEFGHIJKLMNO%d%10d%10d%10d%10d",
+                      keyGen,
+                      keyGen,
+                      keyGen,
+                      keyGen,
+                      keyGen);
         bsl::string key(buf);
         if (isWThread) {
             bsl::vector<int> value(10);
@@ -3032,7 +3047,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase18()
         ASSERTV(s_testCase19_count, 0 == s_testCase19_count);
         ASSERTV(s_testCase19_visitedElements.size(),
                 0 == s_testCase19_visitedElements.size());
-    } // END Testing with unique values
+    }  // END Testing with unique values
 }
 
 template <class KEY, class VALUE, class HASH, class EQUAL>
@@ -3536,14 +3551,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase14()
     //   2. Verify that `loadFactor` is bigger than the current
     //      `maxLoadFactor.`
     //
-    //   3. Set `maxLoadFactor` to a large number and confirm that the number
-    //      of buckets does not change.
-    //
-    //   4. Set `maxLoadFactor` to its previous value (1.0), which is smaller
-    //      than the current loadFactor, and confirm that the number of buckets
-    //      does change.
-    //
-    //   5. Directly call `rehash` with double the number of the existing
+    //   3. Directly call `rehash` with double the number of the existing
     //      buckets, and confirm that the number of buckets doubled.  Wrap the
     //      call with `BSLMA_TESTALLOCATOR_EXCEPTION_TEST` macro.
     //
@@ -3551,7 +3559,6 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase14()
     //   void rehash(bsl::size_t numBuckets);
     //   void disableRehash();
     //   void enableRehash();
-    //   void maxLoadFactor(float newMaxLoadFactor);
     //   bool isRehashEnabled() const;
     //   float maxLoadFactor() const;
     //   float loadFactor() const;
@@ -3669,7 +3676,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase14()
                 //
                 // Set computed value functor copies around values.
                 if (i == 4 ||
-                         (i == 5 && bslma::UsesBslmaAllocator<VALUE>::value)) {
+                    (i == 5 && bslma::UsesBslmaAllocator<VALUE>::value)) {
                     dam.reset();
                 }
                 ASSERTV(i, dam.isTotalSame());
@@ -3716,7 +3723,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase14()
         } // END Loop on insert types
     } // END Loop on bucket sizes
 
-    // Test `disable`, `enable`, `maxLoadFactor`, and explicit `rehash`.
+    // Test `disable`, `enable`, and explicit `rehash`.
     //
     // Note that we skip initial bucket count of 64, as it will not rehash for
     // the test values we use here.
@@ -3757,22 +3764,6 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase14()
         // Confirm that no memory was allocated in `enableRehash`,
         // `loadFactor`, and `maxLoadFactor`.
         ASSERTV(sam.isTotalSame());
-
-        // Set `maxLoadFactor` to a large value, and confirm no rehash
-        // happened.
-        float curMaxLoadFactor = X.maxLoadFactor();
-        mX.maxLoadFactor(1e6);
-        ASSERTV(LENG, X.maxLoadFactor(), 1e6 == X.maxLoadFactor());
-        ASSERTV(LENG,
-                X.bucketCount(),
-                initialNumBuckets == X.bucketCount());
-
-        // Set `maxLoadFactor` to its original value, and confirm rehash
-        // happened.
-        mX.maxLoadFactor(curMaxLoadFactor);
-        ASSERTV(LENG,
-                X.bucketCount(),
-                initialNumBuckets < X.bucketCount());
 
         // Directly call `rehash`, doubling the number of buckets, within
         // exception macros, and confirm that the number of buckets doubled.
@@ -7038,6 +7029,10 @@ int main(int argc, char *argv[])
     bslma::TestAllocator globalAllocator("global", veryVeryVeryVerbose);
     bslma::Default::setGlobalAllocator(&globalAllocator);
     bslma::TestAllocatorMonitor gam(&globalAllocator);
+
+    bslmt::TimedCompletionGuard completionGuard(&defaultAllocator);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
 
     // BDE_VERIFY pragma: -TP17 These are defined in the various test functions
     switch (test) { case 0:

@@ -67,11 +67,12 @@ BSLS_IDENT("$Id: $")
 // current process is running.  This error condition will be indicated by a
 // non-zero return value from `registerPid`.
 //
-///Unsupported Platform/Compiler mode - Solaris/g++/32-bits
+///Unsupported Platform/Compiler mode - Solaris/g++ <= 11/32-bits
 ///--------------------------------------------------------
 // Note that this component is not supported when building in 32-bit mode
-// with the g++ compiler on Solaris, due to Solaris's `procfs.h` header not
-// supporting that compiler in 32-bit mode. (DRQS 170291732)
+// with the g++ compiler version 11 or below on Solaris, due to Solaris's
+// `procfs.h` header not supporting that compiler in 32-bit mode.
+// (DRQS 170291732)
 //
 ///Iterator Invalidation
 ///---------------------
@@ -139,7 +140,7 @@ BSLS_IDENT("$Id: $")
 // for (int i = 0; i < 6; ++i) {
 //     bslmt::ThreadUtil::microSleep(0, 5);
 //
-//     balb::PerformanceMonitor::ConstIterator    it    = perfmon.begin();
+//     balb::PerformanceMonitor::ConstIterator    it    = perfmon.find(0);
 //     const balb::PerformanceMonitor::Statistics stats = *it;
 //
 //     assert(pid == stats.pid());
@@ -163,24 +164,23 @@ BSLS_IDENT("$Id: $")
 
 #include <balscm_version.h>
 
-#include <bslmt_readlockguard.h>
-#include <bslmt_rwmutex.h>
+#ifndef BDE_OMIT_INTERNAL_DEPRECATED
+#include <bsla_deprecated.h>
+#endif
 
 #include <bdlmt_timereventscheduler.h>
-
-#include <bsls_atomic.h>
-
+#include <bdls_processutil.h>
 #include <bdlt_datetime.h>
-
-#include <bsls_timeinterval.h>
 
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
-
 #include <bslmf_nestedtraitdeclaration.h>
-
+#include <bslmt_readlockguard.h>
+#include <bslmt_rwmutex.h>
 #include <bsls_assert.h>
+#include <bsls_atomic.h>
 #include <bsls_platform.h>
+#include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 #include <bsl_iosfwd.h>
@@ -296,28 +296,28 @@ class PerformanceMonitor {
         e_VIRTUAL_SIZE,      // number of MBs in the heap
         e_NUM_MEASURES
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
-      , BAEA_CPU_TIME        = e_CPU_TIME
-      , BAEA_CPU_TIME_USER   = e_CPU_TIME_USER
-      , BAEA_CPU_TIME_SYSTEM = e_CPU_TIME_SYSTEM
-      , BAEA_CPU_UTIL        = e_CPU_UTIL
-      , BAEA_CPU_UTIL_USER   = e_CPU_UTIL_USER
-      , BAEA_CPU_UTIL_SYSTEM = e_CPU_UTIL_SYSTEM
-      , BAEA_RESIDENT_SIZE   = e_RESIDENT_SIZE
-      , BAEA_NUM_THREADS     = e_NUM_THREADS
-      , BAEA_NUM_PAGEFAULTS  = e_NUM_PAGEFAULTS
-      , BAEA_VIRTUAL_SIZE    = e_VIRTUAL_SIZE
-      , BAEA_NUM_MEASURES    = e_NUM_MEASURES
-      , CPU_TIME        = e_CPU_TIME
-      , CPU_TIME_USER   = e_CPU_TIME_USER
-      , CPU_TIME_SYSTEM = e_CPU_TIME_SYSTEM
-      , CPU_UTIL        = e_CPU_UTIL
-      , CPU_UTIL_USER   = e_CPU_UTIL_USER
-      , CPU_UTIL_SYSTEM = e_CPU_UTIL_SYSTEM
-      , RESIDENT_SIZE   = e_RESIDENT_SIZE
-      , NUM_THREADS     = e_NUM_THREADS
-      , NUM_PAGEFAULTS  = e_NUM_PAGEFAULTS
-      , VIRTUAL_SIZE    = e_VIRTUAL_SIZE
-      , NUM_MEASURES    = e_NUM_MEASURES
+      , BAEA_CPU_TIME        BSLA_DEPRECATED = e_CPU_TIME
+      , BAEA_CPU_TIME_USER   BSLA_DEPRECATED = e_CPU_TIME_USER
+      , BAEA_CPU_TIME_SYSTEM BSLA_DEPRECATED = e_CPU_TIME_SYSTEM
+      , BAEA_CPU_UTIL        BSLA_DEPRECATED = e_CPU_UTIL
+      , BAEA_CPU_UTIL_USER   BSLA_DEPRECATED = e_CPU_UTIL_USER
+      , BAEA_CPU_UTIL_SYSTEM BSLA_DEPRECATED = e_CPU_UTIL_SYSTEM
+      , BAEA_RESIDENT_SIZE   BSLA_DEPRECATED = e_RESIDENT_SIZE
+      , BAEA_NUM_THREADS     BSLA_DEPRECATED = e_NUM_THREADS
+      , BAEA_NUM_PAGEFAULTS  BSLA_DEPRECATED = e_NUM_PAGEFAULTS
+      , BAEA_VIRTUAL_SIZE    BSLA_DEPRECATED = e_VIRTUAL_SIZE
+      , BAEA_NUM_MEASURES    BSLA_DEPRECATED = e_NUM_MEASURES
+      , CPU_TIME             BSLA_DEPRECATED = e_CPU_TIME
+      , CPU_TIME_USER        BSLA_DEPRECATED = e_CPU_TIME_USER
+      , CPU_TIME_SYSTEM      BSLA_DEPRECATED = e_CPU_TIME_SYSTEM
+      , CPU_UTIL             BSLA_DEPRECATED = e_CPU_UTIL
+      , CPU_UTIL_USER        BSLA_DEPRECATED = e_CPU_UTIL_USER
+      , CPU_UTIL_SYSTEM      BSLA_DEPRECATED = e_CPU_UTIL_SYSTEM
+      , RESIDENT_SIZE        BSLA_DEPRECATED = e_RESIDENT_SIZE
+      , NUM_THREADS          BSLA_DEPRECATED = e_NUM_THREADS
+      , NUM_PAGEFAULTS       BSLA_DEPRECATED = e_NUM_PAGEFAULTS
+      , VIRTUAL_SIZE         BSLA_DEPRECATED = e_VIRTUAL_SIZE
+      , NUM_MEASURES         BSLA_DEPRECATED = e_NUM_MEASURES
 #endif // BDE_OMIT_INTERNAL_DEPRECATED
     };
 
@@ -546,10 +546,10 @@ class PerformanceMonitor {
     /// to automatically collect performance statistics every specified
     /// `interval` (specified in seconds).  Optionally specify a
     /// `basicAllocator` used to supply memory.  If `basicAllocator` is 0,
-    /// the currently installed default allocator is used.  Note that a
-    /// non-positive `interval` value indicates that performance statistics
-    /// should *not* be automatically collected--in this case the user is
-    /// responsible for manually calling the `collect` function.
+    /// the currently installed default allocator is used.  A non-positive
+    /// `interval` value indicates that performance statistics should *not* be
+    /// automatically collected--in this case the user is responsible for
+    /// manually calling the `collect` function.
     PerformanceMonitor(bdlmt::TimerEventScheduler *scheduler,
                        double                      interval,
                        bslma::Allocator           *basicAllocator = 0);
@@ -559,29 +559,28 @@ class PerformanceMonitor {
 
     // MANIPULATORS
 
-    /// Register the specified process `pid` having the specified
-    /// user-defined `description` with this performance monitor.  After
-    /// registration, performance statistics will be collected for the
-    /// `pid` upon invocation of the `collect` function.  Note that a `pid`
-    /// value of zero is interpreted as the `pid` of the current process.
-    /// Return 0 on success or a non-zero value otherwise.
+    /// Register the specified process `pid` having the specified user-defined
+    /// `description` with this performance monitor.  After registration,
+    /// performance statistics will be collected for the `pid` upon invocation
+    /// of the `collect` function.  A `pid` value of zero is translated to the
+    /// current process id.  Return 0 on success or a non-zero value otherwise.
     int registerPid(int pid, const bsl::string& description);
 
     /// Unregister the specified process `pid` from the performance monitor.
-    /// After unregistration, to statistics for the `pid` will be no longer
-    /// be available unless the `pid` is re-registered with the performance
-    /// monitor through calling `registerPid`.  Note that a `pid` value of
-    /// zero is interpreted as the `pid` of the current process.  Return
-    /// 0 on success or a non-zero value otherwise.
+    /// After unregistration, to statistics for the `pid` will be no longer be
+    /// available unless the `pid` is re-registered with the performance
+    /// monitor through calling `registerPid`.  A `pid` value of zero is
+    /// translated to the current process id.  Return 0 on success or a
+    /// non-zero value otherwise.
     int unregisterPid(int pid);
 
-    /// Set the specified time `interval`, in seconds, after which
-    /// statistics for each registered pid are automatically collected.  The
-    /// behavior is undefined unless a scheduler was supplied at the
-    /// construction of this performance monitor.  Note that a non-positive
-    /// `interval` value indicates that performance statistics should not be
-    /// automatically collected--in this case the user is responsible for
-    /// manually calling the `collect` function.
+    /// Set the specified time `interval`, in seconds, after which statistics
+    /// for each registered pid are automatically collected.  The behavior is
+    /// undefined unless a scheduler was supplied at the construction of this
+    /// performance monitor.  A non-positive `interval` value indicates that
+    /// performance statistics should not be automatically collected--in this
+    /// case the user is responsible for manually calling the `collect`
+    /// function.
     void setCollectionInterval(double interval);
 
     /// Collect performance statistics for each registered pid.
@@ -603,8 +602,9 @@ class PerformanceMonitor {
 
     /// Return the iterator pointing to the set of collected performance
     /// statistics for the specified `pid` if `pid` has been registered with
-    /// this performance monitor through the `registerPid` function,
-    /// otherwise return `end()`.
+    /// this performance monitor through the `registerPid` function, otherwise
+    /// return `end()`.  A `pid` value of zero is translated to the current
+    /// process id.
     ConstIterator find(int pid) const;
 
     /// Return the number of processes registered for statistics collection.
@@ -859,6 +859,10 @@ inline
 PerformanceMonitor::ConstIterator
 PerformanceMonitor::find(int pid) const
 {
+    if (0 == pid) {
+        pid = bdls::ProcessUtil::getProcessId();
+    }
+
     bslmt::ReadLockGuard<bslmt::RWMutex> guard(&d_mapGuard);
     return ConstIterator(d_pidMap.find(pid), &d_mapGuard);
 }

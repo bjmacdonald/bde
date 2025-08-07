@@ -38,7 +38,7 @@
 
 #include <stdio.h>     // `sprintf`, `snprintf` [NOT `<cstdio>`, which does not
                        // include `snprintf`]
-#include <stdlib.h>    // `atoi`
+#include <stdlib.h>    // `atoi`, `abs`
 
 #if defined(BSLS_PLATFORM_CMP_MSVC)
 #define snprintf _snprintf
@@ -139,6 +139,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -199,7 +200,7 @@ struct TestEnumWithStreaming {
 bsl::ostream& operator<<(bsl::ostream&               stream,
                          TestEnumWithStreaming::Enum value)
 {
-    const char *ascii;
+    const char *ascii = 0;
     switch (value) {
       case TestEnumWithStreaming::VALUE_A:
         ascii = "VALUE_A";
@@ -725,9 +726,9 @@ bsl::ostream& DateTz::print(bsl::ostream& stream,
    bsl::ostringstream tmp;
    tmp << d_localDate;
 
-   const char sign    = d_offset < 0 ? '-' : '+';
-   const int  minutes = '-' == sign ? -d_offset : d_offset;
-   const int  hours   = minutes / 60;
+   const char     sign    = d_offset < 0 ? '-' : '+';
+   const unsigned minutes = abs(d_offset);
+   const unsigned hours   = minutes / 60;
 
    // space usage: +-  hh  mm  nil
    const int SIZE = 1 + 2 + 2 + 1;
@@ -735,10 +736,10 @@ bsl::ostream& DateTz::print(bsl::ostream& stream,
 
    // Use at most 2 digits for `hours`
    if (hours < 100) {
-       bsl::sprintf(buf, "%c%02d%02d", sign, hours, minutes % 60);
+       snprintf(buf, sizeof buf, "%c%02d%02d", sign, hours, minutes % 60);
    }
    else {
-       bsl::sprintf(buf, "%cXX%02d", sign, minutes % 60);
+       snprintf(buf, sizeof buf, "%cXX%02d", sign, minutes % 60);
    }
 
    tmp << buf;
@@ -2846,6 +2847,43 @@ int main(int argc, char *argv[])
             nV2.printValue(v3);
             ASSERTV(v3Out.str(), " NULL" == v3Out.str());
         }
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE
+        if (veryVerbose) { printf("tuple\n"); }
+        {
+            bsl::tuple<int, const char*, double> t(1, "two", 3.14);
+            bsl::ostringstream                   out;
+            bslim::Printer                       p(&out, 0, -1);
+            p.printAttribute("tuple", t);
+
+            bsl::ostringstream EXP;
+            EXP << " tuple = [ 1 \"two\" 3.14 ]";
+
+            LOOP2_ASSERT(EXP.str(), out.str(), EXP.str() == out.str());
+        }
+        {
+            bsl::tuple<int, const char*, double> t(1, "two", 3.14);
+            bsl::ostringstream                   out;
+            bslim::Printer                       p(&out, 0, -1);
+            p.printValue(t);
+
+            bsl::ostringstream EXP;
+            EXP << " [ 1 \"two\" 3.14 ]";
+
+            LOOP2_ASSERT(EXP.str(), out.str(), EXP.str() == out.str());
+        }
+        {
+            bsl::tuple<>       t;
+            bsl::ostringstream out;
+            bslim::Printer     p(&out, 0, -1);
+            p.printValue(t);
+
+            bsl::ostringstream EXP;
+            EXP << " [ ]";
+
+            LOOP2_ASSERT(EXP.str(), out.str(), EXP.str() == out.str());
+        }
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE
 
         if (veryVerbose) { printf("vector<int>::iterator with FUNCTOR\n"); }
         {

@@ -740,25 +740,25 @@ class TimeInterval {
 #ifndef BDE_OPENSOURCE_PUBLICATION  // pending deprecation
     // DEPRECATED
 
-    /// **DEPRECATED**: Use `maxSupportedBdexVersion(int)` instead.
-    ///
     /// Return the most current BDEX streaming version number supported by
     /// this class.
+    ///
+    /// @DEPRECATED: Use `maxSupportedBdexVersion(int)` instead.
     static int maxSupportedBdexVersion();
 
 #endif // BDE_OPENSOURCE_PUBLICATION -- pending deprecation
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED  // BDE2.22
 
-    /// **DEPRECATED**: Use `maxSupportedBdexVersion(int)` instead.
-    ///
     /// Return the most current BDEX streaming version number supported by
     /// this class.
+    ///
+    /// @DEPRECATED: Use `maxSupportedBdexVersion(int)` instead.
     static int maxSupportedVersion();
 
-    /// **DEPRECATED**: Use `print` instead.
-    ///
     /// Format this time to the specified output `stream`, and return a
     /// reference to the modifiable `stream`.
+    ///
+    /// @DEPRECATED: Use `print` instead.
     template <class STREAM>
     STREAM& streamOut(STREAM& stream) const;
 
@@ -1245,8 +1245,8 @@ STREAM& TimeInterval::bdexStreamIn(STREAM& stream, int version)
     if (stream) {
         switch (version) { // switch on the schema version
           case 1: {
-            bsls::Types::Int64 seconds;
-            int                nanoseconds;
+            bsls::Types::Int64 seconds     = 0;
+            int                nanoseconds = 0;
             stream.getInt64(seconds);
             stream.getInt32(nanoseconds);
 

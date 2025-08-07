@@ -258,10 +258,6 @@ BSLS_IDENT("$Id: $")
 #include <bsl_string.h>
 #include <bsl_vector.h>
 
-#ifndef BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-#include <bsl_algorithm.h>
-#endif // BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-
 namespace BloombergLP {
 namespace baltzo {
 
@@ -512,11 +508,11 @@ class Zoneinfo {
 
     // ACCESSORS
 
-    /// **DEPRECATED**: Use `get_allocator()` instead.
-    ///
     /// Return the allocator used by this object to supply memory.  Note
     /// that if no allocator was supplied at construction the currently
     /// installed default allocator is used.
+    ///
+    /// @DEPRECATED: Use `get_allocator()` instead.
     bslma::Allocator *allocator() const;
 
     /// Return an iterator providing non-modifiable access to the transition

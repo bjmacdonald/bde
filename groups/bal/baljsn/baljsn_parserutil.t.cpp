@@ -3,38 +3,36 @@
 
 #include <baljsn_printutil.h> // For round-trip testing
 
-#include <bslim_testutil.h>
-
 #include <bdlt_date.h>
 #include <bdlt_datetime.h>
 #include <bdlt_datetimetz.h>
 #include <bdlt_datetz.h>
 #include <bdlt_timetz.h>
 
-#include <bsl_sstream.h>
-#include <bsl_cfloat.h>
-#include <bsl_climits.h>
-#include <bsl_cstdlib.h>
-#include <bsl_cstring.h>
-#include <bsl_limits.h>
-#include <bsl_iostream.h>
-
-#include <bsl_string.h>
-#include <bsl_cstring.h>
-
-#include <bdlb_printmethods.h>
 #include <bdlb_float.h>
+#include <bdlb_printmethods.h>
 
-#include <bdlsb_memoutstreambuf.h>
-#include <bdlsb_fixedmemoutstreambuf.h>
-#include <bdlsb_fixedmeminstreambuf.h>
-
+#include <bdldfp_decimal.h>
 #include <bdldfp_decimalutil.h>
 
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_testallocator.h>
 
+#include <bslim_testutil.h>
+
+#include <bsls_asserttest.h>
+
+#include <bsl_cfloat.h>
+#include <bsl_climits.h>
+#include <bsl_cstdlib.h>
+#include <bsl_cstring.h>
+#include <bsl_cstring.h>
+#include <bsl_iostream.h>
+#include <bsl_iterator.h>
+#include <bsl_limits.h>
+#include <bsl_sstream.h>
+#include <bsl_string.h>
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -73,6 +71,8 @@ using bsl::endl;
 // [13] static int getQuotedString(bsl::string   *v, bsl::string_view s);
 // [13] static int getUnquotedString(bsl::string *v, bsl::string_view s);
 // [13] static int getValue(bsl::string          *v, bsl::string_view s);
+// [13] static int getValue(std::string          *v, bsl::string_view s);
+// [13] static int getValue(std::pmr::string     *v, bsl::string_view s);
 // [14] static int getValue(bdlt::Time           *v, bsl::string_view s);
 // [15] static int getValue(bdlt::TimeTz         *v, bsl::string_view s);
 // [16] static int getValue(bdlt::Date           *v, bsl::string_view s);
@@ -82,18 +82,16 @@ using bsl::endl;
 // [26] static int getValue(TimeOrTimeTz         *v, bsl::string_view s);
 // [27] static int getValue(DateOrDateTz         *v, bsl::string_view s);
 // [28] static int getValue(DatetimeOrDatetimeTz *v, bsl::string_view s);
-// [20] static int getValue(vector<char>         *v, bsl::string_view s);
+// [20] static int getValue(bsl::vector<char>    *v, bsl::string_view s);
 // [21] static int getValue(bdldfp::Decimal64    *v, bsl::string_view s);
 // [29] static bool stripQuotes(bsl::string_view *str);
 // [30] DRQS 174180775 - TEST STATIC CALL
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-//
 // [22] BOOLEAN ROUND-TRIP
 // [23] STRINGS ROUND-TRIP
 // [24] NUMBERS ROUND-TRIP
 // [25] DATE AND TIME TYPES ROUND-TRIP
-//
 // [31] USAGE EXAMPLE
 
 // ============================================================================
@@ -141,12 +139,18 @@ void aSsErT(bool condition, const char *message, int line)
 #define L_           BSLIM_TESTUTIL_L_  // current Line number
 
 // ============================================================================
+//                     NEGATIVE-TEST MACRO ABBREVIATIONS
+// ----------------------------------------------------------------------------
+
+#define ASSERT_FAIL(expr) BSLS_ASSERTTEST_ASSERT_FAIL(expr)
+#define ASSERT_PASS(expr) BSLS_ASSERTTEST_ASSERT_PASS(expr)
+
+// ============================================================================
 //                   GLOBAL TYPEDEFS/CONSTANTS FOR TESTING
 // ----------------------------------------------------------------------------
 
-typedef baljsn::ParserUtil Util;
-
-typedef baljsn::PrintUtil  Print;
+typedef baljsn::ParserUtil  Util;
+typedef baljsn::PrintUtil   Print;
 
 typedef bsls::Types::Int64  Int64;
 typedef bsls::Types::Uint64 Uint64;
@@ -244,7 +248,7 @@ void roundTripTestNonNumericValues()
         { L_,    INF_P },
         { L_,    INF_N },
     };
-    const int NUM_DATA = sizeof DATA / sizeof *DATA;
+    const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
     for (int ti = 0; ti < NUM_DATA; ++ti) {
         const int  LINE  = DATA[ti].d_line;
@@ -324,7 +328,7 @@ void testIntegerTypeRoundTrip()
         { L_,   LLONG_MIN },
         { L_,   LLONG_MAX }
     };
-    const int NUM_DATA = sizeof DATA / sizeof *DATA;
+    const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
     for (int ti = 0; ti < NUM_DATA; ++ti) {
         const int   LINE  = DATA[ti].d_line;
@@ -360,9 +364,6 @@ void testIntegerTypeRoundTrip()
 //                               MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
-typedef bsls::Types::Int64  Int64;
-typedef bsls::Types::Uint64 Uint64;
-
 int main(int argc, char *argv[])
 {
     int test = argc > 1 ? atoi(argv[1]) : 0;
@@ -376,7 +377,7 @@ int main(int argc, char *argv[])
     bslma::TestAllocator globalAllocator("global", veryVeryVerbose);
     bslma::Default::setGlobalAllocator(&globalAllocator);
 
-    switch (test) { case 0:  // Zero is always the leading case.
+    switch (test) { // case 0:  // Zero is always the leading case.
       case 31: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
@@ -406,11 +407,11 @@ int main(int argc, char *argv[])
 ///---------------------------------------------------------
 // Suppose we want to de-serialize some JSON data into an object.
 //
-// First, we define a struct, `Employee`, to contain the data:
+// First, we define a `struct`, `Employee`, to contain the data:
 // ```
     struct Employee {
         bsl::string d_name;
-        bdlt::Date   d_date;
+        bdlt::Date  d_date;
         int         d_age;
     };
 // ```
@@ -437,9 +438,9 @@ int main(int argc, char *argv[])
 // ```
 // Finally, we will verify that the values are as expected:
 // ```
-    ASSERT("John Smith"            == employee.d_name);
+    ASSERT("John Smith"             == employee.d_name);
     ASSERT(bdlt::Date(1985, 06, 24) == employee.d_date);
-    ASSERT(21                      == employee.d_age);
+    ASSERT(21                       == employee.d_age);
 // ```
       } break;
       case 30: {
@@ -557,7 +558,7 @@ int main(int argc, char *argv[])
             { L_, "\"a\"\"b\"", "a\"\"b", true  },
             { L_, "a\"\"b",     "a\"\"b", false }
         };
-        const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+        const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
         for (int i = 0; i < NUM_DATA; ++i) {
             const int         LINE   = DATA[i].d_line;
@@ -575,7 +576,7 @@ int main(int argc, char *argv[])
       } break;
       case 28: {
         // --------------------------------------------------------------------
-        // TESTING `getValue` for `bdlt::DatetimeOrDatetimeTz`
+        // TESTING `getValue` for `Util::DatetimeOrDatetimeTz`
         //
         // Concerns:
         // 1. Values in the valid range, including the maximum and minimum
@@ -610,7 +611,7 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << "\nTESTING `getValue` for `bdlt::DatetimeOrDatetimeTz`"
+            cout << "\nTESTING `getValue` for `Util::DatetimeOrDatetimeTz`"
                  << "\n==================================================="
                  << endl;
         {
@@ -684,7 +685,6 @@ int main(int argc, char *argv[])
                          1, 12, 31,  0,  0,  0,  0,   0,     0,  true, false },
 { L_, "\"0001-12-31T23:59:59.000\"",
                          1, 12, 31, 23, 59, 59,  0,   0,     0,  true, false },
-
 
 { L_, "\"0002-01-01T00:00:00.000000\"",
                          2,  1,  1,  0,  0,  0,  0,   0,     0,  true, false },
@@ -839,7 +839,6 @@ int main(int argc, char *argv[])
                       2020,  1,  2,  0,  0,  0,  0,   0,     0,  true, false },
 { L_, "\"2020-01-02T00:00:00.000000\"",
                       2020,  1,  2,  0,  0,  0,  0,   0,     0,  true, false },
-
 
 { L_, "\"2020-02-28T00:00:00.000000\"",
                       2020,  2, 28,  0,  0,  0,  0,   0,     0,  true, false },
@@ -1005,7 +1004,6 @@ int main(int argc, char *argv[])
 { L_, "\"0100-02-28T23:59:59.000000-23:59\"",
                        100,  2, 28, 23, 59, 59,  0,   0, -1439,  true,  true },
 
-
 { L_, "\"0100-03-01T00:00:00.000000+00:00\"",
                        100,  3,  1,  0,  0,  0,  0,   0,     0,  true,  true },
 { L_, "\"0100-03-01T23:59:59.000000+23:59\"",
@@ -1094,7 +1092,7 @@ int main(int argc, char *argv[])
 { L_, "\"0000-01-01T00:00:00.000-00:00\"",
                          1,  1,  1, 24,  0,  0,  0,   0,     0, false, false },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE          = DATA[i].d_line;
@@ -1125,7 +1123,9 @@ int main(int argc, char *argv[])
 
                 if (veryVerbose) { T_ P_(LINE) P(INPUT) }
 
-                const bsl::string_view isb(INPUT);
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 // Variant is left unset.
 
@@ -1224,12 +1224,14 @@ int main(int argc, char *argv[])
                             DEFAULT_DATETIMETZ ==
                                                 value.the<bdlt::DatetimeTz>());
                 }
+
             }
         }
+
       } break;
       case 27: {
         // --------------------------------------------------------------------
-        // TESTING `getValue` for `DateOrDateTz`
+        // TESTING `getValue` FOR `Util::DateOrDateTz`
         //
         // Concerns:
         // 1. Values in the valid range, including the maximum and minimum
@@ -1260,11 +1262,12 @@ int main(int argc, char *argv[])
         //      otherwise.  (C-3)
         //
         // Testing:
-        //   static int getValue(bdlt::DateOrDateTz   *v, bsl::string_view s);
+        //   static int getValue(DateOrDateTz         *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING `getValue` for `DateOrDateTz`"
-                          << "\n=====================================" << endl;
+        if (verbose) cout
+                     << "\nTESTING `getValue` FOR `Utl::DateOrDateTz`"
+                     << "\n=========================================_" << endl;
         {
             static const struct {
                 int         d_line;      // source line number
@@ -1378,7 +1381,7 @@ int main(int argc, char *argv[])
   {  L_, "\"0001-01-01T00:00:00.000+00:00\"",
                                        1,     1,    1,     0, false,  false },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -1397,7 +1400,9 @@ int main(int argc, char *argv[])
 
                 if (veryVerbose) { T_ P_(LINE) P(INPUT) }
 
-                const bsl::string_view isb(INPUT);
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 // Variant is left unset.
 
@@ -1482,7 +1487,7 @@ int main(int argc, char *argv[])
       } break;
       case 26: {
         // --------------------------------------------------------------------
-        // TESTING `getValue` for `TimeOrTimeTz`
+        // TESTING `getValue` FOR `Util::TimeOrTimeTz`
         //
         // Concerns:
         // 1. Values in the valid range, including the maximum and minimum
@@ -1516,8 +1521,9 @@ int main(int argc, char *argv[])
         //   static int getValue(TimeOrTimeTz         *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
-        if (verbose) cout << "\nTESTING `getValue` for `TimeOrTimeTz`"
-                          << "\n=====================================" << endl;
+        if (verbose) cout
+                    << "\nTESTING `getValue` FOR `Util::TimeOrTimeTz`"
+                    << "\n===========================================" << endl;
         {
             static const struct {
                 int         d_line;      // source line number
@@ -1734,7 +1740,7 @@ int main(int argc, char *argv[])
   {  L_, "\"0001-01-01T00:00:00.000+00:00\"",
                                24,   0,    0,    0,   0,     0, false, false },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -1748,7 +1754,6 @@ int main(int argc, char *argv[])
                 const bool        IS_VALID    = DATA[i].d_isValid;
                 const bool        IS_TIMETZ   = DATA[i].d_isTimeTz;
 
-
                 const bdlt::Time   DEFAULT_TIME;
                 const bdlt::Time   EXP_TIME(HOUR,
                                             MINUTE,
@@ -1760,7 +1765,9 @@ int main(int argc, char *argv[])
 
                 if (veryVerbose) { T_ P_(LINE) P(INPUT) }
 
-                const bsl::string_view isb(INPUT);
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 // Variant is left unset.
 
@@ -1840,8 +1847,10 @@ int main(int argc, char *argv[])
                     ASSERTV(LINE, value.is<bdlt::TimeTz>());
                     ASSERTV(LINE, DEFAULT_TIMETZ == value.the<bdlt::TimeTz>());
                 }
+
             }
         }
+
       } break;
       case 25: {
         // --------------------------------------------------------------------
@@ -1895,7 +1904,7 @@ int main(int argc, char *argv[])
             { L_,  1999,  10,  12,   23,   0,   1,   999,  789,    720 },
             { L_,  1999,  12,  31,   23,  59,  59,   999,  999,    720 }
         };
-        const int NUM_DATA = sizeof DATA / sizeof *DATA;
+        const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
         for (int ti = 0; ti < NUM_DATA; ++ti) {
             const int LINE        = DATA[ti].d_line;
@@ -2077,7 +2086,7 @@ int main(int argc, char *argv[])
                 { L_, -Limits::denorm_min() },
                 { L_, -Limits::max()        },
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int   LINE  = DATA[ti].d_line;
@@ -2169,7 +2178,7 @@ int main(int argc, char *argv[])
                 { L_,     1.23456789e-20f, 1,           1e-20f          },
                 { L_,     1.23456789e-20f, 9,           1.23456787e-20f },
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int   LINE      = DATA[ti].d_line;
@@ -2267,7 +2276,7 @@ int main(int argc, char *argv[])
                 { L_, -Limits::denorm_min() },
                 { L_, -Limits::max()        },
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int    LINE  = DATA[ti].d_line;
@@ -2284,7 +2293,6 @@ int main(int argc, char *argv[])
                 // same binary IEEE-754.
                 ASSERTV(LINE, VALUE, result, decoded,
                         0 == bsl::memcmp(&VALUE, &decoded, sizeof VALUE));
-
 
                 // Verify that default-options-encoding round-trips as well
                 baljsn::EncoderOptions options;
@@ -2372,7 +2380,7 @@ int main(int argc, char *argv[])
                 {L_,   -1.2345678901234567e-20,  16,  -1.234567890123457e-20 },
                 {L_,   -1.2345678901234567e-20,  17,             ROUND_TRIPS },
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int    LINE     = DATA[ti].d_line;
@@ -2435,7 +2443,7 @@ int main(int argc, char *argv[])
                 { L_,   -Limits::denorm_min() },
                 { L_,   -Limits::max()        },
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int               LINE  = DATA[ti].d_line;
@@ -2599,7 +2607,7 @@ int main(int argc, char *argv[])
             { L_,    "\x1F" },
             { L_,    "\x20" }   // Space
         };
-        const int NUM_DATA = sizeof DATA / sizeof *DATA;
+        const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
         for (int ti = 0; ti < NUM_DATA; ++ti) {
             const int         LINE  = DATA[ti].d_line;
@@ -2613,6 +2621,12 @@ int main(int argc, char *argv[])
             ASSERTV(0 == Util::getValue(&decoded, result));
             ASSERTV(result, decoded, VALUE == decoded);
         }
+
+        // Make sure that "\"\\/\"" (`"\/"`) decodes to "/".
+        bsl::string decoded;
+        int rc = Util::getValue(&decoded, "\"\\/\"");
+        ASSERTV(rc, 0 == rc);
+        ASSERTV(decoded, "/" == decoded);
       } break;
       case 22: {
         // --------------------------------------------------------------------
@@ -2825,7 +2839,7 @@ int main(int argc, char *argv[])
      {  L_,     "\"X\"",                  ERROR_VALUE,                 false },
      {  L_,  "\" NaN\"",                  ERROR_VALUE,                 false },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int    LINE     = DATA[i].d_line;
@@ -2888,7 +2902,7 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(vector<char>     *v, bsl::string_view s);
+        //   static int getValue(bsl::vector<char>    *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for `vector<char>`"
@@ -2910,7 +2924,6 @@ int main(int argc, char *argv[])
           {  L_,  "\"AA==\"",        "\x00",               1, true  },
           {  L_,  "\"AQ==\"",        "\x01",               1, true  },
           {  L_,  "\"\\/w==\"",      "\xFF",               1, true  },
-
           {  L_,  "\"UVE=\"",        "QQ",                 2, true  },
 
           {  L_,  "\"YQ==\"",        "a",                  1, true  },
@@ -2919,14 +2932,13 @@ int main(int argc, char *argv[])
           {  L_,  "\"YWJjZA==\"",    "abcd",               4, true  },
 
           {  L_,  "\"Qmxvb21iZXJnTFA=\"", "BloombergLP",  11, true  },
-
           {  L_,  "",                "",                   0, false },
           {  L_,  "\"Q\"",           "",                   0, false },
           {  L_,  "\"QV\"",          "",                   0, false },
           {  L_,  "\"QVE\"",         "",                   0, false },
           {  L_,  "\"QVE==\"",       "",                   0, false },
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -2935,15 +2947,23 @@ int main(int argc, char *argv[])
                 const int         LEN         = DATA[i].d_outputLen;
                 const bool        IS_VALID    = DATA[i].d_isValid;
 
-                vector<char> exp(OUTPUT, OUTPUT + LEN);
-                const vector<char>& EXP = exp;
+                vector<char>           exp(OUTPUT, OUTPUT + LEN);
+                const vector<char>&    EXP = exp;
+                const bsl::string_view isb(INPUT);
+
+                if (veryVeryVerbose) {
+                    P(LINE);
+                    P(isb);
+                    P(isb.size());
+                    P(OUTPUT);
+                    P(LEN);
+                    P(IS_VALID);
+                }
 
                 vector<char> value;
 
                 bslma::TestAllocator da(veryVeryVerbose);
                 bslma::DefaultAllocatorGuard guard(&da);
-
-                const bsl::string_view isb(INPUT);
 
                 const int rc = Util::getValue(&value, isb);
                 if (IS_VALID) {
@@ -2964,8 +2984,10 @@ int main(int argc, char *argv[])
                 }
 
                 ASSERT(0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 19: {
         // --------------------------------------------------------------------
@@ -3003,6 +3025,9 @@ int main(int argc, char *argv[])
         if (verbose) cout << "\nTESTING `getValue` for `bdlt::DatetimeTz`"
                           << "\n========================================"
                           << endl;
+
+        typedef bdlt::DatetimeTz Type;
+
         {
             static const struct {
                 int         d_line;      // source line number
@@ -3349,7 +3374,7 @@ int main(int argc, char *argv[])
     {   L_, "\"01-01-01T23:59:59.9999999\"",
               1,     1,    1,    24,     0,    0,    0,   0,      0,  false  },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -3365,16 +3390,17 @@ int main(int argc, char *argv[])
                 const int         OFFSET      = DATA[i].d_tzoffset;
                 const bool        IS_VALID    = DATA[i].d_isValid;
 
-                bdlt::Datetime dt(YEAR, MONTH, DAY,
+                bdlt::Datetime dt(YEAR, MONTH,  DAY,
                                   HOUR, MINUTE, SECOND,
-                                  MILLISECOND, MICROSECOND);
+                                  MILLISECOND,  MICROSECOND);
+
                 const bdlt::Datetime& DT = dt;
-                bdlt::DatetimeTz exp(DT, OFFSET);
-                const bdlt::DatetimeTz& EXP = exp;
+                Type  exp(DT, OFFSET); const Type& EXP = exp;
+                Type  value;
 
-                bdlt::DatetimeTz value;
-
-                const bsl::string_view isb(INPUT);
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 const int rc = Util::getValue(&value, isb);
                 if (IS_VALID) {
@@ -3384,8 +3410,10 @@ int main(int argc, char *argv[])
                     LOOP2_ASSERT(LINE, rc, rc);
                 }
                 LOOP3_ASSERT(LINE, EXP, value,   EXP == value);
+
             }
         }
+
       } break;
       case 18: {
         // --------------------------------------------------------------------
@@ -3423,6 +3451,9 @@ int main(int argc, char *argv[])
         if (verbose) cout << "\nTESTING `getValue` for `bdlt::Datetime`"
                           << "\n======================================"
                           << endl;
+
+        typedef bdlt::Datetime Type;
+
         {
             static const struct {
                 int         d_line;      // source line number
@@ -3957,7 +3988,7 @@ int main(int argc, char *argv[])
                    1,     1,    1,    24,     0,    0,    0,   0,   false  },
 
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -3972,14 +4003,15 @@ int main(int argc, char *argv[])
                 const int         MICROSECOND = DATA[i].d_microSecs;
                 const bool        IS_VALID    = DATA[i].d_isValid;
 
-                bdlt::Datetime exp(YEAR, MONTH, DAY,
-                                   HOUR, MINUTE, SECOND,
-                                   MILLISECOND, MICROSECOND);
-                const bdlt::Datetime& EXP = exp;
+                Type exp(YEAR, MONTH,  DAY,
+                         HOUR, MINUTE, SECOND,
+                         MILLISECOND,  MICROSECOND);
+                const Type& EXP = exp;
+                Type value;
 
-                bdlt::Datetime value;
-
-                const bsl::string_view isb(INPUT);
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 const int rc = Util::getValue(&value, isb);
                 if (IS_VALID) {
@@ -3989,8 +4021,10 @@ int main(int argc, char *argv[])
                     LOOP2_ASSERT(LINE, rc, rc);
                 }
                 LOOP3_ASSERT(LINE, EXP, value,   EXP == value);
+
             }
         }
+
       } break;
       case 17: {
         // --------------------------------------------------------------------
@@ -4027,6 +4061,9 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "\nTESTING `getValue` for `bdlt::DateTz`"
                           << "\n====================================" << endl;
+
+        typedef bdlt::DateTz Type;
+
         {
             static const struct {
                 int         d_line;      // source line number
@@ -4218,7 +4255,7 @@ int main(int argc, char *argv[])
     {   L_, "\"0001-01-01T00:00:00.000+00:00\"",
                                         1,     1,    1,       0,  false  },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -4229,12 +4266,13 @@ int main(int argc, char *argv[])
                 const int         OFFSET      = DATA[i].d_tzoffset;
                 const bool        IS_VALID    = DATA[i].d_isValid;
 
-                bdlt::Date d(YEAR, MONTH, DAY);  const bdlt::Date& D = d;
-                bdlt::DateTz exp(D, OFFSET);  const bdlt::DateTz& EXP = exp;
-
-                bdlt::DateTz value;
+                bdlt::Date d(YEAR, MONTH, DAY);  const bdlt::Date& D   = d;
+                Type exp(D, OFFSET);             const Type&       EXP = exp;
+                Type value;
 
                 const bsl::string_view isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 const int rc = Util::getValue(&value, isb);
                 if (IS_VALID) {
@@ -4244,8 +4282,10 @@ int main(int argc, char *argv[])
                     LOOP2_ASSERT(LINE, rc, rc);
                 }
                 LOOP3_ASSERT(LINE, EXP, value,   EXP == value);
+
             }
         }
+
       } break;
       case 16: {
         // --------------------------------------------------------------------
@@ -4283,6 +4323,9 @@ int main(int argc, char *argv[])
         if (verbose) cout << "\nTESTING `getValue` for `bdlt::Date` types"
                           << "\n========================================"
                           << endl;
+
+        typedef bdlt::Date Type;
+
         {
             static const struct {
                 int         d_line;      // source line number
@@ -4387,7 +4430,7 @@ int main(int argc, char *argv[])
   {  L_, "\"0001-01-01T00:00:00.000+00:00\"",
                                        1,     1,    1,   false  },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -4397,11 +4440,12 @@ int main(int argc, char *argv[])
                 const int         DAY         = DATA[i].d_day;
                 const bool        IS_VALID    = DATA[i].d_isValid;
 
-                bdlt::Date exp(YEAR, MONTH, DAY);  const bdlt::Date& EXP = exp;
+                Type exp(YEAR, MONTH, DAY);  const Type& EXP = exp;
+                Type value;
 
-                bdlt::Date value;
-
-                const bsl::string_view isb(INPUT);
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 const int rc = Util::getValue(&value, isb);
                 if (IS_VALID) {
@@ -4411,9 +4455,12 @@ int main(int argc, char *argv[])
                     LOOP2_ASSERT(LINE, rc, rc);
                 }
                 LOOP3_ASSERT(LINE, EXP, value,   EXP == value);
+
             }
         }
+
       } break;
+// $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
       case 15: {
         // --------------------------------------------------------------------
         // TESTING `getValue` for bdlt::TimeTz values
@@ -4449,6 +4496,9 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "\nTESTING `getValue` for `bdlt::TimeTz`"
                           << "\n====================================" << endl;
+
+        typedef bdlt::TimeTz Type;
+
         {
             static const struct {
                 int         d_line;      // source line number
@@ -4528,7 +4578,7 @@ int main(int argc, char *argv[])
   {  L_, "\"0001-01-01T00:00:00.000+00:00\"",
                                       24,     0,    0,    0,      0,  false  },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -4540,13 +4590,14 @@ int main(int argc, char *argv[])
                 const int         OFFSET      = DATA[i].d_tzoffset;
                 const bool        IS_VALID    = DATA[i].d_isValid;
 
-                bdlt::Time t(HOUR, MINUTE, SECOND, MILLISECOND);
+                bdlt::Time        t(HOUR, MINUTE, SECOND, MILLISECOND);
                 const bdlt::Time& T = t;
-                bdlt::TimeTz exp(T, OFFSET); const bdlt::TimeTz& EXP = exp;
+                Type              exp(T, OFFSET); const Type& EXP = exp;
+                Type              value;
 
-                bdlt::TimeTz value;
-
-                const bsl::string_view isb(INPUT);
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 const int rc = Util::getValue(&value, isb);
                 if (IS_VALID) {
@@ -4556,8 +4607,10 @@ int main(int argc, char *argv[])
                     LOOP2_ASSERT(LINE, rc, rc);
                 }
                 LOOP3_ASSERT(LINE, EXP, value,   EXP == value);
+
             }
         }
+
       } break;
       case 14: {
         // --------------------------------------------------------------------
@@ -4594,6 +4647,9 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "\nTESTING `getValue` for `bdlt::Time`"
                           << "\n==================================" << endl;
+
+        typedef bdlt::Time Type;
+
         {
             static const struct {
                 int         d_line;      // source line number
@@ -4717,7 +4773,7 @@ int main(int argc, char *argv[])
   {  L_, "\"0001-01-01T00:00:00.000+00:00\"",
                                       24,     0,    0,    0,   0,  false  },
         };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int         LINE        = DATA[i].d_line;
@@ -4729,12 +4785,25 @@ int main(int argc, char *argv[])
                 const int         MICROSECOND = DATA[i].d_uSecs;
                 const bool        IS_VALID    = DATA[i].d_isValid;
 
-                bdlt::Time exp(HOUR, MINUTE, SECOND, MILLISECOND, MICROSECOND);
-                const bdlt::Time& EXP = exp;
+                Type        exp(HOUR,
+                                MINUTE,
+                                SECOND,
+                                MILLISECOND,
+                                MICROSECOND);
+                const Type& EXP = exp;
 
-                bdlt::Time value;
+                if (veryVerbose) {
+                    P(LINE);
+                    P(INPUT);
+                    P(EXP);
+                    P(IS_VALID);
+                }
 
-                const bsl::string_view isb(INPUT);
+                Type value;
+
+                const bsl::string_view     isb(INPUT);
+                const bsl::string_view unq_isb(isb.data() + 1,
+                                               isb.size() - 2);
 
                 const int rc = Util::getValue(&value, isb);
                 if (IS_VALID) {
@@ -4744,8 +4813,10 @@ int main(int argc, char *argv[])
                     LOOP2_ASSERT(LINE, rc, rc);
                 }
                 LOOP3_ASSERT(LINE, EXP, value,   EXP == value);
+
             }
         }
+
       } break;
       case 13: {
         // --------------------------------------------------------------------
@@ -4796,7 +4867,9 @@ int main(int argc, char *argv[])
         // Testing:
         //   static int getQuotedString(bsl::string *, bsl::string_view);
         //   static int getUnquotedString(bsl::string *, bsl::string_view);
-        //   static int getValue(bsl::string *, bsl::string_view);
+        //   static int getValue(bsl::string          *v, bsl::string_view s);
+        //   static int getValue(std::string          *v, bsl::string_view s);
+        //   static int getValue(std::pmr::string     *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose)
@@ -4804,12 +4877,14 @@ int main(int argc, char *argv[])
                     "`getValue` for string values"
                     "\n===================================================="
                     "============================" << endl;
+
+        enum StringType { e_BSL,
+                          e_STD,
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                          e_PMR,
+#endif
+                          k_NUM_STRING_TYPES };
         {
-            typedef bsl::string Type;
-
-            const Type LDELIM("<<");
-            const Type RDELIM(">>");
-
             const char *ERROR_VALUE = "";
 
             static const struct Data {
@@ -4962,10 +5037,13 @@ int main(int argc, char *argv[])
                 {  L_, "\"\\ud83d\\ude4`\"", -1, ERROR_VALUE,         -1, 0  },
                 {  L_, "\"\\ud83d\\ude4g\"", -1, ERROR_VALUE,         -1, 0  },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
-            for (int i = 0; i < NUM_DATA; ++i) {
-                const Data&        data     = DATA[i];
+            for (int ti = 0; ti < k_NUM_STRING_TYPES * NUM_DATA; ++ti) {
+                const int          di       = ti % NUM_DATA;
+                const int          si       = ti / NUM_DATA;
+                const StringType   ST       = static_cast<StringType>(si);
+                const Data&        data     = DATA[di];
                 const int          LINE     = data.d_line;
                 const char        *IN_P     = data.d_input_p;
                 const bsl::size_t  IN_LEN   = data.d_inputLen < 0
@@ -4981,13 +5059,59 @@ int main(int argc, char *argv[])
                 const bsl::string_view unq_isb(IN_P + 1, IN_LEN - 2);
                 const bsl::string_view EXP(EXP_P, EXP_LEN);
 
-                Type value  = ERROR_VALUE;
-                Type value2 = ERROR_VALUE;
-                Type value3 = ERROR_VALUE;
+                if (veryVeryVerbose) {
+                    P(LINE);
+                    P(ST);
+                    P(isb);
+                    P(unq_isb);
+                    P(EXP);
+                }
 
-                const int rc  = Util::getValue(&value, isb);
-                const int rc2 = Util::getQuotedString(&value2, isb);
-                const int rc3 = Util::getUnquotedString(&value3, unq_isb);
+                bsl::string_view value, value2, value3;
+                int              rc,    rc2,    rc3;
+                switch (ST) {
+                  case e_BSL: {
+                    static bsl::string s, s2, s3, s4;
+                    s = s2 = s3 = s4 = ERROR_VALUE;
+
+                    rc  = Util::getValue(&s, isb);
+                    value = s;
+                    rc2 = Util::getQuotedString(&s2, isb);
+                    value2 = s2;
+                    rc3 = Util::getUnquotedString(&s3, unq_isb);
+                    value3 = s3;
+
+                  } break;
+                  case e_STD: {
+                    static std::string s, s2, s3, s4;
+                    s = s2 = s3 = s4 = ERROR_VALUE;
+
+                    rc  = Util::getValue(&s, isb);
+                    value = s;
+                    rc2 = Util::getQuotedString(&s2, isb);
+                    value2 = s2;
+                    rc3 = Util::getUnquotedString(&s3, unq_isb);
+                    value3 = s3;
+
+                  } break;
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                  case e_PMR: {
+                    static std::pmr::string s, s2, s3, s4;
+                    s = s2 = s3 = s4 = ERROR_VALUE;
+
+                    rc  = Util::getValue(&s, isb);
+                    value = s;
+                    rc2 = Util::getQuotedString(&s2, isb);
+                    value2 = s2;
+                    rc3 = Util::getUnquotedString(&s3, unq_isb);
+                    value3 = s3;
+
+                  } break;
+#endif
+                  default: {
+                    BSLS_ASSERT_INVOKE_NORETURN("invalid ST");
+                  }
+                }
 
                 ASSERTV(rc, rc2, rc == rc2);
                 ASSERTV(value, value2, value == value2);
@@ -5000,6 +5124,7 @@ int main(int argc, char *argv[])
                 else {
                     ASSERTV(LINE, rc, 0 != rc);
                 }
+
                 ASSERTV(LINE, EXP, value, EXP == value);
             }
 
@@ -5011,10 +5136,13 @@ int main(int argc, char *argv[])
                 {  L_,   "ab",   -1,    "ab",      2,    true   },
             };
 
-            const int NUM_DATA2 = sizeof(DATA2) / sizeof(*DATA2);
+            const int NUM_DATA2 = sizeof DATA2 / sizeof DATA2[0];
 
-            for (int i = 0; i < NUM_DATA2; ++i) {
-                const Data&        data     = DATA2[i];
+            for (int ti = 0; ti < k_NUM_STRING_TYPES * NUM_DATA2; ++ti) {
+                const int          di       = ti % NUM_DATA2;
+                const int          si       = ti / NUM_DATA2;
+                const StringType   ST       = static_cast<StringType>(si);
+                const Data&        data     = DATA2[di];
                 const int          LINE     = data.d_line;
                 const char        *IN_P     = data.d_input_p;
                 const bsl::size_t  IN_LEN   = data.d_inputLen < 0
@@ -5029,9 +5157,37 @@ int main(int argc, char *argv[])
                 const bsl::string_view isb(IN_P,  IN_LEN);
                 const bsl::string_view EXP(EXP_P, EXP_LEN);
 
-                Type value = ERROR_VALUE;
+                bsl::string_view value;
+                int rc;
 
-                const int rc = Util::getUnquotedString(&value, isb);
+                switch (ST) {
+                  case e_BSL: {
+                    static bsl::string s;
+                    s = ERROR_VALUE;
+
+                    rc = Util::getUnquotedString(&s, isb);
+                    value = s;
+                  } break;
+                  case e_STD: {
+                    static std::string s;
+                    s = ERROR_VALUE;
+
+                    rc = Util::getUnquotedString(&s, isb);
+                    value = s;
+                  } break;
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+                  case e_PMR: {
+                    static std::pmr::string s;
+                    s = ERROR_VALUE;
+
+                    rc = Util::getUnquotedString(&s, isb);
+                    value = s;
+                  } break;
+#endif
+                  default: {
+                    BSLS_ASSERT_INVOKE_NORETURN("invalid ST");
+                  }
+                }
 
                 if (IS_VALID) {
                     ASSERTV(LINE, rc, 0 == rc);
@@ -5073,13 +5229,15 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(double              *v, bsl::string_view s);
+        //   static int getValue(double               *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for double"
                           << "\n=============================" << endl;
+
+        typedef double Type;
+
         {
-            typedef double Type;
 
             const Type ERROR_VALUE = 99.99;
 
@@ -5235,9 +5393,6 @@ int main(int argc, char *argv[])
                 {  L_,  "34.56Z1",    ERROR_VALUE,   false   },
                 {  L_,  "34.56eZ",    ERROR_VALUE,   false   },
 
-// TBD:
-//                 {  L_,    "0x12",     ERROR_VALUE,   false   },
-//                 {  L_,    "0x256",    ERROR_VALUE,   false   },
                 {  L_,    "1.1}",     ERROR_VALUE,   false   },
                 {  L_,    "1.1,",     ERROR_VALUE,   false   },
                 {  L_,    "1.1]",     ERROR_VALUE,   false   },
@@ -5248,7 +5403,7 @@ int main(int argc, char *argv[])
                 {  L_,    "DEADBEEF", ERROR_VALUE,   false   },
                 {  L_,    "JUNK",     ERROR_VALUE,   false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int    LINE     = DATA[i].d_line;
@@ -5256,6 +5411,13 @@ int main(int argc, char *argv[])
                 const Type   EXP      = DATA[i].d_exp;
                 const bool   IS_VALID = DATA[i].d_isValid;
                       Type   value    = ERROR_VALUE;
+
+                if (veryVerbose) {
+                    P(LINE);
+                    P(INPUT);
+                    P(EXP);
+                    P(IS_VALID);
+                }
 
                 const bsl::string_view isb(INPUT);
 
@@ -5278,8 +5440,10 @@ int main(int argc, char *argv[])
                 }
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 11: {
         // --------------------------------------------------------------------
@@ -5311,14 +5475,15 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(float               *v, bsl::string_view s);
+        //   static int getValue(float                *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for float"
                           << "\n============================" << endl;
-        {
-            typedef float Type;
 
+        typedef float Type;
+
+        {
             const Type ERROR_VALUE = 99.99f;
 
             static const struct {
@@ -5473,13 +5638,10 @@ int main(int argc, char *argv[])
                 {  L_,  "34.56Z1",    ERROR_VALUE,   false   },
                 {  L_,  "34.56eZ",    ERROR_VALUE,   false   },
 
-// TBD:
-//                 {  L_,    "0x12",     ERROR_VALUE,   false   },
-//                 {  L_,    "0x256",    ERROR_VALUE,   false   },
                 {  L_,    "DEADBEEF", ERROR_VALUE,   false   },
                 {  L_,    "JUNK",     ERROR_VALUE,   false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int    LINE     = DATA[i].d_line;
@@ -5487,6 +5649,13 @@ int main(int argc, char *argv[])
                 const Type   EXP      = DATA[i].d_exp;
                 const bool   IS_VALID = DATA[i].d_isValid;
                       Type   value    = ERROR_VALUE;
+
+                if (veryVerbose) {
+                    P(LINE);
+                    P(INPUT);
+                    P(EXP);
+                    P(IS_VALID);
+                }
 
                 const bsl::string_view isb(INPUT);
 
@@ -5509,8 +5678,10 @@ int main(int argc, char *argv[])
                 }
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 10: {
         // --------------------------------------------------------------------
@@ -5542,14 +5713,15 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(bsls::Types::Uint64 *v, bsl::string_view s);
+        //   static int getValue(bsls::Types::Uint64  *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for Uint64"
                           << "\n=============================" << endl;
 
+        typedef Uint64 Type;
+
         {
-            typedef Uint64 Type;
 
             const Type ERROR_VALUE = 99;
             const Type MAX         = bsl::numeric_limits<Type>::max();
@@ -5763,7 +5935,7 @@ int main(int argc, char *argv[])
     {  L_,   "1E9999999999",        ERROR_VALUE,      false   },
     {  L_,   "1E-9999999999",       ERROR_VALUE,      false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int    LINE     = DATA[i].d_line;
@@ -5787,6 +5959,7 @@ int main(int argc, char *argv[])
                 LOOP4_ASSERT(LINE, INPUT, EXP, value, EXP == value);
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
 
             for (Type i = 0; i <= 255; ++i) {
@@ -5798,8 +5971,10 @@ int main(int argc, char *argv[])
 
                 ASSERTV(rc, i, is_valid, is_valid == (0 == rc));
                 ASSERTV(value, is_valid, !is_valid || value == i - '0');
+
             }
         }
+
       } break;
       case 9: {
         // --------------------------------------------------------------------
@@ -5831,14 +6006,15 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(bsls::Types::Int64  *v, bsl::string_view s);
+        //   static int getValue(bsls::Types::Int64   *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for Int64"
                           << "\n============================" << endl;
 
+        typedef Int64 Type;
+
         {
-            typedef Int64 Type;
 
             const Type ERROR_VALUE = 99;
             const Type MAX         = bsl::numeric_limits<Type>::max();
@@ -6126,7 +6302,7 @@ int main(int argc, char *argv[])
     {  L_,         "JUNK",          ERROR_VALUE,      false   },
     {  L_,         "DEADBEEF",      ERROR_VALUE,      false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int    LINE     = DATA[i].d_line;
@@ -6150,8 +6326,10 @@ int main(int argc, char *argv[])
                 LOOP3_ASSERT(LINE, EXP, value, EXP == value);
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 8: {
         // --------------------------------------------------------------------
@@ -6183,14 +6361,15 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(unsigned int        *v, bsl::string_view s);
+        //   static int getValue(unsigned int         *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for unsigned int"
                           << "\n===================================" << endl;
 
+        typedef unsigned int Type;
+
         {
-            typedef unsigned int Type;
 
             const Type ERROR_VALUE = 99;
             const Type MAX         = bsl::numeric_limits<Type>::max();
@@ -6372,7 +6551,7 @@ int main(int argc, char *argv[])
     {  L_,         "JUNK",          ERROR_VALUE,      false   },
     {  L_,         "DEADBEEF",      ERROR_VALUE,      false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int    LINE     = DATA[i].d_line;
@@ -6396,8 +6575,10 @@ int main(int argc, char *argv[])
                 LOOP3_ASSERT(LINE, EXP, value, EXP == value);
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 7: {
         // --------------------------------------------------------------------
@@ -6429,13 +6610,15 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(int                 *v, bsl::string_view s);
+        //   static int getValue(int                  *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for int"
                           << "\n==========================" << endl;
+
+        typedef int Type;
+
         {
-            typedef int Type;
 
             const Type ERROR_VALUE = 99;
             const Type MAX         = bsl::numeric_limits<Type>::max();
@@ -6668,7 +6851,7 @@ int main(int argc, char *argv[])
                 TLN(         "DEADBEEF",         ERROR_VALUE,     false),
 #undef TLN
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int    LINE     = DATA[i].d_line;
@@ -6692,8 +6875,10 @@ int main(int argc, char *argv[])
                 LOOP3_ASSERT(LINE, EXP, value, EXP == value);
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 6: {
         // --------------------------------------------------------------------
@@ -6731,8 +6916,9 @@ int main(int argc, char *argv[])
         if (verbose) cout << "\nTESTING `getValue` for unsigned short"
                           << "\n=====================================" << endl;
 
+        typedef unsigned short Type;
+
         {
-            typedef unsigned short Type;
 
             const Type ERROR_VALUE = 99;
             const Type MAX         = bsl::numeric_limits<Type>::max();
@@ -6912,7 +7098,7 @@ int main(int argc, char *argv[])
     {  L_,         "JUNK",          ERROR_VALUE,      false   },
     {  L_,         "DEADBEEF",      ERROR_VALUE,      false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
 #pragma GCC diagnostic pop
@@ -6940,8 +7126,10 @@ int main(int argc, char *argv[])
                 LOOP3_ASSERT(LINE, EXP, value, EXP == value);
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 5: {
         // --------------------------------------------------------------------
@@ -6978,8 +7166,10 @@ int main(int argc, char *argv[])
 
         if (verbose) cout << "\nTESTING `getValue` for short"
                           << "\n============================" << endl;
+
+        typedef short Type;
+
         {
-            typedef short Type;
 
             const Type ERROR_VALUE = 99;
             const Type MAX         = bsl::numeric_limits<Type>::max();
@@ -7198,7 +7388,7 @@ int main(int argc, char *argv[])
     {  L_,         "JUNK",          ERROR_VALUE,      false   },
     {  L_,         "DEADBEEF",      ERROR_VALUE,      false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
 #pragma GCC diagnostic pop
@@ -7226,8 +7416,10 @@ int main(int argc, char *argv[])
                 LOOP3_ASSERT(LINE, EXP, value, EXP == value);
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 4: {
         // --------------------------------------------------------------------
@@ -7259,13 +7451,15 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(unsigned char       *v, bsl::string_view s);
+        //   static int getValue(unsigned char        *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for unsigned char"
                           << "\n====================================" << endl;
+
+        typedef unsigned char Type;
+
         {
-            typedef unsigned char Type;
 
             const Type ERROR_VALUE = 99;
             const Type MAX         = bsl::numeric_limits<Type>::max();
@@ -7417,7 +7611,7 @@ int main(int argc, char *argv[])
     {  L_,         "JUNK",          ERROR_VALUE,      false   },
     {  L_,         "DEADBEEF",      ERROR_VALUE,      false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
 #pragma GCC diagnostic pop
@@ -7445,8 +7639,10 @@ int main(int argc, char *argv[])
                 LOOP3_ASSERT(LINE, EXP, value, EXP == value);
 
                 ASSERTV(LINE, da.numBlocksTotal(), 0 == da.numBlocksTotal());
+
             }
         }
+
       } break;
       case 3: {
         // --------------------------------------------------------------------
@@ -7478,16 +7674,17 @@ int main(int argc, char *argv[])
         //      otherwise.
         //
         // Testing:
-        //   static int getValue(char                *v, bsl::string_view s);
+        //   static int getValue(char                 *v, bsl::string_view s);
+        //   static int getValue(signed char          *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for signed char"
                           << "\n==================================" << endl;
 
         {
-            const char ERROR_VALUE = 'X';
-            const char MAX         = bsl::numeric_limits<signed char>::max();
-            const char MIN         = bsl::numeric_limits<signed char>::min();
+            const signed char ERROR_VALUE = 'X';
+            const signed char MAX  = bsl::numeric_limits<signed char>::max();
+            const signed char MIN  = bsl::numeric_limits<signed char>::min();
 
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
 #pragma GCC diagnostic push
@@ -7639,7 +7836,7 @@ int main(int argc, char *argv[])
     {  L_,       "\"\"",            ERROR_VALUE,      false   },
     {  L_,       "\"AB\"",          ERROR_VALUE,      false   },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
 #pragma GCC diagnostic pop
@@ -7667,6 +7864,7 @@ int main(int argc, char *argv[])
                         LOOP2_ASSERT(LINE, rc, rc);
                     }
                     LOOP3_ASSERT(LINE, C, c, C == c);
+
                 }
 
                 // signed char values
@@ -7680,9 +7878,11 @@ int main(int argc, char *argv[])
                         LOOP2_ASSERT(LINE, rc, rc);
                     }
                     LOOP3_ASSERT(LINE, SC, sc, SC == sc);
+
                 }
             }
         }
+
       } break;
       case 2: {
         // --------------------------------------------------------------------
@@ -7704,14 +7904,15 @@ int main(int argc, char *argv[])
         //    value is non-zero.
         //
         // Testing:
-        //   static int getValue(bool                *v, bsl::string_viewf s);
+        //   static int getValue(bool                *v, bsl::string_view s);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nTESTING `getValue` for bool"
                           << "\n===========================" << endl;
 
+        typedef bool Type;
+
         {
-            typedef bool Type;
 
             const Type EV = false;
 
@@ -7747,7 +7948,7 @@ int main(int argc, char *argv[])
                 {   L_,    "truefalse", EV,      false    },
                 {   L_,    "falsetrue", EV,      false    },
             };
-            const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int i = 0; i < NUM_DATA; ++i) {
                 const int            LINE     = DATA[i].d_line;
@@ -7768,9 +7969,11 @@ int main(int argc, char *argv[])
                         LOOP2_ASSERT(LINE, rc, rc);
                     }
                     LOOP3_ASSERT(LINE, EXP, value, EXP == value);
+
                 }
             }
         }
+
       } break;
       case 1: {
         // --------------------------------------------------------------------
@@ -7824,7 +8027,7 @@ int main(int argc, char *argv[])
             { L_,           "1.",  false,         0.0 },
             { L_,        "1e+-1",  false,         0.0 }
         };
-        const int NUM_DATA = sizeof DATA / sizeof *DATA;
+        const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
         for (int ti = 0; ti < NUM_DATA; ++ ti) {
             const int         LINE   = DATA[ti].d_line;

@@ -26,6 +26,10 @@
     #include <type_traits>  // For testing only
 #endif
 
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+    #include <new>
+#endif
+
 //=============================================================================
 //                             TEST PLAN
 //-----------------------------------------------------------------------------
@@ -54,9 +58,11 @@
 // [27] BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_FALLTHROUGH
 // [28] BSLS_COMPILERFEATURES_SUPPORT_ATTRIBUTE_MAYBE_UNUSED
 // [38] BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS
+// [40] BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20
 // [ 2] BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR
 // [ 3] BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP14
 // [ 4] BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17
+// [39] BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20
 // [37] BSLS_COMPILERFEATURES_SUPPORT_COROUTINE
 // [34] BSLS_COMPILERFEATURES_SUPPORT_CTAD
 // [ 5] BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE
@@ -67,6 +73,7 @@
 // [ 8] BSLS_COMPILERFEATURES_SUPPORT_EXTERN_TEMPLATE
 // [ 9] BSLS_COMPILERFEATURES_SUPPORT_FINAL
 // [10] BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
+// [41] BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
 // [23] BSLS_COMPILERFEATURES_SUPPORT_HAS_INCLUDE
 // [35] BSLS_COMPILERFEATURES_SUPPORT_HEXFLOAT_LITERALS
 // [11] BSLS_COMPILERFEATURES_SUPPORT_INCLUDE_NEXT
@@ -92,7 +99,7 @@
 // [  ] BSLS_COMPILERFEATURES_FORWARD_REF
 // [  ] BSLS_COMPILERFEATURES_FORWARD
 // ----------------------------------------------------------------------------
-// [39] USAGE EXAMPLE
+// [42] USAGE EXAMPLE
 
 #ifdef BDE_VERIFY
 // Suppress some pedantic bde_verify checks in this test driver
@@ -120,6 +127,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -696,6 +704,20 @@ constexpr int moreRelaxedConstExprFunc(bool b)
 }
 #endif // BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17
 
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20)
+/// Return a different integer value depending on the specified `b` boolean
+/// value. Function is declared `consteval` to test support for the keyword.
+consteval int constEvalFunc(bool b)
+{
+    if (b) {
+        return 6;                                                     // RETURN
+    }
+    else {
+        return 7;                                                     // RETURN
+    }
+}
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20
+
 /// A type to represent `false`.  Notice that its size is different from
 /// that of `TrueType`.
 struct FalseType {
@@ -845,6 +867,68 @@ constexpr int Feature17::call(bool b) {
     }
 }
 #endif // BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20)
+/// This literal type is for testing C++20 `constexpr` support.
+struct ConstexprCpp20TrivialTypeForTest {
+    // PUBLIC DATA
+    int d_value;
+};
+
+/// This literal type is for testing C++20 `constexpr` support.
+struct ConstexprCpp20Tester {
+
+    // PUBLIC DATA
+    int d_value;
+
+    // CREATORS
+
+    /// Create a, possibly `constexpr`, `ConstexprCpp20Tester` object.
+    constexpr ConstexprCpp20Tester();
+
+    /// Return, a possibly `constexpr` integer value that depends on the
+    /// specified `b` flag.  This method is "complex", cannot be `constexpr`
+    /// in C++17, only in C++20 and onwards.
+    constexpr int call(bool b);
+
+    // ACCESSORS
+
+    // Simple `constexpr virtual` function only supported in C++20.
+    constexpr virtual int func1(bool b);
+};
+
+constexpr ConstexprCpp20Tester::ConstexprCpp20Tester() : d_value(-1)
+{
+}
+
+constexpr int ConstexprCpp20Tester::call(bool b)
+{
+    int r1;
+    try {
+        r1 = func1(b);
+    }
+    catch (...) {
+    }
+
+    // default trivial construction (not allowed in C++17)
+    ConstexprCpp20TrivialTypeForTest tt;
+    // assign a value to make this constexpr in C++20
+    tt = ConstexprCpp20TrivialTypeForTest{};
+
+    if (b) {
+        return 10 + r1 + tt.d_value;                                  // RETURN
+    }
+    else {
+        return 20 + r1 + tt.d_value;                                  // RETURN
+    }
+}
+
+constexpr int ConstexprCpp20Tester::func1(bool b)
+{
+    return b ? 0 : 1;
+}
+#endif // BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20
+
 #endif // BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR
 
 }  // close unnamed namespace
@@ -1589,6 +1673,13 @@ static void printFlags()
     puts("UNDEFINED");
 #endif
 
+    fputs("\n  BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20: ", stdout);
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20
+    puts(STRINGIFY(BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20));
+#else
+    puts("UNDEFINED");
+#endif
+
     fputs("\n  BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR: ", stdout);
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR
     puts(STRINGIFY(BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR));
@@ -1606,6 +1697,13 @@ static void printFlags()
     fputs("\n  BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17: ", stdout);
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17
     puts(STRINGIFY(BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP17));
+#else
+    puts("UNDEFINED");
+#endif
+
+    fputs("\n  BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20: ", stdout);
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20
+    puts(STRINGIFY(BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20));
 #else
     puts("UNDEFINED");
 #endif
@@ -1822,6 +1920,13 @@ static void printFlags()
     puts("UNDEFINED");
 #endif
 
+    fputs("\n  BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE: ", stdout);
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+    puts(STRINGIFY(BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE));
+#else
+    puts("UNDEFINED");
+#endif
+
     puts("\n\n==printFlags: bsls_compilerfeatures Referenced Macros==");
 
     fputs("\n  BSLS_COMPILERFEATURES_SIMULATE_FORWARD_WORKAROUND: ", stdout);
@@ -1897,6 +2002,13 @@ static void printFlags()
     fputs("\n  __APPLE_CC__: ", stdout);
 #ifdef __APPLE_CC__
     puts(STRINGIFY(__APPLE_CC__));
+#else
+    puts("UNDEFINED");
+#endif
+
+    fputs("\n  __apple_build_version__: ", stdout);
+#ifdef __apple_build_version__
+    puts(STRINGIFY(__apple_build_version__));
 #else
     puts("UNDEFINED");
 #endif
@@ -2092,7 +2204,7 @@ int main(int argc, char *argv[])
     }
 
     switch (test) { case 0:
-      case 39: {
+      case 42: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //
@@ -2174,6 +2286,114 @@ int main(int argc, char *argv[])
 // may arise.
 #undef THATS_MY_LINE
       } break;
+      case 41: {
+        // --------------------------------------------------------------------
+        // BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+        //
+        // Concerns:
+        // 1. `BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE` is defined
+        //    when the corresponding constants are defined.
+        //
+        // Plan:
+        // 1. Verify that the constants are defined when the macro is defined.
+        //
+        // Testing:
+        //   BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+        // --------------------------------------------------------------------
+
+        MACRO_TEST_TITLE("_SUPPORT_HARDWARE_INTERFERENCE",
+                         "==============================");
+
+#ifndef BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+        VERBOSE_PUTS("The feature is not supported in this configuration.");
+#else
+        ASSERT((std::is_same_v<
+                     const size_t,
+                     decltype(std::hardware_destructive_interference_size)>));
+
+        ASSERT((std::is_same_v<
+                     const size_t,
+                     decltype(std::hardware_constructive_interference_size)>));
+
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+      } break;
+      case 40: {
+          // ------------------------------------------------------------------
+          // BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20
+          //
+          // Concerns:
+          // 1. `BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20` is defined only
+          //    when the compiler understands the `consteval` keyword.
+          //
+          // Plan:
+          // 1. If `BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20` is defined
+          //    then compile code that uses the `consteval` keyword.
+          //
+          // Testing:
+          //   BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20
+          // ------------------------------------------------------------------
+
+          MACRO_TEST_TITLE("_SUPPORT_CONSTEVAL_CPP20",
+                           "==================");
+
+#ifndef BSLS_COMPILERFEATURES_SUPPORT_CONSTEVAL_CPP20
+          VERBOSE_PUTS("The feature is not supported in this configuration.");
+#else
+          ASSERT(__cpp_consteval >= 201811L);
+
+          static_assert(constEvalFunc(true) == 6,
+                        "`consteval` is not supported");
+#endif
+      } break;
+      case 39: {
+          // ------------------------------------------------------------------
+          // BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20
+          //
+          // Concerns:
+          // 1. `BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20` is defined only
+          //    when the compiler is actually able to compile code with relaxed
+          //    constexpr functions that may use try/catch blocks, call virtual
+          //    functions, and perform trivial default initialization.
+          //
+          // Plan:
+          // 1. If `BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20` is defined
+          //    then compile code that uses this feature to define relaxed
+          //    constant expression functions.
+          //
+          // Testing:
+          //   BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20
+          // ------------------------------------------------------------------
+
+          MACRO_TEST_TITLE("_SUPPORT_CONSTEXPR_CPP20",
+                           "========================");
+
+#ifndef BSLS_COMPILERFEATURES_SUPPORT_CONSTEXPR_CPP20
+          VERBOSE_PUTS("The feature is not supported in this configuration.");
+#else
+          ASSERT(__cpp_constexpr >= 201907L);
+          ASSERT(__cpp_constexpr_dynamic_alloc >= 201907L);
+
+          if (sizeof(Sniffer::test<ConstexprCpp20Tester>(0)) ==
+              sizeof(FalseType)) {
+            ASSERT(0 == "C++17 did not detect more relaxed constexpr");
+          }
+
+          static_assert(moreRelaxedConstExprFunc(true) == 42,
+                        "Relaxed (C++17) `constexpr` is not supported");
+
+          if (sizeof(Sniffer::test<Feature17>(0)) == sizeof(FalseType)) {
+            ASSERT(0 == "C++17 did not detect more relaxed constexpr");
+          }
+
+          if (sizeof(Sniffer::test<Feature14>(0)) == sizeof(FalseType)) {
+            ASSERT(0 == "C++17 did not detect relaxed constexpr");
+          }
+
+          if (sizeof(Sniffer::test<Feature11>(0)) == sizeof(FalseType)) {
+            ASSERT(0 == "C++17 did not detect original constexpr");
+          }
+#endif
+      } break;
       case 38: {
         // --------------------------------------------------------------------
         // TESTING `BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS`
@@ -2200,9 +2420,9 @@ int main(int argc, char *argv[])
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS
         static_assert(__cpp_concepts >= 202002L);
 #ifdef BSLS_PLATFORM_CMP_CLANG
-        const unsigned long = clangVersion = BSLS_PLATFORM_CMP_CLANG;
-        const char whichClang =
-  #ifndef __APPLE_CC__
+        const unsigned long clangVersion = BSLS_PLATFORM_CMP_CLANG;
+        const char *whichClang =
+  #ifndef __apple_build_version__
             "LLVM";
   #else
             "Apple";
@@ -2211,8 +2431,8 @@ int main(int argc, char *argv[])
                 "clang now appears to support core language C++20 concepts.  "
                 "Please update `BSLS_COMPILERFEATURES_SUPPORT_CONCEPTS` "
                 "Compiler support and its clang-related note in "
-                "`bsls_compilerfeatures.h` test case 38 to reflect the "
-                "current known compiler support.")
+                "`bsls_compilerfeatures.h` to reflect the current known "
+                "compiler support.");
         // BEWARE, there are TWO clang's we need to support, LLVM and Apple,
         // and their similar version numbers may not refer to the same set of
         // features.

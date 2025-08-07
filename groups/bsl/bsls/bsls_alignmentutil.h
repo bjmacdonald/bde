@@ -8,7 +8,7 @@ BSLS_IDENT("$Id: $")
 //@PURPOSE: Provide constants, types, and operations related to alignment.
 //
 //@CLASSES:
-//  bsls::AlignmentUtil: namespace for alignment functions, types, and constants
+// bsls::AlignmentUtil: namespace for alignment functions, types, and constants
 //
 //@SEE_ALSO: bslma_bufferimputil
 //
@@ -169,12 +169,16 @@ BSLS_IDENT("$Id: $")
 #include <bsls_alignmentimp.h>
 #include <bsls_alignmenttotype.h>
 #include <bsls_assert.h>
+#include <bsls_libraryfeatures.h>
 #include <bsls_platform.h>
 #include <bsls_types.h>
 
-#include <limits>           // 'std::numeric_limits'
+#include <limits>       // 'std::numeric_limits'
+#include <cstddef>      // 'std::size_t'
 
-#include <cstddef>           // 'std::size_t'
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+#include <type_traits>  // `std::aligned_storage`, `std::integral_constant`
+#endif
 
 namespace BloombergLP {
 
@@ -225,6 +229,25 @@ struct AlignmentUtil {
                      d_8bytesAlignedType;
 #endif
     };
+
+    // PRIVATE CLASS METHODS
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#  endif
+#endif
+    /// This helper function is not defined.
+    template <std::size_t t_SIZE, std::size_t t_ALIGNMENT>
+    static std::integral_constant<std::size_t, t_ALIGNMENT>
+    alignmentOfAlignedStorage(std::aligned_storage<t_SIZE, t_ALIGNMENT>);
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic pop
+#  endif
+#endif
+#endif
 
   public:
     // CONSTANTS
@@ -281,6 +304,19 @@ struct AlignmentUtil {
     /// by 8), and `false` otherwise.
     static bool is8ByteAligned(const void *address);
 
+    /// Return `true` if the specified `address` is aligned on the specified
+    /// `alignment` boundary (i.e., the numerical value of `address` is evenly
+    /// divisible by `alignment`), and `false` otherwise.  The behavior is
+    /// undefined unless `alignment` is a power of 2.  Note that this function
+    /// will `true` for a null `address`, regardless of `alignment` and for a
+    /// 0 `alignment` regardless of `address`.
+    static bool isAligned(const void *address, std::size_t alignment);
+
+    /// Return the alignment of the specified `address`.  Returns 0 if
+    /// `address` is 0.  Note that the returned value might be larger than
+    /// `BSLS_MAX_ALIGNMENT`.
+    static std::size_t pointerAlignment(const void *address);
+
     /// Return the specified `size` (in bytes) rounded up to the smallest
     /// integral multiple of the maximum alignment.  The behavior is
     /// undefined unless `0 <= size` and `size` satisfies:
@@ -289,15 +325,24 @@ struct AlignmentUtil {
     ///         - BSLS_MAX_ALIGNMENT + 1
     /// ```
     static std::size_t roundUpToMaximalAlignment(std::size_t size);
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+    /// Return the default value of the alignment argument for
+    /// `std::aligned_storage` when the size argument is the specified
+    /// `t_SIZE`.  This function is an implementation detail of BDE and should
+    /// not be used elsewhere.
+    template <std::size_t t_SIZE>
+    static constexpr std::size_t defaultAlignmentOfAlignedStorage();
+#endif
 };
 
 // ============================================================================
 //                      INLINE FUNCTION DEFINITIONS
 // ============================================================================
 
-                            // ----------------
-                            // struct Alignment
-                            // ----------------
+                            // --------------------
+                            // struct AlignmentUtil
+                            // --------------------
 
 // CLASS METHODS
 inline
@@ -308,7 +353,7 @@ int AlignmentUtil::calculateAlignmentFromSize(std::size_t size)
     // It is assumed that 'BSLS_MAX_ALIGNMENT' is a positive, integral power of
     // 2 (see the checks to that effect in the '.cpp' file).  For example,
     // suppose that 'BSLS_MAX_ALIGNMENT' is 16:
-    //..
+    // ```
     //                                negated
     //                    modified    modified  intersect
     //  size     size       size       size       size     returned
@@ -346,7 +391,7 @@ int AlignmentUtil::calculateAlignmentFromSize(std::size_t size)
     //   35    00100011   00110011   11001101   00000001       1
     //
     //   :         :          :          :         :           :
-    //..
+    // ```
 
     BSLS_ASSERT_SAFE(1 <= size);
 
@@ -374,16 +419,15 @@ int AlignmentUtil::calculateAlignmentOffset(const void *address,
     // Note that if 'address' is null, this function will correctly return zero
     // only if 'alignment' is a positive, integral power of 2.  Also note that
     // two other alternative implementations proved to be less efficient:
-    //..
+    // ```
     //  return static_cast<int>(alignment - 1 -
-    //               (reinterpret_cast<std::size_t>(address - 1)) % alignment);
-    //..
+    //               (reinterpret_cast<std::size_t>(address) - 1) % alignment);
+    // ```
     // and:
-    //..
+    // ```
     //  const int mask = alignment - 1;
-    //  return int(mask -
-    //                  ((reinterpret_cast<std::size_t>(address - 1)) & mask));
-    //..
+    //  return int(mask - ((reinterpret_cast<std::size_t>(address)-1) & mask));
+    // ```
 
     return static_cast<int>(
                            (alignment - reinterpret_cast<std::size_t>(address))
@@ -409,15 +453,51 @@ bool AlignmentUtil::is8ByteAligned(const void *address)
 }
 
 inline
+bool AlignmentUtil::isAligned(const void *address, std::size_t alignment)
+{
+    return (0 == alignment ||
+            0 == (reinterpret_cast<std::size_t>(address) & (alignment - 1)));
+}
+
+inline
+std::size_t AlignmentUtil::pointerAlignment(const void *address)
+{
+    // Convert to unsigned integral type.
+    std::size_t ptrBits = reinterpret_cast<std::size_t>(address);
+
+    // Mask out all but the low-order bit and return.
+    return ptrBits & -ptrBits;
+}
+
+inline
 std::size_t AlignmentUtil::roundUpToMaximalAlignment(std::size_t size)
 {
     BSLS_ASSERT_SAFE(size <= std::numeric_limits<std::size_t>::max()
                            - BSLS_MAX_ALIGNMENT + 1);
 
-    return ((size + BSLS_MAX_ALIGNMENT - 1) / BSLS_MAX_ALIGNMENT)
-                                                          * BSLS_MAX_ALIGNMENT;
+    return ((size + BSLS_MAX_ALIGNMENT - 1) &
+            ~(static_cast<std::size_t>(BSLS_MAX_ALIGNMENT) - 1));
 }
 
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+template <std::size_t t_SIZE>
+constexpr std::size_t AlignmentUtil::defaultAlignmentOfAlignedStorage()
+{
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#  endif
+#endif
+    return decltype(alignmentOfAlignedStorage(
+                                       std::aligned_storage<t_SIZE>()))::value;
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic pop
+#  endif
+#endif
+}
+#endif
 }  // close package namespace
 
 #ifndef BDE_OPENSOURCE_PUBLICATION  // BACKWARD_COMPATIBILITY

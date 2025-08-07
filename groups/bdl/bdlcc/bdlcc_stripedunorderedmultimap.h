@@ -389,14 +389,6 @@ class StripedUnorderedMultiMap {
     template <class RANDOM_ITER>
     void insertBulk(RANDOM_ITER first, RANDOM_ITER last);
 
-    /// Set the maximum load factor of this unordered map to the specified
-    /// `newMaxLoadFactor`.  If `newMaxLoadFactor < loadFactor()`, this
-    /// operation will cause an immediate rehash; otherwise, this operation
-    /// has a constant-time cost.  The rehash will increase the number of
-    /// buckets by a power of 2.  The behavior is undefined unless
-    /// `0 < newMaxLoadFactor`.
-    void maxLoadFactor(float newMaxLoadFactor);
-
     /// Recreate this hash map to one having at least the specified
     /// `numBuckets`.  This operation is a no-op if *any* of the following
     /// are true: 1) rehash is disabled; 2) `numBuckets` less or equals the
@@ -478,8 +470,6 @@ class StripedUnorderedMultiMap {
     /// there is one element having `key` in the hash map.
     bsl::size_t setValueFirst(const KEY& key, bslmf::MovableRef<VALUE> value);
 
-    /// **DEPRECATED**: Use `visit(key, visitor)` instead.
-    ///
     /// Serially call the specified `visitor` on each element (if one
     /// exists) in this hash map having the specified `key` until every such
     /// element has been updated or `visitor` returns `false`.  That is, for
@@ -493,6 +483,8 @@ class StripedUnorderedMultiMap {
     /// for duration of each invocation.  The behavior is undefined if hash
     /// map manipulators and `getValue*` methods are invoked from within
     /// `visitor`, as it may lead to a deadlock.
+    ///
+    /// @DEPRECATED: Use `visit(key, visitor)` instead.
     int update(const KEY& key, const VisitorFunction& visitor);
 
     /// Call the specified `visitor` (in an unspecified order) on the
@@ -771,16 +763,6 @@ void StripedUnorderedMultiMap<KEY, VALUE, HASH, EQUAL>::insertBulk(
     BSLS_ASSERT(first <= last);
 
     d_imp.insertBulkAlways(first, last);
-}
-
-template <class KEY, class VALUE, class HASH, class EQUAL>
-inline
-void StripedUnorderedMultiMap<KEY, VALUE, HASH, EQUAL>::maxLoadFactor(
-                                                        float newMaxLoadFactor)
-{
-    BSLS_ASSERT(0 < newMaxLoadFactor);
-
-    d_imp.maxLoadFactor(newMaxLoadFactor);
 }
 
 template <class KEY, class VALUE, class HASH, class EQUAL>

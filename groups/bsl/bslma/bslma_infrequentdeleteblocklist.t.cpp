@@ -57,6 +57,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -446,19 +447,18 @@ int main(int argc, char *argv[])
             LOOP_ASSERT(LINE, EXP_SZ >= SIZE);
 
             Obj mX(&a);
-            void *p = mX.allocate(SIZE);
-            int offset = U::calculateAlignmentOffset(p, U::BSLS_MAX_ALIGNMENT);
-            const void *EXP_P = p ? (char *) a.lastAllocatedAddress() + BLKSZ
+            void        *p           = mX.allocate(SIZE);
+            const void  *EXP_P = p ? (char *) a.lastAllocatedAddress() + BLKSZ
                                   : 0;
 
             bsls::Types::Int64 numBytes = a.lastAllocatedNumBytes();
             if (veryVerbose) {
-                 T_ P_(SIZE) P_(numBytes) P_(EXP_SZ) P_(p) P_(EXP_P) P(offset);
+                T_ P_(SIZE) P_(numBytes) P_(EXP_SZ) P_(p) P_(EXP_P);
             }
 
             LOOP2_ASSERT(LINE, di,  EXP_P == p);
             LOOP2_ASSERT(LINE, di, EXP_SZ == numBytes);
-            LOOP2_ASSERT(LINE, di,      0 == offset);
+            LOOP2_ASSERT(LINE, di, U::isAligned(p, U::BSLS_MAX_ALIGNMENT));
         }
       } break;
       default: {

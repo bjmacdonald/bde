@@ -93,6 +93,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -757,9 +758,9 @@ class MockHashingAlgorithm {
   public:
     /// Create a new `MockHashingAlgorithm`
     MockHashingAlgorithm()
-    : d_length(0)
+    : d_data(0)
+    , d_length(0)
     {
-        d_data = new char[0];
     }
 
     /// Destroy this object

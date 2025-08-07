@@ -297,8 +297,11 @@ int main(int argc, char *argv[])
 
 #ifdef BSLS_PLATFORM_OS_UNIX
         char tmpFileName[1024];
-        bsl::sprintf(tmpFileName, "tmp.bdls_processutil.case4.%s.%d.txt",
-                                                hostName, Obj::getProcessId());
+        bsl::snprintf(tmpFileName,
+                      sizeof tmpFileName,
+                      "tmp.bdls_processutil.case4.%s.%d.txt",
+                      hostName,
+                      Obj::getProcessId());
         FUtil::remove(tmpFileName);
 
         enum { k_ITERATIONS  = 30,
@@ -354,9 +357,10 @@ int main(int argc, char *argv[])
         // 1. Create a temp file that is to be a unix or DOS shell script.  In
         //    it:
         //    - Create a test directory.
-        //    - Copy `argv[0]` into a file in the test directory.  If we expect
-        //      to be able to cope with spaces in the file name, choose a file
-        //      name with spaces.
+        //    - Use `getPathToExecutable` to get the name of the currently
+        //      running process (the test driver).  Copy this executable into
+        //      a file in the test directory.  If we expect to be able to cope
+        //      with spaces in the file name, choose a file name with spaces.
         //    - chdir into that directory.
         //    - Run the previous test case (which tests `getPathToExecutable`,
         //      with the same verbosity flags passed to this test case.
@@ -375,8 +379,12 @@ int main(int argc, char *argv[])
 
         int rc;
         char directoryName[1024];
-        bsl::sprintf(directoryName, "tmp.bdls_processutil.t.case%d.%s.%d.dir",
-                                          test, hostName, Obj::getProcessId());
+        bsl::snprintf(directoryName,
+                      sizeof directoryName,
+                      "tmp.bdls_processutil.t.case%d.%s.%d.dir",
+                      test,
+                      hostName,
+                      Obj::getProcessId());
 
         {
             // `FUtil::remove` uses the default allocator on directories, and
@@ -405,6 +413,10 @@ int main(int argc, char *argv[])
         copiedExecutablePath += u::slash;
         copiedExecutablePath += executableName;
 
+        bsl::string testDriverPath(&ta);
+        ASSERT(0 == Obj::getPathToExecutable(&testDriverPath));
+        if (veryVerbose) P(testDriverPath);
+
 #if defined BSLS_PLATFORM_OS_UNIX
         bsl::string scriptName(directoryName, &ta);
         scriptName += "/case4.script.sh";
@@ -414,7 +426,7 @@ int main(int argc, char *argv[])
         FILE *fp = bsl::fopen(scriptName.c_str(), "w");
         ASSERT(fp);
         bsl::fprintf(fp, ":\n");
-        bsl::fprintf(fp, "cp '%s' '%s'\n", argv[0], path);
+        bsl::fprintf(fp, "cp '%s' '%s'\n", testDriverPath.c_str(), path);
         bsl::fprintf(fp, "chmod a+rwx '%s'\n", path);
         bsl::fprintf(fp, "cd %s >/dev/null 2>&1\n", directoryName);
         bsl::fprintf(fp, "ln -s '%s' '%s'\n", executableName, linkName);
@@ -441,7 +453,7 @@ int main(int argc, char *argv[])
 
         ASSERT(fp);
         bsl::fprintf(fp, "%s", !veryVerbose ?  "@echo off\n" : "");
-        bsl::fprintf(fp, "copy \"%s\" \"%s\"\n", argv[0], path);
+        bsl::fprintf(fp, "copy \"%s\" \"%s\"\n", testDriverPath.c_str(), path);
         bsl::fprintf(fp, "cd %s\n", directoryName);
         bsl::fprintf(fp, "%s", veryVerbose ? "echo %cd%\ndir /o\n" : "");
         bsl::fprintf(fp, "\".\\%s\" -1 %s%s%s%s\n",
@@ -461,20 +473,31 @@ int main(int argc, char *argv[])
             testStatus = bsl::min(101, testStatus + rc);
         }
 
-        if (!u::e_UNIX) {
+        ASSERT(FUtil::isDirectory(directoryName));
+        
+        if (u::e_UNIX) {
+            rc = FUtil::remove(directoryName, true);
+        } else {
             // Windows needs a few seconds after the script finishes to be
             // allowed to delete the script and the executable at
             // `copiedExecutablePath` and the directory `directoryName`
             // containing them.
-
-            bslmt::ThreadUtil::microSleep(0, 5);    // 5 seconds
+            bslmt::ThreadUtil::microSleep(0, 5);  // 5 seconds
+            for (int removeTry = 0; removeTry < 5; ++removeTry) {
+                bslmt::ThreadUtil::microSleep(0, 1);
+                rc = FUtil::remove(directoryName, true);
+                if (0 == rc) break;
+            }
         }
 
-        ASSERT(FUtil::isDirectory(directoryName));
-        rc = FUtil::remove(directoryName, true);
-        ASSERT(0 == rc);
-        ASSERT(!FUtil::exists(directoryName));
-        ASSERT(!FUtil::exists(copiedExecutablePath));
+        if (0 == rc) {
+            ASSERT(!FUtil::exists(directoryName));
+            ASSERT(!FUtil::exists(copiedExecutablePath));
+        } else {
+            if (verbose) {
+                cout << "Failed to clean up " << directoryName << endl;
+            }
+        }
       } break;
       case 3: {
         // --------------------------------------------------------------------

@@ -37,7 +37,7 @@ namespace baljsn {
 
 const char DecoderOptions::CLASS_NAME[] = "DecoderOptions";
 
-const int DecoderOptions::DEFAULT_INITIALIZER_MAX_DEPTH = 32;
+const int DecoderOptions::DEFAULT_INITIALIZER_MAX_DEPTH = 512;
 
 const bool DecoderOptions::DEFAULT_INITIALIZER_SKIP_UNKNOWN_ELEMENTS = true;
 
@@ -48,6 +48,8 @@ const bool DecoderOptions::DEFAULT_INITIALIZER_ALLOW_CONSECUTIVE_SEPARATORS = tr
 const bool DecoderOptions::DEFAULT_INITIALIZER_ALLOW_FORM_FEED_AS_WHITESPACE = true;
 
 const bool DecoderOptions::DEFAULT_INITIALIZER_ALLOW_UNESCAPED_CONTROL_CHARACTERS = true;
+
+const bool DecoderOptions::DEFAULT_INITIALIZER_ALLOW_MISSING_REQUIRED_ATTRIBUTES = true;
 
 const bdlat_AttributeInfo DecoderOptions::ATTRIBUTE_INFO_ARRAY[] = {
     {
@@ -91,6 +93,13 @@ const bdlat_AttributeInfo DecoderOptions::ATTRIBUTE_INFO_ARRAY[] = {
         sizeof("AllowUnescapedControlCharacters") - 1,
         "",
         bdlat_FormattingMode::e_TEXT
+    },
+    {
+        ATTRIBUTE_ID_ALLOW_MISSING_REQUIRED_ATTRIBUTES,
+        "AllowMissingRequiredAttributes",
+        sizeof("AllowMissingRequiredAttributes") - 1,
+        "",
+        bdlat_FormattingMode::e_TEXT
     }
 };
 
@@ -100,7 +109,7 @@ const bdlat_AttributeInfo *DecoderOptions::lookupAttributeInfo(
         const char *name,
         int         nameLength)
 {
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < bsl::ssize(DecoderOptions::ATTRIBUTE_INFO_ARRAY); ++i) {
         const bdlat_AttributeInfo& attributeInfo =
                     DecoderOptions::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -129,6 +138,8 @@ const bdlat_AttributeInfo *DecoderOptions::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ALLOW_FORM_FEED_AS_WHITESPACE];
       case ATTRIBUTE_ID_ALLOW_UNESCAPED_CONTROL_CHARACTERS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ALLOW_UNESCAPED_CONTROL_CHARACTERS];
+      case ATTRIBUTE_ID_ALLOW_MISSING_REQUIRED_ATTRIBUTES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ALLOW_MISSING_REQUIRED_ATTRIBUTES];
       default:
         return 0;
     }
@@ -143,6 +154,7 @@ DecoderOptions::DecoderOptions()
 , d_allowConsecutiveSeparators(DEFAULT_INITIALIZER_ALLOW_CONSECUTIVE_SEPARATORS)
 , d_allowFormFeedAsWhitespace(DEFAULT_INITIALIZER_ALLOW_FORM_FEED_AS_WHITESPACE)
 , d_allowUnescapedControlCharacters(DEFAULT_INITIALIZER_ALLOW_UNESCAPED_CONTROL_CHARACTERS)
+, d_allowMissingRequiredAttributes(DEFAULT_INITIALIZER_ALLOW_MISSING_REQUIRED_ATTRIBUTES)
 {
 }
 
@@ -153,6 +165,7 @@ DecoderOptions::DecoderOptions(const DecoderOptions& original)
 , d_allowConsecutiveSeparators(original.d_allowConsecutiveSeparators)
 , d_allowFormFeedAsWhitespace(original.d_allowFormFeedAsWhitespace)
 , d_allowUnescapedControlCharacters(original.d_allowUnescapedControlCharacters)
+, d_allowMissingRequiredAttributes(original.d_allowMissingRequiredAttributes)
 {
 }
 
@@ -173,6 +186,8 @@ DecoderOptions::operator=(const DecoderOptions& rhs)
         d_allowFormFeedAsWhitespace = rhs.d_allowFormFeedAsWhitespace;
         d_allowUnescapedControlCharacters =
                                          rhs.d_allowUnescapedControlCharacters;
+        d_allowMissingRequiredAttributes =
+                                          rhs.d_allowMissingRequiredAttributes;
     }
 
     return *this;
@@ -188,12 +203,14 @@ DecoderOptions::operator=(DecoderOptions&& rhs)
         d_skipUnknownElements = bsl::move(rhs.d_skipUnknownElements);
         d_validateInputIsUtf8 = bsl::move(rhs.d_validateInputIsUtf8);
 
-        d_allowConsecutiveSeparators = 
+        d_allowConsecutiveSeparators =
                                     bsl::move(rhs.d_allowConsecutiveSeparators);
         d_allowFormFeedAsWhitespace =
                                      bsl::move(rhs.d_allowFormFeedAsWhitespace);
         d_allowUnescapedControlCharacters =
                                bsl::move(rhs.d_allowUnescapedControlCharacters);
+        d_allowMissingRequiredAttributes =
+                               bsl::move(rhs.d_allowMissingRequiredAttributes);
     }
     return *this;
 }
@@ -207,6 +224,7 @@ void DecoderOptions::reset()
     d_allowConsecutiveSeparators = DEFAULT_INITIALIZER_ALLOW_CONSECUTIVE_SEPARATORS;
     d_allowFormFeedAsWhitespace = DEFAULT_INITIALIZER_ALLOW_FORM_FEED_AS_WHITESPACE;
     d_allowUnescapedControlCharacters = DEFAULT_INITIALIZER_ALLOW_UNESCAPED_CONTROL_CHARACTERS;
+    d_allowMissingRequiredAttributes = DEFAULT_INITIALIZER_ALLOW_MISSING_REQUIRED_ATTRIBUTES;
 }
 
 // ACCESSORS
@@ -223,6 +241,7 @@ bsl::ostream& DecoderOptions::print(bsl::ostream& stream,
     printer.printAttribute("allowConsecutiveSeparators", this->allowConsecutiveSeparators());
     printer.printAttribute("allowFormFeedAsWhitespace", this->allowFormFeedAsWhitespace());
     printer.printAttribute("allowUnescapedControlCharacters", this->allowUnescapedControlCharacters());
+    printer.printAttribute("allowMissingRequiredAttributes", this->allowMissingRequiredAttributes());
     printer.end();
     return stream;
 }

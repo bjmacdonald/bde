@@ -8,7 +8,7 @@
 #ifdef BSLS_PLATFORM_CMP_MSVC
     #define _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
     #define _SILENCE_CXX17_STRSTREAM_DEPRECATION_WARNING
-#endif
+#endif  // BSLS_PLATFORM_CMP_MSVC
 
 #include <bsls_libraryfeatures.h>
 
@@ -17,10 +17,11 @@
 #if defined(BSLS_LIBRARYFEATURES_STDCPP_GNU) && defined(__DEPRECATED)
     #define BSLIM_BSLSTANDARDHEADERTEST_GNU_DEPRECATED_WAS_SET
     #undef __DEPRECATED
-#endif
+#endif  // GNU C++ lib __DEPRECATED is defined
 
 #include <bslh_defaulthashalgorithm.h>
 #include <bslh_hashpair.h>
+#include <bslh_hashtuple.h>
 
 #include <bslim_testutil.h>
 
@@ -38,11 +39,6 @@
 #include <bsls_util.h>
 
 #include <bsltf_templatetestfacility.h>
-
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE
-    #include <bslh_hashtuple.h>
-    #include <tuple>     // `std::tuple`, `std::make_tuple`
-#endif //  BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE
 
 // #include all of the headers defined in bsl+bslhdrs.
 
@@ -62,12 +58,13 @@
     defined(__cpp_lib_string_udls) &&                                         \
     defined(__cpp_lib_chrono_udls)
     #define BSLIM_BSLSTANDARDHEADERTEST_VERSION_HEADER_WAS_INCLUDED
-#endif
+#endif  // feature test macros are defined
 
 #include <bsl_algorithm.h>
-#include <bsl_array.h>
-#include <bsl_barrier.h>          // C++20 header
-#include <bsl_bit.h>              // C++20 header
+#include <bsl_array.h>               // C++11 header ported to C++03
+#include <bsl_atomic.h>              // C++11 header
+#include <bsl_barrier.h>             // C++20 header
+#include <bsl_bit.h>                 // C++20 header
 #include <bsl_bitset.h>
 #include <bsl_c_assert.h>
 #include <bsl_c_ctype.h>
@@ -88,7 +85,7 @@
 #ifndef BSLS_PLATFORM_CMP_MSVC
     // The POSIX header <sys/time.h> is not available from Visual Studio.
     #include <bsl_c_sys_time.h>
-#endif
+#endif  // ndef BSLS_PLATFORM_CMP_MSVC
 
 #include <bsl_c_time.h>
 #include <bsl_c_wchar.h>
@@ -97,71 +94,85 @@
 #include <bsl_cctype.h>
 #include <bsl_cerrno.h>
 #include <bsl_cfloat.h>
+#include <bsl_chrono.h>              // C++11 header
+#include <bsl_cinttypes.h>           // C++11 header
 #include <bsl_ciso646.h>
 #include <bsl_climits.h>
 #include <bsl_clocale.h>
 #include <bsl_cmath.h>
 #include <bsl_complex.h>
-#include <bsl_concepts.h>         // C++20 header
+#include <bsl_concepts.h>            // C++20 header
+#include <bsl_condition_variable.h>  // C++11 header
+#include <bsl_coroutine.h>           // C++20 header
 #include <bsl_csetjmp.h>
 #include <bsl_csignal.h>
 #include <bsl_cstdarg.h>
+#include <bsl_cstdbool.h>            // C++11 header
 #include <bsl_cstddef.h>
 #include <bsl_cstdint.h>
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
+#include <bsl_ctgmath.h>             // C++11 header
 #include <bsl_ctime.h>
-
-#if defined(BSLS_PLATFORM_CMP_MSVC) && (BSLS_PLATFORM_CMP_VERSION >= 1900)
-    // The standard header <cuchar> is not available on most platforms.
-    #include <bsl_cuchar.h>
-#endif
-
-#include <bsl_coroutine.h>        // C++20 header
+#include <bsl_cuchar.h>              // C++11 header
 #include <bsl_cwchar.h>
 #include <bsl_cwctype.h>
 #include <bsl_deque.h>
 #include <bsl_exception.h>
-#include <bsl_execution.h>
+#include <bsl_execution.h>           // C++17 header
+#include <bsl_filesystem.h>          // C++17 header
+#include <bsl_format.h>              // C++20 header
+#include <bsl_forward_list.h>        // C++11 header
 #include <bsl_fstream.h>
 #include <bsl_functional.h>
+#include <bsl_future.h>              // C++11 header
+#include <bsl_initializer_list.h>    // C++11 header
 #include <bsl_iomanip.h>
 #include <bsl_ios.h>
 #include <bsl_iosfwd.h>
 #include <bsl_iostream.h>
 #include <bsl_istream.h>
 #include <bsl_iterator.h>
-#include <bsl_latch.h>            // C++20 header
+#include <bsl_latch.h>               // C++20 header
 #include <bsl_limits.h>
 #include <bsl_list.h>
 #include <bsl_locale.h>
 #include <bsl_map.h>
 #include <bsl_memory.h>
-#include <bsl_mutex.h>
+#include <bsl_mutex.h>               // C++11 header
 #include <bsl_new.h>
-#include <bsl_numbers.h>          // C++20 header
+#include <bsl_numbers.h>             // C++20 header
 #include <bsl_numeric.h>
 #include <bsl_ostream.h>
+#include <bsl_optional.h>            // C++17 header ported to C++03
 #include <bsl_queue.h>
-#include <bsl_ranges.h>
-#include <bsl_semaphore.h>        // C++20 header
+#include <bsl_random.h>              // C++11 header
+#include <bsl_ranges.h>              // C++20 header
+#include <bsl_ratio.h>               // C++11 header
+#include <bsl_regex.h>               // C++11 header
+#include <bsl_scoped_allocator.h>    // C++11 header
+#include <bsl_semaphore.h>           // C++20 header
 #include <bsl_set.h>
-#include <bsl_span.h>
-#include <bsl_source_location.h>  // C++20 header
+#include <bsl_shared_mutex.h>        // C++14 header
+#include <bsl_span.h>                // C++20 header ported to C++03
+#include <bsl_source_location.h>     // C++20 header
 #include <bsl_sstream.h>
 #include <bsl_stack.h>
-#include <bsl_stop_token.h>       // C++20 header
+#include <bsl_stop_token.h>          // C++20 header ported to C++03
 #include <bsl_stdexcept.h>
 #include <bsl_streambuf.h>
 #include <bsl_string.h>
 #include <bsl_strstream.h>
-#include <bsl_string_view.h>      // C++17 header ported to C++03
-#include <bsl_system_error.h>     // C++11 header ported to C++03
-#include <bsl_typeindex.h>        // C++11 header ported to C++03
+#include <bsl_string_view.h>         // C++17 header ported to C++03
+#include <bsl_system_error.h>        // C++11 header ported to C++03
+#include <bsl_thread.h>              // C++11 header
+#include <bsl_tuple.h>               // C++11 header
+#include <bsl_type_traits.h>         // C++11 header partially ported to C++03
+#include <bsl_typeindex.h>           // C++11 header ported to C++03
 #include <bsl_typeinfo.h>
-#include <bsl_unordered_map.h>    // C++11 header ported to C++03
-#include <bsl_unordered_set.h>    // C++11 header ported to C++03
+#include <bsl_unordered_map.h>       // C++11 header ported to C++03
+#include <bsl_unordered_set.h>       // C++11 header ported to C++03
 #include <bsl_utility.h>
 #include <bsl_valarray.h>
 #include <bsl_vector.h>
@@ -177,38 +188,8 @@
 #endif  // ndef BDE_OMIT_INTERNAL_DEPRECATED && ndef BDE_OPENSOURCE_PUBLICATION
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
-    #include <bsl_atomic.h>
     #include <bsl_cfenv.h>
-    #include <bsl_chrono.h>
-    #include <bsl_cinttypes.h>
-    #include <bsl_condition_variable.h>
-    #include <bsl_cstdbool.h>
-    #include <bsl_ctgmath.h>
-    #include <bsl_forward_list.h>
-    #include <bsl_future.h>
-    #include <bsl_initializer_list.h>
-    #include <bsl_mutex.h>
-    #include <bsl_random.h>
-    #include <bsl_ratio.h>
-    #include <bsl_regex.h>
-    #include <bsl_scoped_allocator.h>
-    #include <bsl_thread.h>
-    #include <bsl_tuple.h>
-#endif
-
-#include <bsl_type_traits.h>
-
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY
-    #include <bsl_shared_mutex.h>
-#endif
-
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_FILESYSTEM
-    #include <bsl_filesystem.h>
-#endif
-
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PARALLEL_ALGORITHMS
-    #include <bsl_execution.h>
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 
 #include <utility>     // `std::pair`
 
@@ -219,14 +200,23 @@
 // should be reported.
 #ifdef BSLIM_BSLSTANDARDHEADERTEST_GNU_DEPRECATED_WAS_SET
     #define __DEPRECATED
-#endif
+#endif  // BSLIM_BSLSTANDARDHEADERTEST_GNU_DEPRECATED_WAS_SET
 
 using namespace BloombergLP;
 
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
-#ifdef BSLS_PLATFORM_CMP_CLANG
-#pragma GCC diagnostic ignored "-Wunused-private-field"
-#endif
+  #ifdef BSLS_PLATFORM_CMP_CLANG
+    #pragma GCC diagnostic ignored "-Wunused-private-field"
+  #endif  // BSLS_PLATFORM_CMP_CLANG
+#endif  // BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
+
+#if defined(BSLS_PLATFORM_CMP_CLANG) && BSLS_PLATFORM_CMP_VERSION >= 100000
+  #pragma clang diagnostic ignored "-Wconstant-evaluated"
+#endif  // clang 10.0+
+
+#ifdef BSLS_PLATFORM_CMP_GNU
+# pragma GCC diagnostic ignored "-Warray-bounds"
+# pragma GCC diagnostic ignored "-Wtautological-compare"
 #endif
 
 //=============================================================================
@@ -238,6 +228,12 @@ using namespace BloombergLP;
 // defined in `bslstl`.
 //
 //-----------------------------------------------------------------------------
+// [43] CONCERN: `bsl::aligned_storage` allows deduction.
+// [42] BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR
+// [42] BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
+// [41] CONCERN: `bsl::format` is available and usable
+// [40] BSLS_LIBRARYFEATURES_FORCE_ABI_CPP*
+// [39] HARDWARE_INTERFERENCE
 // [38] CONCERN: `copy_n` function is usable from `bsl`.
 // [37] C++20 `bsl_type_traits.h` ADDITIONS
 // [36] C++20 `std::ranges` interop with `bsl::array`
@@ -398,6 +394,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -863,6 +860,9 @@ class CompletionFunction {
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
+namespace U_COMMON_ITERATOR_NAMESPACE {
+    using bsl::common_iterator;
+}  // close namespace U_COMMON_ITERATOR_NAMESPACE
 
                             // =====================
                             // class RangesDummyView
@@ -925,6 +925,25 @@ template <class X> struct UQual { };
 struct U { };
 struct T { };
 
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#  endif
+#endif
+template <std::size_t t_SIZE>
+void testCase43a(bsl::aligned_storage<t_SIZE>) {}
+
+template <std::size_t t_SIZE, std::size_t t_ALIGNMENT>
+void testCase43b(bsl::aligned_storage<t_SIZE, t_ALIGNMENT>) {}
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic pop
+#  endif
+#endif
 #endif
 
 //=============================================================================
@@ -939,15 +958,471 @@ int main(int argc, char *argv[])
     veryVeryVerbose     = argc > 4;
     veryVeryVeryVerbose = argc > 4;
 
-    (void) veryVerbose;
-    (void) veryVeryVerbose;
-    (void) veryVeryVeryVerbose;
+    (void)veryVerbose;
+    (void)veryVeryVerbose;
+    (void)veryVeryVeryVerbose;
 
     setbuf(stdout, NULL);    // Use unbuffered output
 
     printf("TEST " __FILE__ " CASE %d\n", test);
 
     switch (test) { case 0:  // Zero is always the leading case.
+      case 43: {
+        // --------------------------------------------------------------------
+        // `bsl::aligned_storage` DEDUCTION
+        //
+        // Concerns:
+        // 1. In `bsl::aligned_storage<t_SIZE>`, `t_SIZE` is deducible.
+        //
+        // 2. In `bsl::aligned_storage<t_SIZE, t_ALIGNMENT>`, both `t_SIZE` and
+        //    `t_ALIGNMENT` are deducible.
+        //
+        // Plan:
+        // 1. Define a function template with a parameter type of
+        //    `bsl::aligned_storage<t_SIZE>`, with `t_SIZE` a template
+        //    parameter, and verify that `t_SIZE` can be deduced in a call.
+        //    (C-1)
+        //
+        // 2. Repeat P-1 to verify that both template parameters are deducible.
+        //    (C-2)
+        //
+        // Testing
+        //   CONCERN: `bsl::aligned_storage` allows deduction.
+        // --------------------------------------------------------------------
+
+        if (verbose) puts("\n`bsl::aligned_storage` DEDUCTION"
+                          "\n================================");
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#  endif
+#endif
+        testCase43a(bsl::aligned_storage<2>());
+        testCase43b(bsl::aligned_storage<2, 1>());
+#if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+#  if defined(BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC)
+#    pragma GCC diagnostic pop
+#  endif
+#endif
+#endif
+      } break;
+      case 42: {
+        // --------------------------------------------------------------------
+        // `bsl_chrono.h`
+        //
+        // Concerns:
+        // 1. The `format` function exists in the `bsl` namespace.
+        //
+        // Plan:
+        // 1. Attempt to call the `format` function and verify the result.
+        //
+        // Testing
+        //   BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR
+        //   BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
+        // --------------------------------------------------------------------
+
+        if (verbose) puts("\n`bsl_chrono.h`"
+                          "\n==============");
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+        {
+            using BslDuration = bsl::chrono::duration<int>;
+            using StdDuration = std::chrono::duration<int>;
+            ASSERT((bsl::is_same<BslDuration, StdDuration>::value));
+        }
+
+        {
+            using BslTmPt = bsl::chrono::time_point<bsl::chrono::system_clock>;
+            using StdTmPt = std::chrono::time_point<std::chrono::system_clock>;
+            ASSERT((bsl::is_same<BslTmPt, StdTmPt>::value));
+        }
+
+        ASSERT((bsl::is_same<bsl::chrono::high_resolution_clock,
+                             std::chrono::high_resolution_clock>::value));
+        ASSERT((bsl::is_same<bsl::chrono::steady_clock,
+                             std::chrono::steady_clock>::value));
+        ASSERT((bsl::is_same<bsl::chrono::system_clock,
+                             std::chrono::system_clock>::value));
+        ASSERT((bsl::is_same<bsl::chrono::treat_as_floating_point<
+                                 bsl::chrono::system_clock>,
+                             std::chrono::treat_as_floating_point<
+                                 bsl::chrono::system_clock> >::value));
+
+        {
+            using BslDurVals = bsl::chrono::duration_values<int>;
+            using StdDurVals = std::chrono::duration_values<int>;
+            ASSERT((bsl::is_same<BslDurVals, StdDurVals>::value));
+        }
+
+        {
+            const auto inHours =
+                bsl::chrono::duration_cast<bsl::chrono::minutes>(
+                                                        bsl::chrono::hours(2));
+            ASSERTV(inHours.count(), 120 == inHours.count());
+        }
+
+        {
+            using namespace bsl::chrono;
+
+            const auto inHours = time_point_cast<minutes>(
+                                    time_point<system_clock, hours>{hours{2}});
+            ASSERTV(inHours.time_since_epoch().count(),
+                    120 == inHours.time_since_epoch().count());
+        }
+
+        ASSERT(bsl::chrono::hours::period::num == 3600);
+        ASSERT(bsl::chrono::hours::period::den == 1);
+
+        ASSERT(bsl::chrono::microseconds::period::num == 1);
+        ASSERT(bsl::chrono::microseconds::period::den == 1000000);
+
+        ASSERT(bsl::chrono::milliseconds::period::num == 1);
+        ASSERT(bsl::chrono::milliseconds::period::den == 1000);
+
+        ASSERT(bsl::chrono::minutes::period::num == 60);
+        ASSERT(bsl::chrono::minutes::period::den == 1);
+
+        ASSERT(bsl::chrono::nanoseconds::period::num == 1);
+        ASSERT(bsl::chrono::nanoseconds::period::den == 1000000000);
+
+        ASSERT(bsl::chrono::seconds::period::num == 1);
+        ASSERT(bsl::chrono::seconds::period::den == 1);
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY
+        // How to test `bsl::chrono::treat_as_floating_point_v`?
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+        // How to test `bsl::chrono::abs`,  `std::chrono::ceil`,
+        // `std::chrono::floor`, `std::chrono::round`?
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR
+        ASSERT(bsl::chrono::days::period::num == 86400);
+        ASSERT(bsl::chrono::days::period::den == 1);
+
+        ASSERT(bsl::chrono::weeks::period::num == 604800);
+        ASSERT(bsl::chrono::weeks::period::den == 1);
+
+        ASSERT(bsl::chrono::months::period::num == 2629746);
+        ASSERT(bsl::chrono::months::period::den == 1);
+
+        ASSERT(bsl::chrono::years::period::num == 31556952);
+        ASSERT(bsl::chrono::years::period::den == 1);
+
+        {
+            using BslIsClk = bsl::chrono::is_clock<bsl::chrono::system_clock>;
+            using StdIsClk = std::chrono::is_clock<std::chrono::system_clock>;
+            ASSERT((bsl::is_same<BslIsClk, StdIsClk>::value));
+        }
+        // How to test `bsl::chrono::is_clock_v`?
+
+        {
+            using BslSysTime = bsl::chrono::sys_time<bsl::chrono::seconds>;
+            using StdSysTime = std::chrono::sys_time<std::chrono::seconds>;
+            ASSERT((bsl::is_same<BslSysTime, StdSysTime>::value));
+
+        }
+
+        ASSERT(
+             (bsl::is_same<bsl::chrono::sys_days,
+                           bsl::chrono::sys_time<bsl::chrono::days> >::value));
+        ASSERT(
+             (bsl::is_same<bsl::chrono::sys_seconds,
+                           bsl::chrono::sys_time<bsl::chrono::seconds>
+                                                                    >::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::file_clock,
+                             std::chrono::file_clock>::value));
+
+        {
+            using BslFileTime = bsl::chrono::file_time<bsl::chrono::days>;
+            using StdFileTime = std::chrono::file_time<std::chrono::days>;
+            ASSERT((bsl::is_same<BslFileTime, StdFileTime>::value));
+        }
+
+
+        ASSERT((bsl::is_same<bsl::chrono::local_days,
+                             bsl::chrono::local_time<bsl::chrono::days>
+                                                                    >::value));
+        ASSERT((bsl::is_same<bsl::chrono::local_seconds,
+                             bsl::chrono::local_time<bsl::chrono::seconds>
+                                                                    >::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::local_t,
+                             std::chrono::local_t>::value));
+        {
+            using BslLocalTime = bsl::chrono::local_time<bsl::chrono::days>;
+            using StdLocalTime = std::chrono::local_time<std::chrono::days>;
+            ASSERT((bsl::is_same<BslLocalTime, StdLocalTime>::value));
+        }
+
+        // How to test `bsl::chrono::clock_time_conversion`?
+        // How to test `bsl::chrono::clock_cast`?
+
+        ASSERT((bsl::is_same<bsl::chrono::last_spec,
+                             std::chrono::last_spec>::value));
+
+        // How to test `bsl::chrono::last`?
+
+        ASSERT((bsl::is_same<bsl::chrono::day,   std::chrono::day>::value));
+        ASSERT((bsl::is_same<bsl::chrono::month, std::chrono::month>::value));
+        ASSERT((bsl::is_same<bsl::chrono::year,   std::chrono::year>::value));
+        ASSERT((bsl::is_same<bsl::chrono::weekday,
+                             std::chrono::weekday>::value));
+
+        // How to test `bsl::chrono::January`..`bsl::chrono::December`?
+        // How to test `bsl::chrono::Monday`..`bsl::chrono::Sunday`?
+
+        ASSERT((bsl::is_same<bsl::chrono::weekday_indexed,
+                             std::chrono::weekday_indexed>::value));
+        ASSERT((bsl::is_same<bsl::chrono::weekday_last,
+                             std::chrono::weekday_last>::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::month_day,
+                             std::chrono::month_day>::value));
+        ASSERT((bsl::is_same<bsl::chrono::month_day_last,
+                             std::chrono::month_day_last>::value));
+        ASSERT((bsl::is_same<bsl::chrono::month_weekday,
+                             std::chrono::month_weekday>::value));
+        ASSERT((bsl::is_same<bsl::chrono::month_weekday_last,
+                             std::chrono::month_weekday_last>::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::year_month,
+                             std::chrono::year_month>::value));
+        ASSERT((bsl::is_same<bsl::chrono::year_month_day,
+                             std::chrono::year_month_day>::value));
+        ASSERT((bsl::is_same<bsl::chrono::year_month_day_last,
+                             std::chrono::year_month_day_last>::value));
+        ASSERT((bsl::is_same<bsl::chrono::year_month_weekday,
+                             std::chrono::year_month_weekday>::value));
+        ASSERT((bsl::is_same<bsl::chrono::year_month_weekday_last,
+                             std::chrono::year_month_weekday_last>::value));
+
+        {
+            using BslHhMmSs = bsl::chrono::hh_mm_ss<bsl::chrono::days>;
+            using StdHhMmSs = std::chrono::hh_mm_ss<std::chrono::days>;
+            ASSERT((bsl::is_same<BslHhMmSs, StdHhMmSs>::value));
+        }
+
+        // How to test `bsl::chrono::is_am`, `bsl::chrono::is_pm`?
+        // How to test `bsl::chrono::make12`, `bsl::chrono::make24`?
+
+#ifndef BSLS_PLATFORM_OS_WINDOWS
+        ASSERT((bsl::is_same<bsl::chrono::gps_clock,
+                             std::chrono::gps_clock>::value));
+        ASSERT((bsl::is_same<bsl::chrono::gps_seconds,
+                             std::chrono::gps_seconds>::value));
+        ASSERT((bsl::is_same<bsl::chrono::gps_time<bsl::chrono::days>,
+                             std::chrono::gps_time<bsl::chrono::days>
+                                                                    >::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::tai_clock,
+                             std::chrono::tai_clock>::value));
+        ASSERT((bsl::is_same<bsl::chrono::tai_seconds,
+                             std::chrono::tai_seconds>::value));
+        ASSERT((bsl::is_same<bsl::chrono::tai_time<bsl::chrono::days>,
+                             std::chrono::tai_time<bsl::chrono::days>
+                                                                    >::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::utc_clock,
+                             std::chrono::utc_clock>::value));
+        ASSERT((bsl::is_same<bsl::chrono::utc_seconds,
+                             std::chrono::utc_seconds>::value));
+        ASSERT((bsl::is_same<bsl::chrono::utc_time<bsl::chrono::days>,
+                             std::chrono::utc_time<bsl::chrono::days>
+                                                                    >::value));
+#endif  // ndef BSLS_PLATFORM_OS_WINDOWS
+
+
+        // How to test `bsl::chrono::from_stream`?
+        // How to test `bsl::chrono::parse`?
+        //
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR
+
+
+#ifndef BSLS_PLATFORM_OS_WINDOWS
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
+        ASSERT((bsl::is_same<bsl::chrono::tzdb, std::chrono::tzdb>::value));
+        ASSERT((bsl::is_same<bsl::chrono::tzdb_list,
+                             std::chrono::tzdb_list>::value));
+        // How to test `bsl::chrono::get_tzdb`?
+        // How to test `bsl::chrono::get_tzdb_list`?
+        // How to test `bsl::chrono::reload_tzdb`?
+        // How to test `bsl::chrono::remote_version`?
+
+        ASSERT((bsl::is_same<bsl::chrono::local_info,
+                             std::chrono::local_info>::value));
+        ASSERT((bsl::is_same<bsl::chrono::sys_info,
+                             std::chrono::sys_info>::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::time_zone,
+                             std::chrono::time_zone>::value));
+        ASSERT((bsl::is_same<bsl::chrono::choose,
+                             std::chrono::choose>::value));
+
+        // How to test `bsl::chrono::zoned_traits`?
+        // How to test `::chrono::zoned_time`?
+
+        ASSERT((bsl::is_same<bsl::chrono::zoned_seconds,
+                             std::chrono::zoned_seconds>::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::time_zone_link,
+                             std::chrono::time_zone_link>::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::nonexistent_local_time,
+                             std::chrono::nonexistent_local_time>::value));
+        ASSERT((bsl::is_same<bsl::chrono::ambiguous_local_time,
+                             std::chrono::ambiguous_local_time>::value));
+
+        ASSERT((bsl::is_same<bsl::chrono::leap_second,
+                             std::chrono::leap_second>::value));
+        ASSERT((bsl::is_same<bsl::chrono::leap_second_info,
+                             std::chrono::leap_second_info>::value));
+
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
+#endif  // ndef BSLS_PLATFORM_OS_WINDOWS
+      } break;
+      case 41: {
+        // --------------------------------------------------------------------
+        // C++20 `bsl_format.h`
+        //
+        // Concerns:
+        // 1. The `format` function exists in the `bsl` namespace.
+        //
+        // Plan:
+        // 1. Attempt to call the `format` function and verify the result.
+        //
+        // Testing
+        //   CONCERN: `bsl::format` is available and usable.
+        // --------------------------------------------------------------------
+
+        if (verbose) puts("\nC++20 `bsl_format.h`"
+                          "\n====================");
+
+        int value = 5;
+        bsl::string result = bsl::format("{:d}", value);
+
+        ASSERT("5" == result);
+      } break;
+      case 40: {
+        // --------------------------------------------------------------------
+        // TESTING: BSLS_LIBRARYFEATURES_FORCE_ABI_CPP*
+        //
+        // Concerns:
+        //  1 That the when the force ABI flag is set, the expected
+        //    `bsl` types are, and are not, type aliases to the platform
+        //    standard library
+        //
+        // Plan:
+        //
+        // Testing
+        //
+        // --------------------------------------------------------------------
+
+        if (verbose) puts("\n'BSLS_LIBRARYFEATURES_FORCE_ABI_CPP*'"
+                          "\n=====================================");
+
+        //  +--------------------+------------------------------------+
+        //  | Feature            | Minimum Language Version For Alias |
+        //  +====================+====================================+
+        //  | span               | C++20                              |
+        //  +--------------------+------------------------------------+
+        //  | string_view        | C++20 [1]                          |
+        //  +--------------------+------------------------------------+
+        //  | array              | C++17 [1]                          |
+        //  +--------------------+------------------------------------+
+        //  | optional           | C++17                              |
+        //  +--------------------+------------------------------------+
+        //  | uncaught_exception | C++17                              |
+        //  +--------------------+------------------------------------+
+        //
+        // See `bsls_libraryfeatures` documentation for more details.
+
+        bool spanIsAlias              = false;
+        bool stringViewIsAlias        = false;
+        bool arrayIsAlias             = false;
+        bool optionalInherits         = false;
+        bool uncaughtExceptionIsAlias = false;
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+        spanIsAlias = bsl::is_same<bsl::span<int>, std::span<int> >::value;
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+        stringViewIsAlias =
+                       bsl::is_same<bsl::string_view, std::string_view>::value;
+        arrayIsAlias =
+                  bsl::is_same<bsl::array<int, 1>, std::array<int, 1> >::value;
+        optionalInherits =
+               bsl::is_base_of<std::optional<int>, bsl::optional<int> >::value;
+        uncaughtExceptionIsAlias = (&bsl::uncaught_exceptions ==
+                                    &std::uncaught_exceptions);
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+        if (veryVerbose) {
+            P(spanIsAlias);
+            P(stringViewIsAlias);
+            P(arrayIsAlias);
+            P(optionalInherits);
+            P(uncaughtExceptionIsAlias);
+        }
+
+#if defined(BSLS_LIBRARYFEATURES_FORCE_ABI_CPP11)
+        ASSERT(!spanIsAlias);
+        ASSERT(!stringViewIsAlias);
+        ASSERT(!arrayIsAlias);
+        ASSERT(!optionalInherits);
+        ASSERT(!uncaughtExceptionIsAlias);
+#elif defined(BSLS_LIBRARYFEATURES_FORCE_ABI_CPP17)
+        ASSERT(!spanIsAlias);
+        ASSERT(!stringViewIsAlias);
+        ASSERT(arrayIsAlias);
+        ASSERT(optionalInherits);
+        ASSERT(uncaughtExceptionIsAlias);
+#elif defined(BSLS_LIBRARYFEATURES_FORCE_ABI_CPP20)
+        ASSERT(spanIsAlias);
+        ASSERT(stringViewIsAlias);
+        ASSERT(arrayIsAlias);
+        ASSERT(optionalInherits);
+        ASSERT(uncaughtExceptionIsAlias);
+#endif  // Forces ABI if-chain
+      } break;
+      case 39: {
+        // --------------------------------------------------------------------
+        // HARDWARE_INTERFERENCE
+        //
+        // Concerns:
+        // 1. The `bsl::hardware_constructive_interference_size` variable is
+        //    available in `bsl` to users who include `bsl_new.h`.
+        // 2. The `bsl::hardware_destructive_interference_size` variable is
+        //    available in `bsl` to users who include `bsl_new.h`.
+        //
+        // Plan:
+        // 1. Create a simple example that uses the variables.  Compilation of
+        //    the example demonstrates that the function can be found in `bsl`,
+        //    but only if BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+        //    is defined.
+        //
+        // Testing
+        //   CONCERN: `hardware_constructive_interference_size` is in `bsl`.
+        //   CONCERN: `hardware_destructive_interference_size` is in `bsl`.
+        // --------------------------------------------------------------------
+        if (verbose) puts("\nHARDWARE_INTERFERENCE"
+                          "\n=====================");
+
+#ifndef BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+        if (verbose) puts("\nHW Interference variables are not supported "
+                          "on this platform");
+#else  // ndef BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+        const size_t con = bsl::hardware_constructive_interference_size;
+        const size_t dis = bsl::hardware_destructive_interference_size;
+        (void)con;
+        (void)dis;
+#endif  // BSLS_COMPILERFEATURES_SUPPORT_HARDWARE_INTERFERENCE
+      } break;
       case 38: {
         // --------------------------------------------------------------------
         // `bsl::copy_n`
@@ -1005,23 +1480,33 @@ int main(int argc, char *argv[])
         //    - `bsl::is_bounded_array`
         //    - `bsl::is_unbounded_array`
         //    - `bsl::is_nothrow_convertible`
+        //    - `bsl::is_constant_evaluated`
         //    - `bsl::is_layout_compatible`
         //    - `bsl::is_pointer_interconvertible_base_of`
         //    - `bsl::common_reference`
         //    - 'bsl::basic_common_reference
         //    - `bsl::is_pointer_interconvertible_with_class`
         //    - `bsl::is_corresponding_member`
+        //    - `bsl::remove_cvref`
+        //    - `bsl::unwrap_reference`
+        //    - `bsl::unwrap_ref_decay`
         //
         // 2. When the trait has a `*_v` form, that trait has the same value
         //   as the  non-`*_v` form.
         //
-        // 3. The feature test macros defined in `<version>` for the imported
+        // 3. When the trait has a `*_t` form, that trait has the same value
+        //   as the  non-`*_t` form.
+        //
+        // 4. The feature test macros defined in `<version>` for the imported
         //    features are available and have appropriate values.
         //
         // Plan:
         // 1. Verify that:
         //     o `__cpp_lib_is_layout_compatible        >= 201907L`
         //     o `__cpp_lib_is_pointer_interconvertible >= 201907L`
+        //     o `__cpp_lib_unwrap_ref                  >= 201811L`
+        //     o `__cpp_lib_remove_cvref                >= 201711L`
+        //     o `__cpp_lib_is_constant_evaluated       >= 201811L`
         //
         // 2. Verify that `__cpp_lib_is_layout_compatible` also also determines
         //    the availability of
@@ -1087,13 +1572,50 @@ int main(int argc, char *argv[])
             bool result = bsl::is_same<TU, UT>:: value;
             ASSERT(false == result);
         }
-#else
+
+        if (veryVerbose) {
+            Q('bsl::remove_cvref');
+        }
+        {
+            using T   = const int &;
+            using RET = int;
+
+            ASSERT(__cpp_lib_remove_cvref >= 201711L)
+            ASSERT((bsl::is_same_v<bsl::remove_cvref<T>::type, RET>));
+            ASSERT((bsl::is_same_v<bsl::remove_cvref_t<T>,     RET>));
+        }
+
+        if (veryVerbose) {
+            Q('bsl::unwrap_reference');
+            Q('bsl::unwrap_ref_decay');
+        }
+        {
+            using T    = bsl::reference_wrapper<int>;
+            using RET1 = int &;
+            using RET2 = int &;
+
+            ASSERT(__cpp_lib_unwrap_ref >= 201811L);
+            ASSERT((bsl::is_same_v<bsl::unwrap_reference<T>::type, RET1>));
+            ASSERT((bsl::is_same_v<bsl::unwrap_reference_t<T>,     RET1>));
+
+            ASSERT((bsl::is_same_v<bsl::unwrap_ref_decay<T>::type, RET2>));
+            ASSERT((bsl::is_same_v<bsl::unwrap_ref_decay_t<T>,     RET2>));
+        }
+        if (veryVerbose) {
+            Q('bsl::is_constant_evaluated');
+        }
+        {
+            ASSERT(__cpp_lib_is_constant_evaluated >= 201811L);
+            bool b = bsl::is_constant_evaluated();
+            (void)b;
+        }
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
         if (veryVerbose) {
             puts("SKIPPED: "
                  "`BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY` is not "
                  "defined.");
         }
-#endif
+#endif  // else BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE
         if (veryVerbose) {
@@ -1121,13 +1643,13 @@ int main(int argc, char *argv[])
             ASSERTV(result,   true == result);
             ASSERTV(result_v, true == result_v);
         }
-#else
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE
         if (veryVerbose) {
             puts("SKIPPED: "
                  "`BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE` is "
                  "not defined.");
         }
-#endif
+#endif  // else BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER
         if (veryVerbose) {
@@ -1147,13 +1669,13 @@ int main(int argc, char *argv[])
             const bool result = bsl::is_corresponding_member(&Foo::x, &Bar::y);
             ASSERT(true == result);
         }
-#else
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER
         if (veryVerbose) {
             puts("SKIPPED: "
                  "`BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER` is "
                  "not defined.");
         }
-#endif
+#endif  // else BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE
         if (veryVerbose) {
@@ -1176,13 +1698,13 @@ int main(int argc, char *argv[])
                 const bool res_v = bsl::is_pointer_interconvertible_base_of_v
                                                             < Bar, Baz>;
 
-#if defined(BSLS_PLATFORM_CMP_MSVC) && BSLS_PLATFORM_CMP_VERSION <= 1937
+#if defined(BSLS_PLATFORM_CMP_MSVC) && BSLS_PLATFORM_CMP_VERSION <= 1943
                 // Known Windows bug.   Hopefully fixed in future release.
 
                 const bool expected = false;
-#else
+#else   // MSVC up to 19.42
                 const bool expected = true;
-#endif
+#endif  // Not MSVC or later than 19.42
                 ASSERT(expected == res);
                 ASSERT(expected == res_v);
             }
@@ -1196,13 +1718,13 @@ int main(int argc, char *argv[])
                 ASSERT(true == res);
             }
         }
-#else
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE
         if (veryVerbose) {
             puts("SKIPPED: "
                 "`BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE`"
                 " is not defined.");
         }
-#endif
+#endif  // else BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE
       } break;
       case 36: {
         // --------------------------------------------------------------------
@@ -1442,7 +1964,7 @@ int main(int argc, char *argv[])
                                                      return true;
                                                  });
         ASSERT(joinViewCount == 6);
-#endif
+#endif  // BSL_RANGES_HAS_JOIN_VIEW
 
         ranges::lazy_split_view arrLazySplitView = bsl::views::lazy_split(arr,
                                                                           3);
@@ -1917,8 +2439,7 @@ int main(int argc, char *argv[])
         ASSERTV(0 == ranges::distance(arrToTransform.end(),
                                       arrPrevPermutationResult.in));
         ASSERTV(arrToTransform[3], 4 == arrToTransform[3]);  // 1, 2, 3, 4, 5
-
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
       } break;
       case 35: {
         // --------------------------------------------------------------------
@@ -1971,9 +2492,9 @@ int main(int argc, char *argv[])
 
         ASSERT(&bsl::noop_coroutine == &std::noop_coroutine);
 
-#else
+#else   // BSLS_COMPILERFEATURES_SUPPORT_COROUTINE
         if (verbose) puts("SKIP: `<bsl_coroutine.h>` is not supported.");
-#endif  // BSLS_COMPILERFEATURES_SUPPORT_COROUTINE
+#endif  // else BSLS_COMPILERFEATURES_SUPPORT_COROUTINE
       } break;
       case 34: {
         // --------------------------------------------------------------------
@@ -2073,9 +2594,88 @@ int main(int argc, char *argv[])
             BSLMF_ASSERT(( bsl::copy_constructible<int>));
             BSLMF_ASSERT((!bsl::copy_constructible<C  >));
         }
-#else
+
+        {
+            struct C {};
+
+            BSLMF_ASSERT(( bsl::equality_comparable<int>));
+            BSLMF_ASSERT((!bsl::equality_comparable<C>));
+
+            BSLMF_ASSERT(( bsl::equality_comparable_with<int, short>));
+            BSLMF_ASSERT((!bsl::equality_comparable_with<int, C>));
+
+            BSLMF_ASSERT(( bsl::totally_ordered<int>));
+            BSLMF_ASSERT((!bsl::totally_ordered<C>));
+
+            BSLMF_ASSERT(( bsl::totally_ordered_with<int, short>));
+            BSLMF_ASSERT((!bsl::totally_ordered_with<int, C>));
+        }
+
+        {
+            struct C {
+                C(C&&) = delete;
+                C& operator=(C&&) = delete;
+            };
+            BSLMF_ASSERT(( bsl::movable<int>));
+            BSLMF_ASSERT((!bsl::movable<C>));
+        }
+
+        {
+            struct C {
+                C(const C&) = delete;
+                C& operator=(const C&) = delete;
+            };
+            BSLMF_ASSERT(( bsl::copyable<int>));
+            BSLMF_ASSERT((!bsl::copyable<C>));
+        }
+
+        {
+            struct C { C() = delete; };
+            BSLMF_ASSERT(( bsl::semiregular<int>));
+            BSLMF_ASSERT((!bsl::semiregular<C>));
+        }
+
+        {
+            struct C1 { bool operator==(const C1&) const = default; };
+            struct C2 {};
+            BSLMF_ASSERT(( bsl::regular<C1>));
+            BSLMF_ASSERT((!bsl::regular<C2>));
+        }
+
+        {
+            const auto func = [](int) {};
+
+            BSLMF_ASSERT(( bsl::invocable<decltype(func), int>));
+            BSLMF_ASSERT((!bsl::invocable<decltype(func)>));
+
+            BSLMF_ASSERT(( bsl::regular_invocable<decltype(func), int>));
+            BSLMF_ASSERT((!bsl::regular_invocable<decltype(func)>));
+        }
+
+        {
+            const auto pred = [](int) { return true; };
+            const auto func = [](int) {};
+
+            BSLMF_ASSERT(( bsl::predicate<decltype(pred), int>));
+            BSLMF_ASSERT((!bsl::predicate<decltype(func), int>));
+        }
+
+        {
+            struct C {};
+            const auto rel = [](int, int) { return true; };
+
+            BSLMF_ASSERT(( bsl::relation<decltype(rel), int, int>));
+            BSLMF_ASSERT((!bsl::relation<decltype(rel), int, C>));
+
+            BSLMF_ASSERT(( bsl::equivalence_relation<decltype(rel), int,int>));
+            BSLMF_ASSERT((!bsl::equivalence_relation<decltype(rel), int, C>));
+
+            BSLMF_ASSERT(( bsl::strict_weak_order<decltype(rel), int, int>));
+            BSLMF_ASSERT((!bsl::strict_weak_order<decltype(rel), int, C>));
+        }
+#else   // BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
         if (verbose) puts("SKIP: `<bsl_concepts.h>` is not supported.");
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
+#endif  // else BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
       } break;
       case 33: {
         // --------------------------------------------------------------------
@@ -2102,7 +2702,7 @@ int main(int argc, char *argv[])
         // 23.3.2.1, incrementable traits
         ASSERT(true == bsl::incrementable<Vector::iterator>);
 
-        bsl::incrementable_traits<Vector::iterator> trait1; (void) trait1;
+        bsl::incrementable_traits<Vector::iterator> trait1; (void)trait1;
 
         ASSERTV((bsl::is_same_v<bsl::iter_difference_t<Vector>,
                                 Vector::difference_type>));
@@ -2265,42 +2865,59 @@ int main(int argc, char *argv[])
         // 23.4.2, iterator tags
         {
             bsl::contiguous_iterator_tag cit;
-            (void) cit;
+            (void)cit;
         }
 
         // 23.5.3, move iterators and sentinels
         {
             bsl::move_sentinel<int*> ms;
-            (void) ms;
+            (void)ms;
         }
 
-        // 23.5.4, common iterators
-#ifdef BSLS_LIBRARY_FEATURES_HASS_CPP20_RANGES
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
         {
-            bsl::common_iterator<bsl::ranges::iterator_t<Vector::iterator>,
-                                 bsl::ranges::sentinel_t<Vector::iterator> >
-                ci;
-            (void)ci;
+            Vector::iterator it = v.begin();
+            bsl::ranges::advance(it, 2);
+            ASSERT(v.end() == it);
+            ASSERT(2 == bsl::        distance(v.begin(), v.end()));
+            ASSERT(2 == bsl::ranges::distance(v.begin(), v.end()));
+            Vector::iterator itB = v.begin();
+            itB++;
+            ASSERT(itB == bsl::ranges::next(v.begin()));
+            ASSERT(itB == bsl::ranges::prev(it));
+            bsl::ranges::advance(it, -2);
+
+            ASSERT(2 == *it);
+            ASSERT(1 == *itB);
+            ASSERT(&v[0] == &*it);
+            ASSERT(&v[1] == &*itB);
+            bsl::ranges::iter_swap(itB, it);
+            ASSERT(1 == *it);
+            ASSERT(2 == *itB);
+            ASSERT(&v[0] == &*it);
+            ASSERT(&v[1] == &*itB);
+
+            ASSERT(2 == bsl::ranges::iter_move(itB));
         }
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
 
         // 23.5.5, default sentinel
         {
             bsl::default_sentinel_t dst;
-            (void) dst;
+            (void)dst;
         }
 
         // 23.5.6, counted iterators
         {
             bsl::counted_iterator<Vector::iterator> ci;
-            (void) ci;
+            (void)ci;
         }
 
         // 23.5.7, unreachable sentinel
         // using std::unreachable_sentinel_t;
         {
             bsl::unreachable_sentinel_t ust;
-            (void) ust;
+            (void)ust;
         }
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
@@ -2397,40 +3014,39 @@ int main(int argc, char *argv[])
         if (verbose) puts("\nMISC C++20 ADDITIONS TO HEADERS"
                           "\n===============================");
 
-#ifndef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
-        if (veryVerbose) puts("SKIPPED: C++20 baseline not available.");
-
-#else  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
         BSLMF_ASSERT(__cpp_lib_interpolate >= 201902L);
-        (void) bsl::lerp(1.0, 1.0, 1.0);
-        (void) bsl::midpoint(1, 1);
+        (void)bsl::lerp(1.0, 1.0, 1.0);
+        (void)bsl::midpoint(1, 1);
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV
-        (void) [](char8_t *out, bsl::mbstate_t *st) {
-            (void) bsl::mbrtoc8(out, "", 0U, st);
+        (void)[](char8_t *out, bsl::mbstate_t *st) {
+            (void)bsl::mbrtoc8(out, "", 0U, st);
         };
-        (void) [](char *out, bsl::mbstate_t *st) {
-            (void) bsl::c8rtomb(out, {}, st);
+        (void)[](char *out, bsl::mbstate_t *st) {
+            (void)bsl::c8rtomb(out, {}, st);
         };
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PARALLEL_ALGORITHMS
         BSLMF_ASSERT(__cpp_lib_execution >= 201902L);
-        (void) (bsl::execution::unsequenced_policy *) 0;
-        (void) bsl::execution::unseq;
-#endif
+        (void)(bsl::execution::unsequenced_policy *) 0;
+        (void)bsl::execution::unseq;
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_PARALLEL_ALGORITHMS
 
         BSLMF_ASSERT(__cpp_lib_bind_front >= 201907L);
-        (void) bsl::bind_front([](int){}, 1);
+        (void)bsl::bind_front([](int){}, 1);
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD
         BSLMF_ASSERT(__cpp_lib_jthread>= 201911L);
         bsl::jthread jthread;
-        (void) jthread;
+        (void)jthread;
         ASSERT((bsl::is_same_v<std::jthread, bsl::jthread>));
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD
 
-#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#else  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+        if (veryVerbose) puts("SKIPPED: C++20 baseline not available.");
+#endif  // else BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 30: {
         // --------------------------------------------------------------------
@@ -2471,27 +3087,27 @@ int main(int argc, char *argv[])
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_REF
         BSLMF_ASSERT(__cpp_lib_atomic_ref >= 201806L);
         int value = 0;
-        (void) bsl::atomic_ref<int>{value};
-#endif
+        (void)bsl::atomic_ref<int>{value};
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_REF
 
         BSLMF_ASSERT(__cpp_lib_char8_t >= 201907L);
-        (void) bsl::atomic_char8_t{};
+        (void)bsl::atomic_char8_t{};
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_LOCK_FREE_TYPE_ALIASES
         BSLMF_ASSERT(__cpp_lib_atomic_lock_free_type_aliases >= 201907L);
-        (void) bsl::atomic_signed_lock_free{};
-        (void) bsl::atomic_unsigned_lock_free{};
-#endif
+        (void)bsl::atomic_signed_lock_free{};
+        (void)bsl::atomic_unsigned_lock_free{};
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_LOCK_FREE_TYPE_ALIASES
 
         BSLMF_ASSERT(__cpp_lib_atomic_wait >= 201907L);
-        (void) [](bsl::atomic<int> *ptr) {
+        (void)[](bsl::atomic<int> *ptr) {
             bsl::atomic_wait(ptr, 1);
             bsl::atomic_wait_explicit(ptr, 1, bsl::memory_order::relaxed);
             bsl::atomic_notify_one(ptr);
             bsl::atomic_notify_all(ptr);
         };
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_WAIT_FREE_FUNCTIONS
-        (void) [](bsl::atomic_flag *ptr) {
+        (void)[](bsl::atomic_flag *ptr) {
             bsl::atomic_flag_wait(ptr, true);
             bsl::atomic_flag_wait_explicit(ptr,
                                            true,
@@ -2499,16 +3115,16 @@ int main(int argc, char *argv[])
             bsl::atomic_flag_notify_one(ptr);
             bsl::atomic_flag_notify_all(ptr);
         };
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_WAIT_FREE_FUNCTIONS
 
         BSLMF_ASSERT(__cpp_lib_atomic_flag_test >= 201907L);
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_FLAG_TEST_FREE_FUNCTIONS
-        (void) [](bsl::atomic_flag *ptr) {
-            (void) bsl::atomic_flag_test(ptr);
-            (void) bsl::atomic_flag_test_explicit(ptr,
+        (void)[](bsl::atomic_flag *ptr) {
+            (void)bsl::atomic_flag_test(ptr);
+            (void)bsl::atomic_flag_test_explicit(ptr,
                                                   bsl::memory_order::relaxed);
         };
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_FLAG_TEST_FREE_FUNCTIONS
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 29: {
@@ -2554,7 +3170,7 @@ int main(int argc, char *argv[])
         ASSERT(bsl::to_address(&intValue) == &intValue);
 
         BSLMF_ASSERT(__cpp_lib_assume_aligned >= 201811L);
-        (void) bsl::assume_aligned<alignof(int)>(&intValue);
+        (void)bsl::assume_aligned<alignof(int)>(&intValue);
 
         alignas(int) char buf[sizeof(int)];
         bsl::destroy_at(bsl::construct_at<int>(reinterpret_cast<int*>(buf)));
@@ -2563,10 +3179,10 @@ int main(int argc, char *argv[])
 #if !defined(BSLS_LIBRARYFEATURES_STDCPP_GNU) || _GLIBCXX_RELSEASE >= 12
         // GNU libstdc++ 11 doesn't define this (but defines the functions)
         BSLMF_ASSERT(__cpp_lib_smart_ptr_for_overwrite >= 202002L);
-#endif
-        (void) bsl::make_unique_for_overwrite<int>();
-        (void) bsl::make_unique_for_overwrite<int[]>(4);
-#endif
+#endif  // Not GNU C++ lib or GNU 12.0+
+        (void)bsl::make_unique_for_overwrite<int>();
+        (void)bsl::make_unique_for_overwrite<int[]>(4);
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_MAKE_UNIQUE_FOR_OVERWRITE
         //bsl::make_shared_for_overwrite() // own implementation
         //bsl::allocate_shared_for_overwrite() // own implementation
 
@@ -2582,7 +3198,7 @@ int main(int argc, char *argv[])
 
         //BSLMF_ASSERT(__cpp_lib_constexpr_dynamic_alloc >= 201907L);
         // constexpr `bsl::allocator` // not implemented
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 28: {
         // --------------------------------------------------------------------
@@ -2681,7 +3297,7 @@ int main(int argc, char *argv[])
         ASSERT(false == ranges::enable_view<Vector>                        );
 
         ranges::view_base base;
-        (void) base;            // suppress compiler warning
+        (void)base;            // suppress compiler warning
 
         ASSERT( true  == ranges::input_range<Vector>                       );
         ASSERT((false == ranges::output_range<Vector,
@@ -2765,7 +3381,7 @@ int main(int argc, char *argv[])
         ASSERTV(&vec[0] == &refView[0]);
 
         bsl::views::all_t<decltype((vec))> &refViewRef = refView;
-        (void) refViewRef;
+        (void)refViewRef;
 
         auto countedView = bsl::views::counted(vec.begin(), 3);
         ASSERTV(countedView.size(),  3 == countedView.size());
@@ -2821,7 +3437,7 @@ int main(int argc, char *argv[])
         ranges::join_view joinView = bsl::views::join(vecArray);
         ASSERTV(joinView.front(), 1 == joinView.front());  // vecArray[0][0]
         ASSERTV(joinView.back(),  8 == joinView.back() );  // vecArray[1][2]
-#endif
+#endif  // BSL_RANGES_HAS_JOIN_VIEW
 
         ranges::lazy_split_view lazySplitView = bsl::views::lazy_split(vec, 3);
         ASSERTV(false == lazySplitView.empty());
@@ -2864,7 +3480,7 @@ int main(int argc, char *argv[])
         // Enumerations
 
         ranges::subrange_kind subrangeKind;
-        (void) subrangeKind;
+        (void)subrangeKind;
 
         // Testing algorithms aliased in `<bsl_algorithm.h>`
 
@@ -3275,14 +3891,14 @@ int main(int argc, char *argv[])
         ranges::min_max_result<int>                             minMaxResult2;
         ranges::in_found_result<int*>                           inFoundResult;
 
-        (void) inFunResult;
-        (void) inInResult;
-        (void) inOutResult;
-        (void) inInOutResult;
-        (void) inOutOutResult;
-        (void) minMaxResult2;
-        (void) inFoundResult;
-#endif
+        (void)inFunResult;
+        (void)inInResult;
+        (void)inOutResult;
+        (void)inInOutResult;
+        (void)inOutOutResult;
+        (void)minMaxResult2;
+        (void)inFoundResult;
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES
       } break;
       case 27: {
         // --------------------------------------------------------------------
@@ -3315,19 +3931,18 @@ int main(int argc, char *argv[])
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
         /// This class is used as a mock template parameter for the
         /// `bsl::stop_callback` instance.
-        class DummyCallback {
-        };
+        class DummyCallback {};
 
         bsl::stop_token                   *s_token    = nullptr;
         bsl::stop_source                  *s_source   = nullptr;
         bsl::stop_callback<DummyCallback> *s_callback = nullptr;
         const bsl::nostopstate_t          *no_stop    = &bsl::nostopstate;
 
-        (void) s_token;
-        (void) s_source;
-        (void) s_callback;
-        (void) no_stop;
-#endif
+        (void)s_token;
+        (void)s_source;
+        (void)s_callback;
+        (void)no_stop;
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 26: {
         // --------------------------------------------------------------------
@@ -3357,8 +3972,8 @@ int main(int argc, char *argv[])
         BSLMF_ASSERT(__cpp_lib_source_location >= 201907L);
 
         const bsl::source_location sl = bsl::source_location::current();
-        (void) sl;
-#endif
+        (void)sl;
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_SOURCE_LOCATION
       } break;
       case 25: {
         // --------------------------------------------------------------------
@@ -3396,10 +4011,10 @@ int main(int argc, char *argv[])
         BSLMF_ASSERT(__cpp_lib_bit_cast >= 201806L);
         ASSERT(bsl::bit_cast<unsigned>(1) == 1U);
 
-#if !defined(BSLS_LIBRARYFEATURES_STDCPP_LLVM)
+#ifndef BSLS_LIBRARYFEATURES_STDCPP_LLVM
         // LLVM libc++ doesn't define this (but defines the functions)
         BSLMF_ASSERT(__cpp_lib_bitops >= 201907L);
-#endif
+#endif  // not LLVM standard C++ lib
 
         ASSERT(bsl::rotl(1U, 1) == 2U);
         ASSERT(bsl::rotl(~(~0U >> 1), 1) == 1U);
@@ -3452,7 +4067,7 @@ int main(int argc, char *argv[])
         ASSERT(bsl::bit_width(1U) == 1);
         ASSERT(bsl::bit_width(2U) == 2);
         ASSERT(bsl::bit_width(3U) == 2);
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 24: {
         // --------------------------------------------------------------------
@@ -3481,68 +4096,62 @@ int main(int argc, char *argv[])
                           "\n=====================");
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
-            BSLMF_ASSERT(__cpp_lib_math_constants >= 201907L);
+        BSLMF_ASSERT(__cpp_lib_math_constants >= 201907L);
 
-            BSLMF_ASSERT((bsl::numbers::e_v<double> == bsl::numbers::e));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::e),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::e_v<double> == bsl::numbers::e));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::e),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::log2e_v<double> ==
-                                                         bsl::numbers::log2e));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::log2e),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::log2e_v<double> == bsl::numbers::log2e));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::log2e),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::log10e_v<double> ==
-                                                        bsl::numbers::log10e));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::log10e),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::log10e_v<double> == bsl::numbers::log10e));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::log10e),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::pi_v<double> == bsl::numbers::pi));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::pi),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::pi_v<double> == bsl::numbers::pi));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::pi),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::inv_pi_v<double> ==
-                                                        bsl::numbers::inv_pi));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::inv_pi),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::inv_pi_v<double> == bsl::numbers::inv_pi));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::inv_pi),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::inv_sqrtpi_v<double> ==
+        BSLMF_ASSERT((bsl::numbers::inv_sqrtpi_v<double> ==
                                                     bsl::numbers::inv_sqrtpi));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::inv_sqrtpi),
-                                         const double>));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::inv_sqrtpi),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::ln2_v<double> == bsl::numbers::ln2));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::ln2),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::ln2_v<double> == bsl::numbers::ln2));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::ln2),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::ln10_v<double> == bsl::numbers::ln10));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::ln10),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::ln10_v<double> == bsl::numbers::ln10));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::ln10),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::sqrt2_v<double> ==
-                                                         bsl::numbers::sqrt2));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::sqrt2),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::sqrt2_v<double> == bsl::numbers::sqrt2));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::sqrt2),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::sqrt3_v<double> ==
-                                                         bsl::numbers::sqrt3));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::sqrt3),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::sqrt3_v<double> == bsl::numbers::sqrt3));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::sqrt3),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::inv_sqrt3_v<double> ==
+        BSLMF_ASSERT((bsl::numbers::inv_sqrt3_v<double> ==
                                                      bsl::numbers::inv_sqrt3));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::inv_sqrt3),
-                                         const double>));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::inv_sqrt3),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::egamma_v<double> ==
-                                                        bsl::numbers::egamma));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::egamma),
-                                         const double>));
+        BSLMF_ASSERT((bsl::numbers::egamma_v<double> == bsl::numbers::egamma));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::egamma),
+                                     const double>));
 
-            BSLMF_ASSERT((bsl::numbers::phi_v<double> == bsl::numbers::phi));
-            BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::phi),
-                                         const double>));
-#endif
+        BSLMF_ASSERT((bsl::numbers::phi_v<double> == bsl::numbers::phi));
+        BSLMF_ASSERT((bsl::is_same_v<decltype(bsl::numbers::phi),
+                                     const double>));
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 23: {
         // --------------------------------------------------------------------
@@ -3586,18 +4195,18 @@ int main(int argc, char *argv[])
                               bsl::barrier<CompletionFunction> >));
 
        bsl::latch latch(0);
-       (void) latch;
+       (void)latch;
        ASSERT((bsl::is_same_v<std::latch, bsl::latch>));
 
        bsl::counting_semaphore countingSemaphore(0);
-       (void) countingSemaphore;
+       (void)countingSemaphore;
        ASSERT((bsl::is_same_v<std::counting_semaphore<1>,
                               bsl::counting_semaphore<1> >));
 
        bsl::binary_semaphore binarySemaphore(0);
-       (void) binarySemaphore;
+       (void)binarySemaphore;
        ASSERT((bsl::is_same_v<std::binary_semaphore, bsl::binary_semaphore>));
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
       } break;
       case 22: {
         // --------------------------------------------------------------------
@@ -3629,9 +4238,9 @@ int main(int argc, char *argv[])
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION
 
-#if !defined(BSLIM_BSLSTANDARDHEADERTEST_VERSION_HEADER_WAS_INCLUDED)
+#ifndef BSLIM_BSLSTANDARDHEADERTEST_VERSION_HEADER_WAS_INCLUDED
        ASSERTV("<version> is not included", false);
-#endif
+#endif  // ndef BSLIM_BSLSTANDARDHEADERTEST_VERSION_HEADER_WAS_INCLUDED
 
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION
       } break;
@@ -3673,13 +4282,13 @@ int main(int argc, char *argv[])
 
         ASSERT(bsl::dynamic_extent == size_t(-1));
 
-#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY
+#ifdef BSLSTL_SPAN_IS_ALIASED
         ASSERT((bsl::is_same_v<std::span<int, 99>, bsl::span<int, 99> >));
         ASSERT((bsl::is_same_v<std::span<int>,     bsl::span<int>     >));
         ASSERT((bsl::is_same_v<decltype(bsl::dynamic_extent),
                                decltype(std::dynamic_extent)>));
         ASSERT(bsl::dynamic_extent == std::dynamic_extent);
-#endif
+#endif  // BSLSTL_SPAN_IS_ALIASED
       } break;
       case 20: {
         // --------------------------------------------------------------------
@@ -3712,7 +4321,6 @@ int main(int argc, char *argv[])
         ASSERT(!bsl::invoke(bsl::not_fn(even), 24));
 
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
-
       } break;
       case 19: {
         // --------------------------------------------------------------------
@@ -3761,22 +4369,22 @@ int main(int argc, char *argv[])
         bsl::filesystem::directory_options            *pdo = nullptr;
         bsl::filesystem::file_time_type               *pftt = nullptr;
 
-        (void) ppath;
-        (void) pfe;
-        (void) pde;
-        (void) pdi;
-        (void) prdi;
-        (void) pfs;
-        (void) psi;
-        (void) pft;
-        (void) pperms;
-        (void) ppo;
-        (void) pco;
-        (void) pdo;
-        (void) pftt;
+        (void)ppath;
+        (void)pfe;
+        (void)pde;
+        (void)pdi;
+        (void)prdi;
+        (void)pfs;
+        (void)psi;
+        (void)pft;
+        (void)pperms;
+        (void)ppo;
+        (void)pco;
+        (void)pdo;
+        (void)pftt;
 
         bsl::hash<bsl::filesystem::path> hasher;
-        (void) hasher;
+        (void)hasher;
 
         bslh::DefaultHashAlgorithm hash;
         // Note that the `hashAppend` overload for `path` is defined in
@@ -3814,7 +4422,7 @@ int main(int argc, char *argv[])
 
         testMap[P1] = 2;
         ASSERT(2 == testMap[P1]);
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_FILESYSTEM
       } break;
       case 18: {
         // --------------------------------------------------------------------
@@ -3861,16 +4469,16 @@ int main(int argc, char *argv[])
             int* p = static_cast<int*>(bsl::aligned_alloc(1024, 1024));
             bsl::free(p);
         }
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_ALIGNED_ALLOC
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_TIMESPEC_GET
         {
             bsl::timespec ts;
             bsl::timespec_get(&ts, TIME_UTC);
         }
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_TIMESPEC_GET
 
-#endif
+#endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
       } break;
       case 17: {
         // --------------------------------------------------------------------
@@ -4233,7 +4841,7 @@ int main(int argc, char *argv[])
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
         typedef bsl::align_val_t MyAlign;
         MyAlign ma;
-        (void) bsl::launder(&ma);
+        (void)bsl::launder(&ma);
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
       } break;
       case 13: {
@@ -4425,7 +5033,7 @@ int main(int argc, char *argv[])
 
         // Just check that the identifiers are accessible
         bsl::in_place_t my_inplace = bsl::in_place;
-        (void) my_inplace;
+        (void)my_inplace;
       } break;
       case 10: {
         // --------------------------------------------------------------------

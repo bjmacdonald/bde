@@ -10,6 +10,7 @@
 #include <bslim_testutil.h>
 
 #include <bslma_defaultallocatorguard.h>
+#include <bslma_newdeleteallocator.h>
 #include <bslma_testallocator.h>
 
 #include <bsls_review.h>
@@ -20,17 +21,19 @@
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
+#include <bsl_fstream.h>
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
 
 #ifdef BALST_OBJECTFILEFORMAT_RESOLVER_ELF
 
+#include <unistd.h>
+#include <sys/stat.h>    // chmod
+
 using namespace BloombergLP;
-using bsl::cin;
 using bsl::cout;
 using bsl::cerr;
 using bsl::endl;
-using bsl::flush;
 
 //=============================================================================
 //                                  TEST PLAN
@@ -127,6 +130,111 @@ enum { e_IS_DWARF = 0 };
 //                    GLOBAL HELPER FUNCTIONS FOR TESTING
 // ----------------------------------------------------------------------------
 
+namespace {
+namespace u {
+
+/// Return a pointer to the new delete allocator singleton.
+bslma::Allocator *nda()
+{
+    // We use the new delete allocator here, because if we want to track down
+    // accidental uses of the default allocator, we'll want to put a breakpoint
+    // on `bslma::TestAllocator::allocate`.
+
+    return &bslma::NewDeleteAllocator::singleton();
+}
+
+/// Check that:
+/// * `test` (== `atoi(argv[1]`) is above the specified `topCaseIndex` and
+///   less than or equal to `2 * topCaseIndex`.
+///
+/// * The executable file name `argv[0]` matches expectations for a "condemned"
+///   executable.
+void checkCondemnedExecutableName(int topCaseIndex, char **argv)
+{
+    int test = bsl::atoi(argv[1]);
+
+    ASSERTV(test, topCaseIndex, topCaseIndex < test);
+    ASSERTV(test, topCaseIndex, test <= 2 * topCaseIndex);
+    ASSERTV(argv[0], bsl::strstr(argv[0], "_condemned_"));
+    ASSERTV(argv[0], test, bsl::strstr(argv[0], argv[1]));
+}
+
+/// Copy the file `fromFileName` to a new file `toFileName`.
+void copyExecutable(const char *toFileName, const char *fromFileName)
+{
+    using namespace bsl;
+    typedef bdls::FilesystemUtil   Util;
+    typedef bsl::char_traits<char> Traits;
+
+    // `FilesystemUtil` functions use the default allocator on Windows.
+
+    bslma::DefaultAllocatorGuard guard(u::nda());
+
+    (void) Util::remove(toFileName);
+    const Util::Offset fileSize = Util::getFileSize(fromFileName);
+
+    {
+        ofstream toStream(  toFileName,   ios_base::binary);
+        ifstream fromStream(fromFileName, ios_base::binary);
+
+        ASSERT(toStream.  good());
+        ASSERT(fromStream.good());
+
+        streambuf *toSb   = toStream.  rdbuf();
+        streambuf *fromSb = fromStream.rdbuf();
+
+        copy(istreambuf_iterator<char>(fromSb),
+             istreambuf_iterator<char>(),
+             ostreambuf_iterator<char>(toSb));
+
+        // Since we operated directly on the `streambuf`s, the `fstream`s were
+        // uninformed about how it went.  Query the `streambuf`s directly to
+        // verify that it went OK.
+
+        const Traits::pos_type toOff = toSb->pubseekoff(0, ios_base::cur);
+        ASSERTV(fileSize, toOff, fileSize == toOff);
+        ASSERT(Traits::eof() == fromSb->sbumpc());
+    }    // close the streams
+
+    ASSERT(Util::getFileSize(toFileName) == fileSize);
+
+#ifdef BSLS_PLATFORM_OS_UNIX
+    int rc = ::chmod(toFileName, 0777);
+    ASSERT(0 == rc);
+#endif
+}
+
+/// Copy the executable `argv[0]` to a "condemned" copy and then run that copy
+/// with `argv[2]` == "--erase", which will result in the condemned copy being
+/// erased at the beginning of the test.
+void doEraseTest(int argc, char **argv)
+{
+    bsl::string cmd(argv[0], u::nda());
+    cmd += "_condemned_";
+    cmd += argv[1];            // `test` in text form
+    cmd += ".t";
+
+    // `cmd` is now the child exec name
+
+    u::copyExecutable(cmd.c_str(), argv[0]);
+
+    // command: run the test case
+
+    cmd += ' ';
+    cmd += argv[1];
+    cmd += " --erase";
+    for (int ii = 2; ii < argc; ++ii) {
+        cmd += ' ';
+        cmd += argv[ii];
+    }
+    int rc = ::system(cmd.c_str());
+    ASSERT(0 == rc);
+    testStatus += bsl::abs(rc);
+}
+
+}  // close namespace u
+}  // close unnamed namespace
+
 template <class TYPE>
 static TYPE abs(TYPE num)
 {
@@ -168,6 +276,23 @@ int funcGlobalOne(int k)
 /// arithmetic so there will be some length of code in this routine.
 static inline
 int funcStaticInlineOne(int k)
+{
+    Uint64 ret = L_;
+    unsigned i = k;
+    for (unsigned j = 0; j < 5; ++j) {
+        i = 75 * i * i + i / (j + 1);
+    }
+
+    ret |= (5 * i) << 14;
+    return static_cast<int>(ret & mask32);
+}
+
+struct S {
+    static
+    int funcGlobalMethod(int k);
+};
+
+int S::funcGlobalMethod(int k)
 {
     Uint64 ret = L_;
     unsigned i = k;
@@ -271,10 +396,34 @@ int main(int argc, char *argv[])
     int test = argc > 1 ? bsl::atoi(argv[1]) : 0;
     int verbose = argc > 2;
     int veryVerbose = argc > 3;
+    int veryVeryVerbose = argc > 4;
 
-    cout << "TEST " << __FILE__ << " CASE " << test << endl;
+    enum { k_TOP_TEST_CASE_INDEX = 2 };
 
-    bslma::TestAllocator ta;
+    const bool eraseExecutable = 2 < argc && !bsl::strcmp("--erase", argv[2]);
+    if (eraseExecutable) {
+        // `FilesystemUtil` functions uses the default allocator on Windows.
+
+        bslma::DefaultAllocatorGuard guard(u::nda());
+
+        u::checkCondemnedExecutableName(k_TOP_TEST_CASE_INDEX, argv);
+
+        int rc = bdls::FilesystemUtil::remove(argv[0]);
+        ASSERT(0 == rc);
+        ASSERT(!bdls::FilesystemUtil::exists(argv[0]));
+
+        test        -= k_TOP_TEST_CASE_INDEX;
+
+        verbose     =  veryVerbose;
+        veryVerbose =  veryVeryVerbose;
+    }
+
+    cout << "TEST " << __FILE__ << " CASE " << test <<
+                                   (eraseExecutable ? " --erase" : "") << endl;
+
+    if (verbose && eraseExecutable) {
+        cout << argv[0] << " erased\n";
+    }
 
     // CONCERN: `BSLS_REVIEW` failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
@@ -283,7 +432,7 @@ int main(int argc, char *argv[])
     bslma::DefaultAllocatorGuard guard(&defaultAllocator);
 
     switch (test) { case 0:
-      case 2: {
+      case k_TOP_TEST_CASE_INDEX: {
         // --------------------------------------------------------------------
         // GARBAGE TEST
         //
@@ -310,6 +459,8 @@ int main(int argc, char *argv[])
         // default allocator whether it's constructed with another allocator
         // or not.
 
+        bslma::DefaultAllocatorGuard guard(u::nda());
+
         for (int vecIndex = 0; vecIndex < (int) stackTrace.length();
                                                              vecIndex += 128) {
             bsl::ostringstream ss;
@@ -333,23 +484,29 @@ int main(int argc, char *argv[])
         if (verbose) cout << "balst::ResolverImpl<Elf> breathing test\n"
                              "=======================================\n";
 
-        // There seems to be a problem with taking a pointer to an function in
-        // a shared library.  We'll leave the testing of symbols in shared
-        // libraries to 'balst_stacktraceprintutil.t.cpp.
+        // On some platforms, taking a ptr to a function in a shared library
+        // gives you a ptr to a thunk that will load the lib and jump to the
+        // function.  On gcc-13 C++20, taking a ptr to a global in another
+        // module apparently does that same thing.  We'll leave the testing of
+        // symbols in shared libraries and other components to
+        // 'balst_stacktraceprintutil.t.cpp and balst_stacktraceutil.t.cpp.
 
         typedef bsls::Types::UintPtr UintPtr;
 
         Int64 lineResults[5];
         {
             const Int64 lineResultsMask = (1 << 14) - 1;
-            lineResults[0] = funcGlobalOne(3) & lineResultsMask;
-            lineResults[1] = funcStaticOne(3) & lineResultsMask;
+            lineResults[0] = funcGlobalOne(3)       & lineResultsMask;
+            lineResults[1] = funcStaticOne(3)       & lineResultsMask;
             lineResults[2] = funcStaticInlineOne(3) & lineResultsMask;
-            lineResults[3] = -5000;
-            lineResults[4] = Obj::test() & lineResultsMask;
+            lineResults[3] = S::funcGlobalMethod(3) & lineResultsMask;
+            lineResults[4] = Obj::test()            & lineResultsMask;
         }
 
         for (int demangle = 0; demangle < 2; ++demangle) {
+            if (verbose) cout << "Trace with" << (demangle ? "" : "out") <<
+                                                              " demangling.\n";
+
             balst::StackTrace stackTrace;
             stackTrace.resize(5);
             stackTrace[0].setAddress(addFixedOffset((UintPtr) &funcGlobalOne));
@@ -390,7 +547,18 @@ int main(int argc, char *argv[])
             stackTrace[3].setAddress(addFixedOffset((UintPtr) &bsl::qsort));
 #endif
 
+#if 0
+            // Testing '&Obj::resolve' doesn't work on gcc-13 C++20, apparently
+            // applying '&' to a global function in another source file yields
+            // a pointer to a 'thunk' rather than directly to the function
+            // itself, so we have replaced this test with a pointer to
+            // 'S::funcGlobalMethod'.
+
             stackTrace[3].setAddress(addFixedOffset((UintPtr) &Obj::resolve));
+#endif
+
+            stackTrace[3].setAddress(addFixedOffset(
+                                              (UintPtr) &S::funcGlobalMethod));
             stackTrace[4].setAddress(addFixedOffset((UintPtr) &Obj::test));
 
             for (int i = 0; i < (int) stackTrace.length(); ++i) {
@@ -423,7 +591,8 @@ int main(int argc, char *argv[])
 
             for (int i = 0; i < stackTrace.length(); ++i) {
 #undef  IS_KNOWN
-#define IS_KNOWN(name) ASSERTV(i, stackTrace[i].is ## name ## Known());
+#define IS_KNOWN(name) ASSERTV(i, stackTrace[i],                              \
+                                          stackTrace[i].is ## name ## Known());
                 IS_KNOWN(Address);
                 IS_KNOWN(LibraryFileName);
                 IS_KNOWN(MangledSymbolName);
@@ -436,7 +605,7 @@ int main(int argc, char *argv[])
 #undef IS_KNOWN
 
             const char *libName = stackTrace[0].libraryFileName().c_str();
-            bsl::string progName(&ta);
+            bsl::string progName(u::nda());
             bdls::PathUtil::getBasename(&progName, argv[0]);
             const char *thisLib = progName.c_str();
 #undef  GOOD_LIBNAME
@@ -459,7 +628,8 @@ int main(int argc, char *argv[])
                 const char *name = stackTrace[i].sourceFileName().c_str();
                 ASSERTV(i, name, !e_IS_DWARF || '/' == *name);
                 ASSERTV(i, name, !e_IS_DWARF ||
-                                           bdls::FilesystemUtil::exists(name));
+                     bdls::FilesystemUtil::exists(name) ||
+                                                  (eraseExecutable && 0 == i));
 
                 const char *pc = name + bsl::strlen(name);
                 while (pc > name && '/' != pc[-1]) {
@@ -472,8 +642,8 @@ int main(int argc, char *argv[])
 
                 if (e_IS_DWARF) {
                     if (3 == i) {
-                        ASSERTV(line, 1000 < line);
-                        ASSERTV(line, line < 10 * 1000);
+                        ASSERTV(line, 50 < line);
+                        ASSERTV(line, line < 300);
                     }
                     else {
                         const int fudge = 4 == i ? 4 : 2;
@@ -493,9 +663,8 @@ int main(int argc, char *argv[])
 
                     ASSERTV(i, pc, !bsl::strcmp(
                          pc,
-                           3 == i ? "balst_resolverimpl_elf.cpp"
-                         : 4 == i ? "balst_resolverimpl_elf.h"
-                         :          "balst_resolverimpl_elf.t.cpp"));
+                         4 == i ? "balst_resolverimpl_elf.h"
+                                : "balst_resolverimpl_elf.t.cpp"));
                 }
             }
 
@@ -510,7 +679,7 @@ int main(int argc, char *argv[])
             SM(0, "funcGlobalOne");
             SM(1, "funcStaticOne");
             SM(2, "funcStaticInlineOne");
-            SM(3, "resolve");
+            SM(3, "funcGlobalMethod");
             SM(4, "test");
 #undef  SM
 
@@ -529,45 +698,41 @@ int main(int argc, char *argv[])
                 }
 
                 SM(0, "funcGlobalOne(int)");
+                SM(3, "S::funcGlobalMethod(int)");
+                SM(4, "BloombergLP::balst::ResolverImpl"
+                      "<BloombergLP::balst::ObjectFileFormat::Elf>::"
+                      "test()");
                 if (!e_IS_LINUX || !e_IS_CLANG) {
                     // The linux clang demangler has a bug where it fails on
                     // file-scope statics.
 
                     SM(1, "funcStaticOne(int)");
                     SM(2, "funcStaticInlineOne(int)");
-                    SM(4, "BloombergLP::balst::ResolverImpl"
-                          "<BloombergLP::balst::ObjectFileFormat::Elf>::"
-                          "test()");
                 }
 #undef  SM
-                const char resName[] = { "BloombergLP::"
-                                         "balst::ResolverImpl"
-                                         "<BloombergLP::"
-                                         "balst::ObjectFileFormat::Elf>::"
-                                         "resolve("
-                                         "BloombergLP::balst::StackTrace" };
-                enum { k_RES_NAME_LEN = sizeof(resName) - 1 };
-                ASSERT(!bsl::strchr(resName, ' '));
-                const char *name3 = stackTrace[3].symbolName().c_str();
-                {
-                    const char *pc = bsl::strchr(name3, ' ');
-                    if (pc && pc - name3 < k_RES_NAME_LEN) {
-                        name3 = pc + 1;
-                    }
-                }
-
-                ASSERTV(name3, resName,
-                                      safeCmp(name3, resName, k_RES_NAME_LEN));
             }
         }
-
-        ASSERT(0 == defaultAllocator.numAllocations());
       } break;
       default: {
-        cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;
-        testStatus = -1;
+        BSLS_ASSERT_OPT(!eraseExecutable);
+
+        ASSERTV(test, k_TOP_TEST_CASE_INDEX < test);
+
+        if (test <= 2 * k_TOP_TEST_CASE_INDEX) {
+            // Run test case `test - k_TOP_TEST_CASE_INDEX` with erasing the
+            // executable.
+
+            u::doEraseTest(argc, argv);
+        }
+        else {
+            cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;
+            testStatus = -1;
+        }
       }
     }
+
+    ASSERTV(defaultAllocator.numAllocations(),
+                                       0 == defaultAllocator.numAllocations());
 
     if (testStatus > 0) {
         cerr << "Error, non-zero test status = " << testStatus << "."

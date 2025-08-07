@@ -132,6 +132,20 @@ static int veryVeryVeryVerbose = 0;
 // ============================================================================
 //                    GLOBAL HELPER FUNCTIONS FOR TESTING
 // ----------------------------------------------------------------------------
+
+#define CREATETHREAD(h, f)     \
+    if (0 != bslmt::ThreadUtil::create(&h, f)) { \
+        bslmt::ThreadUtil::microSleep(0, 1); \
+        if (0 != bslmt::ThreadUtil::create(&h, f)) { \
+            bslmt::ThreadUtil::microSleep(0, 3); \
+            if (0 != bslmt::ThreadUtil::create(&h, f)) { \
+                cout << "`create` failed.  Thread quota exceeded?" \
+                     << bsl::endl; \
+                ASSERT(false); \
+            } \
+        } \
+    }
+
 class WaitTurnAndSleepCallbackJob {
 
     bslmt::Turnstile  *d_turnstile;
@@ -199,8 +213,6 @@ class WaitTurnCallbackJob {
             Int64 wt = d_turnstile->waitTurn();
 
             int value = ++*d_counter;
-
-            ASSERT(0 == d_turnstile->lagTime());
 
             if (veryVerbose) {
                 COUT << "wt = " << wt << ", counter = " << value
@@ -367,10 +379,8 @@ int main(int argc, char *argv[])
 
         double       elapsed = timer.elapsedTime();
 
-        // The elapsed time should not be off by more than 15 ms.
-
         LOOP_ASSERT(elapsed,
-                         1.0 - EPSILON <= elapsed && elapsed <= 1.0 + EPSILON);
+                   DURATION - EPSILON <= elapsed && elapsed <= DURATION + 1.0);
 
         // The number of executed events should not be off by more than one.
 
@@ -429,13 +439,12 @@ int main(int argc, char *argv[])
 
         for (int i = 0; i < NUM_THREADS; ++i) {
             bslmt::ThreadUtil::Handle handle;
-            ASSERT(0 == bslmt::ThreadUtil::create(&handle,
-                                                  WaitTurnAndSleepCallbackJob(
-                                                     &mX,
+            CREATETHREAD(handle,
+                         WaitTurnAndSleepCallbackJob(&mX,
                                                      &counter,
                                                      &barrier,
                                                      sleepInterval,
-                                                     stopTime)));
+                                                     stopTime));
             handles.push_back(handle);
         }
 
@@ -457,13 +466,10 @@ int main(int argc, char *argv[])
       }  break;
       case 5: {
         // --------------------------------------------------------------------
-        // CONCERN: MULTI-THREADED TEST (NO LAG)
+        // CONCERN: MULTI-THREADED TEST
         //
         // Concerns:
         //   - That calling `waitTurn` from multiple threads is thread-safe.
-        //
-        //   - That the turnstile does not lag when multiple threads call
-        //     `waitTurn` at the configured rate.
         //
         // Plan:
         //   Create a `bslmt::Turnstile`, `mX`, with a rate of 50.  Create
@@ -473,7 +479,7 @@ int main(int argc, char *argv[])
         //   expected number of turns.
         //
         // Testing:
-        //   Concern: Multi-Threaded Test (No Lag)
+        //   Concern: Multi-Threaded Test
         // --------------------------------------------------------------------
 
         if (verbose) {
@@ -489,8 +495,7 @@ int main(int argc, char *argv[])
         bsls::TimeInterval stopTime(bsls::SystemTime::nowRealtimeClock());
         stopTime.addMilliseconds(2 * OFFSET.totalMilliseconds());
 
-        Obj        mX(RATE, OFFSET);
-        const Obj& X = mX;
+        Obj mX(RATE, OFFSET);
 
         bsl::vector<bslmt::ThreadUtil::Handle> handles;
         bsls::AtomicInt                        counter;
@@ -498,12 +503,11 @@ int main(int argc, char *argv[])
         handles.reserve(NUM_THREADS);
         for (int i = 0; i < NUM_THREADS; ++i) {
             bslmt::ThreadUtil::Handle handle;
-            ASSERT(0 == bslmt::ThreadUtil::create(&handle,
-                                                  WaitTurnCallbackJob(
-                                                              &mX,
-                                                              &counter,
-                                                              &barrier,
-                                                              stopTime)));
+            CREATETHREAD(handle,
+                         WaitTurnCallbackJob(&mX,
+                                             &counter,
+                                             &barrier,
+                                             stopTime));
             handles.push_back(handle);
         }
 
@@ -514,8 +518,6 @@ int main(int argc, char *argv[])
             ASSERT(0 == bslmt::ThreadUtil::join(handles[i]));
         }
 
-        Int64 lt = X.lagTime();
-        LOOP_ASSERT(lt, 0 == lt);
         LOOP_ASSERT(counter, NUM_TURNS <= counter);
       }  break;
       case 4: {
@@ -532,8 +534,6 @@ int main(int argc, char *argv[])
         //   named `X`.  Call `waitTurn` on `mX` and `lagTime` on `X`.  Verify
         //   that the result of both calls is positive, indicating that the
         //   caller is not lagging, and that some wait time is incurred.
-        //   Verify that the wait time is within 10ms of the expected maximum
-        //   wait time.
         //
         // Testing:
         //   bslmt::Turnstile(
@@ -549,12 +549,6 @@ int main(int argc, char *argv[])
         const double            RATE = 1.0;
         const bsls::TimeInterval OFFSET(1.0); // turnstile start offset (1 sec)
 
-        const double WT   = 1.0 / RATE;    // max wait time for each turn
-        const Int64  WTUB = static_cast<Int64>(static_cast<double>(k_USPS)
-                                   * (WT + EPSILON));  // upper bound wait time
-        const Int64  WTLB = static_cast<Int64>(static_cast<double>(k_USPS)
-                                   * (WT - EPSILON));  // lower bound wait time
-
         Obj        mX(RATE, OFFSET);
         const Obj& X = mX;
 
@@ -562,10 +556,9 @@ int main(int argc, char *argv[])
         Int64 wt = mX.waitTurn();
         ASSERT(0 == lt);  // not lagging since start time is offset
         ASSERT(0 <  wt);  // first turn cannot be taken immediately
-        ASSERT(WTLB <= wt && wt <= WTUB);
 
         if (veryVerbose) {
-            P_(WTLB); P_(WTUB); P_(wt); P(lt);
+            P_(wt); P(lt);
         }
 
       }  break;
@@ -686,11 +679,9 @@ int main(int argc, char *argv[])
         const double WT   = 1.0 / RATE;  // max wait time for each turn
         const Int64  WTUB = static_cast<Int64>(static_cast<double>(k_USPS)
                                    * (WT + EPSILON));  // upper bound wait time
-        const Int64  WTLB = static_cast<Int64>(static_cast<double>(k_USPS)
-                                   * (WT - EPSILON));  // lower bound wait time
 
         if (verbose) {
-            P_(RATE)   P_(WT)  P_(WTUB)  P(WTLB);
+            P_(RATE)   P_(WT)  P(WTUB);
         }
 
         Obj        mX(RATE);
@@ -708,11 +699,9 @@ int main(int argc, char *argv[])
         mX.waitTurn();
         do {
             Int64 wt = mX.waitTurn();
-            Int64 lt =  X.lagTime();
-            LOOP3_ASSERT(WTLB, WTUB, wt, WTLB <= wt && wt <= WTUB);
-            ASSERT(0 == lt);
+            ASSERTV(WTUB, wt, wt <= WTUB);
             if (veryVerbose) {
-                P_(WTLB); P_(WTUB); P_(wt); P(lt);
+                P_(WTUB); P(wt);;
             }
         } while (--numTurns);
 

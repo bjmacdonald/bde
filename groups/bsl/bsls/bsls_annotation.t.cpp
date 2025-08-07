@@ -145,6 +145,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -309,7 +310,10 @@ int test_FALLTHROUGH_function(int i)
     {
       case 0:
         if (true) {
+#if !defined(BSLS_PLATFORM_CMP_MSVC)
+// Microsoft does not support this annotation placement.
             BSLS_ANNOTATION_FALLTHROUGH;
+#endif
         }
         else {
             return 7;                                                 // RETURN

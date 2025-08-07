@@ -17,6 +17,7 @@
 #include <bslmt_testutil.h>
 #include <bslmt_threadattributes.h>  // for test only
 #include <bslmt_threadutil.h>        // for test only
+#include <bslmt_timedcompletionguard.h>
 
 #include <bsls_assert.h>
 #include <bsls_asserttest.h>
@@ -35,6 +36,7 @@
 #include <bsl_cstdio.h>           // For FILE in usage example
 #include <bsl_cstdlib.h>          // for atoi
 #include <bsl_cstring.h>
+#include <bsl_format.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
@@ -297,10 +299,29 @@ bool TestMetricsAdapter::verify(const bsl::string& name) const
 
 #define STARTPOOL(x) \
     if (0 != x.start()) { \
-        cout << "Thread start() failed.  Thread quota exceeded?" \
-             << bsl::endl; \
-        ASSERT(false); \
-        break; } // things are SNAFU
+        bslmt::ThreadUtil::microSleep(0, 1); \
+        if (0 != x.start()) { \
+            bslmt::ThreadUtil::microSleep(0, 3); \
+            if (0 != x.start()) { \
+                cout << "Thread start() failed.  Thread quota exceeded?" \
+                     << bsl::endl; \
+                ASSERT(false); \
+            } \
+        } \
+    }
+
+#define CREATETHREAD(h, a, f, arg) \
+    if (0 != bslmt::ThreadUtil::create(&h, a, f, &arg)) { \
+        bslmt::ThreadUtil::microSleep(0, 1); \
+        if (0 != bslmt::ThreadUtil::create(&h, a, f, &arg)) { \
+            bslmt::ThreadUtil::microSleep(0, 3); \
+            if (0 != bslmt::ThreadUtil::create(&h, a, f, &arg)) { \
+                cout << "`create` failed.  Thread quota exceeded?" \
+                     << bsl::endl; \
+                ASSERT(false); \
+            } \
+        } \
+    }
 
 void noopFunc()
 {
@@ -767,10 +788,239 @@ void threadNameCheckJob(void *arg)
 }  // close namespace THREAD_NAMES_TEST
 
 // ============================================================================
-//                         CASE 14 RELATED ENTITIES
+//                         CASE 17 RELATED ENTITIES
 // ----------------------------------------------------------------------------
 
-namespace case14 {
+namespace case17 {
+                          // ==========================
+                          // CheckAllocatorMatchFunctor
+                          // ==========================
+
+/// This class checks whether all copy/move operations on a given object used
+/// both `move` (rather than `copy`) operations and matched allocators between
+/// the sides of the operation.
+class CheckAllocatorMatchFunctor {
+  private:
+    // DATA
+    int               d_matchedCopyCount;     // number of copies where
+                                              // allocators matched
+    int               d_matchedMoveCount;     // number of copies where
+                                              // allocators matched
+    int               d_mismatchedCopyCount;  // number of copies where
+                                              // allocators did not match
+    int               d_mismatchedMoveCount;  // number of copies where
+                                              // allocators did not match
+
+    bslma::Allocator *d_allocator_p;  // allocator used to supply memory
+                                      // (held, not owned)
+
+#ifndef BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(CheckAllocatorMatchFunctor,
+                                   bsl::is_nothrow_move_constructible);
+#endif
+
+  public:
+    // CREATORS
+
+    /// Create a `CheckAllocatorMatchFunctor` object.  Optionally specify a
+    /// `basicAllocator` used to supply memory.  If `basicAllocator` is 0, the
+    /// currently installed default allocator is used.
+    CheckAllocatorMatchFunctor();
+    explicit CheckAllocatorMatchFunctor(bslma::Allocator *basicAllocator);
+
+    CheckAllocatorMatchFunctor(bslmf::MovableRef<CheckAllocatorMatchFunctor>
+                                   original) BSLS_KEYWORD_NOEXCEPT;
+
+    CheckAllocatorMatchFunctor(
+                bslmf::MovableRef<CheckAllocatorMatchFunctor>  original,
+                bslma::Allocator                              *basicAllocator);
+
+    /// Create a `CheckAllocatorMatchFunctor` object having the same value as the
+    /// specified `original` object.  Optionally specify a `basicAllocator`
+    /// used to supply memory.  If `basicAllocator` is 0, the currently
+    /// installed default allocator is used.
+    CheckAllocatorMatchFunctor(
+                        const CheckAllocatorMatchFunctor&  original,
+                        bslma::Allocator                  *basicAllocator = 0);
+
+    // MANIPULATORS
+
+    /// Assign to this object the value of the specified `rhs` object, and
+    /// return a reference providing modifiable access to this object.
+    CheckAllocatorMatchFunctor& operator=(
+                                        const CheckAllocatorMatchFunctor& rhs);
+
+    /// TBD: comment this
+    CheckAllocatorMatchFunctor& operator=(
+                            bslmf::MovableRef<CheckAllocatorMatchFunctor> rhs);
+
+    /// Invoke a functor validating this functor's match and copy counts.
+    void operator()();
+};
+
+                         // --------------------------
+                         // CheckAllocatorMatchFunctor
+                         // --------------------------
+
+// CREATORS
+CheckAllocatorMatchFunctor::CheckAllocatorMatchFunctor()
+: d_matchedCopyCount(0)
+, d_matchedMoveCount(0)
+, d_mismatchedCopyCount(0)
+, d_mismatchedMoveCount(0)
+, d_allocator_p(bslma::Default::allocator(0))
+{
+}
+
+CheckAllocatorMatchFunctor::CheckAllocatorMatchFunctor(
+                                              bslma::Allocator *basicAllocator)
+: d_matchedCopyCount(0)
+, d_matchedMoveCount(0)
+, d_mismatchedCopyCount(0)
+, d_mismatchedMoveCount(0)
+, d_allocator_p(basicAllocator)
+{
+}
+
+CheckAllocatorMatchFunctor::CheckAllocatorMatchFunctor(
+ bslmf::MovableRef<CheckAllocatorMatchFunctor> original) BSLS_KEYWORD_NOEXCEPT
+: d_allocator_p(bslma::Default::allocator(0))
+{
+    const CheckAllocatorMatchFunctor& orig =
+                      static_cast<const CheckAllocatorMatchFunctor&>(original);
+
+    d_matchedCopyCount    = orig.d_matchedCopyCount;
+    d_mismatchedCopyCount = orig.d_mismatchedCopyCount;
+    d_matchedMoveCount    = orig.d_matchedMoveCount;
+    d_mismatchedMoveCount = orig.d_mismatchedMoveCount;
+
+    if (orig.d_allocator_p == d_allocator_p) {
+        ++d_matchedMoveCount;
+    }
+    else {
+        ++d_mismatchedMoveCount;
+    }
+}
+
+CheckAllocatorMatchFunctor::CheckAllocatorMatchFunctor(
+                bslmf::MovableRef<CheckAllocatorMatchFunctor>  original,
+                bslma::Allocator                              *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    const CheckAllocatorMatchFunctor& orig =
+                      static_cast<const CheckAllocatorMatchFunctor&>(original);
+
+    d_matchedCopyCount    = orig.d_matchedCopyCount;
+    d_mismatchedCopyCount = orig.d_mismatchedCopyCount;
+    d_matchedMoveCount    = orig.d_matchedMoveCount;
+    d_mismatchedMoveCount = orig.d_mismatchedMoveCount;
+
+    if (orig.d_allocator_p == d_allocator_p) {
+        ++d_matchedMoveCount;
+    }
+    else {
+        ++d_mismatchedMoveCount;
+    }
+}
+
+CheckAllocatorMatchFunctor::CheckAllocatorMatchFunctor(
+                    const CheckAllocatorMatchFunctor&  original,
+                    bslma::Allocator                  *basicAllocator)
+: d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    d_matchedCopyCount    = original.d_matchedCopyCount;
+    d_mismatchedCopyCount = original.d_mismatchedCopyCount;
+    d_matchedMoveCount    = original.d_matchedMoveCount;
+    d_mismatchedMoveCount = original.d_mismatchedMoveCount;
+
+    if (original.d_allocator_p == d_allocator_p) {
+        ++d_matchedCopyCount;
+    }
+    else {
+        ++d_mismatchedCopyCount;
+    }
+}
+
+// MANIPULATORS
+CheckAllocatorMatchFunctor& CheckAllocatorMatchFunctor::operator=(
+                                    const CheckAllocatorMatchFunctor& rhs)
+{
+    d_matchedCopyCount    = rhs.d_matchedCopyCount;
+    d_mismatchedCopyCount = rhs.d_mismatchedCopyCount;
+    d_matchedMoveCount    = rhs.d_matchedMoveCount;
+    d_mismatchedMoveCount = rhs.d_mismatchedMoveCount;
+
+    if (rhs.d_allocator_p == d_allocator_p) {
+        ++d_matchedCopyCount;
+    }
+    else {
+        ++d_mismatchedCopyCount;
+    }
+
+    return *this;
+}
+
+CheckAllocatorMatchFunctor& CheckAllocatorMatchFunctor::operator=(
+                        bslmf::MovableRef<CheckAllocatorMatchFunctor> rhs)
+{
+    const CheckAllocatorMatchFunctor& source =
+                           static_cast<const CheckAllocatorMatchFunctor&>(rhs);
+
+    d_matchedCopyCount    = source.d_matchedCopyCount;
+    d_mismatchedCopyCount = source.d_mismatchedCopyCount;
+    d_matchedMoveCount    = source.d_matchedMoveCount;
+    d_mismatchedMoveCount = source.d_mismatchedMoveCount;
+
+    if (source.d_allocator_p == d_allocator_p) {
+        ++d_matchedCopyCount;
+    }
+    else {
+        ++d_mismatchedCopyCount;
+    }
+
+    return *this;
+}
+
+void CheckAllocatorMatchFunctor::operator()()
+{
+    // No mismatched allocators.
+    ASSERTV(d_mismatchedCopyCount,
+            d_mismatchedMoveCount,
+            0 == d_mismatchedCopyCount && 0 == d_mismatchedMoveCount);
+
+    ASSERTV(d_matchedMoveCount, d_matchedCopyCount,
+            d_matchedMoveCount > d_matchedCopyCount);
+    ASSERTV(d_matchedMoveCount,
+            0 < d_matchedMoveCount);
+
+    if (veryVerbose) {
+        bsl::cout << "CheckAllocatorMatchFunctor::operator(): ";
+        P_(d_matchedCopyCount);
+        P_(d_mismatchedCopyCount);
+        P_(d_matchedMoveCount);
+        P(d_mismatchedMoveCount);
+    }
+}
+
+}  // close namespace case17
+
+// TRAITS
+namespace BloombergLP {
+namespace bslma {
+template <>
+struct UsesBslmaAllocator<case17::CheckAllocatorMatchFunctor>
+: bsl::true_type {
+};
+}  // close namespace bslma
+}  // close enterprise namespace
+
+// ============================================================================
+//                         CASE 15 RELATED ENTITIES
+// ----------------------------------------------------------------------------
+
+namespace case15 {
                             // ===================
                             // OnceBlockingFunctor
                             // ===================
@@ -896,7 +1146,7 @@ void CopyCountingFunctor::operator()()
     (void)foo; // To avoid warning of unused field.
 }
 
-}  // close namespace case14
+}  // close namespace case15
 
 // ============================================================================
 //                          CASE 8 RELATED ENTITIES
@@ -911,18 +1161,18 @@ static void counter(int *result, int num)
 }
 
 // ============================================================================
-//                          CASE 7 RELATED ENTITIES
+//                          CASE 8 RELATED ENTITIES
 // ----------------------------------------------------------------------------
 enum {
     DEPTH_LIMIT = 10,
-            MIN = 5,
-            MAX = 10, // must be greater than or equal to DEPTH_LIMIT
+            MIN = 10,
+            MAX = 15, // must be greater than or equal to DEPTH_LIMIT
            IDLE = 100 // in milliseconds
 };
 
 Obj *xP;
 bslmt::Barrier barrier(DEPTH_LIMIT + 1); // to ensure that all the threads have
-                                        // started
+                                         // started
 
 bsls::AtomicInt depthCounter;
 
@@ -930,12 +1180,12 @@ extern "C" {
 
 /// This function is used to simulate a thread pool job.  It enqueues itself
 /// in the pool if the depth limit is not reached.
-void TestJobFunction7(void *)
+void TestJobFunction8(void *)
 {
     ASSERT(depthCounter >= 0);
     ASSERT(depthCounter <= DEPTH_LIMIT);
     if (++depthCounter != DEPTH_LIMIT)
-        xP->enqueueJob(TestJobFunction7, NULL);
+        xP->enqueueJob(TestJobFunction8, NULL);
 
     barrier.wait();
 }
@@ -1036,7 +1286,51 @@ int main(int argc, char *argv[])
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
+    bslmt::TimedCompletionGuard completionGuard;
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
+
     switch (test) { case 0: // 0 is always the first test case
+      case 17: {
+        // --------------------------------------------------------------------
+        // INTERNAL FUNCTOR MOVE
+        //
+        // Concerns:
+        // 1. In the `workerThread()` method, when the functor is taken off of
+        //    the queue, it should be moved more often than copied, and the
+        //    allocators should match on each move/copy.
+        //
+        // Plan:
+        // 1. Create a simple functor, `CheckAllocatorMatchFunctor` and check
+        //    the various move/copy counts in its `operator()`.
+        //
+        // Testing:
+        //   INTERNAL FUNCTOR MOVE
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "INTERNAL FUNCTOR MOVE\n"
+                             "=====================\n";
+
+        const int k_MIN_THREADS = 1;
+        const int k_MAX_THREADS = 1;
+        const int k_IDLE_TIME   = 0;
+
+        bslmt::ThreadAttributes attributes;
+        Obj                     mX(attributes,
+                                   k_MIN_THREADS,
+                                   k_MAX_THREADS,
+                                   k_IDLE_TIME,
+                                   &testAllocator);
+        mX.start();
+
+        case17::CheckAllocatorMatchFunctor f(&testAllocator);
+
+        Obj::Job job(bsl::allocator_arg_t(), &testAllocator, f);
+
+        ASSERT(0 == mX.enqueueJob(bslmf::MovableRefUtil::move(job)));
+
+        mX.drain();
+      } break;
       case 16: {
         // --------------------------------------------------------------------
         // TESTING THREAD NAMES
@@ -1295,14 +1589,14 @@ int main(int argc, char *argv[])
         // Stop the pool from running jobs until we are done with the
         // counting of copies, otherwise race conditions will arise.
 
-        case14::OnceBlockingFunctor blocker(&latch);
+        case15::OnceBlockingFunctor blocker(&latch);
         ASSERT(0 == mX.enqueueJob(blocker));
 
         // Counter to count the number of copies made of the functor.
 
         int counter = 0;
 
-        case14::CopyCountingFunctor f(&counter);
+        case15::CopyCountingFunctor f(&counter);
 
         ASSERTV(counter, 0 == counter);  // Sanity check
 
@@ -1676,8 +1970,10 @@ int main(int argc, char *argv[])
             Obj localX(attr, MIN, MAX, IDLE);
             xP = &localX;
             STARTPOOL(localX);
-            localX.enqueueJob(TestJobFunction7, NULL);
-            barrier.wait();
+            depthCounter = 0;
+            localX.enqueueJob(TestJobFunction8, NULL);
+            ASSERT(0 == barrier.timedWait(
+                         bsls::SystemTime::nowRealtimeClock().addSeconds(30)));
             ASSERT(DEPTH_LIMIT == depthCounter);
             if (veryVerbose) { T_ P(depthCounter); }
         }
@@ -2008,11 +2304,11 @@ int main(int argc, char *argv[])
             } VALUES[] = {
                 //line min threads max threads max idle
                 //---- ----------- ----------- --------
-                { L_ ,         10,         50,       30 },
+                { L_ ,         6 ,         12,       10 },
                 { L_ ,         1 ,         1 ,        1 },
-                { L_ ,         50,         80,       60 },
-                { L_ ,         2 ,         22,       72 },
-                { L_ ,         20,         80,       15 }
+                { L_ ,         10,         20,       20 },
+                { L_ ,         2 ,         8 ,       25 },
+                { L_ ,         8 ,         16,       15 }
             };
 
             const int NUM_VALUES = sizeof VALUES / sizeof *VALUES;
@@ -2245,6 +2541,10 @@ int main(int argc, char *argv[])
         if (veryVerbose) cout << "\tTesting: `drain`\n"
                               << "\t----------------" << endl;
 
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             const int          MIN  = VALUES[i].d_minThreads;
             const int          MAX  = VALUES[i].d_maxThreads;
@@ -2303,6 +2603,10 @@ int main(int argc, char *argv[])
         if (veryVerbose) cout << "\n\tTesting: `stop`"
                               << "\n\t--------------" << endl;
 
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
+
         for (int i = 0; i < NUM_VALUES; ++i) {
             const int          MIN  = VALUES[i].d_minThreads;
             const int          MAX  = VALUES[i].d_maxThreads;
@@ -2332,22 +2636,56 @@ int main(int argc, char *argv[])
             ASSERTV(i, MAX == X.maxThreads());
             ASSERTV(i, IDLE== X.maxIdleTimeInterval());
 
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
             STARTPOOL(x);
             ASSERT(1 == x.enabled());
+
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
             mutex.lock();
             ASSERT(x.numWaitingThreads() == MIN);
             for (int j=0; j < MAX; j++) {
                 args.d_startSig = 0;
                 args.d_stopSig = 0;
+
+                ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
                 x.enqueueJob(TestJobFunction1, &args);
                 while ( !args.d_startSig ) {
+                    ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
                     startCond.wait(&mutex);
                 }
             }
             args.d_stopSig++;
             mutex.unlock();
             stopCond.broadcast();
+
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
             x.stop();
+
+            ASSERT(0 == completionGuard.updateText(bsl::format(
+                                                            "case {}, line {}",
+                                                            test,
+                                                            __LINE__)));
+
             ASSERT(0 == x.enabled());
             ASSERT(MAX == args.d_count);
             ASSERT(0 == x.numActiveThreads());
@@ -2361,6 +2699,10 @@ int main(int argc, char *argv[])
         if (veryVerbose) cout << "\n\tTesting: `shutdown`"
                               << "\n\t------------------"
                               << endl;
+
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
 
         for (int i = 0; i < NUM_VALUES; ++i) {
             const int          MIN  = VALUES[i].d_minThreads;
@@ -2422,7 +2764,6 @@ int main(int argc, char *argv[])
                 T_ P_(x.numActiveThreads()); P(x.numWaitingThreads());
             }
         }
-
       } break;
       case 3: {
         // --------------------------------------------------------------------
@@ -2799,11 +3140,11 @@ int main(int argc, char *argv[])
             for (int i=0; i<NITERATIONS; ++i) {
                 args.d_startSig = 0;
                 args.d_stopSig = 0;
-                bslmt::ThreadUtil::create(
-                        &threadHandles[i],
+                CREATETHREAD(
+                        threadHandles[i],
                         attributes,
                         (bslmt::ThreadUtil::ThreadFunction)TestThreadFunction1,
-                        &args);
+                        args);
                 while ( !args.d_startSig ) {
                     startCond.wait(&mutex);
                 }
@@ -2819,6 +3160,10 @@ int main(int argc, char *argv[])
             }
             ASSERT(NITERATIONS == args.d_count);
         }
+
+        ASSERT(0 == completionGuard.updateText(bsl::format("case {}, line {}",
+                                                           test,
+                                                           __LINE__)));
 
         if (veryVerbose) cout << "\tTesting: `TestJobFunction2`\n"
                               << "\t===========================" << endl;
@@ -2842,11 +3187,11 @@ int main(int argc, char *argv[])
                 mutex.lock();
                 args.d_startSig=0;
                 args.d_stopSig=0;
-                bslmt::ThreadUtil::create(
-                        &threadHandles[i],
+                CREATETHREAD(
+                        threadHandles[i],
                         attributes,
                         (bslmt::ThreadUtil::ThreadFunction)TestThreadFunction2,
-                        &args);
+                        args);
                 while ( !args.d_startSig ) {
                     startCond.wait(&mutex);
                 }

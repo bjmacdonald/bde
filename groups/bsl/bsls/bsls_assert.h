@@ -63,18 +63,18 @@ BSLS_IDENT("$Id: $")
 //
 ///Assertion Semantics
 ///-------------------
-// There are three important aspects of assertions: (1) **Every** **assertion**
-// **is** **redundant**; it is essential that if all assertions are compiled out of
-// a program that is defect-free, apart from improved runtime performance, the
-// program behaves identically.  Hence, (2) **each** !boolean-valued! **assert**
-// **argument** **must** **have** **no** !side-effects!.  Finally, (3) **assertions**
-// **do** **not** **affect** **binary** **compatibility**; hence, translation units with
-// different assertion levels (but not necessarily build targets) can safely be
-// combined into a single program (see "Build Modes" and "Assertions in Header
-// Files" below).  Note that the build target `BDE_BUILD_TARGET_SAFE_2` does
-// permit binary incompatibility for conditionally compiled source code, but
-// there is no corresponding `BSLS_ASSERT_SAFE_2` assertion macro (see {Usage}
-// below).
+// There are three important aspects of assertions: (1) **Every assertion
+// is redundant**; it is essential that if all assertions are compiled
+// out of a program that is defect-free, apart from improved runtime
+// performance, the program behaves identically.  Hence, (2) **each**
+// !boolean-valued! **assert argument must have no**
+// !side-effects!.  Finally, (3) **assertions do not affect binary
+// compatibility**; hence, translation units with different
+// assertion levels (but not necessarily build targets) can safely be combined
+// into a single program (see "Build Modes" and "Assertions in Header Files"
+// below).  Note that the build target `BDE_BUILD_TARGET_SAFE_2` does permit
+// binary incompatibility for conditionally compiled source code, but there is
+// no corresponding `BSLS_ASSERT_SAFE_2` assertion macro (see [](#Usage)).
 //
 ///Assertion Modes
 ///---------------
@@ -97,7 +97,7 @@ BSLS_IDENT("$Id: $")
 // threshold than what they currently have deployed are being triggered
 // (without terminating the application).  It is intended as an interim step
 // towards lowering the assertion level threshold for an existing application.
-// See {`bsls_review`} for a more detailed description of the behavior of
+// See `bsls_review` for a more detailed description of the behavior of
 // assertions in review mode and suggested workflows for using this behavior.
 //
 ///Detailed Behavior
@@ -143,7 +143,7 @@ BSLS_IDENT("$Id: $")
 // will have on the runtime performance of the function, and in some cases on
 // the size of the function.
 //
-// 1. BSLS_ASSERT_SAFE - This macro should be reserved for tests incurring an
+// 1. `BSLS_ASSERT_SAFE` - This macro should be reserved for tests incurring an
 //    expensive change to the performance of a function, either a very high
 //    constant time increase in execution time of the function, or an increase
 //    in the algorithmic complexity of a function.  Note especially that a
@@ -151,9 +151,9 @@ BSLS_IDENT("$Id: $")
 //    functions (e.g., an `O(n)` check in a function with a documented
 //    `O(log(n))` runtime speed) and so checks with that level of cost should
 //    be reserved for diagnostic use in "safe" builds.
-// 2. BSLS_ASSERT - For "inexpensive" checks with only a constant factor
+// 2. `BSLS_ASSERT` - For "inexpensive" checks with only a constant factor
 //    overhead.  The majority of checks should fall into this category.
-// 3. BSLS_ASSERT_OPT - For "negligible" checks that have little to no
+// 3. `BSLS_ASSERT_OPT` - For "negligible" checks that have little to no
 //    measurable overhead on a function.  This will often be the case for
 //    argument checking in larger functions, or very simple checks in smaller
 //    functions.  Keep in mind that these checks will be enabled in all
@@ -287,7 +287,7 @@ BSLS_IDENT("$Id: $")
 // method and passing it (the address of) a function whose signature conforms
 // to the `bsls::Assert::ViolationHandler` `typedef`.  This handler may be one
 // of the other handler methods provided in `bsls::Assert`, or a new "custom"
-// function, written by the user (see {Usage} below).
+// function, written by the user (see [](#Usage)).
 //
 ///Exception-Throwing Failure Handlers and `bsls::AssertFailureHandlerGuard`
 ///-------------------------------------------------------------------------
@@ -303,7 +303,7 @@ BSLS_IDENT("$Id: $")
 // Note that an object of type `bsls::AssertFailureHandlerGuard` can be used to
 // temporarily set an exception-throwing handler within a `try` block,
 // automatically restoring the previous handler when the `try` block exits (see
-// {Usage} below).
+// [](#Usage)).
 //
 ///Assertion Handler Policy
 ///------------------------
@@ -368,7 +368,6 @@ BSLS_IDENT("$Id: $")
 // and optionally checks for (defends against) a negative `width` argument:
 // ```
 // // our_square.h
-// // ...
 //
 // inline
 // void Square::setWidth(int width)
@@ -381,7 +380,7 @@ BSLS_IDENT("$Id: $")
 // Now consider a client that uses this `setWidth` method:
 // ```
 // // my_client.cpp
-// // ...
+//
 // void f()
 // {
 //     Square s;
@@ -403,7 +402,6 @@ BSLS_IDENT("$Id: $")
 // template, parameterized by element `TYPE`:
 // ```
 // // our_list.h
-// // ...
 //
 // template <class TYPE>
 // void List<TYPE>::reserveCapacity(int numElements)
@@ -441,11 +439,12 @@ BSLS_IDENT("$Id: $")
 //
 ///Conditional Compilation
 ///-----------------------
-// To recap, there are three (mutually compatible) general *build* *targets*:
+// To recap, there are three (mutually compatible) general **build targets**:
 // * `BDE_BUILD_TARGET_OPT`
 // * `BDE_BUILD_TARGET_SAFE`
 // * `BDE_BUILD_TARGET_SAFE_2`
-// seven (mutually exclusive) component-specific *assertion* *levels*:
+//
+// seven (mutually exclusive) component-specific **assertion levels**:
 // * `BSLS_ASSERT_LEVEL_ASSERT_SAFE`
 // * `BSLS_ASSERT_LEVEL_ASSERT`
 // * `BSLS_ASSERT_LEVEL_ASSERT_OPT`
@@ -453,16 +452,19 @@ BSLS_IDENT("$Id: $")
 // * `BSLS_ASSERT_LEVEL_ASSUME_OPT`
 // * `BSLS_ASSERT_LEVEL_ASSUME_ASSERT`
 // * `BSLS_ASSERT_LEVEL_ASSUME_SAFE`
-// and four (mutually exclusive) component-specific *review* *levels*:
+//
+// and four (mutually exclusive) component-specific **review levels**:
 // * `BSLS_REVIEW_LEVEL_REVIEW_SAFE`
 // * `BSLS_REVIEW_LEVEL_REVIEW`
 // * `BSLS_REVIEW_LEVEL_REVIEW_OPT`
 // * `BSLS_REVIEW_LEVEL_NONE`
+//
 // The above macros can be defined (externally) by the build environment to
-// affect which of the three *assert* *macros*:
+// affect which of the three **assert macros**:
 // * `BSLS_ASSERT_SAFE(boolean-valued expression)`
 // * `BSLS_ASSERT(boolean-valued expression)`
 // * `BSLS_ASSERT_OPT(boolean-valued expression)`
+//
 // will be enabled in assert mode, which will be in review mode, which will be
 // assumed, and which will be disabled.
 //
@@ -492,6 +494,7 @@ BSLS_IDENT("$Id: $")
 // * `BSLS_ASSERT_SAFE_IS_ACTIVE`
 // * `BSLS_ASSERT_IS_ACTIVE`
 // * `BSLS_ASSERT_OPT_IS_ACTIVE`
+//
 // These three are defined if the corresponding macro is in review mode - and
 // thus the expression will be checked and the review violation handler will be
 // invoked on failure.  These will be defined when the review level has been
@@ -499,6 +502,7 @@ BSLS_IDENT("$Id: $")
 // * `BSLS_ASSERT_SAFE_IS_REVIEW`
 // * `BSLS_ASSERT_IS_REVIEW`
 // * `BSLS_ASSERT_OPT_IS_REVIEW`
+//
 // These three are defined if the corresponding macro is being assumed, and it
 // will be hard undefined behavior to violate these expressions:
 // * `BSLS_ASSERT_SAFE_IS_ASSUMED`
@@ -513,32 +517,32 @@ BSLS_IDENT("$Id: $")
 // * `BSLS_ASSERT_IS_USED`
 // * `BSLS_ASSERT_OPT_IS_USED`
 //
-// Note that any of the `IS_ACTIVE`, `IS_REVIEW", and `IS_ASSUMED' macros being
+// Note that any of the `IS_ACTIVE`, `IS_REVIEW`, and `IS_ASSUMED` macros being
 // defined will imply that the corresponding `IS_USED` macro is also defined.
 //
 // Which of these macros to use to conditionally compile supporting code is
 // based on when that supporting code needs to be compiled:
 // * Use `#if defined(..._IS_USED)` when:
-//   * Writing functions that are only accessible to and needed for assertions
+//   - Writing functions that are only accessible to and needed for assertions
 //     of the corresponding level.  This could be private member functions,
 //     static functions, or functions in an anonymous namespace.  See
 //     {Example 8} for details on this use.
 // * Use `#if !defined(..._IS_ACTIVE) && !defined(..._IS_ASSUMED)` when:
-//   * You are writing (test) code that will intentionally violate a contract
+//   - You are writing (test) code that will intentionally violate a contract
 //     when there is not going to be any intrinsic ill effect to that
 //     violation.  Generally this should only be required when there is a need
 //     to validate out-of-contract behavior of a component from within its own
 //     test driver.
 // * Use `#if defined(...IS_ACTIVE)` when:
-//   * You are doing negative testing and want to be sure that when you call
+//   - You are doing negative testing and want to be sure that when you call
 //     your function out of contract that the violation handler will be
-//     invoked.  See {`bsls_asserttest`} for tools to do this without having
+//     invoked.  See `bsls_asserttest` for tools to do this without having
 //     to manually check these macros.
-//   * Writing redundant defensive code that should only execute when the
+//   - Writing redundant defensive code that should only execute when the
 //     corresponding assertions are going to be enabled.  The assertion itself
 //     should also be included in the same preprocessor block.  See
 //     {Example 9} for details on this use.
-//   * Note that historically this was the only macro available, and it is
+//   - Note that historically this was the only macro available, and it is
 //     often used for blocks of code where the checks above would be more
 //     appropriate.  This can often lead to code that fails to compile with
 //     `BSLS_ASSERT_VALIDATE_DISABLED_MACROS` enabled or which will not work
@@ -553,7 +557,7 @@ BSLS_IDENT("$Id: $")
 ///-------------------------------------
 // An additional external macro, `BSLS_ASSERT_VALIDATE_DISABLED_MACROS`, can be
 // defined to control the compile time behavior of `bsls_assert`.  Enabling
-// this macro configures all *disabled* assert macros to still instantiate
+// this macro configures all **disabled** assert macros to still instantiate
 // their predicates (in a non-evaluated context) to be sure that the predicate
 // is still syntactically valid.  This can be used to ensure assertions that
 // are rarely enabled have valid expressions.
@@ -605,17 +609,18 @@ BSLS_IDENT("$Id: $")
 // `y` coordinates in the range `[-1000 .. 1000]`:
 // ```
 // my_kpoint.h
-// ...
 //
-//  class Kpoint {
-//      short int d_x;
-//      short int d_y;
-//    public:
-//      Kpoint(short int x, short int y);
-//          // ...
-//          // The behavior is undefined unless '-1000 <= x <= 1000' and
-//          // '-1000 <= y <= 1000'.
-//      // ...
+// class Kpoint {
+//     short int d_x;
+//     short int d_y;
+//   public:
+//
+//     /// ...
+//     /// The behavior is undefined unless `-1000 <= x <= 1000` and
+//     /// `-1000 <= y <= 1000`.
+//     Kpoint(short int x, short int y);
+//
+//     // ...
 //  };
 //
 // ...
@@ -643,16 +648,16 @@ BSLS_IDENT("$Id: $")
 // my_hashtable.h
 // ...
 //
+//  /// ...
 //  class HashTable {
-//      // ...
 //    public:
 //      // ...
 //
+//      /// Adjust the size of the underlying hash table to be approximately
+//      /// the current number of elements divided by the specified
+//      /// `loadFactor`.  The behavior is undefined unless
+//      /// `0 < loadFactor`.
 //      void resize(double loadFactor);
-//          // Adjust the size of the underlying hash table to be approximately
-//          // the current number of elements divided by the specified
-//          // 'loadFactor'.  The behavior is undefined unless
-//          // '0 < loadFactor'.
 //  };
 // ```
 // Since the relative runtime cost of validating the input argument is quite
@@ -680,8 +685,8 @@ BSLS_IDENT("$Id: $")
 // my_tradingsystem.h
 // ...
 //
+//  /// ...
 //  class TradingSystem {
-//      // ...
 //    public:
 //      // ...
 // ```
@@ -689,11 +694,11 @@ BSLS_IDENT("$Id: $")
 // as a scaling factor, an integer that must be a multiple of 100 or the
 // behavior is undefined (and might actually execute a trade):
 // ```
+//     /// Execute the current trade using the specified `scalingFactor`.
+//     /// The behavior is undefined unless `0 <= scalingFactor` and `100`
+//     /// evenly divides `scalingFactor`.
 //     void executeTrade(int scalingFactor);
-//         // Execute the current trade using the specified 'scalingFactor'.
-//         // The behavior is undefined unless '0 <= scalingFactor' and '100'
-//         // evenly divides 'scalingFactor'.
-//     // ...
+//
 // };
 // ```
 // Because the cost of the two checks is likely not even measurable compared to
@@ -821,13 +826,13 @@ BSLS_IDENT("$Id: $")
 // ```
 // static bool globalEnableOurPrintingFlag = true;
 //
+// /// Print the expression `comment`, `file` name, and `line` number from
+// /// the specified `violation` to `stdout` as a comma-separated list,
+// /// replacing null string-argument values with empty strings (unless
+// /// printing has been disabled by the `globalEnableOurPrintingFlag`
+// /// variable), then unconditionally abort.
 // static
 // void ourFailureHandler(const bsls::AssertViolation& violation)
-//     // Print the expression 'comment', 'file' name, and 'line' number from
-//     // the specified 'violation' to 'stdout' as a comma-separated list,
-//     // replacing null string-argument values with empty strings (unless
-//     // printing has been disabled by the 'globalEnableOurPrintingFlag'
-//     // variable), then unconditionally abort.
 // {
 //     const char *comment = violation.comment();
 //     if (!comment) {
@@ -879,8 +884,8 @@ BSLS_IDENT("$Id: $")
 // the simple factorial function below, which validates, in "debug mode" (or
 // "safe mode"), that its input is non-negative:
 // ```
+// /// Return `n!`.  The behavior is undefined unless `0 <= n`.
 // double fact(int n)
-//     // Return 'n!'.  The behavior is undefined unless '0 <= n'.
 // {
 //     BSLS_ASSERT(0 <= n);
 //
@@ -1021,52 +1026,55 @@ BSLS_IDENT("$Id: $")
 // elided; the methods of particular interest here are `begin` and `insert`:
 // ```
 //
-//   class List {
-//       List_Link *d_head_p;
-//     public:
-//       // CREATORS
-//       List() : d_head_p(0) { }
-//       List(const List&) { /* ... */ }
-//       ~List() { /* ... */ }
+// class List {
+//     List_Link *d_head_p;
+//   public:
+//     // CREATORS
+//     List() : d_head_p(0) { }
+//     List(const List&) { /* ... */ }
+//     ~List() { /* ... */ }
 //
-//       // MANIPULATORS
-//       List& operator=(const List&) { /* ... */ return *this; }
+//     // MANIPULATORS
+//     List& operator=(const List&) { /* ... */ return *this; }
 //
-//       //| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
-//       //v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
-//       //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-//       ListIter begin()
-//           // Return an iterator referring to the beginning of this list.
-//       {
-//           return ListIter(&d_head_p, this);
-//       }
-//       //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+//     //| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+//     //v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
+//     //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 //
-//       //| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
-//       //v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
-//       //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-//       void insert(const ListIter& position, int data)
-//           // Insert the specified 'data' value into this list at the
-//           // specified 'position'.
-//       {
-//   #ifdef BDE_BUILD_TARGET_SAFE_2
-//           BSLS_ASSERT_SAFE(this == position.d_parent_p);  // "safe 2 mode"
-//   #endif
-//           *position.d_current_p = new List_Link(*position.d_current_p, data);
-//       }
-//       //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+//     /// Return an iterator referring to the beginning of this list.
+//     ListIter begin()
+//     {
+//         return ListIter(&d_head_p, this);
+//     }
+//     //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 //
-//       // ACCESSORS
-//       void print()
-//           // Output the contents of this list to 'stdout'.
-//       {
-//           printf( "[" );
-//           for (List_Link *p = d_head_p; p; p = p->d_next_p) {
-//               printf( " %d", p->d_data );
-//           }
-//           printf(" ]\n");
-//       }
-//   };
+//     //| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+//     //v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
+//     //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+//
+//     /// Insert the specified `data` value into this list at the specified
+//     /// `position`.
+//     void insert(const ListIter& position, int data)
+//     {
+// #ifdef BDE_BUILD_TARGET_SAFE_2
+//         BSLS_ASSERT_SAFE(this == position.d_parent_p);  // "safe 2 mode"
+// #endif
+//         *position.d_current_p = new List_Link(*position.d_current_p, data);
+//     }
+//     //:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+//
+//     // ACCESSORS
+//
+//     /// Output the contents of this list to `stdout`.
+//     void print()
+//     {
+//         printf( "[" );
+//         for (List_Link *p = d_head_p; p; p = p->d_next_p) {
+//             printf( " %d", p->d_data );
+//         }
+//         printf(" ]\n");
+//     }
+// };
 // ```
 // Outside of "safe 2 mode", it is possible to pass an iterator object obtained
 // from the `begin` method of one `List` object into the `insert` method of
@@ -1135,9 +1143,9 @@ BSLS_IDENT("$Id: $")
 // An elided class `MyDate`, which is based on a serial-date implementation, is
 // provided for reference:
 // ```
+// /// This class implements a value-semantic "date" type representing
+// /// valid date values in the range `[ 0001Jan01 .. 9999Dec31 ]`.
 // class MyDate {
-//     // This class implements a value-semantic "date" type representing
-//     // valid date values in the range '[ 0001Jan01 .. 9999Dec31 ]'.
 //
 //     // DATA
 //     int d_serialDate;  // sequential representation within a valid range
@@ -1148,19 +1156,20 @@ BSLS_IDENT("$Id: $")
 //      // ...
 //
 //      // CREATORS
+//
+//      /// Create a `MyDate` object having the value `0001Jan01`.
 //      MyDate();
-//          // Create a 'MyDate' object having the value '0001Jan01'.
 //
 //      // ...
 //
+//      /// Create a `MyDate` object having the same value as the specified
+//      /// `original` object.
 //      MyDate(const MyDate& original);
-//          // Create a 'MyDate' object having the same value as the specified
-//          // 'original' object.
 //
 // #if defined(BSLS_ASSERT_SAFE_IS_ACTIVE)
+//      /// Destroy this object.  Note that in some build modes the
+//      /// destructor generated by the compiler is trivial.
 //      ~MyDate();
-//          // Destroy this object.  Note that in some build modes the
-//          // destructor generated by the compiler is trivial.
 // #endif
 //
 //     // ...
@@ -1205,9 +1214,9 @@ BSLS_IDENT("$Id: $")
 // code that is more fine-grained, modular, and hierarchically reusable:
 // ```
 // struct MyDateImpUtil {
+//     /// Return `true` if the specified `d_date` represents a valid date
+//     /// value, and `false` otherwise.
 //     static bool isValidSerialDate(int d_date);
-//         // Return 'true' if the specified 'd_date' represents a valid date
-//         // value, and 'false' otherwise.
 // };
 //
 // inline
@@ -1249,10 +1258,10 @@ BSLS_IDENT("$Id: $")
 //      // ACCESSORS
 //      // ...
 //
+//      /// Write the value of this object to the specified output `stream`
+//      /// in some human-readable format, and return a reference to
+//      /// `stream`.  Optionally specify ...
 //      std::ostream& print(std::ostream& stream, ...) const;
-//          // Write the value of this object to the specified output 'stream'
-//          // in some human-readable format, and return a reference to
-//          // 'stream'.  Optionally specify ...
 //
 //      // ...
 //
@@ -1261,7 +1270,7 @@ BSLS_IDENT("$Id: $")
 // Successfully writing bad data is among the most insidious of bugs, because a
 // latent error can persist and not be discovered until long after the program
 // terminates.  Writing the value of a corrupted `MyDate` object in a
-// *machine-readable* (binary) format is an error so serious as to warrant
+// **machine-readable** (binary) format is an error so serious as to warrant
 // invoking
 // ```
 // void testFunction(int d_serialDate) {
@@ -1336,7 +1345,7 @@ BSLS_IDENT("$Id: $")
 //  }
 // ```
 ///Example 8: Conditional Compilation of Support Functions
-///- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+///- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Occasionally a function may exist only to support a specific set of
 // assertions.  Often this can happen when a large expression that captures a
 // complicated precondition wants to be refactored into a distinct location to
@@ -1358,18 +1367,18 @@ BSLS_IDENT("$Id: $")
 // class ComplexObject {
 //     // ...
 // #if defined(BSLS_ASSERT_SAFE_IS_USED)
+//     /// Return `true` if the current state of this object fits within the
+//     /// complex requirements of being sufficiently purple, false otherwise.
 //     bool isPurplish() const;
-//         // Return 'true' if the current state of this object fits within
-//         // the complex requirements of being sufficiently purple, false
-//         // otherwise.
 // #endif
 //     // ...
-// public:
+//   public:
 //     // MANIPULATORS
-//  void doSomethingPurpley();
-//         // Do something purpley.  The behavior is undefined unless this
-//         // object is currently purplish (contact customer support to know
-//         // the current threshholds for purplishness).
+//
+//     /// Do something purpley.  The behavior is undefined unless this object
+//     /// is currently purplish (contact customer support to know the current
+//     /// threshholds for purplishness).
+//     void doSomethingPurpley();
 // };
 //
 // #if defined(BSLS_ASSERT_SAFE_IS_USED)
@@ -1414,9 +1423,10 @@ BSLS_IDENT("$Id: $")
 // Suppose we have a function that wishes to swap the values of its input:
 // ```
 // struct MySwapper {
+//
+//     /// Exchange the values of the specified `lhs` and `rhs`.
 //     template <class T>
 //     static void swap(T& lhs, T& rhs)
-//         // Exchange the values of the specified 'lhs' and 'rhs'.
 //     {
 //         T tmp = lhs;
 //         lhs = rhs;
@@ -1432,9 +1442,10 @@ BSLS_IDENT("$Id: $")
 // `BSLS_ASSERT_SAFE_IS_ACTIVE` is defined, like this:
 // ```
 // struct MySwapper {
+//
+//     /// Exchange the values of the specified `lhs` and `rhs`.
 //     template <class T>
 //     static void swap(T& lhs, T& rhs)
-//         // Exchange the values of the specified 'lhs' and 'rhs'.
 //     {
 // #if defined(BSLS_ASSERT_SAFE_IS_ACTIVE)
 //         T origLhs(lhs);
@@ -1987,7 +1998,6 @@ class Assert {
 
                 // Dispatcher Method (called from within macros)
 
-    BSLS_ASSERT_NORETURN_INVOKE_HANDLER
     /// Invoke the currently installed assertion-failure handler function
     /// with the specified `violation`.  The behavior is undefined if the
     /// macro `BSLS_ASSERT_ENABLE_NORETURN_FOR_INVOKE_HANDLER` is defined,
@@ -2001,11 +2011,9 @@ class Assert {
     /// support static analysis tools, which require an annotation to see
     /// that a failed "ASSERT" prevents further execution of a function with
     /// "bad" values.
+    BSLS_ASSERT_NORETURN_INVOKE_HANDLER
     static void invokeHandler(const AssertViolation& violation);
 
-    BSLS_ASSERT_NORETURN_INVOKE_HANDLER
-    /// **DEPRECATED**: Use `invokeHandler(const AssertViolation&)` instead.
-    ///
     /// Invoke the currently installed assertion-failure handler function
     /// with the specified expression `text`, `file` name, and `line` number
     /// as its arguments.  The behavior is undefined if the macro
@@ -2015,6 +2023,9 @@ class Assert {
     /// `terminate`, `throw`, or hang).  Note that this function is
     /// deprecated, as the (BSLS) "ASSERT" macros all now use the
     /// `bsls::AssertViolation` overload of `invokeHandler` instead.
+    ///
+    /// @DEPRECATED: Use `invokeHandler(const AssertViolation&)` instead.
+    BSLS_ASSERT_NORETURN_INVOKE_HANDLER
     static void invokeHandler(const char *text, const char *file, int line);
 
     /// Invoke the currently installed assertion-failure handler function
@@ -2024,10 +2035,10 @@ class Assert {
     static void invokeHandlerNoReturn(const AssertViolation &violation);
 
 #ifdef BSLS_ASSERT_USE_CONTRACTS
+    /// Call `invokeHandler` with an `AssertViolation` with properties from
+    /// the specified `violation`.
     static void invokeLanguageContractHandler(
                                      const std::contract_violation& violation);
-        // Call 'invokeHandler' with an 'AssertViolation' with properties from
-        // the specified 'violation'.
 #endif
 
                       // Standard Assertion-Failure Handlers
@@ -2276,18 +2287,18 @@ int AssertViolation::lineNumber() const
                  // =========================================
                  // IMPLEMENTATION USING THE C++ PREPROCESSOR
                  // =========================================
-//
+
 // At most one of the following build options may be set during the compilation
 // of any component that includes 'bsls_assert.h':
-//..
-//  BSLS_ASSERT_LEVEL_ASSERT_SAFE
-//  BSLS_ASSERT_LEVEL_ASSERT
-//  BSLS_ASSERT_LEVEL_ASSERT_OPT
-//  BSLS_ASSERT_LEVEL_NONE
-//  BSLS_ASSERT_LEVEL_ASSUME_SAFE
-//  BSLS_ASSERT_LEVEL_ASSUME_ASSERT
-//  BSLS_ASSERT_LEVEL_ASSUME_OPT
-//..
+// ```
+// BSLS_ASSERT_LEVEL_ASSERT_SAFE
+// BSLS_ASSERT_LEVEL_ASSERT
+// BSLS_ASSERT_LEVEL_ASSERT_OPT
+// BSLS_ASSERT_LEVEL_NONE
+// BSLS_ASSERT_LEVEL_ASSUME_SAFE
+// BSLS_ASSERT_LEVEL_ASSUME_ASSERT
+// BSLS_ASSERT_LEVEL_ASSUME_OPT
+// ```
 // ----------------------------------------------------------------------------
 
 #if defined(BSLS_ASSERT_LEVEL_ASSERT_SAFE) &&                                 \

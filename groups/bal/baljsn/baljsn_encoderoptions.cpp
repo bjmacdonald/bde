@@ -16,6 +16,7 @@ BSLS_IDENT_RCSID(baljsn_encoderoptions_cpp,"$Id$ $CSID$")
 #include <bsls_assert.h>
 #include <bsls_review.h>
 
+#include <bsl_iterator.h> // `bsl::size`
 #include <bsl_iomanip.h>
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
@@ -56,6 +57,11 @@ const int EncoderOptions::DEFAULT_INITIALIZER_MAX_FLOAT_PRECISION = 0;
 const int EncoderOptions::DEFAULT_INITIALIZER_MAX_DOUBLE_PRECISION = 0;
 
 const bool EncoderOptions::DEFAULT_INITIALIZER_ENCODE_QUOTED_DECIMAL64 = true;
+
+const bool EncoderOptions::DEFAULT_INITIALIZER_ESCAPE_FORWARD_SLASH = true;
+
+const bool EncoderOptions::DEFAULT_INITIALIZER_ENCODE_ANON_SEQUENCE_IN_CHOICE
+                                                                        = true;
 
 const bdlat_AttributeInfo EncoderOptions::ATTRIBUTE_INFO_ARRAY[] = {
     {
@@ -127,6 +133,20 @@ const bdlat_AttributeInfo EncoderOptions::ATTRIBUTE_INFO_ARRAY[] = {
         sizeof("EncodeQuotedDecimal64") - 1,
         "",
         bdlat_FormattingMode::e_TEXT
+    },
+    {
+        ATTRIBUTE_ID_ESCAPE_FORWARD_SLASH,
+        "EscapeForwardSlash",
+        sizeof("EscapeForwardSlash") - 1,
+        "",
+        bdlat_FormattingMode::e_TEXT
+    },
+    {
+        ATTRIBUTE_ID_ENCODE_ANON_SEQUENCE_IN_CHOICE,
+        "EncodeAnonSequenceInChoice",
+        sizeof("EncodeAnonSequenceInChoice") - 1,
+        "",
+        bdlat_FormattingMode::e_TEXT
     }
 };
 
@@ -136,13 +156,13 @@ const bdlat_AttributeInfo *EncoderOptions::lookupAttributeInfo(
         const char *name,
         int         nameLength)
 {
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < bsl::ssize(EncoderOptions::ATTRIBUTE_INFO_ARRAY);
+         ++i) {
         const bdlat_AttributeInfo& attributeInfo =
                     EncoderOptions::ATTRIBUTE_INFO_ARRAY[i];
 
-        if (nameLength == attributeInfo.d_nameLength
-        &&  0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength))
-        {
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
             return &attributeInfo;
         }
     }
@@ -173,6 +193,11 @@ const bdlat_AttributeInfo *EncoderOptions::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_DOUBLE_PRECISION];
       case ATTRIBUTE_ID_ENCODE_QUOTED_DECIMAL64:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODE_QUOTED_DECIMAL64];
+      case ATTRIBUTE_ID_ESCAPE_FORWARD_SLASH:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ESCAPE_FORWARD_SLASH];
+      case ATTRIBUTE_ID_ENCODE_ANON_SEQUENCE_IN_CHOICE:
+        return &ATTRIBUTE_INFO_ARRAY[
+                               ATTRIBUTE_INDEX_ENCODE_ANON_SEQUENCE_IN_CHOICE];
       default:
         return 0;
     }
@@ -191,6 +216,9 @@ EncoderOptions::EncoderOptions()
 , d_encodeNullElements(DEFAULT_INITIALIZER_ENCODE_NULL_ELEMENTS)
 , d_encodeInfAndNaNAsStrings(DEFAULT_INITIALIZER_ENCODE_INF_AND_NA_N_AS_STRINGS)
 , d_encodeQuotedDecimal64(DEFAULT_INITIALIZER_ENCODE_QUOTED_DECIMAL64)
+, d_escapeForwardSlash(DEFAULT_INITIALIZER_ESCAPE_FORWARD_SLASH)
+, d_encodeAnonSequenceInChoice(
+                            DEFAULT_INITIALIZER_ENCODE_ANON_SEQUENCE_IN_CHOICE)
 {
 }
 
@@ -205,6 +233,8 @@ EncoderOptions::EncoderOptions(const EncoderOptions& original)
 , d_encodeNullElements(original.d_encodeNullElements)
 , d_encodeInfAndNaNAsStrings(original.d_encodeInfAndNaNAsStrings)
 , d_encodeQuotedDecimal64(original.d_encodeQuotedDecimal64)
+, d_escapeForwardSlash(original.d_escapeForwardSlash)
+, d_encodeAnonSequenceInChoice(original.d_encodeAnonSequenceInChoice)
 {
 }
 
@@ -230,6 +260,8 @@ EncoderOptions::operator=(const EncoderOptions& rhs)
         d_maxFloatPrecision = rhs.d_maxFloatPrecision;
         d_maxDoublePrecision = rhs.d_maxDoublePrecision;
         d_encodeQuotedDecimal64 = rhs.d_encodeQuotedDecimal64;
+        d_escapeForwardSlash = rhs.d_escapeForwardSlash;
+        d_encodeAnonSequenceInChoice = rhs.d_encodeAnonSequenceInChoice;
     }
 
     return *this;
@@ -247,6 +279,9 @@ void EncoderOptions::reset()
     d_maxFloatPrecision = DEFAULT_INITIALIZER_MAX_FLOAT_PRECISION;
     d_maxDoublePrecision = DEFAULT_INITIALIZER_MAX_DOUBLE_PRECISION;
     d_encodeQuotedDecimal64 = DEFAULT_INITIALIZER_ENCODE_QUOTED_DECIMAL64;
+    d_escapeForwardSlash = DEFAULT_INITIALIZER_ESCAPE_FORWARD_SLASH;
+    d_encodeAnonSequenceInChoice =
+                            DEFAULT_INITIALIZER_ENCODE_ANON_SEQUENCE_IN_CHOICE;
 }
 
 // ACCESSORS
@@ -268,6 +303,9 @@ bsl::ostream& EncoderOptions::print(
     printer.printAttribute("maxFloatPrecision", d_maxFloatPrecision);
     printer.printAttribute("maxDoublePrecision", d_maxDoublePrecision);
     printer.printAttribute("encodeQuotedDecimal64", d_encodeQuotedDecimal64);
+    printer.printAttribute("escapeForwardSlash", d_escapeForwardSlash);
+    printer.printAttribute("encodeAnonSequenceInChoice",
+                           d_encodeAnonSequenceInChoice);
     printer.end();
     return stream;
 }

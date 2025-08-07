@@ -1592,20 +1592,47 @@ int main(int argc, char *argv[])
 
             ASSERT(0 == mX.enableFileLogging(fileName.c_str()));
 
-            bslmt::ThreadUtil::microSleep(100000, 1);       // 1.1 s
-            publishRecord(&mX, "test message 1");
-            ASSERTV(cb.numInvocations(), 1 == cb.numInvocations());
+            bdlt::Datetime t0 = bdlt::CurrentTime::utc();
 
-            // Delay the next message so that it is in the middle of an
-            // scheduled rotation.
-            bslmt::ThreadUtil::microSleep(750000, 1);  // 1.75s
-            publishRecord(&mX, "test message 2");
-            ASSERTV(cb.numInvocations(), 2 == cb.numInvocations());
+            bdlt::Datetime tEnd = t0 + bsls::TimeInterval(6);
+            int expectedRotations = 0;
 
-            // Verify we are back on schedule.
-            bslmt::ThreadUtil::microSleep(250000, 0);  // .25s
-            publishRecord(&mX, "test message 3");
-            ASSERTV(cb.numInvocations(), 3 == cb.numInvocations());
+            while (bdlt::CurrentTime::utc() < tEnd ) {
+                bdlt::Datetime tNow = bdlt::CurrentTime::utc();
+
+                publishRecord(&mX, "test message");
+
+                int elapsedSeconds = (tNow - t0).seconds();
+
+                double rotationWindow =
+                        (t0 + bsls::TimeInterval(expectedRotations + 1) - tNow)
+                            .totalSecondsAsDouble();
+                // Poor man abs(double);
+                if (rotationWindow < 0) {
+                    rotationWindow = -rotationWindow;
+                }
+
+                // If we are within the epsilon of the next rotation, we
+                // should expect a rotation.
+                if (rotationWindow < 0.05) {
+                    // Inside rotation "window" - observing and registering the
+                    // rotation.
+                    if (expectedRotations + 1 == cb.numInvocations()) {
+                        ++expectedRotations;
+                    }
+                } else {
+                    // Outside rotation "window" - no new rotations expected.
+                    expectedRotations = elapsedSeconds;
+                }
+
+                ASSERTV(expectedRotations,
+                        cb.numInvocations(),
+                        expectedRotations == cb.numInvocations());
+
+                // Keep the sleep time small to hit both code inside and
+                // outside the rotation window.
+                bslmt::ThreadUtil::microSleep(100000, 0);  // .1s
+            }
 
             mX.disableFileLogging();
         }
@@ -1695,7 +1722,7 @@ int main(int argc, char *argv[])
             mX.disableFileLogging();
         }
 
-        if (veryVerbose) cout << "\tTest a delayed rotateOnTimeInterval"
+        if (veryVerbose) cout << "Test a delayed rotateOnTimeInterval"
                               << "(DRQS 87930585)"
                               << bsl::endl;
         {
@@ -1730,6 +1757,38 @@ int main(int argc, char *argv[])
             // Verify the callback has not been invoked.
 
             ASSERT(0 == cb.numInvocations());
+
+            mX.disableFileLogging();
+        }
+        if (veryVerbose) cout << "Test sub-second rotations (DRQS 179493032)"
+                              << bsl::endl;
+        {
+            // Test if there is a delay between `enableFileLogging` and
+            // `rotateOnTimeInterval`.
+            bslma::TestAllocator ta("test", veryVeryVeryVerbose);
+
+            bdls::TempDirectoryGuard tempDirGuard("ball_");
+            bsl::string              fileName(tempDirGuard.getTempDirName());
+            bdls::PathUtil::appendRaw(&fileName, "testLog");
+
+            Obj mX(&ta);
+
+            RotCb cb(&ta);
+            mX.setOnFileRotationCallback(cb);
+
+            ASSERT(0 == mX.enableFileLogging(fileName.c_str()));
+
+            mX.rotateOnTimeInterval(bdlt::DatetimeInterval(0, 0, 0, 1));
+
+            // Force 2 sequential rotations. Second rotation should return
+            // an error code (-4) as it will very likely happen within the same
+            // second as the first rotation.
+            mX.forceRotation();
+            ASSERTV(cb.numInvocations(), 1 == cb.numInvocations());
+            ASSERTV(cb.status(), 0 == cb.status());
+            mX.forceRotation();
+            ASSERTV(cb.numInvocations(), 2 == cb.numInvocations());
+            ASSERTV(cb.status(), 0 > cb.status());
 
             mX.disableFileLogging();
         }

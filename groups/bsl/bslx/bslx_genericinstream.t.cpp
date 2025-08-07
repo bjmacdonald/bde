@@ -1540,7 +1540,7 @@ if (veryVerbose) {
         if (verbose)
             cout << "\nNegative Testing." << endl;
         {
-            double DATA[5];
+            double DATA[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
 
             Buf b;
 
@@ -1693,7 +1693,7 @@ if (veryVerbose) {
         if (verbose)
             cout << "\nNegative Testing." << endl;
         {
-            float DATA[5];
+            float DATA[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
 
             Buf b;
 
@@ -1945,7 +1945,7 @@ if (veryVerbose) {
         if (verbose)
             cout << "\nNegative Testing." << endl;
         {
-            bsls::Types::Int64 DATA[5];
+            bsls::Types::Int64 DATA[5] = {1, 2, 3, 4, 5};
 
             Buf b;
 
@@ -1973,7 +1973,7 @@ if (veryVerbose) {
             }
         }
         {
-            bsls::Types::Uint64 DATA[5];
+            bsls::Types::Uint64 DATA[5] = {1, 2, 3, 4, 5};
 
             Buf b;
 

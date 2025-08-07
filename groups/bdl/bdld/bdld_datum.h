@@ -198,7 +198,7 @@ BSLS_IDENT("$Id$ $CSID$")
 //
 // Datum::destroy(datetime, allocator);
 //    // 'datetime' now refers to deallocated memory.  It cannot be used
-//    // used unless it is assigned a new value.
+//    // unless it is assigned a new value.
 // ```
 // Notice that the destroyed `Datum` again behaves similar to a raw-pointer
 // that has been deallocated: the destroyed `Datum` refers to garbage and must
@@ -732,36 +732,16 @@ class Datum {
         , e_BINARY               = 14  // pointer to the binary data
         , e_DECIMAL64            = 15  // Decimal64
         , e_INT_MAP              = 16  // integer map reference
-
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
         , e_REAL                 = e_DOUBLE // old spelling
         , e_ERROR_VALUE          = e_ERROR
-        , DLCT_NIL               = e_NIL
-        , DLCT_INTEGER           = e_INTEGER
-        , DLCT_REAL              = e_DOUBLE
-        , DLCT_STRING            = e_STRING
-        , DLCT_BOOLEAN           = e_BOOLEAN
-        , DLCT_ERROR_VALUE       = e_ERROR_VALUE
-        , DLCT_DATE              = e_DATE
-        , DLCT_TIME              = e_TIME
-        , DLCT_DATETIME          = e_DATETIME
-        , DLCT_DATETIME_INTERVAL = e_DATETIME_INTERVAL
-        , DLCT_INTEGER64         = e_INTEGER64
-        , DLCT_USERDEFINED       = e_USERDEFINED
-        , DLCT_ARRAY             = e_ARRAY
-        , DLCT_MAP               = e_MAP
-        , DLCT_BINARY            = e_BINARY
-        , DLCT_DECIMAL64         = e_DECIMAL64
-#endif  // end - do not omit internal deprecated
+#endif  // BDE_OMIT_INTERNAL_DEPRECATED
     };
 
     // Define `k_NUM_TYPES` to be the number of consecutively valued
     // enumerators in the range `[ e_NIL .. e_DECIMAL64 ]`.
     enum {
           k_NUM_TYPES    = 17           // number of distinct enumerated types
-#ifndef BDE_OMIT_INTERNAL_DEPRECATED
-        , DLCT_NUM_TYPES = k_NUM_TYPES
-#endif  // end - do not omit internal deprecated
     };
 
 #ifdef BSLS_PLATFORM_CPU_32_BIT
@@ -1927,18 +1907,18 @@ class Datum {
 #ifndef BDE_OMIT_INTERNAL_DEPRECATED
     // DEPRECATED
 
-    /// [**DEPRECATED**] Use `createUninitializedMap` instead.
+    /// @DEPRECATED: Use `createUninitializedMap` instead.
     static void createUninitializedMapOwningKeys(
                                     DatumMutableMapOwningKeysRef *result,
                                     SizeType                      capacity,
                                     SizeType                      keysCapacity,
                                     const AllocatorType&          allocator);
 
-    /// [**DEPRECATED**] Use `adoptMap` instead.
+    /// @DEPRECATED: Use `adoptMap` instead.
     static Datum adoptMapOwningKeys(
                                   const DatumMutableMapOwningKeysRef& mapping);
 
-    /// [**DEPRECATED**] Use `disposeUninitializedMap` instead.
+    /// @DEPRECATED: Use `disposeUninitializedMap` instead.
     static void disposeUninitializedMapOwningKeys(
                                 const DatumMutableMapOwningKeysRef& mapping,
                                 const AllocatorType&                allocator);
@@ -3292,7 +3272,16 @@ Datum::DataType Datum::typeFromExtendedInternalType() const
     BSLS_ASSERT_OPT(static_cast<int>(type) <
                     static_cast<int>(k_NUM_EXTENDED_INTERNAL_TYPES));
 
+    // GCC bug 108770: the `BSLS_ASSERT_OPT` above makes GCC warn about the
+    // path where the assertion fails but execution continues.
+#ifdef BSLS_PLATFORM_CMP_GNU
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     return convert[type];
+#ifdef BSLS_PLATFORM_CMP_GNU
+# pragma GCC diagnostic pop
+#endif
 }
 
 inline

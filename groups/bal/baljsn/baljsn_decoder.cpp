@@ -1,7 +1,12 @@
 // baljsn_decoder.cpp                                                 -*-C++-*-
 #include <baljsn_decoder.h>
 
+#include <baljsn_encoder.h>         // for testing only
+#include <baljsn_encoderoptions.h>  // for testing only
+#include <baljsn_printutil.h>       // for testing only
+
 #include <bsls_ident.h>
+
 BSLS_IDENT_RCSID(baljsn_decoder_cpp,"$Id$ $CSID$")
 
 #include <bdlde_utf8util.h>
@@ -54,8 +59,8 @@ int Decoder::skipUnknownElement(const bsl::string_view& elementName)
         if (rc) {
             d_logStream << "Error reading attribute value for "
                         << elementName << "'\n";
+            return rc;                                                // RETURN
         }
-        return rc;                                                    // RETURN
     }
     else if (Tokenizer::e_START_OBJECT == d_tokenizer.tokenType()) {
         // 'elementName' is a sequence or choice.  Descend into the element and
@@ -80,7 +85,7 @@ int Decoder::skipUnknownElement(const bsl::string_view& elementName)
             }
 
             switch (d_tokenizer.tokenType()) {
-              case Tokenizer::e_ELEMENT_NAME: BSLA_FALLTHROUGH;
+              case Tokenizer::e_ELEMENT_NAME:                 BSLA_FALLTHROUGH;
               case Tokenizer::e_ELEMENT_VALUE: {
                 bslstl::StringRef tmp;
                 rc = d_tokenizer.value(&tmp);
@@ -132,7 +137,7 @@ int Decoder::skipUnknownElement(const bsl::string_view& elementName)
             }
 
             switch (d_tokenizer.tokenType()) {
-              case Tokenizer::e_ELEMENT_NAME: BSLA_FALLTHROUGH;
+              case Tokenizer::e_ELEMENT_NAME:                 BSLA_FALLTHROUGH;
               case Tokenizer::e_ELEMENT_VALUE: {
                 bslstl::StringRef tmp;
                 rc = d_tokenizer.value(&tmp);
@@ -169,6 +174,7 @@ int Decoder::skipUnknownElement(const bsl::string_view& elementName)
         d_tokenizer.setAllowHeterogenousArrays(false);
     }
 
+    d_numUnknownElementsSkipped++;
     return 0;
 }
 }  // close package namespace

@@ -6,12 +6,17 @@
 #include <bdls_filesystemutil.h>
 #include <bdls_memoryutil.h>
 #include <bdls_processutil.h>
+
 #include <bslma_defaultallocatorguard.h>
 #include <bslma_testallocator.h>
 
+#include <bslmt_threadutil.h>
+
 #include <bsls_keyword.h>
+#include <bsls_objectbuffer.h>
 #include <bsls_platform.h>
 #include <bsls_review.h>
+#include <bsls_systemtime.h>
 #include <bsls_types.h>
 
 #include <bsl_cstdio.h>
@@ -19,11 +24,19 @@
 #include <bsl_cstring.h>
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
+#include <bsl_optional.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef BSLS_PLATFORM_OS_WINDOWS
+# include <windows.h>
+#else
+# include <fcntl.h>
+# include <errno.h>
+#endif
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -110,6 +123,30 @@ const int mask6  = 1 << 6;
 
 static bdls::FilesystemUtil::FileDescriptor invalid;    // Initialized at start
                                                         // of `main`.
+
+#if defined(BSLS_PLATFORM_OS_WINDOWS)
+void assertFdIsClosed(FdType fd, int line)
+{
+    DWORD flags;
+    ASSERTV(line, !GetHandleInformation(fd, &flags));
+    int rc = GetLastError();
+    ASSERTV(line, rc, ERROR_INVALID_HANDLE == rc);
+}
+#else
+void assertFdIsClosed(FdType fd, int line)
+{
+    int rc = fcntl(fd, F_GETFL);
+    ASSERTV(line, rc, rc < 0);
+    ASSERTV(line, errno, EBADF == errno);
+}
+#endif
+#define U_ASSERT_FD_IS_CLOSED(fd) u::assertFdIsClosed(fd, L_)
+
+bsl::optional<bsls::ReviewViolation> lastViolation;
+void reviewFailBySetViolation(const bsls::ReviewViolation& violation)
+{
+    lastViolation = violation;
+}
 
 void seedRandChar(int i)
 {
@@ -310,26 +347,39 @@ int main(int argc, char *argv[])
     // CONCERN: `BSLS_REVIEW` failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
-#ifdef BSLS_PLATFORM_OS_WINDOWS
-    char tmpDirName[] = "C:\\TEMP";
-#else
-    char tmpDirName[] = "/tmp";
-#endif
-
-    ASSERT(FileUtil::exists(tmpDirName) && FileUtil::isDirectory(tmpDirName,
-                                                                 true));
-
     bslma::TestAllocator ta;
     bslma::DefaultAllocatorGuard guard(&ta);
 
-#ifdef BSLS_PLATFORM_OS_UNIX
-    const char *fileNameTemplate = "/tmp/bdls_FdStreamBuf.%s.%d.txt";
-#else
-    const char *fileNameTemplate = "C:\\TEMP\\bdls_FdStreamBuf.%s.%d.txt";
-#endif
+
+    bsl::string origWorkingDirectory;
+    ASSERT(0 == FileUtil::getWorkingDirectory(&origWorkingDirectory));
+
+    bsl::string tmpWorkingDir;
+    {
+        bsl::string systemTmpDir;
+        int systemTmpDirOK = 0 == FileUtil::getSystemTemporaryDirectory(
+                                                                &systemTmpDir);
+        ASSERT(systemTmpDirOK);
+        if (systemTmpDirOK) {
+            systemTmpDirOK = FileUtil::exists(systemTmpDir);
+            ASSERT(systemTmpDirOK);
+        }
+        if (!systemTmpDirOK) {
+            systemTmpDir.clear();
+        }
+        ASSERT(0 == FileUtil::createTemporarySubdirectory(
+                     &tmpWorkingDir,
+                     systemTmpDir,
+                     "tmp.bdls_fdstreambuf_TC_" + bsl::to_string(test) + "_"));
+    }
+    if (veryVerbose) P(tmpWorkingDir);
+    ASSERT(FileUtil::exists(tmpWorkingDir));
+    ASSERT(0 == FileUtil::setWorkingDirectory(tmpWorkingDir));
+
+    const char *fileNameTemplate = "tmp.bdls_FdStreamBuf.%s.%d.txt";
 
     switch (test) { case 0:
-      case 18: {
+      case 19: {
         // --------------------------------------------------------------------
         // TESTING STREAMBUF USAGE EXAMPLE
         //
@@ -366,8 +416,11 @@ int main(int argc, char *argv[])
         // We start by selecting a file name for our (temporary) file.
 
         char fileNameBuffer[100];
-        bsl::sprintf(fileNameBuffer, fileNameTemplate, "usage.2",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fileNameBuffer,
+                      sizeof fileNameBuffer,
+                      fileNameTemplate,
+                      "usage.2",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) bsl::cout << "Filename: " << fileNameBuffer << bsl::endl;
 
@@ -486,7 +539,7 @@ int main(int argc, char *argv[])
 
         bdls::FilesystemUtil::remove(fileNameBuffer);
       } break;
-      case 17: {
+      case 18: {
         // --------------------------------------------------------------------
         // TESTING STREAM USAGE EXAMPLE
         //
@@ -517,8 +570,11 @@ int main(int argc, char *argv[])
         // that name already exists:
 
         char fileNameBuffer[100];
-        bsl::sprintf(fileNameBuffer, fileNameTemplate, "usage.1",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fileNameBuffer,
+                      sizeof fileNameBuffer,
+                      fileNameTemplate,
+                      "usage.1",
+                      bdls::ProcessUtil::getProcessId());
 
         // Then, make sure file does not already exist:
 
@@ -621,6 +677,104 @@ int main(int argc, char *argv[])
 
         bdls::FilesystemUtil::remove(fileNameBuffer);
       } break;
+      case 17: {
+        // --------------------------------------------------------------------
+        // TESTING CHECKING OF FD IN RESET AND DTOR
+        //
+        // Concerns:
+        // 1. That `clear` and `reset` will return non-zero if the file
+        //    descriptor the `FdStreamBuf` was opened on was closed.
+        //
+        // 2. That destroying an `FdStreamBuf` whose file descriptor has been
+        //    closed will be caught by a `BSLS_REVIEW...`.
+        //
+        // Plan:
+        // 1. Iterate through a loop where we open a file, then create an
+        //    `FdStreamBuf` using that file's descriptor.
+        //
+        // 2. In one iteration, verify that `clear` returns non-zero.
+        //
+        // 3. In the next iteration, verify that `reset` returns non-zero.
+        //
+        // 4. In the next iteration, destroy the `FdStreamBuf` and verify that
+        //    it was caught by a `BSLS_REVIEW...`.
+        //    * Don't have the `BSLS_REVIEW...` throw, since it will be in a
+        //      d'tor.  Have our own locally defined handler that will copy the
+        //      passed `ReviewViolation` object to a file-scoped static
+        //      variable for our examination.
+        //
+        // Testing:
+        //   TESTING CHECKING OF FD IN RESET AND DTOR
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "TESTING CHECKING OF FD IN RESET AND DTOR\n"
+                             "========================================\n";
+
+        const char line[] ="There are more things in heaven and earth,\n"
+                           "Horatio, than are dreamt of in your philosophy.\n";
+
+        for (char c = 'a'; c <= 'c'; ++c) {
+            if (veryVerbose) cout << "Trying: " << c << endl;
+
+            bsl::string fileName;
+            FdType fd = FileUtil::createTemporaryFile(&fileName, "tmp.TC_17.");
+            if (verbose) P(fileName);
+            ASSERT(u::invalid != fd);
+
+            bsl::optional<Obj> omX(bsl::in_place, fd, 1, 1, 1);
+            ASSERT(omX.has_value());
+
+            char sbBuf[100];
+            omX->pubsetbuf(sbBuf, 100);
+
+            omX->sputn(line, bsl::strlen(line));
+
+            ASSERT(0 == FileUtil::close(fd));
+
+            switch (c) {
+              case 'a': {
+                ASSERT(0 != omX->clear());
+              } break;
+              case 'b': {
+                ASSERT(0 != omX->reset(u::invalid, 1, 0, 1));
+              } break;
+              case 'c': {
+                u::lastViolation.reset();
+
+                ASSERT(!u::lastViolation.has_value());
+
+                bsls::ReviewFailureHandlerGuard guard(
+                                                 &u::reviewFailBySetViolation);
+                omX.reset();
+
+#if defined(BSLS_REVIEW_OPT_IS_ACTIVE)
+                if (veryVerbose) cout << "REVIEW_OPT_IS_ACTIVE\n";
+
+                ASSERT(u::lastViolation.has_value());
+
+                ASSERT(bsl::strstr(u::lastViolation->fileName(),
+                                                          "bdls_fdstreambuf"));
+                if (veryVerbose) {
+                    P(u::lastViolation->comment());
+                    P(u::lastViolation->fileName());
+                    P(u::lastViolation->lineNumber());
+                    P(u::lastViolation->reviewLevel());
+                    P(u::lastViolation->count());
+                }
+#else
+                if (veryVerbose) cout << "! REVIEW_OPT_IS_ACTIVE\n";
+
+                ASSERT(!u::lastViolation.has_value());
+#endif
+              } break;
+              default: {
+                ASSERT(0);
+              } break;
+            }
+
+            FileUtil::remove(fileName);
+        }
+      } break;
       case 16: {
         // --------------------------------------------------------------------
         // TESTING NULL SEEKS
@@ -687,8 +841,11 @@ int main(int argc, char *argv[])
             // We start by selecting a file name for our (temporary) file.
 
             char fileNameBuffer[100];
-            bsl::sprintf(fileNameBuffer, fileNameTemplate, "16",
-                                            bdls::ProcessUtil::getProcessId());
+            bsl::snprintf(fileNameBuffer,
+                          sizeof fileNameBuffer,
+                          fileNameTemplate,
+                          "16",
+                          bdls::ProcessUtil::getProcessId());
 
             if (verbose) cout << "Filename: " << fileNameBuffer << endl;
 
@@ -912,8 +1069,11 @@ int main(int argc, char *argv[])
         // We start by selecting a file name for our (temporary) file.
 
         char fileNameBuffer[100];
-        bsl::sprintf(fileNameBuffer, fileNameTemplate, "15",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fileNameBuffer,
+                      sizeof fileNameBuffer,
+                      fileNameTemplate,
+                      "15",
+                      bdls::ProcessUtil::getProcessId());
         if (verbose) cout << "Filename: " << fileNameBuffer << endl;
 
         FileUtil::remove(fileNameBuffer);
@@ -1061,8 +1221,11 @@ int main(int argc, char *argv[])
         // We start by selecting a file name for our (temporary) file.
 
         char fileNameBuffer[100];
-        bsl::sprintf(fileNameBuffer, fileNameTemplate, "14",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fileNameBuffer,
+                      sizeof fileNameBuffer,
+                      fileNameTemplate,
+                      "14",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fileNameBuffer << endl;
 
@@ -1274,8 +1437,11 @@ int main(int argc, char *argv[])
         // We start by selecting a file name for our (temporary) file.
 
         char fileNameBuffer[100];
-        bsl::sprintf(fileNameBuffer, fileNameTemplate, "13",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fileNameBuffer,
+                      sizeof fileNameBuffer,
+                      fileNameTemplate,
+                      "13",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fileNameBuffer << endl;
 
@@ -1396,8 +1562,10 @@ int main(int argc, char *argv[])
                   "========================================================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "12",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate, "12",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -1568,8 +1736,11 @@ int main(int argc, char *argv[])
                              "=====================================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "11",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "11",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -1745,8 +1916,11 @@ int main(int argc, char *argv[])
         bsl::memset(mirror, 0, mFileSize);
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "10",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "10",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -1880,8 +2054,11 @@ int main(int argc, char *argv[])
                              "=================================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "9",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "9",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -1953,27 +2130,21 @@ int main(int argc, char *argv[])
         //   the file descriptor.
         // --------------------------------------------------------------------
 
-
         if (verbose) cout << "RESET, RELEASE, CLEAR ON FDSTREAMBUF TEST\n"
                              "=========================================\n";
 
-
-        // Windows FileDescriptor's are pointers, so a different type of cast
-        // is needed.
-
-        FileUtil::FileDescriptor BOGUS_HANDLE =
-#ifdef BSLS_PLATFORM_OS_WINDOWS
-                              reinterpret_cast<FileUtil::FileDescriptor>(100);
-#else
-                              static_cast<FileUtil::FileDescriptor>(100);
-#endif
-
         char fnBuf[100];
         char fnBuf2[100];
-        bsl::sprintf(fnBuf,  fileNameTemplate, "8a",
-                                            bdls::ProcessUtil::getProcessId());
-        bsl::sprintf(fnBuf2, fileNameTemplate, "8b",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "8a",
+                      bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf2,
+                      sizeof fnBuf2,
+                      fileNameTemplate,
+                      "8b",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -2046,15 +2217,14 @@ int main(int argc, char *argv[])
 
             ASSERT(!sb.clear());         // should close fd
 
+            U_ASSERT_FD_IS_CLOSED(fd);
+
             ASSERT(!sb.isOpened());
             ASSERT(u::invalid == sb.fileDescriptor());
 
-            // open and get same fd, which verifies clear closed fd
-
-            ASSERTV(fnBuf, fd == FileUtil::open(fnBuf,
-                                                FileUtil::e_OPEN,
-                                                FileUtil::e_READ_WRITE));
-
+            fd = FileUtil::open(fnBuf,
+                                FileUtil::e_OPEN,
+                                FileUtil::e_READ_WRITE);
             ASSERT(!sb.reset(fd, true, false, true));
 
             ASSERT(len1 == sb.pubseekoff(0, bsl::ios_base::end));
@@ -2089,11 +2259,11 @@ int main(int argc, char *argv[])
             // destroying sb should close fd2
         }
 
-        // open and get same fd, which verifies destruction of sb closed fd
+        U_ASSERT_FD_IS_CLOSED(fd2);
 
-        ASSERT(fd2 == FileUtil::open(fnBuf2,
-                                     FileUtil::e_OPEN,
-                                     FileUtil::e_READ_WRITE));
+        fd2 = FileUtil::open(fnBuf2,
+                             FileUtil::e_OPEN,
+                             FileUtil::e_READ_WRITE);
 
         {
             Obj sb(fd, true, false, true, &ta);
@@ -2106,13 +2276,13 @@ int main(int argc, char *argv[])
         }
 
         if (verbose) {
-            cout << "\tTesting `clear` on an u::invalid file handle" << endl;
+            cout << "\tTesting `clear` on an invalid file handle" << endl;
         }
         {
-            Obj mX(BOGUS_HANDLE, true, true, true, &ta); const Obj& X = mX;
+            Obj mX(u::invalid, true, true, true, &ta);  const Obj& X = mX;
 
-            ASSERT(X.isOpened());
-            ASSERT(X.willCloseOnReset());
+            ASSERT(!X.isOpened());
+            ASSERT(!X.willCloseOnReset());
 
             ASSERT(0 == mX.clear());
 
@@ -2123,28 +2293,33 @@ int main(int argc, char *argv[])
             cout << "\tTesting `reset` on an invalid file handle" << endl;
         }
 
+        FdType fd3;
         {
             char filename[100];
-            bsl::sprintf(filename,
-                         fileNameTemplate, "reset-bad-handle",
-                                            bdls::ProcessUtil::getProcessId());
+            bsl::snprintf(filename,
+                          sizeof filename,
+                          fileNameTemplate,
+                          "reset-bad-handle",
+                          bdls::ProcessUtil::getProcessId());
 
-            Obj mX(BOGUS_HANDLE, true, true, true, &ta); const Obj& X = mX;
+            Obj mX(u::invalid, true, true, true, &ta);  const Obj& X = mX;
+
+            ASSERT(!X.isOpened());
+            ASSERT(!X.willCloseOnReset());
+
+            fd3 = FileUtil::open(filename,
+                                 FileUtil::e_CREATE,
+                                 FileUtil::e_READ_WRITE);
+
+            ASSERT(0 == mX.reset(fd3, 1));
 
             ASSERT(X.isOpened());
-            ASSERT(X.willCloseOnReset());
-
-            FdType fd = FileUtil::open(filename,
-                                       FileUtil::e_CREATE,
-                                       FileUtil::e_READ_WRITE);
-
-            ASSERT(0 == mX.reset(fd, 1));
-
-            ASSERT(X.isOpened());
-            ASSERT(fd == X.fileDescriptor());
+            ASSERT(fd3 == X.fileDescriptor());
 
             FileUtil::remove(filename);
         }
+
+        U_ASSERT_FD_IS_CLOSED(fd3);
 
         // getting `0` from close verifies fd's are still open
 
@@ -2168,10 +2343,16 @@ int main(int argc, char *argv[])
 
         char fnBuf[100];
         char fnBuf2[100];
-        bsl::sprintf(fnBuf,  fileNameTemplate, "7a",
-                                            bdls::ProcessUtil::getProcessId());
-        bsl::sprintf(fnBuf2, fileNameTemplate, "7b",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "7a",
+                      bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf2,
+                      sizeof fnBuf2,
+                      fileNameTemplate,
+                      "7b",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -2374,10 +2555,16 @@ int main(int argc, char *argv[])
                              "========================\n";
 
         char fnBuf[100], fnBuf2[100];
-        bsl::sprintf(fnBuf,  fileNameTemplate, "6a",
-                                            bdls::ProcessUtil::getProcessId());
-        bsl::sprintf(fnBuf2, fileNameTemplate, "6b",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "6a",
+                      bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf2,
+                      sizeof fnBuf2,
+                      fileNameTemplate,
+                      "6b",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -2435,12 +2622,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        // Verity fd was closed by opening again and verifying we get the same
-        // fd.
+        U_ASSERT_FD_IS_CLOSED(fd);
 
-        ASSERT(fd == FileUtil::open(fnBuf,
-                                    FileUtil::e_OPEN,
-                                    FileUtil::e_READ_ONLY));
+        fd = FileUtil::open(fnBuf,
+                            FileUtil::e_OPEN,
+                            FileUtil::e_READ_ONLY);
         ASSERTV(fnBuf, u::invalid != fd);
 
         ASSERT(0 == FileUtil::close(fd));
@@ -2493,8 +2679,11 @@ int main(int argc, char *argv[])
                              "============================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf,  fileNameTemplate, "5a",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "5a",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -2651,8 +2840,11 @@ int main(int argc, char *argv[])
                              "================================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "4",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "4",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -2782,8 +2974,11 @@ int main(int argc, char *argv[])
                              "=================================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "3",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "3",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -2900,8 +3095,11 @@ int main(int argc, char *argv[])
                              "================================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "2",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "2",
+                      bdls::ProcessUtil::getProcessId());
 
         if (verbose) cout << "Filename: " << fnBuf << endl;
 
@@ -3100,8 +3298,11 @@ int main(int argc, char *argv[])
                              "============================================\n";
 
         char fnBuf[100];
-        bsl::sprintf(fnBuf, fileNameTemplate, "1",
-                                            bdls::ProcessUtil::getProcessId());
+        bsl::snprintf(fnBuf,
+                      sizeof fnBuf,
+                      fileNameTemplate,
+                      "1",
+                      bdls::ProcessUtil::getProcessId());
 
         const char line1[] = "To be or not to be, that is the question.\n";
         const char line2[] =
@@ -3676,6 +3877,34 @@ int main(int argc, char *argv[])
         testStatus = -1;
       }
     }
+
+    ASSERT(0 == FileUtil::setWorkingDirectory(origWorkingDirectory));
+    ASSERTV(tmpWorkingDir, FileUtil::isDirectory(tmpWorkingDir));
+
+    // Sometimes this delete won't work because of `.nfs*` gremlin files that
+    // mysteriously get created in the directory.  Seems to especially happen
+    // in TC 4 for some reason.  Check if the directory has been removed, and
+    // attempt again to removing it, pausing longer and longer in between tries
+    // to give nfs more time to get its act together.  After a few tries, give
+    // up and leave the temporary files behind.
+
+    int rc;
+    for (int ii = 4;
+                 ii <= 10 && 0 != (rc = FileUtil::remove(tmpWorkingDir, true));
+                                                                     ii += 2) {
+        bslmt::ThreadUtil::microSleep(0, ii);
+    }
+
+    if (verbose && 0 != rc) {
+        cout << "'" << tmpWorkingDir << "' left behind.\n";
+#ifdef BSLS_PLATFORM_OS_UNIX
+        const bsl::string& lsCmd = "/bin/ls -laF " + tmpWorkingDir;
+#else
+        const bsl::string& lsCmd = "dir /o "       + tmpWorkingDir;
+#endif
+        ASSERT(0 == bsl::system(lsCmd.c_str()));
+    }
+
 
     if (testStatus > 0) {
         cerr << "Error, non-zero test status = " << testStatus << "."

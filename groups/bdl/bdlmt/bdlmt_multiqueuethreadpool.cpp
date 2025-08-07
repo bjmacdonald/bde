@@ -8,12 +8,12 @@ BSLS_IDENT_RCSID(bdlmt_multiqueuethreadpool_cpp,"$Id$ $CSID$")
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 
+#include <bslma_default.h>
+
 #include <bslmt_latch.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_threadutil.h>
 #include <bslmt_writelockguard.h>
-
-#include <bslma_default.h>
 
 #include <bsls_assert.h>
 #include <bsls_log.h>
@@ -45,6 +45,55 @@ void createMultiQueueThreadPool_Queue(
 }  // close unnamed namespace
 
 namespace bdlmt {
+
+                     // =====================================
+                     // class MultiQueueThreadPool_ClearGuard
+                     // =====================================
+
+template <class TYPE>
+class MultiQueueThreadPool_ClearGuard {
+
+    // DATA
+    TYPE *d_object_p;  // managed object
+
+    // NOT IMPLEMENTED
+    MultiQueueThreadPool_ClearGuard();
+    MultiQueueThreadPool_ClearGuard(
+                                 const MultiQueueThreadPool_ClearGuard&);
+    MultiQueueThreadPool_ClearGuard& operator=(
+                                 const MultiQueueThreadPool_ClearGuard&);
+
+  public:
+    // CREATORS
+
+    /// Create a `clear` proctor that manages the specified `object`.  The
+    /// behavior is undefiend unless `0 != object`.
+    MultiQueueThreadPool_ClearGuard(TYPE *object);
+
+    /// Destroy this object and invoke the managed object's `clear` method.
+    ~MultiQueueThreadPool_ClearGuard();
+};
+
+               // -------------------------------------------
+               // class MultiQueueThreadPool_ClearGuard
+               // -------------------------------------------
+
+// CREATORS
+template <class TYPE>
+inline
+MultiQueueThreadPool_ClearGuard<TYPE>::
+                                  MultiQueueThreadPool_ClearGuard(TYPE *object)
+: d_object_p(object)
+{
+    BSLS_ASSERT_SAFE(0 != object);
+}
+
+template <class TYPE>
+inline
+MultiQueueThreadPool_ClearGuard<TYPE>::~MultiQueueThreadPool_ClearGuard()
+{
+    d_object_p->clear();
+}
 
                      // --------------------------------
                      // class MultiQueueThreadPool_Queue
@@ -86,6 +135,7 @@ MultiQueueThreadPool_Queue::MultiQueueThreadPool_Queue(
 , d_list(basicAllocator)
 , d_enqueueState(e_ENQUEUING_ENABLED)
 , d_runState(e_NOT_SCHEDULED)
+, d_batch(basicAllocator)
 , d_batchSize(1)
 , d_lock()
 , d_pauseCondition()
@@ -95,6 +145,7 @@ MultiQueueThreadPool_Queue::MultiQueueThreadPool_Queue(
                                      this))
 , d_processor(bslmt::ThreadUtil::invalidHandle())
 {
+    d_batch.reserve(d_batchSize);
 }
 
 MultiQueueThreadPool_Queue::~MultiQueueThreadPool_Queue()
@@ -109,6 +160,7 @@ void MultiQueueThreadPool_Queue::setBatchSize(int batchSize)
     bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);
 
     d_batchSize = batchSize;
+    d_batch.reserve(d_batchSize);
 }
 
 int MultiQueueThreadPool_Queue::enable()
@@ -169,8 +221,6 @@ void MultiQueueThreadPool_Queue::drainWaitWhilePausing()
 
 void MultiQueueThreadPool_Queue::executeFront()
 {
-    bsl::vector<Job> functors;
-
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);
 
@@ -198,25 +248,28 @@ void MultiQueueThreadPool_Queue::executeFront()
             count = 1;
         }
 
-        functors.reserve(count);
-
         for (bsl::size_t i = 0; i < count; ++i) {
-            functors.emplace_back(d_list.front());
+            d_batch.emplace_back(bslmf::MovableRefUtil::move(d_list.front()));
             d_list.pop_front();
         }
 
         d_processor = bslmt::ThreadUtil::self();
     }
 
-    // Note that the appropriate 'd_runState' is a bit ambigoues at this point.
+    // Note that the appropriate 'd_runState' is a bit ambiguous at this point.
     // Since there is nothing scheduled in the thread pool, the state should
     // arguably be 'e_NOT_SCHEDULED'.  However, allowing work to be scheduled
-    // during the execution of the 'functors' would be a bug.  Instead of
-    // creating a new state to reflect this situation while the 'functors' are
+    // during the execution of the 'd_batch' would be a bug.  Instead of
+    // creating a new state to reflect this situation while the 'd_batch' are
     // executing, we leave 'd_runState' as 'e_SCHEDULED'.
 
-    for (bsl::size_t i = 0; i < functors.size(); ++i) {
-        functors[i]();
+    {
+        MultiQueueThreadPool_ClearGuard<bsl::vector<Job> > guard(&d_batch);
+
+        for (bsl::size_t i = 0; i < d_batch.size(); ++i) {
+            d_batch[i]();
+            d_batch[i] = Job();
+        }
     }
 
     // Note that 'pause' might be called while executing the functors since no
@@ -319,12 +372,12 @@ int MultiQueueThreadPool_Queue::initiatePause()
     return 0;
 }
 
-int MultiQueueThreadPool_Queue::pushBack(const Job& functor)
+int MultiQueueThreadPool_Queue::pushBack(bslmf::MovableRef<Job> functor)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);
 
     if (e_ENQUEUING_ENABLED == d_enqueueState) {
-        d_list.push_back(functor);
+        d_list.push_back(bslmf::MovableRefUtil::move(functor));
 
         // Note that the following should match what is in 'pushFront'.
 
@@ -333,7 +386,7 @@ int MultiQueueThreadPool_Queue::pushBack(const Job& functor)
 
             ++d_multiQueueThreadPool_p->d_numActiveQueues;
 
-            int status = d_multiQueueThreadPool_p->d_threadPool_p->
+            const int status = d_multiQueueThreadPool_p->d_threadPool_p->
                                                     enqueueJob(d_processingCb);
 
             BSLS_ASSERT_OPT(0 == status);  (void)status;
@@ -345,12 +398,12 @@ int MultiQueueThreadPool_Queue::pushBack(const Job& functor)
     return 1;
 }
 
-int MultiQueueThreadPool_Queue::pushFront(const Job& functor)
+int MultiQueueThreadPool_Queue::pushFront(bslmf::MovableRef<Job> functor)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);
 
     if (e_ENQUEUING_ENABLED == d_enqueueState) {
-        d_list.push_front(functor);
+        d_list.push_front(bslmf::MovableRefUtil::move(functor));
 
         // Note that the following should match what is in 'pushBack'.
 
@@ -360,7 +413,7 @@ int MultiQueueThreadPool_Queue::pushFront(const Job& functor)
 
             ++d_multiQueueThreadPool_p->d_numActiveQueues;
 
-            int status = d_multiQueueThreadPool_p->d_threadPool_p->
+            const int status = d_multiQueueThreadPool_p->d_threadPool_p->
                                                     enqueueJob(d_processingCb);
 
             BSLS_ASSERT_OPT(0 == status);  (void)status;

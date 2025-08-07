@@ -10,6 +10,15 @@ BSLS_IDENT("$Id: $")
 //@CLASSES:
 //  bdlmt::TimerEventScheduler: thread-safe event scheduler
 //
+//@METRICS:
+//
+// * `bde.startlag`
+//   > seconds of delay in starting the next event (may be 0.0)
+//
+// Associated Metric Attributes:
+//  * object type name: "bdlmt.timereventscheduler"
+//  * object type abbreviation: "tes"
+//
 //@SEE_ALSO: bdlmt_eventscheduler, bdlcc_timequeue
 //
 //@DESCRIPTION: This component provides a thread-safe event scheduler,
@@ -528,6 +537,10 @@ class TimerEventScheduler {
     bsls::AtomicInt64 d_cachedEventMicroseconds;
                                             // microseconds from epoch of next
                                             // cached event
+
+    bsls::AtomicInt64 d_cachedNowMicroseconds;
+                                            // microseconds from epoch of
+                                            // most recent "now"
 
     bdlm::MetricsRegistryRegistrationHandle
                       d_startLagHandle;     // start lag handle

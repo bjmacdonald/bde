@@ -11,37 +11,67 @@ BSLS_IDENT_RCSID(bdlpcre2_regex_cpp,"$Id$ $CSID$")
 //
 // The PCRE2 library used by this component was configured with UTF-8 support.
 //
-// The 'RegEx_MatchContext' class currently implements the following strategy
+// The `RegEx_MatchContext` class currently implements the following strategy
 // for allocating/deallocating buffers used for pattern matching:
-//:
-//: o The match context for the main thread (the thread that calls
-//:   'initialize') is pre-allocated when the pattern is compiled.
-//:
-//: o Match contexts for all other threads are allocated and deallocated within
-//:   each call to 'loadMatchContext' (i.e. when invoked from other thread(s)).
+//
+// * The match context for the main thread (the thread that calls
+//   `initialize`) is pre-allocated when the pattern is compiled.
+//
+// * Match contexts for all other threads are allocated and deallocated within
+//   each call to `loadMatchContext` (i.e. when invoked from other thread(s)).
 
 #include <bslma_default.h>
 
 #include <bslmt_threadutil.h>
 
+#include <bsls_alignmentutil.h>
 #include <bsls_assert.h>
 #include <bsls_exceptionutil.h>
+#include <bsls_libraryfeatures.h>
 #include <bsls_platform.h>
 
-#include <bsl_climits.h>    // 'INT_MAX'
-#include <bsl_cmath.h>      // 'abs'
+#include <bsl_climits.h>    // `INT_MAX`
+#include <bsl_cmath.h>      // `abs`
+#include <bsl_cstddef.h>    // for `std::max_align_t`
 #include <bsl_cstring.h>
-#include <bsl_new.h>        // placement 'new' syntax
+#include <bsl_new.h>        // placement `new` syntax
 
 extern "C" {
 
-void *bdlpcre_malloc(size_t size, void* context)
+void *bdlpcre_malloc(size_t size, void *context)
 {
     void *result = 0;
 
     BloombergLP::bslma::Allocator *basicAllocator =
-                     reinterpret_cast<BloombergLP::bslma::Allocator*>(context);
+                    reinterpret_cast<BloombergLP::bslma::Allocator *>(context);
     BSLS_TRY {
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+        size_t alignment = alignof(std::max_align_t);
+#else
+        size_t alignment =
+                          BloombergLP::bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT;
+#endif
+        // Closely mimic the alignment behavior of `malloc` by giving a `size`
+        // to the allocator that will result in the maximum possible natural
+        // alignment for the original `size`.  For example `size` 6 may contain
+        // an element that requires 4 for alignment.
+        //
+        // Details: `bdlma::Allocator` will calculate alignment from the
+        // `size` as its contract guarantees allocation of a single object of
+        // that given `size`.  However, PCRE2's requirements on its allocation
+        // function are stricter.  The memory allocated will be used to store a
+        // non-homogeneous data structure and has higher alignment requirements
+        // than an object of that exact size would have.  For example BDE
+        // allocators may allocate memory with 1 byte alignment for `size` 9,
+        // but PCRE2 may attempt to create an 8-aligned struct followed by a
+        // one byte flag in that space. Hence we need to allocate storage with
+        // alignment sufficient for the largest object that might fit within
+        // the requested size.  So we need to align any size equal or larger
+        // than 8 to 8, 4 to 4, 2 to 2 to ensure that the largest type fitting
+        // into to allocated memory determines the alignment, not the `size`
+        // argument.
+        size = (size + alignment - 1) & ~(alignment - 1);
+
         result = basicAllocator->allocate(size);
     } BSLS_CATCH( ... ) {
     }
@@ -49,10 +79,10 @@ void *bdlpcre_malloc(size_t size, void* context)
     return result;
 }
 
-void bdlpcre_free(void* data, void* context)
+void bdlpcre_free(void *data, void *context)
 {
     BloombergLP::bslma::Allocator *basicAllocator =
-                     reinterpret_cast<BloombergLP::bslma::Allocator*>(context);
+                    reinterpret_cast<BloombergLP::bslma::Allocator *>(context);
 
     basicAllocator->deallocate(data);
     return;
@@ -68,9 +98,7 @@ namespace bdlpcre {
 namespace {
 
 static const bool k_IS_JIT_SUPPORTED =
-#if defined(BSLS_PLATFORM_CPU_SPARC) && defined (BSLS_PLATFORM_CPU_64_BIT)
-false;
-#elif defined(BSLS_PLATFORM_CPU_ARM) && defined (BSLS_PLATFORM_CPU_64_BIT)
+#if defined(BSLS_PLATFORM_CPU_SPARC)
 false;
 #else
 true;
@@ -730,7 +758,6 @@ int RegEx::replaceImp(STRING                  *result,
                       bool                     skipUTF8Validation) const
 {
     BSLS_ASSERT(result);
-    BSLS_ASSERT(errorOffset);
     BSLS_ASSERT(isPrepared());
 
     RegEx_MatchContextData matchContextData;
@@ -778,9 +805,11 @@ int RegEx::replaceImp(STRING                  *result,
     if (rcPcre2 >= 0) {
         result->resize(bufferLength);
     } else {
-        rc           = k_INTERNAL_ERROR;
-        *errorOffset = PCRE2_UNSET == static_cast<size_t>(rcPcre2)
-                       ? -1 : static_cast<int>(bufferLength);
+        rc = k_INTERNAL_ERROR;
+        if (errorOffset) {
+            *errorOffset = PCRE2_UNSET == static_cast<size_t>(rcPcre2)
+                           ? -1 : static_cast<int>(bufferLength);
+        }
     }
 
     d_matchContext->releaseMatchContext(&matchContextData);

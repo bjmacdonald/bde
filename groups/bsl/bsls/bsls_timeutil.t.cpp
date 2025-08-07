@@ -73,6 +73,7 @@ static int testStatus = 0;
 static void aSsErT(bool b, const char *s, int i) {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -2078,7 +2079,7 @@ int main(int argc, char *argv[])
 
         // Third subtest: Consume time; verify that it appears in the counts.
         {
-            const unsigned longLoop = 8 * 1000L * 1000L;
+            const unsigned longLoop = 50 * 1000L * 1000L;
 
             // Burn a little processor time--at least one timeQuantum.
             // The `volatile` should force every access to memory and slow
@@ -2112,24 +2113,24 @@ int main(int argc, char *argv[])
                 printf("st2: %lld -  st1: %lld = %lld\n", st2, st1, st2 - st1);
             }
 
-            ASSERT(wt2 - wt1 >= timeQuantum);
-                                        // Our wall time is over a timeQuantum.
+            // Our wall time is over a timeQuantum.
+            ASSERTV(wt2 - wt1, timeQuantum, wt2 - wt1 >= timeQuantum);
 
-            ASSERT(ut2 - ut1 >= timeQuantum);
-                                        // We ran at least a timeQuantum.
+            // We ran at least a timeQuantum.
+            ASSERTV(ut2 - ut1, timeQuantum, ut2 - ut1 >= timeQuantum);
 
-            ASSERT(st2 - st1 >= 0);     // And system time did not go backward.
+            // And system time did not go backward.
+            ASSERTV(st2, st1, st2 - st1 >= 0);
 
+            // And our wall time was greater than our user and system time
+            // together, allowing for quantization error (in both user and
+            // system time).
 #if defined(BSLS_PLATFORM_OS_WINDOWS) || defined(BSLS_PLATFORM_OS_CYGWIN)
             ASSERT((wt2 - wt1) - (ut2 - ut1) - (st2 - st1)
                                    + 10 * windowsFudge + 2 * timeQuantum >= 0);
 #else
             ASSERT((wt2 - wt1) - (ut2 - ut1) - (st2 - st1) +
                                                          2 * timeQuantum >= 0);
-                                        // And our wall time was greater than
-                                        // our user and system time together,
-                                        // allowing for quantization error
-                                        // (in both user and system time).
 #endif
         }
       } break;

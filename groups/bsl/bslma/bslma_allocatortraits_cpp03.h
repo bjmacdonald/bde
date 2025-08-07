@@ -21,7 +21,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Sun Sep  1 05:38:38 2024
+// Generated on Mon Apr 28 19:19:39 2025
 // Command line: sim_cpp11_features.pl bslma_allocatortraits.h
 
 #ifdef COMPILING_BSLMA_ALLOCATORTRAITS_H
@@ -490,7 +490,6 @@ struct AllocatorTraits_RebindFront<ALLOC<T>, U> {
 template <class T, class U, class = void>
 struct AllocatorTraits_RebindAlloc {
     typedef typename AllocatorTraits_RebindFront<T, U>::type type;
-
 };
 
 template <class T, class U>
@@ -707,7 +706,7 @@ struct allocator_traits {
 
         template <typename ARG>
         rebind_alloc(const ARG& allocatorArg)
-            // Convert from anything that can be used to cosntruct the base
+            // Convert from anything that can be used to construct the base
             // type.  This might be better if SFINAE-ed out using
             // 'is_convertible', but stressing older compilers more seems
             // unwise.
@@ -1137,19 +1136,39 @@ template <class ALLOCATOR_TYPE>
 struct allocator_traits<ALLOCATOR_TYPE *> {
 };
 
+#if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201703L
+// Since C++17 many of the `std::allocator` members are deprecated (and removed
+// in C++20).  C++23 deprecates type name members and C++26 removes them.  The
+// clang compiler on Darwin warns about any mention of those names in C++17 so
+// this header file was producing many warnings.  The specialization below
+// "disconnects" the allocator traits of `std::allocator` from our own
+// implementation and so it avoids not only warnings but possible other hassles
+// as the `std::allocator` interface is morphing.
+//
+// Note that we are using the standard traits (in place of ours) only on C++17
+// or later compilers and not C++11 (when `std::allocator_traits` appeared).
+// The reason for this is that our `bsl::allocator_traits` supports
+// `allocator_traits::is_always_equal` from C++17 in a backwards compatible
+// manner so we cannot use pre-C++17 standard implementation that does not have
+// that.
+template <class ALLOCATOR_TYPE>
+struct allocator_traits<std::allocator<ALLOCATOR_TYPE> >
+: std::allocator_traits<std::allocator<ALLOCATOR_TYPE> > {
+};
+
+#endif
+
 }  // close namespace bsl
 
 // ============================================================================
 //          INLINE AND TEMPLATE STATIC MEMBER FUNCTION DEFINITIONS
 // ============================================================================
 
-
 namespace bsl {
 
                            // ----------------------
                            // class allocator_traits
                            // ----------------------
-
 
 template <class ALLOCATOR_TYPE>
 inline
@@ -1977,7 +1996,7 @@ allocator_traits<ALLOCATOR_TYPE>::destroy(ALLOCATOR_TYPE& stdAllocator,
 // 'destroy' member function is not available.
 
 //    allocator.destroy(elementAddr);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE) &&                        \
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_DECLTYPE) &&                       \
     defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES)
     privateDestroy(stdAllocator, elementAddr);
 #else

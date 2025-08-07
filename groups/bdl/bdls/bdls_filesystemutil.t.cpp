@@ -3915,6 +3915,107 @@ void testCase6_move_normal(const char *oldName,
     ASSERTV(newName, 0 == Obj::remove(newName));
 }
 
+enum Test6_FileKind {
+    e_TEST6_NONEXISTENT,
+    e_TEST6_REGULAR,
+    e_TEST6_EMPTY_DIR,
+    e_TEST6_NONEMPTY_DIR,
+    e_TEST6_LINK_TO_FILE,
+    e_TEST6_LINK_TO_DIR,
+    e_TEST6_LINK_BROKEN,
+    e_TEST6_NUM_KINDS
+};
+
+/// Create a file at the path given by the specified `name` with kind given by
+/// the specified `kind`.  Note that if `kind` is `e_TEST6_NONEXISTENT`, then
+/// no item will be created at the given path.  Also note that if `kind` is
+/// `e_TEST6_LINK_TO_FILE` or `e_TEST6_LINK_TO_DIR`, an additional item will
+/// be created for the target of the link.
+void testCase6_createFile(const bsl::string& name,
+                          Test6_FileKind     kind)
+{
+    ASSERT(!Obj::exists(name));
+
+    switch (kind) {
+      case e_TEST6_NONEXISTENT: {
+      } break;
+      case e_TEST6_REGULAR: {
+        Obj::FileDescriptor fd =
+                     Obj::open(name, Obj::e_OPEN_OR_CREATE, Obj::e_READ_WRITE);
+        Obj::close(fd);
+      } break;
+      case e_TEST6_EMPTY_DIR: {
+        Obj::createDirectories(name, true);
+      } break;
+      case e_TEST6_NONEMPTY_DIR: {
+        Obj::createDirectories(name + PS + "emptydir", true);
+      } break;
+      case e_TEST6_LINK_TO_FILE: {
+        bsl::string targetFileName = name + "-target";
+        Obj::FileDescriptor fd = Obj::open(targetFileName,
+                                           Obj::e_OPEN_OR_CREATE,
+                                           Obj::e_READ_WRITE);
+        Obj::close(fd);
+        createSymlink(targetFileName, name);
+      } break;
+      case e_TEST6_LINK_TO_DIR: {
+        bsl::string targetDirName = name + "-target";
+        Obj::createDirectories(targetDirName, true);
+        createSymlink(targetDirName, name);
+      } break;
+      case e_TEST6_LINK_BROKEN: {
+        createSymlink("/nonexistent", name);
+      } break;
+      default:
+        ASSERT(false);
+    }
+
+    if (kind == e_TEST6_REGULAR ||
+        kind == e_TEST6_EMPTY_DIR ||
+        kind == e_TEST6_NONEMPTY_DIR) {
+        ASSERTV(name, kind, Obj::exists(name));
+    } else if (kind == e_TEST6_LINK_TO_FILE ||
+               kind == e_TEST6_LINK_TO_DIR ||
+               kind == e_TEST6_LINK_BROKEN) {
+        ASSERTV(name, kind, Obj::isSymbolicLink(name));
+    }
+}
+
+/// Create files at the paths given by the specified `oldName` and `newName`
+/// with kinds given by the specified `oldKind` and `newKind`, respectively;
+/// then call `Obj::move`, passing `oldName` and `newName`, and verify that the
+/// move succeeds if and only if the specified `expectSuccess` is true.
+void testCase6_move_general(const bsl::string& oldName,
+                            Test6_FileKind     oldKind,
+                            const bsl::string& newName,
+                            Test6_FileKind     newKind,
+                            bool               expectSuccess)
+{
+    testCase6_createFile(oldName, oldKind);
+    if (oldName != newName) {
+        testCase6_createFile(newName, newKind);
+    }
+
+    const bool success = (0 == Obj::move(oldName, newName));
+
+    ASSERTV(oldKind, newKind, expectSuccess, success == expectSuccess);
+
+    if (success && expectSuccess) {
+        if (oldName != newName) {
+            ASSERTV(oldName, !Obj::exists(oldName));
+        }
+        if (oldKind == e_TEST6_REGULAR ||
+            oldKind == e_TEST6_EMPTY_DIR ||
+            oldKind == e_TEST6_NONEMPTY_DIR) {
+            ASSERTV(newName, Obj::exists(newName));
+        } else if (oldKind == e_TEST6_LINK_TO_FILE ||
+                   oldKind == e_TEST6_LINK_TO_DIR ||
+                   oldKind == e_TEST6_LINK_BROKEN) {
+            ASSERTV(newName, Obj::isSymbolicLink(newName));
+        }
+    }
+}
+
 template <class OLD_STRING_TYPE, class NEW_STRING_TYPE>
 void testCase6_move_template(const OLD_STRING_TYPE& oldName,
                              const NEW_STRING_TYPE& newName,
@@ -4119,7 +4220,10 @@ void testCase5_isRegularFile_isDirectory(const char         *typeName,
 
         struct sockaddr_un address;
         address.sun_family = AF_UNIX;
-        sprintf(address.sun_path, "%s", filename.c_str());
+        snprintf(address.sun_path,
+                 sizeof address.sun_path,
+                 "%s",
+                 filename.c_str());
 
         // Add one to account for the null terminator for the filename.
 
@@ -5035,41 +5139,24 @@ int main(int argc, char *argv[])
             // (and claim nanosecond precision), others (*cough* NFS *cough*)
             // are not so well-behaved.
 
-#if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
-            static const int clockFileDelay =
-                            bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND;
-                // How long to wait between reading the realtime clock and
-                // creating the first file.
-            static const int fileFileDelay =
-                            bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND / 2;
-                // How long to wait between creating files.
-            static const int clockFileCheck =
-                        2 * bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND - 1;
-                // The maximum permitted difference between the queried
-                // realtime clock and the timestamp of the first created file.
-            static const int fileFileCheck =
-                            bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND - 1;
-                // The maximum permitted difference between the timestamps of
-                // created files.
-#else
             // How long to wait between reading the realtime clock and
             // creating the first file.
             static const int clockFileDelay =
-                            bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND / 2;
+                            bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND;
 
             // How long to wait between creating files.
-            static const int fileFileDelay = 10001;
+            static const int fileFileDelay =
+                            bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND / 2;
 
             // The maximum permitted difference between the queried
             // realtime clock and the timestamp of the first created file.
             static const int clockFileCheck =
-                            bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND - 1;
+                        2 * bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND - 1;
 
             // The maximum permitted difference between the timestamps of
             // created files.
             static const int fileFileCheck =
-                        bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND / 2 - 1;
-#endif
+                        2 * bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND - 1;
 
             // The first time we write to a file on a filesystem there can be
             // initial delays, notably over NFS which doesn't mount a filsystem
@@ -7738,7 +7825,7 @@ int main(int argc, char *argv[])
         {
             for (int i = 0; i < 4; ++i) {
                 char name[16];
-                sprintf(name, "woof.a.%d", i);
+                snprintf(name, sizeof name, "woof.a.%d", i);
                 Obj::FileDescriptor fd = Obj::open(name,
                                                    Obj::e_OPEN_OR_CREATE,
                                                    Obj::e_READ_WRITE);
@@ -8191,6 +8278,7 @@ int main(int argc, char *argv[])
         const bool isWindows = false;
 #endif
 
+#ifndef BSLS_PLATFORM_OS_DARWIN
         testCase6_move_normal(NAMES[NAME_ANSI],
                               NAMES[NAME_ASCII],
                               isWindows,
@@ -8206,7 +8294,67 @@ int main(int argc, char *argv[])
                               verbose,
                               veryVerbose,
                               veryVeryVerbose);
+#endif  // Not Darwin
 
+        // Test various cases of what is located at the destination (possibly
+        // nothing).
+        for (int oldKind = 1; oldKind < e_TEST6_NUM_KINDS; oldKind++) {
+            for (int newKind = 0; newKind < e_TEST6_NUM_KINDS; newKind++) {
+                bool expectSuccess;
+                if (e_UNIX) {
+                    if (newKind == e_TEST6_NONEXISTENT) {
+                        expectSuccess = true;
+                    } else if (newKind == e_TEST6_NONEMPTY_DIR) {
+                        expectSuccess = false;
+                    } else {
+                        bool srcIsDir  = (oldKind == e_TEST6_EMPTY_DIR ||
+                                          oldKind == e_TEST6_NONEMPTY_DIR);
+                        bool destIsDir = (newKind == e_TEST6_EMPTY_DIR);
+
+                        expectSuccess = (srcIsDir == destIsDir);
+                    }
+                } else {
+                    // On Windows, the destination is removed first (using
+                    // `DeleteFileW`), which fails if the destination is a
+                    // directory or a directory symbolic link.
+                    expectSuccess = (newKind == e_TEST6_NONEXISTENT ||
+                                     newKind == e_TEST6_REGULAR ||
+                                     newKind == e_TEST6_LINK_TO_FILE ||
+                                     newKind == e_TEST6_LINK_BROKEN);
+                }
+                // Do not reuse file/directory names, to avoid issues with .nfs
+                // files.
+                bsl::string oldName;
+                bsl::string newName;
+                Obj::makeUnsafeTemporaryFilename(&oldName, "old");
+                Obj::makeUnsafeTemporaryFilename(&newName, "new");
+                if (veryVerbose) {
+                    T_; P_(oldName); P_(oldKind); P_(newName); P_(newKind);
+                    P(expectSuccess);
+                }
+                testCase6_move_general(oldName,
+                                       (Test6_FileKind)oldKind,
+                                       newName,
+                                       (Test6_FileKind)newKind,
+                                       expectSuccess);
+            }
+        }
+
+        if (e_UNIX) {
+            // Test various cases where the source and destination are the
+            // same; the move should succeed and the file or directory should
+            // still exist after the call.  Note that the behavior in Windows
+            // is currently broken: it deletes the file and then reports
+            // failure.
+            for (int kind = 1; kind < e_TEST6_NUM_KINDS; kind++) {
+                bsl::string name;
+                Obj::makeUnsafeTemporaryFilename(&name, "self");
+                if (veryVerbose) { T_; P_(name); P(kind); }
+                testCase6_move_general(name, (Test6_FileKind)kind,
+                                       name, (Test6_FileKind)kind,
+                                       true);
+            }
+        }
 
         // Test the various type combinations for the templated method, in both
         // call orders
@@ -8439,7 +8587,10 @@ int main(int argc, char *argv[])
 
             struct sockaddr_un address;
             address.sun_family = AF_UNIX;
-            sprintf(address.sun_path, "%s", filename.c_str());
+            snprintf(address.sun_path,
+                     sizeof address.sun_path,
+                     "%s",
+                     filename.c_str());
 
             // Add one to account for the null terminator for the filename.
 
@@ -10496,9 +10647,10 @@ int main(int argc, char *argv[])
             for (int i = 0; i < NUM_TOTAL_FILES; ++i) {
                 bool isOld = i < NUM_OLD_FILES;
 
-                int filenameLength = sprintf(filenameBuffer,
-                                             "filesystemutil%02d_%c.log", i,
-                                             isOld ? 'o' : 'n');
+                int filenameLength = snprintf(filenameBuffer,
+                                              sizeof filenameBuffer,
+                                              "filesystemutil%02d_%c.log", i,
+                                              isOld ? 'o' : 'n');
 
                 ASSERT(0 == bdls::PathUtil::appendIfValid(&logPath,
                             filenameBuffer));

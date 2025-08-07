@@ -50,8 +50,8 @@ BSLS_IDENT("$Id: $")
 // '\u0007'.  Note that the hexadecimal digits can use upper or lower case
 // letters but the lead `u` character must be lower case.  See {Strictness}.
 //
-// Eight of the characters that must be escaped can be alternatively
-// represented by special, 2-byte sequences:
+// Seven of the characters that must be escaped (and `/`, which *may* be
+// escaped) can be alternatively represented by special, 2-byte sequences:
 // ```
 // +---------+-----------------+---------------+---------------+
 // | Unicode | Description     | 6-byte escape | 2-byte escape |
@@ -73,7 +73,8 @@ BSLS_IDENT("$Id: $")
 ///Guarantees: Arbitrary UTF-8 to JSON String
 /// - - - - - - - - - - - - - - - - - - - - -
 // * No UTF-8 characters in the *Basic* *Multilingual* *Plane* are escaped
-//   unless they are in the set that *must* be escaped.
+//   unless they are in the set that *must* be escaped (or are `/` with the
+//   appropriate flags).
 // * When a character must be escaped, the 6-byte (hexadecimal) representation
 //   is used only if no 2-byte escape exists.
 // * When a 6-byte (hexadecimal) representation is used, hexadecimal letters
@@ -87,7 +88,7 @@ BSLS_IDENT("$Id: $")
 ///----------
 // By default, the `bdljsn::StringUtil` read and write methods strictly follow
 // the RFC8259 standard.  Variances from those rules are expressed using
-// `bdljsn::StringUtil::FLags`, an `enum` of flag values that can be set in the
+// `bdljsn::StringUtil::Flags`, an `enum` of flag values that can be set in the
 // optional `flags` parameter of the decoding methods.  Multiple flags can be
 // bitwise set in `flags`; however, currently, just one variance flag is
 // defined.
@@ -95,7 +96,7 @@ BSLS_IDENT("$Id: $")
 ///Example Variance
 /// - - - - - - - -
 // RFC8259 specifies that the 6-byte Unicode escape sequence start with a
-// slash, `/`, and lower-case `u`.  However, if the
+// backslash, `\`, and lower-case `u`.  However, if the
 // `bdljsn::StringUtil::e_ACCEPT_CAPITAL_UNICODE_ESCAPE` is set, an upper-case
 // `U` is accepted as well.  Thus, both '\u0007' and '\U0007' would be
 // interpreted as the BELL character.
@@ -188,10 +189,25 @@ struct StringUtil {
   public:
     // TYPES
     enum Flags {
-        e_NONE                          = 0
-      , e_ACCEPT_CAPITAL_UNICODE_ESCAPE = 1 << 0
+        e_NONE                          = 0,
+        e_ACCEPT_CAPITAL_UNICODE_ESCAPE = 1 << 0,
+        e_NO_ESCAPING_FORWARD_SLASH     = 1 << 1
     };
 
+  private:
+    // PRIVATE CLASS METHODS
+
+    /// Load to the specified `value` the UTF-8 codepoint sequence equivalent
+    /// to the specified (JSON) `string` (see [](#JSON Strings)).  Return 0 on
+    /// success and a non-zero value otherwise.  Optionally specify `flags` to
+    /// request variances from certain rules of JSON decoding (see
+    /// [](#Strictness)).
+    template <class STRING>
+    static int readStringImp(STRING                  *value,
+                             const bsl::string_view&  string,
+                             int                      flags);
+
+  public:
     // CLASS METHODS
 
     /// Load to the specified `value` the UTF-8 codepoint sequence equivalent
@@ -202,6 +218,14 @@ struct StringUtil {
     static int readString(bsl::string             *value,
                           const bsl::string_view&  string,
                           int                      flags = e_NONE);
+    static int readString(std::string             *value,
+                          const bsl::string_view&  string,
+                          int                      flags = e_NONE);
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+    static int readString(std::pmr::string        *value,
+                          const bsl::string_view&  string,
+                          int                      flags = e_NONE);
+#endif
 
     /// Load to the specified `value` the UTF-8 codepoint sequence equivalent
     /// to the specified `string`, that is JSON-compliant absent the leading
@@ -212,6 +236,14 @@ struct StringUtil {
     static int readUnquotedString(bsl::string             *value,
                                   const bsl::string_view&  string,
                                   int                      flags = e_NONE);
+    static int readUnquotedString(std::string             *value,
+                                  const bsl::string_view&  string,
+                                  int                      flags = e_NONE);
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+    static int readUnquotedString(std::pmr::string        *value,
+                                  const bsl::string_view&  string,
+                                  int                      flags = e_NONE);
+#endif
 
     /// Write to the specified `stream` a JSON-compliant string that is
     /// equivalent to the specified `string`, an arbitrary UTF-8 codepoint
@@ -220,7 +252,8 @@ struct StringUtil {
     /// there is an error writing to `stream`.  See
     /// [](#Guarantees: Arbitrary UTF-8 to JSON String) for further details.
     static int writeString(bsl::ostream&           stream,
-                           const bsl::string_view& string);
+                           const bsl::string_view& string,
+                           int                     flags = e_NONE);
 };
 
 // ============================================================================
@@ -231,11 +264,12 @@ struct StringUtil {
                              // struct StringUtil
                              // -----------------
 
-// CLASS METHODS
+// PRIVATE CLASS METHODS
+template <class STRING>
 inline
-int StringUtil::readString(bsl::string             *value,
-                           const bsl::string_view&  string,
-                           int                      flags)
+int StringUtil::readStringImp(STRING                  *value,
+                              const bsl::string_view&  string,
+                              int                      flags)
 {
     BSLS_ASSERT(value);
 
@@ -250,6 +284,34 @@ int StringUtil::readString(bsl::string             *value,
     const bsl::string_view contents = string.substr(1, string.size() - 2);
     return readUnquotedString(value, contents, flags);
 }
+
+// CLASS METHODS
+
+inline
+int StringUtil::readString(bsl::string             *value,
+                           const bsl::string_view&  string,
+                           int                      flags)
+{
+    return readStringImp(value, string, flags);
+}
+
+inline
+int StringUtil::readString(std::string             *value,
+                           const bsl::string_view&  string,
+                           int                      flags)
+{
+    return readStringImp(value, string, flags);
+}
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP17_PMR_STRING
+inline
+int StringUtil::readString(std::pmr::string        *value,
+                           const bsl::string_view&  string,
+                           int                      flags)
+{
+    return readStringImp(value, string, flags);
+}
+#endif
 
 }  // close package namespace
 }  // close enterprise namespace

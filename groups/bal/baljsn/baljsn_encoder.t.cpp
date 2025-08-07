@@ -1,23 +1,11 @@
 // baljsn_encoder.t.cpp                                               -*-C++-*-
 #include <baljsn_encoder.h>
-#include <baljsn_encoder_testtypes.h>
+
+#include <baljsn_encoderoptions.h>      // for testing only
+#include <baljsn_encoder_testtypes.h>   // for testing only
+#include <baljsn_parserutil.h>          // for testing only
 
 #include <balb_testmessages.h>
-
-#include <bslim_testutil.h>
-
-#include <bdlat_attributeinfo.h>
-#include <bdlat_choicefunctions.h>
-#include <bdlat_enumeratorinfo.h>
-#include <bdlat_selectioninfo.h>
-#include <bdlat_sequencefunctions.h>
-#include <bdlat_typetraits.h>
-#include <bdlat_valuetypefunctions.h>
-
-#include <bdlb_printmethods.h>  // for printing vector
-#include <bdlb_chartype.h>
-
-#include <bdlde_utf8util.h>
 
 #include <bdlsb_fixedmeminstreambuf.h>
 #include <bdlsb_fixedmemoutstreambuf.h>
@@ -36,6 +24,8 @@
 #include <bdlb_nullablevalue.h>
 #include <bdlb_variant.h>
 
+#include <bdldfp_decimal.h>
+
 #include <bdlpcre_regex.h>
 
 #include <bdlt_date.h>
@@ -45,18 +35,16 @@
 #include <bdlt_time.h>
 #include <bdlt_timetz.h>
 
-#include <bsla_maybeunused.h>
-
 #include <bslim_printer.h>
+#include <bslim_testutil.h>
 
-#include <bslma_testallocator.h>
-
-#include <bslmf_assert.h>
+#include <bsla_maybeunused.h>
 
 #include <bsl_climits.h>
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
+#include <bsl_iterator.h>
 #include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_sstream.h>
@@ -65,31 +53,26 @@
 #include <bsl_vector.h>
 
 #include <s_baltst_address.h>
+#include <s_baltst_anonymouschoicesequence.h>
 #include <s_baltst_employee.h>
 #include <s_baltst_featuretestmessage.h>
 #include <s_baltst_featuretestmessageutil.h>
-#include <s_baltst_mysequencewithchoice.h>
-#include <s_baltst_simplerequest.h>
-#include <s_baltst_mysequencewithnullableanonymouschoice.h>
 #include <s_baltst_generatetestarray.h>
 #include <s_baltst_generatetestchoice.h>
 #include <s_baltst_generatetestcustomizedtype.h>
-#include <s_baltst_generatetestdynamictype.h>
 #include <s_baltst_generatetestenumeration.h>
 #include <s_baltst_generatetestnullablevalue.h>
 #include <s_baltst_generatetestsequence.h>
-#include <s_baltst_generatetesttaggedvalue.h>
 #include <s_baltst_mysequencewithchoice.h>
 #include <s_baltst_mysequencewithnullableanonymouschoice.h>
+#include <s_baltst_mysequencewithprecisiondecimalattribute.h> // TC15 Decimal64
+#include <s_baltst_simplerequest.h>
 #include <s_baltst_testchoice.h>
 #include <s_baltst_testcustomizedtype.h>
-#include <s_baltst_testdynamictype.h>
 #include <s_baltst_testenumeration.h>
-#include <s_baltst_testnilvalue.h>
 #include <s_baltst_testplaceholder.h>
 #include <s_baltst_testselection.h>
 #include <s_baltst_testsequence.h>
-#include <s_baltst_testtaggedvalue.h>
 
 using namespace BloombergLP;
 using bsl::cout;
@@ -116,19 +99,31 @@ using bsl::endl;
 // [ 2] ~baljsn::Encoder();
 //
 // MANIPULATORS
-// [13] int encode(bsl::streambuf *streamBuf, const TYPE& v, options);
-// [13] int encode(bsl::ostream& stream, const TYPE& v, options);
-// [13] int encode(bsl::streambuf *streamBuf, const TYPE& v, &options);
-// [13] int encode(bsl::ostream& stream, const TYPE& v, &options);
+// [14] int encode(bsl::streambuf *streamBuf, const TYPE& v, options);
+// [14] int encode(bsl::ostream& stream, const TYPE& v, options);
+// [14] int encode(bsl::streambuf *streamBuf, const TYPE& v, &options);
+// [14] int encode(bsl::ostream& stream, const TYPE& v, &options);
 //
 // ACCESSORS
 // [13] bsl::string loggedMessages() const;
 // ----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
-// [20] ENCODING UNSET CHOICE
-// [21] ENCODING NULL CHOICE
-// [22] ENCODING VECTORS OF VECTORS
-// [23] USAGE EXAMPLE
+// [ 2] ENCODING ARRAYS
+// [ 3] `encode` A BAD STREAM RETURNS AN ERROR
+// [ 3] `encode` WORKS ONLY FOR `Choice` OR `Sequence` TYPES
+// [ 4] ENCODING COMPLEX TEST MESSAGES
+// [ 5] TESTING `encodeNullElements` OPTION
+// [ 6] THE LOG BUFFER CLEARS ON EACH `encode` CALL
+// [ 7] FORMATTING OF SEQUENCES WITH EMPTY ELEMENTS
+// [ 8] CHOICES WITH SELECTIONS OF ALL VALUE CATEGORIES"
+// [ 9] SEQUENCES WITH ATTRIBUTES OF ALL VALUE CATEGORIES
+// [10] DEGENERATE CHOICE VALUES
+// [11] ENCODING OVERFLOW DETECTION
+// [12] ENCODING UNSET CHOICE
+// [13] ENCODING NULL CHOICE
+// [14] ENCODING VECTORS OF VECTORS
+// [15] TESTING `Decimal64`
+// [16] USAGE EXAMPLE
 
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
@@ -191,7 +186,6 @@ void aSsErT(bool condition, const char *message, int line)
 #endif
 
 typedef baljsn::Encoder                       Obj;
-typedef baljsn::Encoder_EncodeImplUtil        ImplUtil;
 typedef baljsn::EncoderOptions                Options;
 typedef baljsn::EncoderOptions::EncodingStyle Style;
 typedef bsls::Types::Int64                    Int64;
@@ -314,109 +308,6 @@ int populateTestObject(TYPE *object, const bsl::string& xmlString)
     return rc;
 }
 
-/// Assert that `baljsn::Encoder` can encode a diverse set of values of
-/// the specified integral `TYPE` to a JSON number literal, and that the
-/// encoding loses no precision of the original value.
-template <class TYPE>
-void testNumber()
-{
-    // Test non-negative numbers.
-
-    const struct {
-        int         d_line;
-        Uint64      d_value;
-        const char *d_result;
-    } DATA_1[] = {
-        //LINE   VALUE            RESULT
-        //---- ---------  -----------------------
-        { L_,          0,                    "0" },
-        { L_,          1,                    "1" },
-        { L_,  UCHAR_MAX,                  "255" },
-        { L_,   SHRT_MAX,                "32767" },
-        { L_,  USHRT_MAX,                "65535" },
-        { L_,    INT_MAX,           "2147483647" },
-        { L_,   UINT_MAX,           "4294967295" },
-#if   defined(BSLS_PLATFORM_CPU_32_BIT)                                       \
-  || (defined(BSLS_PLATFORM_CPU_64_BIT) && defined(BSLS_PLATFORM_OS_WINDOWS))
-        { L_,   LONG_MAX,           "2147483647" },
-        { L_,  ULONG_MAX,           "4294967295" },
-#elif defined(BSLS_PLATFORM_CPU_64_BIT)
-        { L_,   LONG_MAX,  "9223372036854775807" },
-        { L_,  ULONG_MAX, "18446744073709551615" },
-#else
-# error "baljsn_encoder.t.cpp does not support the platform's bitness."
-#endif
-        { L_,  LLONG_MAX,  "9223372036854775807" },
-        { L_, ULLONG_MAX, "18446744073709551615" }
-    };
-
-    const int NUM_DATA_1 = sizeof DATA_1 / sizeof *DATA_1;
-
-    for (int ti = 0; ti < NUM_DATA_1; ++ti) {
-        const int         LINE  = DATA_1[ti].d_line;
-        const Uint64      VALUE = DATA_1[ti].d_value;
-        const char *const EXP   = DATA_1[ti].d_result;
-
-        if (VALUE > static_cast<Uint64>(bsl::numeric_limits<TYPE>::max())) {
-            continue;                                               // CONTINUE
-        }
-
-        const TYPE VALUE_AS_TYPE = static_cast<TYPE>(VALUE);
-
-        Obj                encoder;
-        bsl::ostringstream oss;
-        ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE_AS_TYPE));
-
-        bsl::string result = oss.str();
-        ASSERTV(LINE, result, EXP, result == EXP);
-    }
-
-    // Test negative numbers.
-
-    const struct {
-        int         d_line;
-        Int64       d_value;
-        const char *d_result;
-    } DATA_2[] = {
-        //LINE   VALUE            RESULT
-        //---- ---------  -----------------------
-        { L_,         -1,                   "-1" },
-        { L_,  SCHAR_MIN,                 "-128" },
-        { L_,   SHRT_MIN,               "-32768" },
-        { L_,    INT_MIN,          "-2147483648" },
-#if   defined(BSLS_PLATFORM_CPU_32_BIT)                                       \
-  || (defined(BSLS_PLATFORM_CPU_64_BIT) && defined(BSLS_PLATFORM_OS_WINDOWS))
-        { L_,   LONG_MIN,          "-2147483648" },
-#elif defined(BSLS_PLATFORM_CPU_64_BIT)
-        { L_,   LONG_MIN, "-9223372036854775808" },
-#else
-# error "baljsn_encoder.t.cpp does not support the platform's bitness."
-#endif
-        { L_,  LLONG_MIN, "-9223372036854775808" }
-    };
-
-    const int NUM_DATA_2 = sizeof DATA_2 / sizeof *DATA_2;
-
-    for (int ti = 0; ti < NUM_DATA_2; ++ti) {
-        const int         LINE  = DATA_2[ti].d_line;
-        const Int64       VALUE = DATA_2[ti].d_value;
-        const char *const EXP   = DATA_2[ti].d_result;
-
-        if (VALUE < static_cast<Int64>(bsl::numeric_limits<TYPE>::min())) {
-            continue;                                               // CONTINUE
-        }
-
-        const TYPE VALUE_AS_TYPE = static_cast<TYPE>(VALUE);
-
-        Obj                encoder;
-        bsl::ostringstream oss;
-        ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE_AS_TYPE));
-
-        bsl::string result = oss.str();
-        ASSERTV(LINE, result, EXP, result == EXP);
-    }
-}
-
                              // ==================
                              // struct TestMessage
                              // ==================
@@ -427,7 +318,6 @@ struct TestMessage {
     int         d_line;
     const char *d_text_p;
 };
-
 
 struct EncodeNullElements {
     enum Enum {
@@ -463,8 +353,6 @@ struct TestUtil {
                              const VALUE_TYPE&            VALUE,
                              const bsl::string_view&      EXPECTED_JSON_STRING)
     {
-        bdlsb::MemOutStreamBuf outStreamBuf;
-        bsl::ostream           outStream(&outStreamBuf);
 
         baljsn::EncoderOptions options;
         options.setEncodingStyle(ENCODING_STYLE);
@@ -476,15 +364,62 @@ struct TestUtil {
         options.setSpacesPerLevel(4);
 
         baljsn::Encoder encoder;
-        int             rc = encoder.encode(&outStreamBuf, VALUE, &options);
-        LOOP1_ASSERT_EQ(LINE, 0, rc);
-        if (0 != rc) {
-            P_(encoder.loggedMessages());
+
+        // `escapeForwardSlash` == `true`
+        {
+            bdlsb::MemOutStreamBuf outStreamBuf;
+            options.setEscapeForwardSlash(true);
+
+            int rc = encoder.encode(&outStreamBuf, VALUE, &options);
+            LOOP1_ASSERT_EQ(LINE, 0, rc);
+            if (0 != rc) {
+                P_(encoder.loggedMessages());
+            }
+
+            const bsl::string_view jsonStringRef(outStreamBuf.data(),
+                                                 outStreamBuf.length());
+            LOOP1_ASSERT_EQ(LINE, EXPECTED_JSON_STRING, jsonStringRef);
         }
 
-        const bsl::string_view jsonStringRef(outStreamBuf.data(),
-                                             outStreamBuf.length());
-        LOOP1_ASSERT_EQ(LINE, EXPECTED_JSON_STRING, jsonStringRef);
+        // `escapeForwardSlash` == `false`
+        {
+            // Compute expected string where all "\\/" are replaced by "/".
+            bdlpcre::RegEx regex;
+
+            int rc = regex.prepare(0, 0, "\\\\/");
+            ASSERTV(rc, 0 == rc);
+
+            bsl::string expectedJsonStringNoEscapedFwdSlash;
+            int errorOffset = 0;
+
+            rc = regex.replace(&expectedJsonStringNoEscapedFwdSlash,
+                               &errorOffset,
+                               EXPECTED_JSON_STRING,
+                               "/",
+                               bdlpcre::RegEx::k_REPLACE_GLOBAL);
+
+            ASSERTV(rc,
+                    errorOffset,
+                    expectedJsonStringNoEscapedFwdSlash,
+                    EXPECTED_JSON_STRING,
+                    0 <= rc);
+
+            bdlsb::MemOutStreamBuf outStreamBuf;
+            options.setEscapeForwardSlash(false);
+
+            rc = encoder.encode(&outStreamBuf, VALUE, &options);
+            LOOP1_ASSERT_EQ(LINE, 0, rc);
+            if (0 != rc) {
+                P_(encoder.loggedMessages());
+            }
+
+            const bsl::string_view jsonStringRef(outStreamBuf.data(),
+                                                 outStreamBuf.length());
+
+            LOOP1_ASSERT_EQ(LINE,
+                            expectedJsonStringNoEscapedFwdSlash,
+                            jsonStringRef);
+        }
     }
 };
 
@@ -517,7 +452,6 @@ class Replace {
         }
         BSLS_ASSERT(0 == rc);
         BSLS_ASSERT(0 == prepareErrorOffset);
-
 
         bsl::string result;
         int         errorOffset = 0;
@@ -962,9 +896,6 @@ class Enumeration0 {
     Enumeration0();
 };
 
-// TRAITS
-void bdlat_enumToString(bsl::string *result, const Enumeration0&);
-
 }  // close u namespace
 }  // close unnamed namespace
 
@@ -1159,16 +1090,12 @@ int main(int argc, char *argv[])
     int             test = argc > 1 ? atoi(argv[1]) : 0;
     bool         verbose = argc > 2;
     bool     veryVerbose = argc > 3;
-    bool veryVeryVerbose = argc > 4;
-
-    static_cast<void>(verbose);
-    static_cast<void>(veryVerbose);
-    static_cast<void>(veryVeryVerbose);
+    bool veryVeryVerbose = argc > 4; static_cast<void>(veryVeryVerbose);
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
     switch (test) { case 0:
-      case 23: {
+      case 16: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE
         //   Extracted from component header file.
@@ -1285,7 +1212,479 @@ int main(int argc, char *argv[])
     ASSERT(EXP_OUTPUT == os.str());
 // ```
       } break;
-      case 22: {
+      case 15: {
+        // --------------------------------------------------------------------
+        // TESTING `Decimal64`
+        //   The encoder can generate a JSON document from a
+        //   `bdlat`-compatible object containing type `bdldfp::Decimal64`.
+        //
+        // Concerns:
+        // 1. A valid JSON document can be created from any valid, source
+        //    `bdldfp::Decimal64` value, including all limit values of that
+        //    type.
+        //
+        // 2. The representation of the source value in the JSON document
+        //    can be quoted or not according to the value of the
+        //    `encodeQuotedDecimal64` option flag.
+        //
+        // 3. The source values can be positive infinity, negative infinity,
+        //    and not-a-number result and in `"+inf"`, `"-inf"`, and
+        //    `"nan`" in the JSON document.  Note that these are always quoted,
+        //    irrespective of whether or not `encodeQuotedDecimal64` is `true`.
+        //
+        // 4. The encoder returns zero for successful conversions and a
+        //    non-zero value for invalid input.
+        //
+        // 5. A non-zero return value implies that an immediate call to the
+        //    `loggedMessages()` method returns a non-empty string.
+        //
+        // Plan:
+        // 1. This test case uses a series of table-driven tests where the
+        //    tables are replicated from the `baljsn_parserutil.t.cpp` test
+        //    cases of the `bdldfp::Decimal64` overload of
+        //    `ParserUtil::getValue`, a function that converts text to a
+        //    numeric value.
+        //
+        // 2. Each of the *valid* table input values are used to initialize a
+        //    `s_baltst::MySequenceWithPrecisionDecimalAttribute` object --
+        //    the "test object".  The single attribute of that class holds a
+        //    `bdldfp::Decimal64` value.
+        //
+        //    * Depending on the table, the input value is either used directly
+        //      or converted to a textual representation using lower-level
+        //      components.
+        //
+        //    * The textual representation of the value is used to synthesize
+        //      the expected JSON document.
+        //
+        // 3. Each test object is passed to the `encode` method.  The return
+        //    value, the result of `loggedMessages`, and the generated JSON
+        //    document are compared to their expected values.
+        //
+        //    * Each `encode` method is called twice for each test object,
+        //      for both values of the  `encodeQuotedDecimal64` flag.
+        //
+        // Testing:
+        //   TESTING `Decimal64`
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << "\nTESTING `Decimal64`" <<
+                             "\n===================" << endl;
+
+        typedef s_baltst::MySequenceWithPrecisionDecimalAttribute SeqDec64;
+        typedef baljsn::PrintUtil                                 Print;
+        typedef baljsn::EncoderOptions                            EOptions;
+        typedef bdldfp::Decimal64                                 Decimal64;
+        typedef baljsn::ParserUtil                                ParUtil;
+
+        if (verbose) cout << endl << "Regular values and limits" << endl;
+        {
+#define DEC(X) BDLDFP_DECIMAL_DD(X)
+
+            typedef bsl::numeric_limits<Decimal64> Limits;
+
+            const struct {
+                int       d_line;
+                Decimal64 d_value;
+            } DATA[] = {
+                //LINE  VALUE
+                //----  -----------------------------
+                {L_,    DEC( 0.0),                    },
+                {L_,    DEC(-0.0),                    },
+                {L_,    DEC( 1.13),                   },
+                {L_,    DEC(-9.876543210987654e307)   },
+                {L_,    DEC(-9.8765432109876548e307)  },
+                {L_,    DEC(-9.87654321098765482e307) },
+
+                // Boundary values
+                { L_,    Limits::min()        },
+                { L_,    Limits::denorm_min() },
+                { L_,    Limits::max()        },
+                { L_,   -Limits::min()        },
+                { L_,   -Limits::denorm_min() },
+                { L_,   -Limits::max()        },
+            };
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
+
+            for (int ti = 0; ti < NUM_DATA; ++ti) {
+                const int       LINE  = DATA[ti].d_line;
+                const Decimal64 VALUE = DATA[ti].d_value;
+
+                if (veryVerbose) {
+                    P_(LINE); P(VALUE);
+                }
+
+                // Create source object.
+                SeqDec64 seqDec64;
+                seqDec64.attribute1() = VALUE;
+
+                if (veryVeryVerbose) {
+                    P(seqDec64);
+                }
+
+                bsl::ostringstream oss;
+                ASSERTV(LINE, 0 == Print::printValue(oss, VALUE));
+
+                bsl::string result(oss.str());
+
+                // Do the test twice -- once for each quoting option.
+
+                for (int i = 0; i <= 1; ++i) {
+
+                    const bool        areQuotesOn = i == 0;
+                    const char *const quotes      = areQuotesOn ? "\"" : "";
+
+                    if (veryVerbose) {
+                        T_; P(areQuotesOn);
+                    }
+
+                    // Synthesize expected JSON Doc.
+                    bsl::string expectJsonDoc;
+                    expectJsonDoc.append("{");
+                    expectJsonDoc.append("\"attribute1\"");
+                    expectJsonDoc.append(":");
+                    expectJsonDoc.append(quotes);  // sometimes empty string
+                    expectJsonDoc.append(result);
+                    expectJsonDoc.append(quotes);  // sometimes empty string
+                    expectJsonDoc.append("}");
+
+                    if (veryVeryVerbose) {
+                        P(expectJsonDoc);
+                    }
+
+                    // Do the test
+                    oss.clear(); oss.str("");
+
+                    Obj      encoder;
+                    EOptions eOptions;
+                    eOptions.setEncodeQuotedDecimal64(areQuotesOn);
+
+                    int rc = encoder.encode(oss, seqDec64, &eOptions);  // TEST
+
+                    // Check the results;
+                    ASSERTV(LINE,          rc,
+                                  0     == rc);
+                    ASSERTV(LINE,          encoder.loggedMessages(),
+                                  ""    == encoder.loggedMessages());
+
+                    bsl::string actualJsonDoc(oss.str());
+
+                    if (veryVeryVerbose) {
+                        P(actualJsonDoc);
+                    }
+
+                    ASSERTV(LINE, expectJsonDoc,   actualJsonDoc,
+                                  expectJsonDoc == actualJsonDoc);
+                }
+            }
+#undef DEC
+        }
+
+        if (verbose) cout << endl << "+Inf, -Inf, and NaN" << endl;
+        {
+            typedef  bsl::numeric_limits<Decimal64> Limits;
+
+            const Decimal64 NAN_P = Limits::quiet_NaN();
+            // Negative NaN does not print for any floating point type, so we
+            // don't test it for round-trip (on purpose).
+            //const Type NAN_N = -NAN_P;
+            const Decimal64 INF_P = Limits::infinity();
+            const Decimal64 INF_N = -INF_P;
+
+            const struct {
+                int       d_line;
+                Decimal64 d_value;
+            } DATA[] = {
+                // LINE   VALUE |
+                // ----   ------
+                {  L_,    NAN_P },
+                // Negative NaN does not print for any floating point type,
+                // so we don't test it for round-trip (on purpose).
+              //{  L_,    NAN_N },
+                {  L_,    INF_P },
+                {  L_,    INF_N },
+            };
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
+
+            for (int ti = 0; ti < NUM_DATA; ++ti) {
+                const int       LINE  = DATA[ti].d_line;
+                const Decimal64 VALUE = DATA[ti].d_value;
+
+                if (veryVerbose) {
+                    P_(LINE); P(VALUE);
+                }
+
+                SeqDec64 seqDec64;
+                seqDec64.attribute1() = VALUE;
+
+                if (veryVeryVerbose) {
+                    P(seqDec64);
+                }
+
+                // Do the test twice -- once for each quoting option.
+
+                for (int i = 0; i <= 1; ++i) {
+
+                    const bool areQuotesOn = i == 0;
+
+                    if (veryVerbose) {
+                        T_; P(areQuotesOn);
+                    }
+
+                    // Synthesize expected JSON document.
+                    bsl::ostringstream oss;
+                    EOptions           eOptions;
+                    eOptions.setEncodeInfAndNaNAsStrings(true);
+                    eOptions.setEncodeQuotedDecimal64(areQuotesOn);
+                    int                rc = Print::printValue(oss,
+                                                              VALUE,
+                                                              &eOptions);
+                    ASSERTV(LINE, rc, 0 == rc);
+
+                    bsl::string result(oss.str());
+
+                    if (veryVeryVerbose) {
+                        P(result);
+                    }
+
+                    bsl::string expectJsonDoc;
+                    expectJsonDoc.append("{");
+                    expectJsonDoc.append("\"attribute1\"");
+                    expectJsonDoc.append(":");
+                    expectJsonDoc.append(result);
+                    expectJsonDoc.append("}");
+
+                    if (veryVeryVerbose) {
+                        P(expectJsonDoc);
+                    }
+
+                    // Do the test
+                    oss.clear(); oss.str("");
+
+                    Obj encoder;
+
+                    rc = encoder.encode(oss, seqDec64, &eOptions);      // TEST
+
+                    // Check the results;
+                    ASSERTV(LINE,          rc,
+                                  0     == rc);
+                    ASSERTV(LINE,          encoder.loggedMessages(),
+                                  ""    == encoder.loggedMessages());
+
+                    bsl::string actualJsonDoc(oss.str());
+
+                    if (veryVeryVerbose) {
+                        P(actualJsonDoc);
+                    }
+
+                    ASSERTV(LINE, expectJsonDoc,   actualJsonDoc,
+                                  expectJsonDoc == actualJsonDoc);
+                }
+            }
+        }
+
+        if (verbose) cout << endl << "Quoted input and invalid input" << endl;
+        {
+#define DEC(X) BDLDFP_DECIMAL_DD(X)
+
+            typedef Decimal64 Type;
+
+            const Type NAN_P = bsl::numeric_limits<Type>::quiet_NaN();
+            const Type NAN_N = -NAN_P;
+            const Type INF_P = bsl::numeric_limits<Type>::infinity();
+            const Type INF_N = -INF_P;
+
+            const Type ERROR_VALUE = BDLDFP_DECIMAL_DD(999.0);
+
+            static const struct {
+                int         d_line;    // line number
+                const char *d_input_p; // input on the stream
+                Type        d_exp;     // exp unsigned value
+                bool        d_isValid; // isValid flag
+            } DATA[] = {
+     //---------v
+
+     // line  input                       exp                         isValid
+     // ----  -----                       ---                         -------
+     {  L_,    "0",                       DEC(0.0),                    true  },
+     {  L_,   "-0",                       DEC(0.0),                    true  },
+     {  L_,    "0.0",                     DEC(0.0),                    true  },
+     {  L_,   "-0.0",                     DEC(0.0),                    true  },
+     {  L_,    "1",                       DEC(1.0),                    true  },
+     {  L_,   "-1",                       DEC(-1.0),                   true  },
+     {  L_,    "1.2",                     DEC(1.2),                    true  },
+     {  L_,    "1.23",                    DEC(1.23),                   true  },
+     {  L_,    "1.234",                   DEC(1.234),                  true  },
+     {  L_,   "12.34",                    DEC(12.34),                  true  },
+     {  L_,  "123.4",                     DEC(123.4),                  true  },
+     {  L_,   "-1.2",                     DEC(-1.2),                   true  },
+     {  L_,   "-1.23",                    DEC(-1.23),                  true  },
+     {  L_,   "-1.234",                   DEC(-1.234),                 true  },
+     {  L_,  "-12.34",                    DEC(-12.34),                 true  },
+     {  L_, "-123.4",                     DEC(-123.4),                 true  },
+     {  L_,   "+1.2",                     DEC(1.2),                    true  },
+     {  L_,   "+1.23",                    DEC(1.23),                   true  },
+     {  L_,   "+1.234",                   DEC(1.234),                  true  },
+     {  L_,  "+12.34",                    DEC(12.34),                  true  },
+     {  L_, "+123.4",                     DEC(123.4),                  true  },
+     {  L_,   "-9.876543210987654e307",   DEC(-9.876543210987654e307), true  },
+     {  L_, "\"-0.1\"",                   DEC(-0.1),                   true  },
+     {  L_,  "\"0\"",                     DEC(0.0),                    true  },
+     {  L_, "\"-0\"",                     DEC(0.0),                    true  },
+     {  L_,  "\"0.0\"",                   DEC(0.0),                    true  },
+     {  L_, "\"-0.0\"",                   DEC(0.0),                    true  },
+     {  L_,  "\"1\"",                     DEC(1.0),                    true  },
+     {  L_, "\"-1\"",                     DEC(-1.0),                   true  },
+     {  L_,  "\"1.2\"",                   DEC(1.2),                    true  },
+     {  L_,  "\"1.23\"",                  DEC(1.23),                   true  },
+     {  L_,  "\"1.234\"",                 DEC(1.234),                  true  },
+     {  L_, "\"12.34\"",                  DEC(12.34),                  true  },
+     {  L_, "\"123.4\"",                  DEC(123.4),                  true  },
+     {  L_, "\"-1.2\"",                   DEC(-1.2),                   true  },
+     {  L_, "\"-1.23\"",                  DEC(-1.23),                  true  },
+     {  L_, "\"-1.234\"",                 DEC(-1.234),                 true  },
+     {  L_, "\"-12.34\"",                 DEC(-12.34),                 true  },
+     {  L_, "\"-123.4\"",                 DEC(-123.4),                 true  },
+     {  L_, "\"+1.2\"",                   DEC(1.2),                    true  },
+     {  L_, "\"+1.23\"",                  DEC(1.23),                   true  },
+     {  L_, "\"+1.234\"",                 DEC(1.234),                  true  },
+     {  L_, "\"+12.34\"",                 DEC(12.34),                  true  },
+     {  L_, "\"+123.4\"",                 DEC(123.4),                  true  },
+     {  L_, "\"-9.876543210987654e307\"", DEC(-9.876543210987654e307), true  },
+     {  L_,   "-0.1",                     DEC(-0.1),                   true  },
+     {  L_,  "\"NaN\"",                   NAN_P,                       true  },
+     {  L_,  "\"nan\"",                   NAN_P,                       true  },
+     {  L_,  "\"NAN\"",                   NAN_P,                       true  },
+     {  L_, "\"+NaN\"",                   NAN_P,                       true  },
+     {  L_, "\"+nan\"",                   NAN_P,                       true  },
+     {  L_, "\"+NAN\"",                   NAN_P,                       true  },
+     {  L_, "\"-NaN\"",                   NAN_N,                       true  },
+     {  L_, "\"-nan\"",                   NAN_N,                       true  },
+     {  L_, "\"-NAN\"",                   NAN_N,                       true  },
+     {  L_,  "\"INF\"",                   INF_P,                       true  },
+     {  L_,  "\"inf\"",                   INF_P,                       true  },
+     {  L_,  "\"infinity\"",              INF_P,                       true  },
+     {  L_, "\"+INF\"",                   INF_P,                       true  },
+     {  L_, "\"+inf\"",                   INF_P,                       true  },
+     {  L_, "\"+infinity\"",              INF_P,                       true  },
+     {  L_, "\"-INF\"",                   INF_N,                       true  },
+     {  L_, "\"-inf\"",                   INF_N,                       true  },
+     {  L_, "\"-infinity\"",              INF_N,                       true  },
+     {  L_,         "-",                  ERROR_VALUE,                 false },
+     {  L_,       "E-1",                  ERROR_VALUE,                 false },
+     {  L_,  "Z34.56e1",                  ERROR_VALUE,                 false },
+     {  L_,  "3Z4.56e1",                  ERROR_VALUE,                 false },
+     {  L_,      "1.1}",                  ERROR_VALUE,                 false },
+     {  L_,     "1.1\n",                  ERROR_VALUE,                 false },
+     {  L_,   "1.10xFF",                  ERROR_VALUE,                 false },
+     {  L_,  "DEADBEEF",                  ERROR_VALUE,                 false },
+     {  L_,      "JUNK",                  ERROR_VALUE,                 false },
+     {  L_,     "\"0\"",                  DEC(0.0),                    true  },
+     {  L_,       "0\"",                  ERROR_VALUE,                 false },
+     {  L_,       "\"0",                  ERROR_VALUE,                 false },
+     {  L_,        "\"",                  ERROR_VALUE,                 false },
+     {  L_,      "\"\"",                  ERROR_VALUE,                 false },
+     {  L_,     "\"X\"",                  ERROR_VALUE,                 false },
+     {  L_,  "\" NaN\"",                  ERROR_VALUE,                 false },
+
+     //---------v
+            };
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
+
+            for (int i = 0; i < NUM_DATA; ++i) {
+                const int         LINE     = DATA[i].d_line;
+                const bsl::string INPUT    = DATA[i].d_input_p;
+                const Type        EXP      = DATA[i].d_exp;
+                const bool        IS_VALID = DATA[i].d_isValid;
+
+                if (veryVerbose) {
+                    P_(LINE); P(IS_VALID);
+                    P(INPUT);
+                    P(EXP);
+                }
+
+                if (IS_VALID) {
+
+                    Decimal64 value;
+                    ASSERTV(LINE, IS_VALID,                INPUT,
+                            0 == ParUtil::getValue(&value, INPUT));
+
+                    SeqDec64 seqDec64;
+                    seqDec64.attribute1() = value;
+
+                    if (veryVeryVerbose) {
+                        P(seqDec64);
+                    }
+
+                    // Do the test twice -- once for each quoting option.
+
+                    for (int i = 0; i <= 1; ++i) {
+
+                        const bool areQuotesOn = i == 0;
+
+                        if (veryVerbose) {
+                            T_; P(areQuotesOn);
+                        }
+
+                        // Synthesize expected JSON document.
+
+                        bsl::ostringstream oss;
+                        EOptions           eOptions;
+                        eOptions.setEncodeInfAndNaNAsStrings(true);
+                        eOptions.setEncodeQuotedDecimal64(areQuotesOn);
+                        int                rc = Print::printValue(oss,
+                                                                  value,
+                                                                  &eOptions);
+                        ASSERTV(LINE, rc, 0 == rc);
+
+                        bsl::string result(oss.str());
+
+                        if (veryVeryVerbose) {
+                            P(result);
+                        }
+
+                        bsl::string expectJsonDoc;
+                        expectJsonDoc.append("{");
+                        expectJsonDoc.append("\"attribute1\"");
+                        expectJsonDoc.append(":");
+                        expectJsonDoc.append(result);
+                        expectJsonDoc.append("}");
+
+                        if (veryVeryVerbose) {
+                            P(expectJsonDoc);
+                        }
+
+                        // Do the test
+                        oss.clear(); oss.str("");
+
+                        Obj      encoder;
+                    //  EOptions eOptions;
+                    //  eOptions.setEncodeQuotedDecimal64(areQuotesOn);
+
+                        rc = encoder.encode(oss, seqDec64, &eOptions);  // TEST
+
+                        // Check the results;
+                        ASSERTV(LINE,          rc,
+                                      0     == rc);
+                        ASSERTV(LINE,          encoder.loggedMessages(),
+                                      ""    == encoder.loggedMessages());
+
+                        bsl::string actualJsonDoc(oss.str());
+
+                        if (veryVeryVerbose) {
+                            P(actualJsonDoc);
+                        }
+
+                        ASSERTV(LINE, expectJsonDoc,   actualJsonDoc,
+                                      expectJsonDoc == actualJsonDoc);
+                    }
+                }
+            }
+#undef DEC
+        }
+
+      } break;
+      case 14: {
         // --------------------------------------------------------------------
         // TESTING ENCODING VECTORS OF VECTORS
         //   This case tests that `baljsn::Encoder::encode` supports encoding
@@ -1314,7 +1713,6 @@ int main(int argc, char *argv[])
                  << "TESTING ENCODING VECTORS OF VECTORS" << endl
                  << "===================================" << endl;
 
-
         namespace ux = baljsn::encoder::u;
 
         typedef s_baltst::TestAttribute<1, ux::k_ATTRIBUTE_1_NAME>   At1;
@@ -1339,11 +1737,9 @@ int main(int argc, char *argv[])
         const s_baltst::GenerateTestSequence                  s_;
         const s_baltst::GenerateTestSequencePlaceHolder       sp;
 
-
 #define JSON(...) #__VA_ARGS__
 
         const u::AssertEncodedArrayOfValuesIsEqualFunction TEST;
-
 
         //      LINE
         //     .----
@@ -1387,7 +1783,7 @@ int main(int argc, char *argv[])
 #undef JSON
 
       } break;
-      case 21: {
+      case 13: {
         // --------------------------------------------------------------------
         // TESTING ENCODING NULL CHOICE
         //   This case tests that `baljsn::Encoder::encode` returns a non-zero
@@ -1472,7 +1868,7 @@ int main(int argc, char *argv[])
             }
         }
       } break;
-      case 20: {
+      case 12: {
         // --------------------------------------------------------------------
         // TESTING ENCODING UNSET CHOICE
         //   This case tests that `baljsn::Encoder::encode` returns a non-zero
@@ -1509,7 +1905,7 @@ int main(int argc, char *argv[])
             if (verbose) { P(rc); P(encoder.loggedMessages()); P(out.str()); }
         }
       } break;
-      case 19: {
+      case 11: {
         // --------------------------------------------------------------------
         // TESTING ENCODING OVERFLOW DETECTION
         //   This case tests that `baljsn::Encoder::encode` returns a non-zero
@@ -1628,7 +2024,7 @@ int main(int argc, char *argv[])
                                 "\"responseLength\":42"
                             "}"                                   , ""    );
       } break;
-      case 18: {
+      case 10: {
         // --------------------------------------------------------------------
         // TESTING DEGENERATE CHOICE VALUES
         //   This case tests that the encoder emits valid JSON when encoding
@@ -1705,7 +2101,7 @@ int main(int argc, char *argv[])
         t( L_  , P   , F , obj1 , "{\n\n}\n"                           );
         t( L_  , P   , T , obj1 , "{\n\n}\n"                           );
       } break;
-      case 17: {
+      case 9: {
         // --------------------------------------------------------------------
         // TESTING SEQUENCES WITH ATTRIBUTES OF ALL VALUE CATEGORIES
         //   This case tests that the encoder emits valid JSON when encoding
@@ -1769,6 +2165,7 @@ int main(int argc, char *argv[])
         // ---- ----- --- ------ --------------------------------------
         t( L_  , C   , F , obj , "{"
                                      "\"charArray\":\"\","
+                                     "\"a\\/string\":\"\\/\","
                                      "\"choice\":{\"selection0\":0},"
                                      "\"customizedType\":\"\","
                                      "\"enumeration\":\"A\","
@@ -1778,6 +2175,7 @@ int main(int argc, char *argv[])
 
         t( L_  , C   , T , obj , "{"
                                      "\"charArray\":\"\","
+                                     "\"a\\/string\":\"\\/\","
                                      "\"choice\":{\"selection0\":0},"
                                      "\"customizedType\":\"\","
                                      "\"enumeration\":\"A\","
@@ -1788,6 +2186,7 @@ int main(int argc, char *argv[])
 
         t( L_  , P   , F , obj , "{\n"
                                  "    \"charArray\" : \"\",\n"
+                                 "    \"a\\/string\" : \"\\/\",\n"
                                  "    \"choice\" : {\n"
                                  "        \"selection0\" : 0\n"
                                  "    },\n"
@@ -1801,6 +2200,7 @@ int main(int argc, char *argv[])
 
         t( L_  , P   , T , obj , "{\n"
                                  "    \"charArray\" : \"\",\n"
+                                 "    \"a\\/string\" : \"\\/\",\n"
                                  "    \"choice\" : {\n"
                                  "        \"selection0\" : 0\n"
                                  "    },\n"
@@ -1813,7 +2213,7 @@ int main(int argc, char *argv[])
                                  "    \"simple\" : 0\n"
                                  "}\n"                                 );
       } break;
-      case 16: {
+      case 8: {
         // --------------------------------------------------------------------
         // TESTING CHOICES WITH SELECTIONS OF ALL VALUE CATEGORIES
         //   This case tests that the encoder emits valid JSON when encoding
@@ -1947,7 +2347,7 @@ int main(int argc, char *argv[])
                                   "    \"simple\" : 0\n"
                                   "}\n"                                 );
       } break;
-      case 15: {
+      case 7: {
         // --------------------------------------------------------------------
         // TESTING FORMATTING OF SEQUENCES WITH EMPTY ELEMENTS
         //   This case tests that the encoder emits valid JSON when encoding
@@ -2113,7 +2513,7 @@ int main(int argc, char *argv[])
            "{\n    \"attribute0\" : 0,\n    \"attribute1\" : 0,\n"
            "    \"attribute2\" : 0\n}\n"                                );
       } break;
-      case 14: {
+      case 6: {
         // --------------------------------------------------------------------
         // TESTING the log buffer clears on each `encode` call
         //   This case tests that the log buffer is reset on each call to
@@ -2200,7 +2600,6 @@ int main(int argc, char *argv[])
                                    // that drives the testing apparatus
         };
 
-
         enum {
             // This enumeration provides aliases for whether all encoding
             // operations in a test row shall succeed, or if at least one shall
@@ -2210,11 +2609,9 @@ int main(int argc, char *argv[])
             success = true   // indicates that all encode ops succeed
         };
 
-
         // `SMsg1` is a string that is equivalent to the `loggedMessages`
         // of a `baljsn::Encoder` after a successful encoding operation.
         static const char SMsg1[] = "";
-
 
         // `FMsg1` is a string that is equivalent to the `loggedMessages`
         // of a `baljsn::Encoder` after an encoding operation that fails
@@ -2338,7 +2735,7 @@ int main(int argc, char *argv[])
                     LOGGED_MESSAGES == mX.loggedMessages());
         }
       } break;
-      case 13: {
+      case 5: {
         // --------------------------------------------------------------------
         // TESTING `encodeNullElements` option
         //
@@ -2762,7 +3159,7 @@ int main(int argc, char *argv[])
                 "\"element6\":[null,null]}"
             }
         };
-        const int NUM_DATA = sizeof DATA / sizeof *DATA;
+        const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
         for (int ti = 0; ti < NUM_DATA; ++ti) {
             const int         LINE   = DATA[ti].d_line;
@@ -2798,7 +3195,7 @@ int main(int argc, char *argv[])
             }
         }
       } break;
-      case 12: {
+      case 4: {
         // --------------------------------------------------------------------
         // ENCODING COMPLEX TEST MESSAGES
         //
@@ -2911,7 +3308,7 @@ int main(int argc, char *argv[])
             }
         }
       } break;
-      case 11: {
+      case 3: {
         // --------------------------------------------------------------------
         // Encode test
         //
@@ -2958,277 +3355,7 @@ int main(int argc, char *argv[])
             ASSERTV("" == encoder.loggedMessages());
         }
       } break;
-      case 10: {
-        // --------------------------------------------------------------------
-        // ENCODING SEQUENCES
-        //
-        // Concerns:
-        // 1. Sequence objects are encoded as name-value pairs.
-        //
-        // 2. Null elements are not encoded.
-        //
-        // 3. Empty sequence will be encoded as an object without any member.
-        //
-        // 4. Error occurred when encoding an element of a sequence causes
-        //    error in encoding a sequence.
-        //
-        // Plan:
-        // 1. Encode a void sequence and verify the output is an empty JSON
-        //    object.
-        //
-        // 2. Encode a sequence with some null values an verify only the
-        //    non-null values are encoded.
-        //
-        // 3. Encoded a sequence with an unselected Choice and verify an error
-        //    is returned.
-        //
-        // Testing:
-        //   int encode(bsl::ostream& stream, const TYPE& v, options);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING SEQUENCES"
-                          << "\n==================" << endl;
-
-        if (verbose) cout << "Encode empty sequence." << endl;
-        {
-            const balb::VoidSequence X;
-
-            bsl::ostringstream oss;
-            ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-            bsl::string result = oss.str();
-            ASSERTV(result, result == "{}");
-        }
-
-        {
-            balb::Sequence2 mX; const balb::Sequence2& X = mX;
-            mX.element1() = balb::CustomString("Hello");
-            mX.element2() = 42;
-            mX.element3() = bdlt::DatetimeTz(
-                                 bdlt::Datetime(2012, 12, 31, 12, 59, 59, 999),
-                                 -720);
-
-            {
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                const char *EXP =
-                    "{"
-                        "\"element1\":\"Hello\","
-                        "\"element2\":42,"
-                        "\"element3\":\"2012-12-31T12:59:59.999-12:00\""
-                    "}";
-                bsl::string result = oss.str();
-                ASSERTV(result, EXP, result == EXP);
-            }
-
-            mX.element4().makeValue();
-            mX.element5().makeValue(3.14);
-            {
-                // `element4` is an unselected Choice.  Ensure encode sequence
-                // propagate errors.
-
-                bsl::ostringstream lss;
-                bsl::ostringstream oss;
-                ASSERTV(0 != ImplUtil::encode(&lss, &oss, X));
-                ASSERTV("" != lss.str());
-            }
-
-            mX.element4().value().makeSelection1(99);
-            {
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-                const char *EXP =
-                    "{"
-                        "\"element1\":\"Hello\","
-                        "\"element2\":42,"
-                        "\"element3\":\"2012-12-31T12:59:59.999-12:00\","
-                        "\"element4\":{\"selection1\":99},"
-                        "\"element5\":3.14"
-                    "}";
-                bsl::string result = oss.str();
-                ASSERTV(result, EXP, result == EXP);
-            }
-        }
-      } break;
-      case 9: {
-        // --------------------------------------------------------------------
-        // ENCODING CHOICES
-        //
-        // Concerns:
-        // 1. Encoding a Choice object results in a JSON object with one
-        //    name-value pair, where the name is the selection name and value
-        //    is the selected value.
-        //
-        // 2. Unselected Choice returns an error.
-        //
-        // 3. Error when encoding the selection is propagated.
-        //
-        // 4. Array Choice selections are encoded correctly.
-        //
-        // Plan:
-        // 1. Use a brute force approach:  (C-1..3)
-        //
-        //   1. Encode an unselected Choice object and verify it returns an
-        //      error.  (C-2)
-        //
-        //   2. Encode a selected Choice and verify it returns a name-value
-        //      pair.  (C-1)
-        //
-        //   3. Encode a selected Choice, where the selection is an unselected
-        //      Choice and verify it returns an error.  (C-3)
-        //
-        // 2. Use the table-driven approach to verify that array Choice
-        //    selections encode as expected.  Test empty and non-empty arrays
-        //    with both settings for the `encodeEmptyArrays` encoder option.
-        //    (C-4)
-        //
-        // Testing:
-        //   int encode(bsl::ostream& stream, const TYPE& v, options);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING CHOICES"
-                          << "\n================" << endl;
-
-        if (verbose) cout << "Encode Choice" << endl;
-        {
-            balb::Choice2 mX; const balb::Choice2& X = mX;
-            {
-                // Test that it fails without selection.
-
-                bsl::ostringstream lss;
-                bsl::ostringstream oss;
-                ASSERTV(0 != ImplUtil::encode(&lss, &oss, X));
-                ASSERTV("" != lss.str());
-            }
-            {
-                mX.makeSelection1(true);
-
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                bsl::string result = oss.str();
-                ASSERTV(result, result == "{\"selection1\":true}");
-            }
-            {
-                mX.makeSelection2("A quick brown fox");
-
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                bsl::string result = oss.str();
-                ASSERTV(result,
-                        result == "{\"selection2\":\"A quick brown fox\"}");
-            }
-            {
-                mX.makeSelection3();
-
-                bsl::ostringstream lss;
-                bsl::ostringstream oss;
-                ASSERTV(0 != ImplUtil::encode(&lss, &oss, X));
-                ASSERTV("" != lss.str());
-            }
-            {
-                mX.selection3().makeSelection1(42);
-
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                bsl::string result = oss.str();
-                ASSERTV(result,
-                        result == "{\"selection3\":{\"selection1\":42}}");
-            }
-        }
-
-        if (verbose) cout << "Encode Choice w/Array Selection" << endl;
-        {
-            const struct {
-                int         d_line;
-                const char *d_input_p;            // input for array selection
-                bool        d_encodeEmptyArrays;  // encoder option
-                const char *d_result_p;           // expected result
-            } DATA[] = {
-                //LINE  INPUT   "EEA"   RESULT
-                //----  -----   -----   ------
-                { L_,       0,  false,  "{\"selection1\":[]}"                },
-                { L_,       0,  true,   "{\"selection1\":[]}"                },
-                { L_,   "XyZ",  false,  "{\"selection1\":[\"XyZ\"]}"         },
-                { L_,   "XyZ",  true,   "{\"selection1\":[\"XyZ\"]}"         },
-            };
-            enum { NUM_DATA = sizeof DATA / sizeof *DATA };
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int   LINE  = DATA[ti].d_line;
-                const char *INPUT = DATA[ti].d_input_p;
-                const bool  EEA   = DATA[ti].d_encodeEmptyArrays;
-                const char *EXP   = DATA[ti].d_result_p;
-
-                bsl::vector<bsl::string> ARRAY;
-                if (INPUT) {  // test with non-empty array selection
-                    ARRAY.push_back(INPUT);
-                }
-
-                Options options;
-                options.setEncodeEmptyArrays(EEA);
-
-                balb::Choice4 mX; const balb::Choice4& X = mX;
-                mX.makeSelection1(ARRAY);
-
-                if (veryVerbose) { P_(X); P(EXP); }
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, X, options));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-        }
-        {
-            const struct {
-                int         d_line;
-                const char *d_input_p;            // input for array selection
-                bool        d_encodeEmptyArrays;  // encoder option
-                const char *d_result_p;           // expected result
-            } DATA[] = {
-                //LINE  INPUT   "EEA"   RESULT
-                //----  -----   -----   ------
-                { L_,       0, false, "{\"selection1\":{\"selection1\":[]}}" },
-                { L_,       0,  true, "{\"selection1\":{\"selection1\":[]}}" },
-                { L_,   "XyZ",  false,
-                               "{\"selection1\":{\"selection1\":[\"XyZ\"]}}" },
-                { L_,   "XyZ",  true,
-                               "{\"selection1\":{\"selection1\":[\"XyZ\"]}}" },
-            };
-            enum { NUM_DATA = sizeof DATA / sizeof *DATA };
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int   LINE  = DATA[ti].d_line;
-                const char *INPUT = DATA[ti].d_input_p;
-                const bool  EEA   = DATA[ti].d_encodeEmptyArrays;
-                const char *EXP   = DATA[ti].d_result_p;
-
-                bsl::vector<bsl::string> ARRAY;
-                if (INPUT) {  // test with non-empty array selection
-                    ARRAY.push_back(INPUT);
-                }
-
-                Options options;
-                options.setEncodeEmptyArrays(EEA);
-
-                balb::Choice5 mX; const balb::Choice5& X = mX;
-                mX.makeSelection1().makeSelection1(ARRAY);
-
-                if (veryVerbose) { P_(X); P(EXP); }
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, X, options));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-        }
-      } break;
-      case 8: {
+      case 2: {
         // --------------------------------------------------------------------
         // ENCODING ARRAYS
         //
@@ -3259,180 +3386,11 @@ int main(int argc, char *argv[])
         // 3. Ensure that the output is as expected in all cases.
         //
         // Testing:
-        //   int encode(bsl::ostream& s, const bsl::vector<TYPE>& v, options);
+        //   int encode(bsl::ostream& s, const bsl::vector<TYPE>& v, opts);
         // --------------------------------------------------------------------
 
         if (verbose) cout << "\nENCODING ARRAYS"
                           << "\n===============" << endl;
-
-        if (verbose) cout << "Encode `vector<char>`" << endl;
-        {
-            const struct {
-                int         d_line;
-                const char *d_input_p;
-                int         d_inputLength;
-                const char *d_result_p;
-            } DATA[] = {
-
-            //LINE  INPUT  LEN  RESULT
-            //----  -----  ---  ------
-
-            { L_,   "",     0,   "\"\""  },
-            { L_,   "\x00", 1,   "\"AA==\""  },
-            { L_,   "\x01", 1,   "\"AQ==\""  },
-            { L_,   "\xFF", 1,   "\"\\/w==\""  },
-            { L_,   "\x00\x00\x00\x00\x00\x00\x00\x00\00", 9,
-                                                           "\"AAAAAAAAAAAA\"" }
-
-            };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int         LINE   = DATA[ti].d_line;
-                const char *const INPUT  = DATA[ti].d_input_p;
-                const int         LENGTH = DATA[ti].d_inputLength;
-                const char *const EXP    = DATA[ti].d_result_p;
-                const bsl::vector<char> VALUE(INPUT, INPUT + LENGTH);
-
-                {
-                    bsl::ostringstream oss;
-                    ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE));
-
-                    bsl::string result = oss.str();
-                    ASSERTV(LINE, result, EXP, result == EXP);
-                }
-
-                {
-                    Options options;
-                    options.setEncodeEmptyArrays(true);
-
-                    bsl::ostringstream oss;
-                    ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE, options));
-
-                    bsl::string result = oss.str();
-                    ASSERTV(LINE, result, EXP, result == EXP);
-                }
-            }
-        }
-
-        if (verbose) cout << "Encode `vector<int>`" << endl;
-        {
-            typedef Options::EncodingStyle Style;
-            Style P = Options::e_PRETTY;
-            Style C = Options::e_COMPACT;
-
-#define NL "\n"
-
-            const struct {
-                int            d_line;
-                const char    *d_input_p;
-                bool           d_encodeEmptyArrays;
-                Style          d_encodingStyle;
-                int            d_initialIndentLevel;
-                int            d_spacesPerLevel;
-                const char    *d_result_p;
-            } DATA[] = {
-
-            //LINE  INPUT  "EEA"   Style  INDENT    "SPL"   RESULT
-            //----  -----  -----   -----  ------    -----   ------
-
-             { L_,    "",  false,     C,      0,      0,    ""           },
-             { L_,    "",  false,     P,      0,      0,    ""           },
-             { L_,    "",  false,     C,      1,      2,    ""           },
-             { L_,    "",  false,     P,      1,      2,    ""           },
-
-             { L_,    "",  true,      C,      0,      0,    "[]"         },
-             { L_,    "",  true,      P,      0,      0,    "[]"         },
-             { L_,    "",  true,      C,      1,      2,    "[]"         },
-             { L_,    "",  true,      P,      1,      2,    "  []"         },
-
-             { L_,    "2", false,     C,      0,      0,    "[2]"        },
-
-             { L_,    "2", false,     P,      0,      0,    "["      NL
-                                                            "2"      NL
-                                                            "]"          },
-
-             { L_,    "2", false,     C,      1,      2,    "[2]"        },
-
-             { L_,    "2", false,     P,      1,      2,    "  ["    NL
-                                                            "    2"  NL
-                                                            "  ]"        },
-
-             { L_,    "2", true,      C,      0,      0,    "[2]"        },
-
-             { L_,    "2", true,      P,      0,      0,    "["      NL
-                                                            "2"      NL
-                                                            "]"          },
-
-             { L_,    "2", true,      C,      1,      2,    "[2]"        },
-
-             { L_,    "2", true,      P,      1,      2,    "  ["    NL
-                                                            "    2"  NL
-                                                            "  ]"        },
-
-             { L_,  "012", false,     C,      0,      0,    "[0,1,2]"    },
-
-             { L_,  "012", false,     P,      0,      0,    "["      NL
-                                                            "0,"     NL
-                                                            "1,"     NL
-                                                            "2"      NL
-                                                            "]"          },
-
-             { L_,  "012", false,     C,      1,      2,    "[0,1,2]"    },
-
-             { L_,  "012", false,     P,      1,      2,    "  ["    NL
-                                                            "    0," NL
-                                                            "    1," NL
-                                                            "    2"  NL
-                                                            "  ]"        },
-
-             { L_,  "012", true,      C,      0,      0,    "[0,1,2]"    },
-
-             { L_,  "012", true,      P,      0,      0,    "["      NL
-                                                            "0,"     NL
-                                                            "1,"     NL
-                                                            "2"      NL
-                                                            "]"          },
-
-             { L_,  "012", true,      C,      1,      2,    "[0,1,2]"    },
-
-             { L_,  "012", true,      P,      1,      2,    "  ["    NL
-                                                            "    0," NL
-                                                            "    1," NL
-                                                            "    2"  NL
-                                                            "  ]"        },
-
-            };
-#undef NL
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int         LINE   = DATA[ti].d_line;
-                const bsl::string INPUT  = DATA[ti].d_input_p;
-                const bool        EEA    = DATA[ti].d_encodeEmptyArrays;
-                const Style       STYLE  = DATA[ti].d_encodingStyle;
-                const int         INDENT = DATA[ti].d_initialIndentLevel;
-                const int         SPL    = DATA[ti].d_spacesPerLevel;
-                const bsl::string EXP    = DATA[ti].d_result_p;
-
-                bsl::vector<int> value;
-                for (bsl::size_t i = 0; i < INPUT.size(); ++i) {
-                    value.push_back(INPUT[i] - '0');
-                }
-
-                Options options;
-                options.setEncodingStyle(STYLE);
-                options.setInitialIndentLevel(INDENT);
-                options.setSpacesPerLevel(SPL);
-                options.setEncodeEmptyArrays(EEA);
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, value, options));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-        }
 
         if (verbose) cout << "Encode arrays in a sequence" << endl;
         {
@@ -3819,7 +3777,7 @@ int main(int argc, char *argv[])
                     "}\n"
                 },
             };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
+            const int NUM_DATA = sizeof DATA / sizeof DATA[0];
 
             for (int ti = 0; ti < NUM_DATA; ++ti) {
                 const int         LINE   = DATA[ti].d_line;
@@ -3849,886 +3807,6 @@ int main(int argc, char *argv[])
                     ASSERTV(LINE, oss.str(), EXP, oss.str() == EXP);
                 }
             }
-        }
-      } break;
-      case 7: {
-        // --------------------------------------------------------------------
-        // ENCODING NULL-ABLES
-        //
-        // Concerns:
-        // 1. Null value is encoded to "null".
-        //
-        // 2. Encoding a Nullable object with non-null value is the same as it
-        //    the encoding is performed on the value directly.
-        //
-        // Plan:
-        // 1. Use the brute force approach:
-        //
-        //   1. Create a Nullable object.
-        //
-        //   2. Encode the Nullable object and verify it is encoded as "null".
-        //
-        //   3. Make the value non-null.
-        //
-        //   4. Encode the value and verify the result is as expected.
-        //
-        // Testing:
-        //   int encode(ostream& s, const bdlb::NullableValue<TYPE>& v, o);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING NULL-ABLES"
-                          << "\n===================" << endl;
-
-        if (verbose) cout << "Encode null value" << endl;
-        {
-            bdlb::NullableValue<int> mX;
-            const bdlb::NullableValue<int>& X = mX;
-
-            {
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                bsl::string result = oss.str();
-                ASSERTV(result, result == "null");
-            }
-
-            mX = 0;
-            {
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                bsl::string result = oss.str();
-                ASSERTV(result, result == "0");
-            }
-
-            mX = 42;
-            {
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                bsl::string result = oss.str();
-                ASSERTV(result, result == "42");
-            }
-
-            mX.reset();
-            {
-                bsl::ostringstream oss;
-                ASSERTV(0 == ImplUtil::encode(&oss, X));
-
-                bsl::string result = oss.str();
-                ASSERTV(result, result == "null");
-            }
-        }
-      } break;
-      case 6: {
-        // --------------------------------------------------------------------
-        // ENCODING ENUMERATIONS
-        //
-        // Concerns:
-        // 1. Encoding an Enumeration object result in a JSON string of the
-        //    string representation of the Enumeration value.
-        //
-        // Plan:
-        // 1. Use a generated Enumeration type and encode each enumeration
-        //    value.
-        //
-        // 2. Verify that the result is equal to the value of the `toString`
-        //    method enclosed in double quotes.
-        //
-        // Testing:
-        //   int encode(ostream& s, const TYPE& v, o);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING ENUMERATIONS"
-                          << "\n=====================" << endl;
-
-        const int NUM_ENUMERATORS = balb::Enumerated::NUM_ENUMERATORS;
-        for (int ti = 0; ti < NUM_ENUMERATORS; ++ti) {
-            balb::Enumerated::Value mX = (balb::Enumerated::Value) ti;
-            const balb::Enumerated::Value& X = mX;
-
-            bsl::string exp("\"");
-            exp += balb::Enumerated::toString(X);
-            exp += '\"';
-
-            bsl::ostringstream oss;
-            ASSERTV(ti, 0 == ImplUtil::encode(&oss, X));
-
-            bsl::string result = oss.str();
-            ASSERTV(ti, result, exp, result == exp);
-        }
-      } break;
-      case 5: {
-        // --------------------------------------------------------------------
-        // ENCODING DATE AND TIME TYPES
-        //
-        // Concerns:
-        // 1. Date/time are encoded in ISO 8601 format.
-        //
-        // 2. Output contains only information contained in the type being
-        //    encoded.  (i.e., encoding `bdlt::Date` will not print out a time
-        //    or offset.)
-        //
-        // 3. The encoder option "datetimeFractionalSecondPrecision" affects
-        //    the number of digits of precision in the outputs.
-        //
-        // Plan:
-        // 1. Use the table-driven technique:
-        //
-        //   1. Specify a set of valid values.
-        //
-        //   2. Encode each value and verify the output is as expected.
-        //
-        // 2. Perform step one for every date/time types.
-        //
-        // 3. For a Datetime and DatetimeTz value, set the
-        //    "datetimeFractionalSecondPrecision" attribute from 0 to 6, and
-        //    verify that the output is as expected.
-        //
-        // Testing:
-        //   int encode(ostream& s, const TYPE& v, o);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING DATE AND TIME TYPES"
-                          << "\n============================" << endl;
-
-        typedef bdlb::Variant2<bdlt::Date, bdlt::DateTz>  DateOrDateTz;
-        typedef bdlb::Variant2<bdlt::Time, bdlt::TimeTz>  TimeOrTimeTz;
-        typedef bdlb::Variant2<bdlt::Datetime, bdlt::DatetimeTz>
-                                                          DatetimeOrDatetimeTz;
-
-        const struct {
-            int        d_line;
-            int        d_year;
-            int        d_month;
-            int        d_day;
-            int        d_hour;
-            int        d_minute;
-            int        d_second;
-            int        d_millisecond;
-            int        d_offset;
-        } DATA[] = {
-            //Line Year   Mon  Day  Hour  Min  Sec     ms   offset
-            //---- ----   ---  ---  ----  ---  ---     --   ------
-
-            // Valid dates and times
-            { L_,     1,   1,   1,    0,   0,   0,     0,        0 },
-            { L_,  2005,   1,   1,    0,   0,   0,     0,      -90 },
-            { L_,   123,   6,  15,   13,  40,  59,     0,     -240 },
-            { L_,  1999,  10,  12,   23,   0,   1,     0,     -720 },
-
-            // Vary milliseconds
-            { L_,  1999,  10,  12,   23,   0,   1,     0,       90 },
-            { L_,  1999,  10,  12,   23,   0,   1,   456,      240 },
-            { L_,  1999,  10,  12,   23,   0,   1,   999,      720 },
-            { L_,  1999,  12,  31,   23,  59,  59,   999,      720 }
-        };
-        const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-        const char *expectedDate[] = {
-            "\"0001-01-01\"",
-            "\"2005-01-01\"",
-            "\"0123-06-15\"",
-            "\"1999-10-12\"",
-            "\"1999-10-12\"",
-            "\"1999-10-12\"",
-            "\"1999-10-12\"",
-            "\"1999-12-31\""
-        };
-
-        const char *expectedDateTz[] = {
-            "\"0001-01-01+00:00\"",
-            "\"2005-01-01-01:30\"",
-            "\"0123-06-15-04:00\"",
-            "\"1999-10-12-12:00\"",
-            "\"1999-10-12+01:30\"",
-            "\"1999-10-12+04:00\"",
-            "\"1999-10-12+12:00\"",
-            "\"1999-12-31+12:00\""
-        };
-
-        const char *expectedTime[] = {
-            "\"00:00:00.000\"",
-            "\"00:00:00.000\"",
-            "\"13:40:59.000\"",
-            "\"23:00:01.000\"",
-            "\"23:00:01.000\"",
-            "\"23:00:01.456\"",
-            "\"23:00:01.999\"",
-            "\"23:59:59.999\""
-        };
-
-        const char *expectedTimeTz[] = {
-            "\"00:00:00.000+00:00\"",
-            "\"00:00:00.000-01:30\"",
-            "\"13:40:59.000-04:00\"",
-            "\"23:00:01.000-12:00\"",
-            "\"23:00:01.000+01:30\"",
-            "\"23:00:01.456+04:00\"",
-            "\"23:00:01.999+12:00\"",
-            "\"23:59:59.999+12:00\""
-        };
-
-        const char *expectedDatetime[] = {
-            "\"0001-01-01T00:00:00.000\"",
-            "\"2005-01-01T00:00:00.000\"",
-            "\"0123-06-15T13:40:59.000\"",
-            "\"1999-10-12T23:00:01.000\"",
-            "\"1999-10-12T23:00:01.000\"",
-            "\"1999-10-12T23:00:01.456\"",
-            "\"1999-10-12T23:00:01.999\"",
-            "\"1999-12-31T23:59:59.999\""
-        };
-
-        const char *expectedDatetimeTz[] = {
-            "\"0001-01-01T00:00:00.000+00:00\"",
-            "\"2005-01-01T00:00:00.000-01:30\"",
-            "\"0123-06-15T13:40:59.000-04:00\"",
-            "\"1999-10-12T23:00:01.000-12:00\"",
-            "\"1999-10-12T23:00:01.000+01:30\"",
-            "\"1999-10-12T23:00:01.456+04:00\"",
-            "\"1999-10-12T23:00:01.999+12:00\"",
-            "\"1999-12-31T23:59:59.999+12:00\""
-        };
-
-        for (int ti = 0; ti < NUM_DATA; ++ti) {
-            const int LINE        = DATA[ti].d_line;
-            const int YEAR        = DATA[ti].d_year;
-            const int MONTH       = DATA[ti].d_month;
-            const int DAY         = DATA[ti].d_day;
-            const int HOUR        = DATA[ti].d_hour;
-            const int MINUTE      = DATA[ti].d_minute;
-            const int SECOND      = DATA[ti].d_second;
-            const int MILLISECOND = DATA[ti].d_millisecond;
-            const int OFFSET      = DATA[ti].d_offset;;
-
-            bdlt::Date theDate(YEAR, MONTH, DAY);
-            bdlt::Time theTime(HOUR, MINUTE, SECOND, MILLISECOND);
-            bdlt::Datetime theDatetime(YEAR, MONTH, DAY,
-                                      HOUR, MINUTE, SECOND, MILLISECOND);
-
-            bdlt::DateTz     theDateTz(theDate, OFFSET);
-            bdlt::TimeTz     theTimeTz(theTime, OFFSET);
-            bdlt::DatetimeTz theDatetimeTz(theDatetime, OFFSET);
-
-            if (verbose) cout << "Encode Date" << endl;
-            {
-                const char *EXP = expectedDate[ti];
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, theDate));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-
-            if (verbose) cout << "Encode DateTz" << endl;
-            {
-                const char *EXP = expectedDateTz[ti];
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, theDateTz));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-
-            if (verbose) cout << "Encode Time" << endl;
-            {
-                const char *EXP = expectedTime[ti];
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, theTime));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-
-            if (verbose) cout << "Encode TimeTz" << endl;
-            {
-                const char *EXP = expectedTimeTz[ti];
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, theTimeTz));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-
-            if (verbose) cout << "Encode Datetime" << endl;
-            {
-                const char *EXP = expectedDatetime[ti];
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, theDatetime));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-
-            if (verbose) cout << "Encode DatetimeTz" << endl;
-            {
-                const char *EXP = expectedDatetimeTz[ti];
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, theDatetimeTz));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-
-            if (verbose) cout << "Encode DateOrDateTz" << endl;
-            {
-                const char *EXP_DATE   = expectedDate[ti];
-                const char *EXP_DATETZ = expectedDateTz[ti];
-
-                DateOrDateTz dateVariant(theDate);
-
-
-                bsl::ostringstream ossDate;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&ossDate, dateVariant));
-
-                bsl::string result = ossDate.str();
-                ASSERTV(LINE, result, EXP_DATE, result == EXP_DATE);
-
-                dateVariant = theDateTz;
-
-                bsl::ostringstream ossDateTz;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&ossDateTz, dateVariant));
-
-                result = ossDateTz.str();
-                ASSERTV(LINE, result, EXP_DATETZ, result == EXP_DATETZ);
-            }
-
-            if (verbose) cout << "Encode TimeOrTimeTz" << endl;
-            {
-                const char *EXP_TIME   = expectedTime[ti];
-                const char *EXP_TIMETZ = expectedTimeTz[ti];
-
-                TimeOrTimeTz timeVariant(theTime);
-
-
-                bsl::ostringstream ossTime;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&ossTime, timeVariant));
-
-                bsl::string result = ossTime.str();
-                ASSERTV(LINE, result, EXP_TIME, result == EXP_TIME);
-
-                timeVariant = theTimeTz;
-
-                bsl::ostringstream ossTimeTz;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&ossTimeTz, timeVariant));
-
-                result = ossTimeTz.str();
-                ASSERTV(LINE, result, EXP_TIMETZ, result == EXP_TIMETZ);
-            }
-
-            if (verbose) cout << "Encode DatetimeOrDatetimeTz" << endl;
-            {
-                const char *EXP_DATETIME   = expectedDatetime[ti];
-                const char *EXP_DATETIMETZ = expectedDatetimeTz[ti];
-
-                DatetimeOrDatetimeTz datetimeVariant(theDatetime);
-
-
-                bsl::ostringstream ossDatetime;
-                ASSERTV(LINE,
-                        0 == ImplUtil::encode(&ossDatetime, datetimeVariant));
-
-                bsl::string result = ossDatetime.str();
-                ASSERTV(LINE, result, EXP_DATETIME, result == EXP_DATETIME);
-
-                datetimeVariant = theDatetimeTz;
-
-                bsl::ostringstream ossDatetimeTz;
-                ASSERTV(LINE,
-                        0 == ImplUtil::encode(&ossDatetimeTz,
-                                              datetimeVariant));
-
-                result = ossDatetimeTz.str();
-                ASSERTV(LINE, result, EXP_DATETIMETZ,
-                        result == EXP_DATETIMETZ);
-            }
-        }
-        {
-            bdlt::Datetime theDatetime(2010, 03, 15, 17, 23, 45, 123, 456);
-
-            const char *expectedDatetime[] = {
-                "\"2010-03-15T17:23:45\"",
-                "\"2010-03-15T17:23:45.1\"",
-                "\"2010-03-15T17:23:45.12\"",
-                "\"2010-03-15T17:23:45.123\"",
-                "\"2010-03-15T17:23:45.1234\"",
-                "\"2010-03-15T17:23:45.12345\"",
-                "\"2010-03-15T17:23:45.123456\"",
-            };
-
-            for (int pi = 0; pi <= 6; ++pi) {
-                const char *EXP = expectedDatetime[pi];
-                bsl::ostringstream oss;
-                Options opt;
-                opt.setDatetimeFractionalSecondPrecision(pi);
-                ASSERTV(0 == ImplUtil::encode(&oss, theDatetime, opt));
-                bsl::string result = oss.str();
-                ASSERTV(pi, result, EXP, result == EXP);
-            }
-        }
-        {
-            bdlt::Datetime theDatetime(2010, 03, 15, 17, 23, 45, 123, 456);
-            bdlt::DatetimeTz theDatetimeTz(theDatetime, -300);
-
-            const char *expectedDatetimeTz[] = {
-                "\"2010-03-15T17:23:45-05:00\"",
-                "\"2010-03-15T17:23:45.1-05:00\"",
-                "\"2010-03-15T17:23:45.12-05:00\"",
-                "\"2010-03-15T17:23:45.123-05:00\"",
-                "\"2010-03-15T17:23:45.1234-05:00\"",
-                "\"2010-03-15T17:23:45.12345-05:00\"",
-                "\"2010-03-15T17:23:45.123456-05:00\"",
-            };
-
-            for (int pi = 0; pi <= 6; ++pi) {
-                const char *EXP = expectedDatetimeTz[pi];
-                bsl::ostringstream oss;
-                Options opt;
-                opt.setDatetimeFractionalSecondPrecision(pi);
-                ASSERTV(0 == ImplUtil::encode(&oss, theDatetimeTz, opt));
-                bsl::string result = oss.str();
-                ASSERTV(pi, result, EXP, result == EXP);
-            }
-        }
-      } break;
-      case 4: {
-        // --------------------------------------------------------------------
-        // ENCODING NUMBERS
-        //
-        // Concerns:
-        // 1. Encoded numbers have the expected precisions.
-        //
-        // 2. Encoded numbers used default format.
-        //
-        // 3. Encoding `unsigned char` prints a number instead of string.
-        //
-        // Plan:
-        // 1. Use the table-driven technique:
-        //
-        //   1. Specify a set of valid values, including those that will test
-        //      the precision of the output.
-        //
-        //   2. Encode each value and verify the output is as expected.
-        //
-        // Testing:
-        //   int encode(ostream& s, const TYPE& v, o);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING NUMBERS"
-                          << "\n================" << endl;
-
-        if (verbose) cout << "Encode `double`" << endl;
-        {
-            typedef bsl::numeric_limits<double> Limits;
-
-            const double negZero = -1 / Limits::infinity();
-
-            const struct {
-                int         d_line;
-                double      d_value;
-                const char *d_result;
-            } DATA[] = {
-                //LINE  VALUE                RESULT
-                //----  ----------------     -------------------------
-                { L_,    0.0,                    "0"                   },
-                { L_,    1.0e-1,                 "0.1"                 },
-                { L_,    0.125,                  "0.125"               },
-                { L_,    1.0,                    "1"                   },
-                { L_,    1.5,                    "1.5"                 },
-                { L_,   10.0,                   "10"                   },
-                { L_,    1.5e1,                 "15"                   },
-                { L_,    9.9e100,                "9.9e+100"            },
-                { L_,    3.14e300,               "3.14e+300"           },
-                { L_,    2.23e-308,              "2.23e-308"           },
-                { L_,    0.12345678912345,       "0.12345678912345"    },
-                { L_,    0.12345678901234567,    "0.12345678901234566" },
-                { L_,    0.123456789012345678,   "0.12345678901234568" },
-
-                { L_, negZero,                  "-0"                   },
-                { L_,   -1.0e-1,                "-0.1"                 },
-                { L_,   -0.125,                 "-0.125"               },
-                { L_,   -1.0,                   "-1"                   },
-                { L_,   -1.5,                   "-1.5"                 },
-                { L_,  -10.0,                  "-10"                   },
-                { L_,   -1.5e1,                "-15"                   },
-                { L_,   -9.9e100,               "-9.9e+100"            },
-                { L_,   -3.14e300,              "-3.14e+300"           },
-                { L_,   -2.23e-308,             "-2.23e-308"           },
-                { L_,   -0.12345678912345,      "-0.12345678912345"    },
-                { L_,   -0.12345678901234567,   "-0.12345678901234566" },
-                { L_,   -0.123456789012345678,  "-0.12345678901234568" },
-
-                // Small Integers
-                { L_, 123456789012345.,           "123456789012345"    },
-                { L_, 1234567890123456.,          "1234567890123456"   },
-
-                // Full Mantissa Integers
-                { L_, 1.0 * 0x1FFFFFFFFFFFFFull, "9007199254740991"     },
-                { L_, 1.0 * 0x1FFFFFFFFFFFFFull  // This is also limits::max()
-                      * (1ull << 63) * (1ull << 63) * (1ull << 63)
-                      * (1ull << 63) * (1ull << 63) * (1ull << 63)
-                      * (1ull << 63) * (1ull << 63) * (1ull << 63)
-                      * (1ull << 63) * (1ull << 63) * (1ull << 63)
-                      * (1ull << 63) * (1ull << 63) * (1ull << 63)
-                      * (1ull << 26),         "1.7976931348623157e+308" },
-
-                // Boundary Values
-                { L_,  Limits::min(),         "2.2250738585072014e-308" },
-                { L_,  Limits::denorm_min(),  "5e-324"                  },
-                { L_,  Limits::max(),         "1.7976931348623157e+308" },
-                { L_, -Limits::min(),        "-2.2250738585072014e-308" },
-                { L_, -Limits::denorm_min(), "-5e-324"                  },
-                { L_, -Limits::max(),        "-1.7976931348623157e+308" },
-            };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int         LINE      = DATA[ti].d_line;
-                const double      VALUE     = DATA[ti].d_value;
-                const char * const EXPECTED = DATA[ti].d_result;
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE));
-
-                const bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXPECTED, result == EXPECTED);
-            }
-        }
-
-        if (verbose) cout << "Encode invalid `double`" << endl;
-        {
-            bsl::ostringstream oss;
-
-            oss.clear();
-            ASSERTV(0 != ImplUtil::encode(
-                             &oss, bsl::numeric_limits<double>::infinity()));
-
-            oss.clear();
-            ASSERTV(0 != ImplUtil::encode(
-                             &oss, bsl::numeric_limits<double>::infinity()));
-
-            oss.clear();
-            ASSERTV(0 != ImplUtil::encode(
-                             &oss, bsl::numeric_limits<double>::quiet_NaN()));
-
-            oss.clear();
-            ASSERTV(0 !=
-                    ImplUtil::encode(
-                        &oss, bsl::numeric_limits<double>::signaling_NaN()));
-        }
-
-        if (verbose) cout << "Encode `float`" << endl;
-        {
-            typedef bsl::numeric_limits<float> Limits;
-
-            const float negZero = -1 / Limits::infinity();
-
-            const struct {
-                int         d_line;
-                float       d_value;
-                const char *d_result;
-            } DATA[] = {
-                //LINE        VALUE         RESULT
-                //----  -------------  ---------------
-                { L_,           0.0f,   "0"           },
-                { L_,         0.125f,   "0.125"       },
-                { L_,        1.0e-1f,   "0.1"         },
-                { L_,      0.123456f,   "0.123456"    },
-                { L_,           1.0f,   "1"           },
-                { L_,           1.5f,   "1.5"         },
-                { L_,          10.0f,  "10"           },
-                { L_,         1.5e1f,  "15"           },
-                { L_,   1.23456e-20f,   "1.23456e-20" },
-                { L_,   0.123456789f,   "0.12345679"  },
-                { L_,  0.1234567891f,   "0.12345679"  },
-
-                { L_, negZero,         "-0"           },
-                { L_,        -0.125f,  "-0.125"       },
-                { L_,       -1.0e-1f,  "-0.1"         },
-                { L_,     -0.123456f,  "-0.123456"    },
-                { L_,          -1.0f,  "-1"           },
-                { L_,          -1.5f,  "-1.5"         },
-                { L_,         -10.0f, "-10"           },
-                { L_,        -1.5e1f,  "-15"          },
-                { L_,  -1.23456e-20f,  "-1.23456e-20" },
-                { L_,  -0.123456789f,  "-0.12345679"  },
-                { L_, -0.1234567891f,  "-0.12345679"  },
-
-                // {DRQS 165162213} regression, 2^24 loses precision as float
-                { L_, 1.0f * 0xFFFFFF,  "16777215"    },
-
-                // Full Mantissa Integers
-                { L_, 1.0f * 0xFFFFFF,  "16777215"        },
-                { L_, 1.0f * 0xFFFFFF      // this happens to be also
-                       * (1ull << 63)      // `Limits::max()`
-                       * (1ull << 41),    "3.4028235e+38" },
-
-                // Boundary Values
-                { L_,  Limits::min(),         "1.1754944e-38" },
-                { L_,  Limits::denorm_min(),  "1e-45"         },
-                { L_,  Limits::max(),         "3.4028235e+38" },
-                { L_, -Limits::min(),        "-1.1754944e-38" },
-                { L_, -Limits::denorm_min(), "-1e-45"         },
-                { L_, -Limits::max(),        "-3.4028235e+38" },
-            };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int          LINE     = DATA[ti].d_line;
-                const float        VALUE    = DATA[ti].d_value;
-                const char * const EXPECTED = DATA[ti].d_result;
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE));
-
-                const bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXPECTED, result == EXPECTED);
-            }
-        }
-
-        if (verbose) cout << "Encode `Decimal64`" << endl;
-        {
-#define DEC(X) BDLDFP_DECIMAL_DD(X)
-            using bdldfp::Decimal64;
-
-            typedef bsl::numeric_limits<Decimal64> Limits;
-
-            const struct {
-                int         d_line;
-                Decimal64   d_value;
-                const char *d_result;
-            } DATA[] = {
-                //LINE  VALUE       RESULT
-                //----  -----       ------
-                { L_,   DEC(0.0),    "\"0.0\""                    },
-                { L_,   DEC(-0.0),  "\"-0.0\""                    },
-                { L_,   DEC(1.13),   "\"1.13\""                   },
-
-                { L_,   DEC(-9.876543210987654e307),
-                                    "\"-9.876543210987654e+307\"" },
-                { L_,   DEC(-9.8765432109876548e307),
-                                    "\"-9.876543210987655e+307\"" },
-                { L_,   DEC(-9.87654321098765482e307),
-                                    "\"-9.876543210987655e+307\"" },
-
-                { L_,    Limits::min(),         "\"1e-383\""                 },
-                { L_,    Limits::denorm_min(),  "\"1e-398\""                 },
-                { L_,    Limits::max(),         "\"9.999999999999999e+384\"" },
-                { L_,   -Limits::min(),        "\"-1e-383\""                 },
-                { L_,   -Limits::denorm_min(), "\"-1e-398\""                 },
-                { L_,   -Limits::max(),        "\"-9.999999999999999e+384\"" },
-            };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int          LINE     = DATA[ti].d_line;
-                const Decimal64    VALUE    = DATA[ti].d_value;
-                const char * const EXPECTED = DATA[ti].d_result;
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE));
-
-                const bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXPECTED, result == EXPECTED);
-            }
-#undef DEC
-        }
-
-        if (verbose) cout << "Encode integral types" << endl;
-        {
-            u::testNumber<short>();
-            u::testNumber<int>();
-            u::testNumber<Int64>();
-            u::testNumber<unsigned char>();
-            u::testNumber<unsigned short>();
-            u::testNumber<unsigned int>();
-            u::testNumber<Uint64>();
-        }
-      } break;
-      case 3: {
-        // --------------------------------------------------------------------
-        // ENCODING STRINGS
-        //
-        // Concerns:
-        // 1. Character are encoded as a single character string.
-        //
-        // 2. All escape characters are encoded corrected.
-        //
-        // 3. Control characters are encoded as hex.
-        //
-        // Plan:
-        // 1. Using the table-driven technique:
-        //
-        //   1. Specify a set of values that include all escaped characters and
-        //      some control characters.
-        //
-        //   2. Encode the value and verify the results.
-        //
-        // 2. Repeat for strings and Customized type.
-        //
-        // Testing:
-        //  int encode(const bsl::string & value);
-        //  int encode(const char *value);
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING STRINGS"
-                          << "\n================" << endl;
-
-        if (verbose) cout << "Encode char" << endl;
-        {
-            const struct {
-                int         d_line;
-                char        d_value;
-                const char *d_result;
-            } DATA[] = {
-                //LINE    VAL     RESULT
-                //----    ---     ------
-                { L_,    '\0',      "0"     },
-                { L_,    '\t',      "9"     },
-                { L_,    '\n',     "10"     },
-                { L_,    '\r',     "13"     },
-                { L_,     ' ',     "32"     },
-                { L_,     '!',     "33"     },
-                { L_,     '"',     "34"     },
-                { L_,     '/',     "47"     },
-                { L_,     '0',     "48"     },
-                { L_,     '9',     "57"     },
-                { L_,     'A',     "65"     },
-                { L_,     'Z',     "90"     },
-                { L_,    '\\',     "92"     },
-                { L_,     'a',     "97"     },
-                { L_,     'z',    "122"     },
-                { L_,     '~',    "126"     },
-
-                { L_,  '\x7F',    "127"     },
-                { L_,  '\x80',   "-128"     },
-                { L_,  '\xff',     "-1"     },
-            };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int         LINE  = DATA[ti].d_line;
-                const char        VALUE = DATA[ti].d_value;
-                const char *const EXP   = DATA[ti].d_result;
-
-                bsl::ostringstream oss;
-                ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE));
-
-                bsl::string result = oss.str();
-                ASSERTV(LINE, result, EXP, result == EXP);
-            }
-        }
-
-        if (verbose) cout << "Encode string" << endl;
-        {
-            const struct {
-                int         d_line;
-                const char *d_value;
-                const char *d_result;
-            } DATA[] = {
-                //LINE    VAL  RESULT
-                //----    ---  ------
-                { L_,  "",     "\"\"" },
-                { L_,  " ",    "\" \"" },
-                { L_,  "~",    "\"~\"" },
-                { L_,  "test", "\"test\"" },
-                { L_,  "A quick brown fox jump over a lazy dog!",
-                               "\"A quick brown fox jump over a lazy dog!\"" },
-                { L_,  "\"",   "\"\\\"\"" },
-                { L_,  "\\",   "\"\\\\\"" },
-                { L_,  "/",    "\"\\/\"" },
-                { L_,  "\b",   "\"\\b\"" },
-                { L_,  "\f",   "\"\\f\"" },
-                { L_,  "\n",   "\"\\n\"" },
-                { L_,  "\r",   "\"\\r\"" },
-                { L_,  "\t",   "\"\\t\"" },
-                { L_,  "\x01", "\"\\u0001\"" },
-                { L_,  "\x1f", "\"\\u001f\"" },
-                { L_,  "\\/\b\f\n\r\t",   "\"\\\\\\/\\b\\f\\n\\r\\t\"" },
-            };
-            const int NUM_DATA = sizeof DATA / sizeof *DATA;
-
-            for (int ti = 0; ti < NUM_DATA; ++ti) {
-                const int         LINE  = DATA[ti].d_line;
-                const char *const VALUE = DATA[ti].d_value;
-                const char *const EXP   = DATA[ti].d_result;
-
-                if (veryVeryVerbose) cout << "Test `char *`" << endl;
-                {
-                    bsl::ostringstream oss;
-                    ASSERTV(LINE, 0 == ImplUtil::encode(&oss, VALUE));
-
-                    bsl::string result = oss.str();
-                    ASSERTV(LINE, result, EXP, result == EXP);
-                }
-
-                if (veryVeryVerbose) cout << "Test `string`" << endl;
-                {
-                    bsl::ostringstream oss;
-                    ASSERTV(LINE,
-                            0 == ImplUtil::encode(&oss, bsl::string(VALUE)));
-
-                    bsl::string result = oss.str();
-                    ASSERTV(LINE, result, EXP, result == EXP);
-                }
-
-                if (veryVeryVerbose) cout << "Test Customized" << endl;
-                {
-                    bsl::ostringstream oss;
-                    balb::CustomString str;
-                    if (0 == str.fromString(VALUE)) {
-                        ASSERTV(LINE, 0 == ImplUtil::encode(&oss, str));
-
-                        bsl::string result = oss.str();
-                        ASSERTV(LINE, result, EXP, result == EXP);
-                    }
-                }
-            }
-        }
-      } break;
-      case 2: {
-        // --------------------------------------------------------------------
-        // ENCODING BOOLEAN
-        //
-        // Concerns:
-        // 1. `true` is encoded into "true" and `false` is encoded into
-        //    "false".
-        //
-        // Plan:
-        // 1. Use a brute force approach to test both cases.
-        //
-        // Testing:
-        //   int encode(const bool& value);
-        //   baljsn::Encoder(bslma::Allocator *basicAllocator = 0);
-        //   ~baljsn::Encoder();
-        // --------------------------------------------------------------------
-
-        if (verbose) cout << "\nENCODING BOOLEAN"
-                          << "\n================" << endl;
-
-        if (verbose) cout << "Encode `true`" << endl;
-        {
-            bsl::ostringstream oss;
-            ASSERTV(0 == ImplUtil::encode(&oss, true));
-
-            bsl::string result = oss.str();
-            ASSERTV(result, result == "true");
-        }
-
-        if (verbose) cout << "Encode `false`" << endl;
-        {
-            bsl::ostringstream oss;
-            ASSERTV(0 == ImplUtil::encode(&oss, false));
-
-            bsl::string result = oss.str();
-            ASSERTV(result, result == "false");
         }
       } break;
       case 1: {
@@ -4797,7 +3875,6 @@ int main(int argc, char *argv[])
                 P(oss.str());
             }
         }
-
 
         baljsn::EncoderOptions options;
         options.setEncodingStyle(baljsn::EncoderOptions::e_PRETTY);

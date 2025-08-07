@@ -10,6 +10,16 @@ BSLS_IDENT("$Id: $")
 //@CLASSES:
 //   bdlmt::ThreadPool: portable dynamic thread pool
 //
+//@METRICS:
+//
+// * `bde.backlog`
+//   > number of pending jobs minus number of "idle" threads in the thread pool
+//   > (may be negative)
+//
+// Associated Metric Attributes:
+//  * object type name: "bdlmt.threadpool"
+//  * object type abbreviation: "tp"
+//
 //@SEE_ALSO:
 //
 //@DESCRIPTION: This component defines a portable and efficient implementation
@@ -460,6 +470,9 @@ class ThreadPool {
     bsls::AtomicInt64    d_callbackTime;   // the total time spent running jobs
                                            // (callbacks) across all threads,
                                            // in nanoseconds
+
+    bsls::AtomicInt64    d_numThreadCreateFailures;
+                                           // count of thread creation failures
 
 #if defined(BSLS_PLATFORM_OS_UNIX)
     sigset_t             d_blockSet;       // set of signals to be blocked in

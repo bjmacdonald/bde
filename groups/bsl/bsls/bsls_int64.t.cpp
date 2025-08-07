@@ -9,7 +9,7 @@
 #include <cstring>     // memset(), memcmp(), strlen()
 #include <iostream>
 #include <stdio.h>     // sprintf(), snprintf() [NOT <cstdio>, which does not
-                       // include 'snprintf']
+                       // include `snprintf`]
 
 #if defined(BSLS_PLATFORM_CMP_MSVC)
 #define snprintf _snprintf
@@ -72,9 +72,9 @@ static void aSsErT(int c, const char *s, int i)
 #endif
 
 /// Convert the specified 64-bit `value` to a hexadecimal string.
-char *hex64(char *buffer, bsls_Int64::Uint64 value)
+char *hex64(char *buffer, int length, bsls_Int64::Uint64 value)
 {
-    sprintf(buffer, INT64_FMT_STR, value);
+    snprintf(buffer, length, INT64_FMT_STR, value);
     return buffer;
 }
 
@@ -106,7 +106,7 @@ void printBits(bsls_Int64::Uint64 value)
 
 #if 0
 static bool isBigEndian()
-    // Return 'true' if this machine is observed to be big endian, and 'false'
+    // Return `true` if this machine is observed to be big endian, and `false`
     // otherwise.  Internally, assert that this machine is observed to be
     // either big endian or little endian.
 {
@@ -132,8 +132,8 @@ static bool isBigEndian()
 //--------------------------------------------------------------------------
 
 static bool isLittleEndian()
-    // Return 'true' if this machine is observed to be little endian, and
-    // 'false' otherwise.  Internally, assert that this machine is observed to
+    // Return `true` if this machine is observed to be little endian, and
+    // `false` otherwise.  Internally, assert that this machine is observed to
     // be either big endian or little endian.
 {
     union U {
@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
         //
         // Plan:
         //   For each of a small representative set of object values, ordered
-        //   by increasing length, use 'ostrstream' to write that object's
+        //   by increasing length, use `ostrstream` to write that object's
         //   value to two separate character buffers each with different
         //   initial values.  Compare the contents of these buffers with the
         //   literal expected output format and verify that the characters
@@ -251,7 +251,9 @@ int main(int argc, char *argv[]) {
                 memcpy(buf2, CTRL_BUF2, SIZE);  // Preset buf1 to Z2 values
 
                 if (verbose) cout << "\tSpec = \t\t      \""
-                                  << hex64(buf64, SPEC) << '"' << endl;
+                                  << hex64(buf64, sizeof buf64, SPEC)
+                                  << '"'
+                                  << endl;
                 if (veryVerbose)
                     cout << "\tEXPECTED FORMAT     : " << FMT << endl;
 
@@ -314,7 +316,9 @@ int main(int argc, char *argv[]) {
                 memcpy(buf2, CTRL_BUF2, SIZE);  // Preset buf1 to Z2 values
 
                 if (verbose) cout << "\tSpec = \t\t      \""
-                                  << hex64(buf64, SPEC) << '"' << endl;
+                                  << hex64(buf64, sizeof buf64, SPEC)
+                                  << '"'
+                                  << endl;
                 if (veryVerbose)
                     cout << "\tEXPECTED FORMAT     : " << FMT << endl;
 
@@ -352,7 +356,7 @@ int main(int argc, char *argv[]) {
         //
         // Plan:
         //   For each of a small representative set of object values, ordered
-        //   by increasing length, use 'ostrstream' to write that object's
+        //   by increasing length, use `ostrstream` to write that object's
         //   value to two separate character buffers each with different
         //   initial values.  Compare the contents of these buffers with the
         //   literal expected output format and verify that the characters
@@ -426,7 +430,10 @@ int main(int argc, char *argv[]) {
             memcpy(buf2, CTRL_BUF2, SIZE);  // Preset buf1 to Z2 values
 
             if (verbose)
-                cout << "\tSpec = \"" << hex64(buf64, SPEC) << '"' << endl;
+                cout << "\tSpec = \""
+                     << hex64(buf64, sizeof buf64, SPEC)
+                     << '"'
+                     << endl;
             if (veryVerbose)
                 cout << "EXPECTED FORMAT:" << endl << FMT << endl;
 
@@ -483,7 +490,9 @@ int main(int argc, char *argv[]) {
             memcpy(buf2, CTRL_BUF2, SIZE);  // Preset buf1 to Z2 values
 
             if (verbose) cout << "\tSpec = \t\t      \""
-                              << hex64(buf64, SPEC) << '"' << endl;
+                              << hex64(buf64, sizeof buf64, SPEC)
+                              << '"'
+                              << endl;
             if (veryVerbose)
                 cout << "\tSpec = \t\t      " << SPEC << endl
                      << "\tEXPECTED FORMAT     : " << FMT << endl;

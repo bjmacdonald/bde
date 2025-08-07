@@ -102,10 +102,6 @@ BSLS_IDENT("$Id: $")
 #include <bsl_iosfwd.h>
 #include <bsl_vector.h>
 
-#ifndef BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-#include <bslalg_typetraits.h>
-#endif // BDE_DONT_ALLOW_TRANSITIVE_INCLUDES
-
 namespace BloombergLP {
 namespace ball {
 
@@ -212,13 +208,13 @@ class Record {
     /// Set the custom user-defined fields of this log record to the value
     /// of the specified `userFields`.
     ///
-    /// **DEPRECATED**: Use log record attributes.
+    /// @DEPRECATED: Use log record attributes.
     void setCustomFields(const ball::UserFields& userFields);
 
     /// Return a reference providing modifiable access to the custom
     /// user-defined fields of this log record.
     ///
-    /// **DEPRECATED**: Use log record attributes.
+    /// @DEPRECATED: Use log record attributes.
     ball::UserFields& customFields();
 
     // ACCESSORS
@@ -229,7 +225,7 @@ class Record {
     /// Return a reference providing non-modifiable access to the custom
     /// user-defined fields of this log record.
     ///
-    /// **DEPRECATED**: Use log record attributes.
+    /// @DEPRECATED: Use log record attributes.
     const ball::UserFields& customFields() const;
 
     /// Return a reference providing non-modifiable access to the attributes

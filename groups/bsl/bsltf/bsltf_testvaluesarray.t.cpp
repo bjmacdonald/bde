@@ -124,6 +124,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -1411,6 +1412,11 @@ void TestDriver<VALUE, ALLOCATOR, CONVERTER>::testCase10()
 
     if (verbose) printf("\tNegative Testing.\n");
     {
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_CLANG
+#pragma GCC push
+#pragma GCC diagnostic ignored "-Wunused-comparison"
+#endif
+
         bsls::AssertTestHandlerGuard hG;
 
         const char *SPEC = "A";
@@ -1438,6 +1444,10 @@ void TestDriver<VALUE, ALLOCATOR, CONVERTER>::testCase10()
         ASSERT_OPT_FAIL(INVALID != VALID);
 
         ASSERT_OPT_PASS(VALID != VALID);
+
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_CLANG
+#pragma GCC pop
+#endif
     }
 }
 

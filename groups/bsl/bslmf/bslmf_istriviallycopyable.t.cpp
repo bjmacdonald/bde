@@ -68,6 +68,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -515,7 +516,7 @@ int main(int argc, char *argv[])
 //  };
 //
 //  struct MyNonTriviallyCopyableType {
-//      // ```.
+//      // ...
 //  };
 // ```
 // Then, since user-defined types cannot be automatically evaluated by
@@ -875,12 +876,36 @@ int main(int argc, char *argv[])
         ASSERT_IS_TRIVIALLY_COPYABLE_OBJECT_TYPE(volatile void*,       true);
         ASSERT_IS_TRIVIALLY_COPYABLE_OBJECT_TYPE(const volatile void*, true);
 
+// The following conditional uses exact equality on the compiler version so we
+// can see if a compiler upgrade has fixed the issue or not.  In case you get
+// a compilation error please update the conditional to contain the new version
+// as well as 1941.
+#if defined(_MSC_VER) && _MSC_VER == 1941
+    // MSVC gets confused with `void(..)` somehow in the macros, so we have
+    // to use a typedef for the function types.
+    #define MSVC_FAILS_ON_VOID_ELLIPSIS
+#endif
+
         // C-5 : Function types are not object types, nor cv-qualifiable.
         ASSERT_IS_TRIVIALLY_COPYABLE_TYPE(void(),                false);
-        ASSERT_IS_TRIVIALLY_COPYABLE_TYPE(int(float,double...),  false);
+#ifndef MSVC_FAILS_ON_VOID_ELLIPSIS
+        ASSERT_IS_TRIVIALLY_COPYABLE_TYPE(int(float, double...), false);
+#else
+        {
+            typedef int FuncType(float, double...);
+            ASSERT_IS_TRIVIALLY_COPYABLE_TYPE(FuncType,          false);
+        }
+#endif
 #ifndef BSLMF_ISTRIVIALLYCOPYABLE_NO_NESTED_FOR_ABOMINABLE_FUNCTIONS
         ASSERT_IS_TRIVIALLY_COPYABLE(void() const,               false);
+#ifndef MSVC_FAILS_ON_VOID_ELLIPSIS
         ASSERT_IS_TRIVIALLY_COPYABLE(int(float,double...) const, false);
+#else
+        {
+            typedef int FuncType(float, double...) const;
+            ASSERT_IS_TRIVIALLY_COPYABLE(FuncType,               false);
+        }
+#endif
 #endif
       } break;
       default: {

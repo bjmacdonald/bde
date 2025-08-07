@@ -70,6 +70,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -203,8 +204,7 @@ namespace {
       public:
         // CREATORS
 
-        /// Create an `Employee` object having the specified `name` and
-        /// `id`.
+        /// Create an `Employee` object having the specified `name` and `id`.
         Employee(const char *name, int id)
         : d_name(name)
         , d_id(id)
@@ -219,7 +219,7 @@ namespace {
         {
         }
 // ```
-// Here we define the move constructor for 'Employee".  Note that for the data
+// Here we define the move constructor for `Employee`.  Note that for the data
 // members of `original`, `d_id` is a fundamental type and we simply can access
 // the value as a `const &`, but `d_name` is a `StringView`, so that we must
 // use `MovableRefUtil::move` to move it in a language-standard neutral way:

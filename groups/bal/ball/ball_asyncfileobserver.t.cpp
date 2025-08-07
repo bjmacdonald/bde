@@ -18,6 +18,7 @@
 #include <bdlt_datetimeutil.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_localtimeoffset.h>
+#include <bdlt_timeunitratio.h>
 
 #include <bsla_maybeunused.h>
 
@@ -30,6 +31,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 #include <bslmt_barrier.h>
+#include <bslmt_latch.h>
 #include <bslmt_threadutil.h>
 
 #include <bsls_assert.h>
@@ -394,18 +396,18 @@ int countLoggedRecords(const bsl::string& fileName)
     return numLines / 2;
 }
 
-/// Wait (for up to 5 seconds) until the specified `observer` drains its
-/// record queue (by processing all pending log records).
-void waitEmptyRecordQueue(
-                       bsl::shared_ptr<const ball::AsyncFileObserver> observer)
+/// Wait up until the specified `numSeconds` until the specified `observer`
+/// drains its record queue (by processing all pending log records).
+void waitEmptyRecordQueue(const ball::AsyncFileObserver *observer,
+                          int                            numSeconds = 5)
 {
     bsls::Stopwatch timer;
     timer.start();
 
     do {
         bslmt::ThreadUtil::microSleep(1000, 0);
-    } while (observer->recordQueueLength() > 0
-             && timer.elapsedTime() < 5);
+    } while (observer->recordQueueLength() > 0 &&
+             timer.elapsedTime() < numSeconds);
 
     ASSERTV(timer.elapsedTime(),
             observer->recordQueueLength(),
@@ -418,32 +420,47 @@ void waitEmptyRecordQueue(
 /// `ball::FileObserver2::OnFileRotationCallback`.  This class records every
 /// invocation of the function-call operator, and is intended to test
 /// whether `ball::FileObserver2` calls the log-rotation callback
-/// appropriately.
+/// appropriately.  Note that this class is implemented with the "pimpl"
+/// idiom os that copies of the functor will share the same reporting
+/// information.
 class LogRotationCallbackTester {
 
     // PRIVATE TYPES
     struct Rep {
-      private:
+              private:
         // NOT IMPLEMENTED
         Rep(const Rep&);
         Rep& operator=(const Rep&);
 
       public:
         // DATA
-        int         d_invocations;
-        int         d_status;
-        bsl::string d_rotatedFileName;
+        int           d_invocations;
+        int           d_status;
+        bslmt::Latch *d_latch_p;
+        bsl::string   d_rotatedFileName;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(Rep, bslma::UsesBslmaAllocator);
 
         // CREATORS
 
-        /// Create an object with default attribute values.  Use the
+        /// Create an object with default attribute values, and use the
         /// specified `basicAllocator` to supply memory.
         explicit Rep(bslma::Allocator *basicAllocator)
         : d_invocations(0)
         , d_status(0)
+        , d_latch_p(0)
+        , d_rotatedFileName(basicAllocator)
+        {
+        }
+
+        /// Create an object with default attribute values, arriving
+        /// on the specified `latch` on calls to `publish`, and using
+        /// specified `basicAllocator` to supply memory.
+        explicit Rep(bslmt::Latch *latch, bslma::Allocator *basicAllocator)
+        : d_invocations(0)
+        , d_status(0)
+        , d_latch_p(latch)
         , d_rotatedFileName(basicAllocator)
         {
         }
@@ -457,6 +474,7 @@ class LogRotationCallbackTester {
     bsl::shared_ptr<Rep> d_rep;
 
   public:
+
     // CREATORS
 
     /// Create a callback tester object with default attribute values.  Use
@@ -466,6 +484,16 @@ class LogRotationCallbackTester {
         d_rep.createInplace(basicAllocator, basicAllocator);
         reset();
     }
+
+    /// Create a callback tester object with default attribute values.  Use
+    /// the specified `basicAllocator` to supply memory.
+    explicit LogRotationCallbackTester(bslmt::Latch     *latch,
+                                       bslma::Allocator *basicAllocator)
+    {
+        d_rep.createInplace(basicAllocator, latch, basicAllocator);
+        reset();
+    }
+
 
     // MANIPULATORS
 
@@ -477,6 +505,9 @@ class LogRotationCallbackTester {
         ++d_rep->d_invocations;
         d_rep->d_status          = status;
         d_rep->d_rotatedFileName = rotatedFileName;
+        if (d_rep->d_latch_p) {
+            d_rep->d_latch_p->arrive();
+        }
     }
 
     /// Reset the attributes of this object to their default values.
@@ -495,7 +526,7 @@ class LogRotationCallbackTester {
     int numInvocations() const { return d_rep->d_invocations; }
 
     /// Return the status passed to the most recent invocation of the
-    /// function-call operation, or `UNINITIALIZED` if `numInvocations` is
+    /// function-call operation, or `k_UNINITIALIZED` if `numInvocations` is
     /// 0.
     int status() const { return d_rep->d_status; }
 
@@ -506,7 +537,6 @@ class LogRotationCallbackTester {
     {
         return d_rep->d_rotatedFileName;
     }
-
 };
 
 typedef LogRotationCallbackTester RotCb;
@@ -982,8 +1012,8 @@ int main(int argc, char *argv[])
 
         using namespace BALL_ASYNCFILEOBSERVER_RELEASERECORDS_TEST;
 
-        bslmt::Barrier barrier(3);
-        bsls::AtomicInt releaseCounter(500);
+        bslmt::Barrier barrier(3, bsls::SystemClockType::e_MONOTONIC);
+        bsls::AtomicInt releaseCounter(50);
 
         bsl::function<void()> publisherFunctor =
             bdlf::BindUtil::bind(&publisher, &mX, &releaseCounter, &barrier);
@@ -995,7 +1025,7 @@ int main(int argc, char *argv[])
         bslmt::ThreadUtil::create(&releaseThread, releaserFunctor);
 
         bsls::TimeInterval start = bsls::SystemTime::nowMonotonicClock();
-        bsls::TimeInterval timeout = start + bsls::TimeInterval(10);
+        bsls::TimeInterval timeout = start + bsls::TimeInterval(90);
         barrier.wait();  // Start of the test.
 
         int rc;
@@ -1004,7 +1034,7 @@ int main(int argc, char *argv[])
         } while (0 != rc && bsls::SystemTime::nowMonotonicClock() < timeout);
 
         if (0 != rc) {
-            ASSERTV(0 &&
+            ASSERTV(rc, 0 &&
                     "FAILURE: case 12 `releaseRecords` timed out (deadlock?)");
             bsl::exit(testStatus);
         }
@@ -1294,10 +1324,6 @@ int main(int argc, char *argv[])
 
         mX->startPublicationThread();
 
-        // Set callback to monitor rotation.
-
-        RotCb cb(Z);
-        mX->setOnFileRotationCallback(cb);
 
         // Create temporary directory for log files.
         bdls::TempDirectoryGuard tempDirGuard("ball_");
@@ -1306,7 +1332,6 @@ int main(int argc, char *argv[])
 
         ASSERT(0    == mX->enableFileLogging(fileName.c_str()));
         ASSERT(true == X->isFileLoggingEnabled());
-        ASSERT(0    == cb.numInvocations());
 
         BALL_LOG_SET_CATEGORY("ball::AsyncFileObserverTest");
 
@@ -1317,6 +1342,12 @@ int main(int argc, char *argv[])
             mX->disableFileLogging();
 
             for (int i = 0; i < 2; ++i) {
+                bslmt::Latch latch(1, bsls::SystemClockType::e_MONOTONIC);
+                // Set callback to monitor rotation.
+                RotCb cb(&latch, Z);
+                mX->setOnFileRotationCallback(cb);
+                ASSERT(0 == cb.numInvocations());
+
                 bdlt::Datetime startTime;
                 if (i == 0) {
                     mX->enablePublishInLocalTime();
@@ -1327,31 +1358,34 @@ int main(int argc, char *argv[])
                     startTime = bdlt::CurrentTime::utc();
                 }
 
+                // Set up daily rotation to next occur in 3 seconds
                 startTime += bdlt::DatetimeInterval(-1, 0, 0, 3);
                 mX->rotateOnTimeInterval(bdlt::DatetimeInterval(1), startTime);
                 ASSERT(0 == mX->enableFileLogging(fileName.c_str()));
 
                 BALL_LOG_TRACE << "log";
+                // Sleep for 1 second and make sure that no file rotation
+                // happened
                 bslmt::ThreadUtil::microSleep(0, 1);
                 ASSERTV(cb.numInvocations(), 0 == cb.numInvocations());
 
+                // Sleep for 3 more seconds.
                 bslmt::ThreadUtil::microSleep(0, 3);
 
+                // Emit a log entry to trigger the observer's publish thread
+                // and initiate rotation.
                 BALL_LOG_TRACE << "log";
-                bslmt::ThreadUtil::microSleep(0, 1);
 
-                // Wait up to 3 seconds for the file rotation to complete.
-
-                int loopCount = 0;
-                do {
-                    bslmt::ThreadUtil::microSleep(0, 1);
-                } while (0 == cb.numInvocations() && loopCount++ < 3);
+                // Wait up to 3 seconds for the publish thread to signal
+                // rotation completion.
+                ASSERT(0 ==
+                       latch.timedWait(bsls::SystemTime::now(latch.clockType())
+                                           .addSeconds(3)));
 
                 ASSERTV(cb.numInvocations(), 1 == cb.numInvocations());
 
                 ASSERT(true == FsUtil::exists(cb.rotatedFileName().c_str()));
 
-                cb.reset();
                 mX->disableFileLogging();
             }
         }
@@ -1359,7 +1393,8 @@ int main(int argc, char *argv[])
         if (veryVerbose) cout << "Testing `disableTimeIntervalRotation`"
                               << endl;
         {
-            cb.reset();
+            RotCb cb(Z);
+            mX->setOnFileRotationCallback(cb);
 
             mX->disableTimeIntervalRotation();
             bslmt::ThreadUtil::microSleep(0, 3);
@@ -1505,7 +1540,7 @@ int main(int argc, char *argv[])
             }
 
             // Wait some time for async writing to complete.
-            waitEmptyRecordQueue(X);
+            waitEmptyRecordQueue(X.ptr());
 
             fflush(stderr);
             bsl::fstream stderrFs;
@@ -1560,312 +1595,204 @@ int main(int argc, char *argv[])
         // all messages regardless of their severity and the observer will see
         // each message only once.
 
-        ball::LoggerManagerConfiguration configuration;
-        ASSERT(0 == configuration.setDefaultThresholdLevelsIfValid(
-                                                     ball::Severity::e_TRACE));
-
-        ball::LoggerManagerScopedGuard guard(configuration);
-
-        ball::LoggerManager& manager = ball::LoggerManager::singleton();
-
-#ifdef BSLS_PLATFORM_OS_UNIX
         bslma::TestAllocator ta(veryVeryVeryVerbose);
 
-        int         loopCount = 0;
-        int         fileCount = 0;
-        bsl::string line(&ta);
+        BALL_LOG_SET_CATEGORY("TestCategory");
+        ball::Context context;
+        bdls::TempDirectoryGuard tempDirGuard("ball_");
 
-        if (verbose) cout << "Test-case infrastructure setup." << endl;
-        {
-            // Create a temporary directory for log files.
-            bdls::TempDirectoryGuard tempDirGuard("ball_");
-            bsl::string              fileName(tempDirGuard.getTempDirName());
-            bdls::PathUtil::appendRaw(&fileName, "testLog");
-
-            bsl::shared_ptr<Obj>       mX(new(ta) Obj(ball::Severity::e_OFF,
-                                                      &ta),
-                                          &ta);
-            bsl::shared_ptr<const Obj> X = mX;
-
-            mX->startPublicationThread();
-
-            ASSERT(0 == manager.registerObserver(mX, "testObserver"));
-
-            BALL_LOG_SET_CATEGORY("ball::AsyncFileObserverTest");
-
-            if (verbose) cout << "Testing setup." << endl;
-            {
-                bsl::string fn_time = fileName + bsl::string(".%T");
-                ASSERT(0    == mX->enableFileLogging(fn_time.c_str()));
-                ASSERT(true == X->isFileLoggingEnabled());
-                ASSERT(1    == mX->enableFileLogging(fn_time.c_str()));
-
-                BALL_LOG_TRACE << "log 1";
-
-                glob_t globbuf;
-                ASSERT(0 == glob((fileName + ".2*").c_str(), 0, 0, &globbuf));
-                ASSERT(1 == globbuf.gl_pathc);
-
-                // Wait for the async logging to complete.
-                waitEmptyRecordQueue(X);
-
-                int logRecordCount = countLoggedRecords(globbuf.gl_pathv[0]);
-                ASSERTV(globbuf.gl_pathv[0],
-                        logRecordCount,
-                        1 == logRecordCount);
-
-                ASSERT(true == X->isFileLoggingEnabled());
-
-                globfree(&globbuf);
-            }
-
-            if (verbose) cout << "Testing lifetime-constrained rotation."
-                              << endl;
-            {
-                ASSERT(bdlt::DatetimeInterval(0) == X->rotationLifetime());
-
-                mX->rotateOnTimeInterval(bdlt::DatetimeInterval(0,0,0,3));
-
-                ASSERT(bdlt::DatetimeInterval(0,0,0,3) ==
-                                                        X->rotationLifetime());
-
-                // Wait for [longer than] rotation interval and log new
-                // messages.
-                bslmt::ThreadUtil::microSleep(0, 4);
-
-                // Those logs will go into a file after rotation.
-                BALL_LOG_TRACE << "log 1";
-                BALL_LOG_DEBUG << "log 2";
-
-                // Wait up to 3 seconds for the rotation to complete.
-                bsls::Stopwatch timer;
-                timer.start();
-                do {
-                    bslmt::ThreadUtil::microSleep(1000, 0);
-                    glob_t globbuf;
-                    ASSERT(
-                       0 == glob((fileName + ".2*").c_str(), 0, 0, &globbuf));
-                    fileCount = static_cast<int>(globbuf.gl_pathc);
-                    globfree(&globbuf);
-                } while (fileCount < 2 && timer.elapsedTime() < 3);
-
-                // Check that a rotation occurred.
-                glob_t globbuf;
-                ASSERT(0 == glob((fileName + ".2*").c_str(), 0, 0, &globbuf));
-                ASSERTV(globbuf.gl_pathc, 2 == globbuf.gl_pathc);
-
-                // Wait for the async logging to complete.
-                waitEmptyRecordQueue(X);
-
-                // Check the number of lines in the file.
-                ASSERT(2 == countLoggedRecords(globbuf.gl_pathv[1]));
-                globfree(&globbuf);
-
-                mX->disableTimeIntervalRotation();
-
-                // Wait for [longer than] rotation interval and log new
-                // message.
-                bslmt::ThreadUtil::microSleep(0, 4);
-
-                BALL_LOG_FATAL << "log 3";
-
-                // Check that no rotation occurred.
-                ASSERT(0 == glob((fileName + ".2*").c_str(), 0, 0, &globbuf));
-                ASSERT(2 == globbuf.gl_pathc);
-
-                // Wait for the async logging to complete.
-                waitEmptyRecordQueue(X);
-
-                ASSERT(3 == countLoggedRecords(globbuf.gl_pathv[1]));
-                globfree(&globbuf);
-            }
-
-            if (verbose) cout << "Testing forced rotation." << endl;
-            {
-                mX->disableTimeIntervalRotation();
-                mX->forceRotation();
-
-                BALL_LOG_TRACE << "log 1";
-                BALL_LOG_DEBUG << "log 2";
-                BALL_LOG_INFO  << "log 3";
-                BALL_LOG_WARN  << "log 4";
-
-                // Check that the rotation occurred.
-                glob_t globbuf;
-                ASSERT(0 == glob((fileName + ".2*").c_str(), 0, 0, &globbuf));
-                ASSERT(3 == globbuf.gl_pathc);
-
-                // Wait for the async logging to complete.
-                waitEmptyRecordQueue(X);
-
-                ASSERT(4 == countLoggedRecords(globbuf.gl_pathv[2]));
-                globfree(&globbuf);
-            }
-
-            if (verbose) cout << "Testing size-constrained rotation." << endl;
-            {
-                bslmt::ThreadUtil::microSleep(0, 2);
-                ASSERT(0 == X->rotationSize());
-                mX->rotateOnSize(1);
-                ASSERT(1 == X->rotationSize());
-                for (int i = 0 ; i < 30; ++i) {
-                    BALL_LOG_TRACE << "log";
-
-                    // We sleep because otherwise, the loop is too fast to make
-                    // the timestamp change so we cannot observe the rotation.
-
-                    bslmt::ThreadUtil::microSleep(200 * 1000);
-                }
-
-                glob_t globbuf;
-                ASSERT(0 == glob((fileName + ".2*").c_str(), 0, 0, &globbuf));
-                ASSERT(4 <= globbuf.gl_pathc);
-
-                // We are not checking the last one since we do not have any
-                // information on its size.
-
-                for (size_t i = 0; i < globbuf.gl_pathc - 3; ++i) {
-                    bsl::ifstream fs;
-                    fs.open(globbuf.gl_pathv[i + 2], bsl::ifstream::in);
-                    fs.clear();
-
-                    ASSERT(fs.is_open());
-
-                    bsl::string::size_type fileSize = 0;
-                    bsl::string            line(&ta);
-
-                    while (getline(fs, line)) {
-                        fileSize += line.length() + 1;
-                    }
-                    fs.close();
-
-                    ASSERT(fileSize > 1024);
-                }
-
-                int oldNumFiles = static_cast<int>(globbuf.gl_pathc);
-                globfree(&globbuf);
-
-                ASSERT(1 == X->rotationSize());
-                mX->disableSizeRotation();
-                ASSERT(0 == X->rotationSize());
-
-                for (int i = 0 ; i < 30; ++i) {
-                    BALL_LOG_TRACE << "log";
-                    bslmt::ThreadUtil::microSleep(50 * 1000);
-                }
-
-                // Verify that no rotation occurred.
-
-                ASSERT(0 == glob((fileName + ".2*").c_str(), 0, 0, &globbuf));
-                ASSERT(oldNumFiles == (int)globbuf.gl_pathc);
-                globfree(&globbuf);
-            }
-
-            mX->disableFileLogging();
-            mX->stopPublicationThread();
-
-            // Deregister here as we used local allocator for the observer.
-            ASSERT(0 == manager.deregisterObserver("testObserver"));
+        if (veryVerbose) {
+            P(tempDirGuard.getTempDirName())
         }
 
-        // Test with no timestamp.
-        if (verbose) cout << "Test-case infrastructure setup." << endl;
-        {
-            // Create a temporary directory for log files.
-            bdls::TempDirectoryGuard tempDirGuard("ball_");
-            bsl::string              fileName(tempDirGuard.getTempDirName());
-            bdls::PathUtil::appendRaw(&fileName, "testLog");
+        bsl::string fileName(tempDirGuard.getTempDirName());
+        bdls::PathUtil::appendRaw(&fileName, "caseTestingFileRotation");
 
-            bsl::shared_ptr<Obj> mX(new(ta) Obj(ball::Severity::e_OFF, &ta),
-                                    &ta);
+        const ball::Severity::Level e_INFO = ball::Severity::e_INFO;
 
-            bsl::shared_ptr<const Obj> X = mX;
-
-            mX->startPublicationThread();
-            bslmt::ThreadUtil::microSleep(0, 1);
-            ASSERT(0 == manager.registerObserver(mX, "testObserver"));
-
-            BALL_LOG_SET_CATEGORY("ball::AsyncFileObserverTest");
-
-            if (verbose) cout << "Testing setup." << endl;
-            {
-                ASSERT(0 == mX->enableFileLogging(fileName.c_str()));
-                ASSERT(X->isFileLoggingEnabled());
-                ASSERT(1 == mX->enableFileLogging(fileName.c_str()));
-
-                BALL_LOG_TRACE << "log 1";
-
-                glob_t globbuf;
-                ASSERT(0 == glob((fileName + "*").c_str(), 0, 0, &globbuf));
-                ASSERT(1 == globbuf.gl_pathc);
-
-                // Wait for the async logging to complete.
-                waitEmptyRecordQueue(X);
-
-                ASSERT(1 == countLoggedRecords(globbuf.gl_pathv[0]));
-                globfree(&globbuf);
-            }
-
-            if (verbose) cout << "Testing lifetime-constrained rotation."
-                              << endl;
-            {
-                ASSERT(bdlt::DatetimeInterval(0) == X->rotationLifetime());
-
-                mX->rotateOnTimeInterval(bdlt::DatetimeInterval(0,0,0,3));
-                ASSERT(bdlt::DatetimeInterval(0,0,0,3) ==
-                       X->rotationLifetime());
-
-                bslmt::ThreadUtil::microSleep(0, 4);
-                BALL_LOG_TRACE << "log 1";
-                BALL_LOG_DEBUG << "log 2";
-
-                // Wait up to 3 seconds for the rotation to complete.
-
-                loopCount = 0;
-                do {
-                    bslmt::ThreadUtil::microSleep(0, 1);
-                    glob_t globbuf;
-                    ASSERT(
-                       0 == glob((fileName + "*").c_str(), 0, 0, &globbuf));
-                    fileCount = static_cast<int>(globbuf.gl_pathc);
-                    globfree(&globbuf);
-                } while (fileCount < 2 && loopCount++ < 3);
-
-                // Check that a rotation occurred.
-
-                glob_t globbuf;
-                ASSERT(0 == glob((fileName + "*").c_str(), 0, 0, &globbuf));
-                ASSERT(2 == globbuf.gl_pathc);
-
-                // Wait for the async logging to complete.
-                waitEmptyRecordQueue(X);
-
-                ASSERT(2 == countLoggedRecords(globbuf.gl_pathv[0]));
-                globfree(&globbuf);
-
-                mX->disableTimeIntervalRotation();
-                bslmt::ThreadUtil::microSleep(0, 4);
-                BALL_LOG_FATAL << "log 3";
-
-                // Check that no rotation occurred.
-
-                ASSERT(0 == glob((fileName + "*").c_str(), 0, 0, &globbuf));
-                ASSERT(2 == globbuf.gl_pathc);
-
-                // Wait for the async logging to complete.
-                waitEmptyRecordQueue(X);
-
-                ASSERT(3 == countLoggedRecords(globbuf.gl_pathv[0]));
-                globfree(&globbuf);
-            }
-
-            mX->disableFileLogging();
-            mX->stopPublicationThread();
-
-            // Deregister here as we used local allocator for the observer.
-            ASSERT(0 == manager.deregisterObserver("testObserver"));
+        if (verbose) {
+            cerr << "Testing `forceRotation`" << endl;
         }
-#endif
+        {
+            bslmt::Latch latch(1);
+            LogRotationCallbackTester rotationCb(&latch, Z);
+
+            bsl::string fileName(tempDirGuard.getTempDirName());
+            bdls::PathUtil::appendRaw(&fileName, "caseTestingFileRotation_forceRotation");
+
+            Obj mX(ball::Severity::e_ERROR, &ta);
+
+            mX.setOnFileRotationCallback(rotationCb);
+            mX.startPublicationThread();
+            mX.enableFileLogging(fileName.c_str());
+
+
+            mX.publish(createRecord("Message 1", e_INFO, Z), context);
+            mX.stopPublicationThread();
+            mX.startPublicationThread();
+
+            mX.forceRotation();
+
+            latch.wait();
+
+            mX.publish(createRecord("Message 2", e_INFO, Z), context);
+            mX.stopPublicationThread();
+
+            mX.disableFileLogging();
+
+            if (veryVerbose) {
+                P_(fileName);
+                P(rotationCb.rotatedFileName());
+            }
+
+            int numRecordsFile1 =
+                              countLoggedRecords(rotationCb.rotatedFileName());
+            int numRecordsFile2 = countLoggedRecords(fileName);
+
+            ASSERTV(numRecordsFile1, 1 == numRecordsFile1);
+            ASSERTV(numRecordsFile2, 1 == numRecordsFile2);
+        }
+        if (verbose) {
+            cerr << "Testing `rotateOnSize`" << endl;
+        }
+        {
+            bsl::string oneKbMessage(1024, 'x', Z);
+            bslmt::Latch latch(1);
+            LogRotationCallbackTester rotationCb(&latch, Z);
+
+            bsl::string fileName(tempDirGuard.getTempDirName());
+            bdls::PathUtil::appendRaw(&fileName, "caseTestingFileRotation_rotateOnSize");
+
+
+            Obj mX(ball::Severity::e_ERROR, &ta);
+
+            mX.setOnFileRotationCallback(rotationCb);
+
+            // Set the file size rotation to a very small value, so all records
+            // should rotate.
+
+            mX.rotateOnSize(1);
+            mX.startPublicationThread();
+            mX.enableFileLogging(fileName.c_str());
+
+
+            mX.publish(createRecord(oneKbMessage, e_INFO, Z), context);
+            mX.stopPublicationThread();
+            mX.startPublicationThread();
+
+            // Rotate on this next record.
+
+            mX.publish(createRecord(oneKbMessage, e_INFO, Z), context);
+            mX.stopPublicationThread();
+            mX.startPublicationThread();
+
+            latch.wait();
+
+            // Disable roation.
+
+            mX.disableSizeRotation();
+
+            mX.publish(createRecord(oneKbMessage, e_INFO, Z), context);
+            mX.stopPublicationThread();
+            mX.startPublicationThread();
+            mX.publish(createRecord(oneKbMessage, e_INFO, Z), context);
+            mX.stopPublicationThread();
+            mX.startPublicationThread();
+            mX.publish(createRecord(oneKbMessage, e_INFO, Z), context);
+
+            mX.stopPublicationThread();
+            mX.disableFileLogging();
+
+
+            if (veryVerbose) {
+                P_(fileName);
+                P(rotationCb.numInvocations());
+            }
+
+            ASSERTV(rotationCb.numInvocations(), 1 == rotationCb.numInvocations());
+        }
+        if (verbose) {
+            cerr << "Testing `rotateOnTimeInterval`" << endl;
+        }
+        {
+
+            bslmt::Latch latch(1);
+            LogRotationCallbackTester rotationCb(&latch, Z);
+
+            bsl::string fileName(tempDirGuard.getTempDirName());
+            bdls::PathUtil::appendRaw(&fileName, "caseTestingFileRotation_rotateOnTimeInterval");
+
+
+            Obj mX(ball::Severity::e_ERROR, &ta);
+
+            bdlt::DatetimeInterval interval(0, 0, 0, 1);
+            mX.setOnFileRotationCallback(rotationCb);
+
+            // Enable roation on a 1s interval.  Note that intervals < 1s are
+            // ignored.
+            mX.rotateOnTimeInterval(interval);
+            mX.enableFileLogging(fileName.c_str());
+
+            bdlt::Datetime startTime = bdlt::CurrentTime::utc();
+            bdlt::Datetime rotationTime = startTime + interval;
+
+            ASSERTV(mX.rotationLifetime(), interval == mX.rotationLifetime());
+
+            mX.startPublicationThread();
+            mX.enableFileLogging(fileName.c_str());
+
+            mX.publish(createRecord("Message 1", e_INFO, Z), context);
+            mX.publish(createRecord("Message 2", e_INFO, Z), context);
+            mX.publish(createRecord("Message 3", e_INFO, Z), context);
+
+            mX.stopPublicationThread();
+            mX.startPublicationThread();
+
+            ASSERTV(rotationCb.numInvocations(), 0 == rotationCb.numInvocations());
+
+            // Delay so one rotation will occur on the next record.
+            while (bdlt::CurrentTime::utc() <= rotationTime) {
+                bslmt::ThreadUtil::microSleep(1000);
+            }
+
+            mX.publish(createRecord("Message 4", e_INFO, Z), context);
+            mX.publish(createRecord("Message 5", e_INFO, Z), context);
+            mX.publish(createRecord("Message 6", e_INFO, Z), context);
+
+            latch.wait();
+            mX.stopPublicationThread();
+            mX.startPublicationThread();
+
+            // Disable time rotation.
+            mX.disableTimeIntervalRotation();
+
+
+            // Delay enough that a rotation would have occured.
+            while (bdlt::CurrentTime::utc() <= rotationTime) {
+                bslmt::ThreadUtil::microSleep(1000);
+            }
+
+            mX.publish(createRecord("Message 7", e_INFO, Z), context);
+            mX.publish(createRecord("Message 8", e_INFO, Z), context);
+            mX.publish(createRecord("Message 9", e_INFO, Z), context);
+
+            mX.stopPublicationThread();
+            mX.disableFileLogging();
+
+            if (veryVerbose) {
+                P_(fileName);
+                P(rotationCb.numInvocations());
+            }
+
+            ASSERTV(rotationCb.numInvocations(), 1 == rotationCb.numInvocations());
+
+
+            int numRecordsFile1 =
+                              countLoggedRecords(rotationCb.rotatedFileName());
+            int numRecordsFile2 = countLoggedRecords(fileName);
+            ASSERTV(numRecordsFile1, 3 == numRecordsFile1);
+            ASSERTV(numRecordsFile2, 6 == numRecordsFile2);
+        }
       } break;
       case 5: {
         // --------------------------------------------------------------------
@@ -2502,8 +2429,9 @@ int main(int argc, char *argv[])
             if (verbose)
                 cout << "Begin file offset: " << beginFileOffset << endl;
 
-            // Throw a fairly large amount of logs into the queue.
-
+            // Throw a fairly large amount of logs into the queue.  Note that
+            // this number must be less than the queue size of `mX`, which is
+            // 8192.
             int logCount = 8000;
             for (int i = 0; i < logCount; ++i)
             {
@@ -2511,18 +2439,38 @@ int main(int argc, char *argv[])
                 mX.publish(record, context);
             }
 
-            // Verify there are still records left not published.
-
-            ASSERT(record.use_count() > 1);
+            // There must be at least 2 records left unpublished in order to
+            // guarantee the correctness of this test.
+            const bsl::size_t afterUseCount = record.use_count();
+            ASSERT(afterUseCount >= 3);
             Offset afterFileOffset = FsUtil::getFileSize(stdoutFileName);
             if (verbose)
                 cout << "FileOffset after publish: " << afterFileOffset
                      << endl;
 
             // Verify writing is in process even after all `publish` calls are
-            // finished.
+            // finished.  Under heavy load, the publication thread might not
+            // get scheduled for a while, so we wait up to 10 seconds for it to
+            // make progress.
+            bsl::size_t endUseCount = afterUseCount;
+            for (int tryNum = 0; tryNum < 10; ++tryNum) {
+                bslmt::ThreadUtil::microSleep(0, 1);
+                endUseCount = record.use_count();
+                if (endUseCount <= afterUseCount - 2) {
+                    break;
+                }
+            }
 
-            bslmt::ThreadUtil::microSleep(0, 1);
+            // Note that we must see the use count decrease by at least 2 in
+            // order to guarantee that the file is written to.  If we see it
+            // decrease by only 1, it's possible that the first time we checked
+            // the use count, it was just before a decrement, and the second
+            // time was just after a decrement (with no intervening write to
+            // the output file).  If this assertion fails, there's nothing left
+            // we can do; the machine is simply under excessive load.
+            ASSERTV(afterUseCount, endUseCount,
+                    endUseCount <= afterUseCount - 2);
+
             Offset endFileOffset = FsUtil::getFileSize(stdoutFileName);
             if (verbose) cout << "End file offset: " << endFileOffset << endl;
 

@@ -230,6 +230,7 @@ void aSsErT(bool b, const char *s, int i)
 {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -456,6 +457,26 @@ static const int V03 = 912;
 
 typedef bsltf::NonDefaultConstructibleTestType TestKeyType;
 typedef bsltf::NonTypicalOverloadsTestType     TestValueType;
+
+                       // ================
+                       // struct EqKeyPred
+                       // ================
+
+/// A predicate for testing `erase_if`; it takes a value at construction
+/// and uses it for comparisons later.
+template <class KEY, class VALUE>
+struct EqKeyPred {
+
+    KEY d_key;
+    EqKeyPred(KEY val) : d_key(val) {}
+
+    /// return `true` if the second member of the specified pair `p` is
+    /// equal to the stored value, and `false` otherwise.
+    bool operator() (const bsl::pair<const KEY, VALUE> &p) const
+    {
+        return d_key == p.first;
+    }
+};
 
 //=============================================================================
 //                  GLOBAL HELPER FUNCTIONS FOR TESTING
@@ -875,6 +896,9 @@ struct TransparentComparator
 
 class TransparentlyComparable {
     // DATA
+#if BSLS_COMPILERFEATURES_CPLUSPLUS < 201103L
+    mutable
+#endif
     int d_conversionCount;  // number of times `operator int` has been called
     int d_value;            // the value
 
@@ -896,9 +920,19 @@ class TransparentlyComparable {
 
     /// Return the current value of this object.
     operator int()
+#if BSLS_COMPILERFEATURES_CPLUSPLUS < 201103L
+    const
+#endif
     {
         ++d_conversionCount;
         return d_value;
+    }
+
+    /// return a count of the number of times this object has been converted to
+    /// an int.
+    void resetConversionCount()
+    {
+        d_conversionCount = 0;
     }
 
     // ACCESSORS
@@ -945,108 +979,135 @@ void testTransparentComparator(Container& container,
     typedef typename Container::const_iterator Iterator;
     typedef typename Container::size_type      Count;
 
-    int expectedConversionCount = 0;
+    const int expectedConversionCount = isTransparent ? 0 : 1;
 
     TransparentlyComparable existingKey(initKeyValue);
     TransparentlyComparable nonExistingKey(initKeyValue ? -initKeyValue
                                                         : -100);
 
-    ASSERT(existingKey.conversionCount() == expectedConversionCount);
+    {
+        // Testing `find`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    // Testing `find`.
+        const Iterator EXISTING_F = container.find(existingKey);
+        ASSERT(container.end()               != EXISTING_F);
+        ASSERT(existingKey.value()           == EXISTING_F->first);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    const Iterator EXISTING_F = container.find(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Iterator NON_EXISTING_F = container.find(nonExistingKey);
+        ASSERT(container.end()                  == NON_EXISTING_F);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(container.end()               != EXISTING_F);
-    ASSERT(existingKey.value()           == EXISTING_F->first);
-    ASSERT(existingKey.conversionCount() == expectedConversionCount);
+    {
+        // Testing `contains`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const Iterator NON_EXISTING_F = container.find(nonExistingKey);
-    ASSERT(container.end()                  == NON_EXISTING_F);
-    ASSERT(nonExistingKey.conversionCount() == expectedConversionCount);
+        const bool EXISTING_CONTAINS = container.contains(existingKey);
 
-    // Testing `contains`.
+        ASSERT(true == EXISTING_CONTAINS);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    const bool EXISTING_CONTAINS = container.contains(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const bool NON_EXISTING_CONTAINS = container.contains(nonExistingKey);
+        ASSERT(false == NON_EXISTING_CONTAINS);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(true == EXISTING_CONTAINS);
-    ASSERT(existingKey.conversionCount() == expectedConversionCount);
+    {
+        // Testing `count`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const bool NON_EXISTING_CONTAINS = container.contains(nonExistingKey);
-    ASSERT(false == NON_EXISTING_CONTAINS);
-    ASSERT(nonExistingKey.conversionCount() == expectedConversionCount);
+        const Count EXPECTED_C = initKeyValue ? initKeyValue : 1;
+        const Count EXISTING_C = container.count(existingKey);
+        ASSERT(EXPECTED_C              == EXISTING_C);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    // Testing `count`.
-
-    const Count EXPECTED_C = initKeyValue ? initKeyValue : 1;
-    const Count EXISTING_C = container.count(existingKey);
-
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Count NON_EXISTING_C = container.count(nonExistingKey);
+        ASSERT(0                       == NON_EXISTING_C);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(EXPECTED_C              == EXISTING_C);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
+    {
+        // Testing `lower_bound`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const Count NON_EXISTING_C = container.count(nonExistingKey);
-    ASSERT(0                       == NON_EXISTING_C);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
+        const Iterator EXISTING_LB = container.lower_bound(existingKey);
+        ASSERT(existingKey.value() == EXISTING_LB->first);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    // Testing `lower_bound`.
-
-    const Iterator EXISTING_LB = container.lower_bound(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Iterator NON_EXISTING_LB = container.lower_bound(nonExistingKey);
+        ASSERT(container.begin()       == NON_EXISTING_LB);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(EXISTING_F              == EXISTING_LB);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
+    {
+        // Testing `upper_bound`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const Iterator NON_EXISTING_LB = container.lower_bound(nonExistingKey);
+        TransparentlyComparable upperBoundValue(initKeyValue + 1);
+        const Iterator          EXPECTED_UB = container.find(upperBoundValue);
+        const Iterator          EXISTING_UB = container.upper_bound(existingKey);
 
-    ASSERT(container.begin()       == NON_EXISTING_LB);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
+        ASSERT(EXPECTED_UB             == EXISTING_UB);
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
 
-    // Testing `upper_bound`.
-    TransparentlyComparable upperBoundValue(initKeyValue + 1);
-    const Iterator          EXPECTED_UB = container.find(upperBoundValue);
-    const Iterator          EXISTING_UB = container.upper_bound(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
+        const Iterator NON_EXISTING_UB = container.upper_bound(nonExistingKey);
+
+        ASSERT(container.begin()       == NON_EXISTING_UB);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
     }
 
-    ASSERT(EXPECTED_UB             == EXISTING_UB);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
+    {
+        // Testing `equal_range`.
+        existingKey.resetConversionCount();
+        nonExistingKey.resetConversionCount();
 
-    const Iterator NON_EXISTING_UB = container.upper_bound(nonExistingKey);
-
-    ASSERT(container.begin()       == NON_EXISTING_UB);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
-
-    // Testing `equal_range`.
-
-    const bsl::pair<Iterator, Iterator> EXISTING_ER =
+        const bsl::pair<Iterator, Iterator> EXISTING_ER =
                                             container.equal_range(existingKey);
-    if (!isTransparent) {
-        ++expectedConversionCount;
-    }
+        ASSERT(EXISTING_ER.first != EXISTING_ER.second);
 
-    ASSERT(EXISTING_LB             == EXISTING_ER.first);
-    ASSERT(EXPECTED_UB             == EXISTING_ER.second);
-    ASSERT(expectedConversionCount == existingKey.conversionCount());
+        ASSERTV(0 < static_cast<Count>(
+                        bsl::distance(EXISTING_ER.first, EXISTING_ER.second)));
+        for (Iterator it = EXISTING_ER.first; it != EXISTING_ER.second; ++it) {
+            ASSERTV(existingKey.value() == it->first);
+        }
 
-    const bsl::pair<Iterator, Iterator> NON_EXISTING_ER =
+        ASSERTV(isTransparent,
+                  expectedConversionCount,   existingKey.conversionCount(),
+                  expectedConversionCount == existingKey.conversionCount());
+
+        const bsl::pair<Iterator, Iterator> NON_EXISTING_ER =
                                          container.equal_range(nonExistingKey);
-
-    ASSERT(NON_EXISTING_LB         == NON_EXISTING_ER.first);
-    ASSERT(NON_EXISTING_UB         == NON_EXISTING_ER.second);
-    ASSERT(expectedConversionCount == nonExistingKey.conversionCount());
+        ASSERT(NON_EXISTING_ER.first == NON_EXISTING_ER.second);
+        ASSERTV(isTransparent,
+                expectedConversionCount,   nonExistingKey.conversionCount(),
+                expectedConversionCount == nonExistingKey.conversionCount());
+    }
 }
 
                             // =============================
@@ -1685,6 +1746,9 @@ class TestDriver {
 
   public:
     // TEST CASES
+
+    /// Test free function `bsl::erase_if`.
+    static void testCase39();
 
     /// Test whether `multimap` is a C++20 range.
     static void testCase38_isRange();
@@ -2543,8 +2607,9 @@ typename TestDriver<KEY, VALUE, COMP, ALLOC>::Iter
 TestDriver<KEY, VALUE, COMP, ALLOC>::testCase31a_RunTest(Obj   *target,
                                                          CIter  hint)
 {
-    const int TYPE_ALLOC = bslma::UsesBslmaAllocator<KEY>::value +
-                           bslma::UsesBslmaAllocator<VALUE>::value;
+    const bool hintWasEnd = (hint == target->end());
+    const int  TYPE_ALLOC = bslma::UsesBslmaAllocator<KEY>::value +
+                            bslma::UsesBslmaAllocator<VALUE>::value;
 
     if (verbose)
         printf("\nTesting parameters: TYPE_ALLOC = %d.\n", TYPE_ALLOC);
@@ -2779,7 +2844,10 @@ TestDriver<KEY, VALUE, COMP, ALLOC>::testCase31a_RunTest(Obj   *target,
         }
         proctor.release();
 
-        ASSERTV(true == (&(*result) != &(*hint)));
+        // If `hint` was the end iterator, it was invalidated by the insertion
+        // (and we should not dereference it, even if it wasn't invalidated).
+        ASSERT(X.end() != result);
+        ASSERTV(hintWasEnd, hintWasEnd || &(*result) != &(*hint));
 
         ASSERTV(MOVE_K1, AK1.movedFrom(),
                MOVE_K1 == (MoveState::e_MOVED == AK1.movedFrom()) || 2 == NK1);
@@ -2813,6 +2881,81 @@ TestDriver<KEY, VALUE, COMP, ALLOC>::testCase31a_RunTest(Obj   *target,
     return result;
 }
 #endif
+
+template <class KEY, class VALUE, class COMP, class ALLOC>
+void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase39()
+{
+    // --------------------------------------------------------------------
+    // TESTING FREE FUNCTION `BSL::ERASE_IF`
+    //
+    // Concerns:
+    // 1. The free function exists, and is callable with a multimap.
+    //
+    // Plan:
+    // 1. Fill a map with known values, then attempt to erase some of
+    //    the values using `bsl::erase_if`.  Verify that the resultant map
+    //    is the right size, contains the correct values, and that the
+    //    value returned from the functions is correct.
+    //
+    // Testing:
+    //   size_t erase_if(map&, PREDICATE);
+    // --------------------------------------------------------------------
+
+    static const struct {
+        int         d_line;       // source line number
+        const char *d_initial_p;  // initial values
+        char        d_element;    // value to remove
+        const char *d_results_p;  // expected result value
+    } DATA[] = {
+        //line  initial              element  results
+        //----  -------------------  -------  -------------------
+        { L_,   "",                  'A',     ""                  },
+        { L_,   "A",                 'A',     ""                  },
+        { L_,   "A",                 'B',     "A"                 },
+        { L_,   "B",                 'A',     "B"                 },
+        { L_,   "AB",                'A',     "B"                 },
+        { L_,   "BA",                'A',     "B"                 },
+        { L_,   "ABA",               'A',     "B"                 },
+        { L_,   "BAB",               'A',     "BB"                },
+        { L_,   "BC",                'D',     "BC"                },
+        { L_,   "ABC",               'C',     "AB"                },
+        { L_,   "CBADEGHIJKL",       'B',     "CADEGHIJKL"        },
+        { L_,   "AAAAAAAAAAA",       'A',     ""                  }
+    };
+    enum { NUM_DATA = sizeof DATA / sizeof *DATA };
+
+    for (size_t i = 0; i < NUM_DATA; ++i)
+    {
+        typedef bsl::pair<const KEY, VALUE> PAIR;
+        int             LINE = DATA[i].d_line;
+        const char     *initial = DATA[i].d_initial_p;
+        size_t          initialLen = strlen(initial);
+        const char     *results = DATA[i].d_results_p;
+        size_t          resultsLen = strlen(results);
+
+        Obj mX;
+        Obj mRes;
+
+        for (size_t j = 0; j < initialLen; ++j)
+        {
+            mX.insert(PAIR(initial[j], 0));
+        }
+
+        for (size_t j = 0; j < resultsLen; ++j)
+        {
+            mRes.insert(PAIR(results[j], 0));
+        }
+
+        EqKeyPred<KEY, VALUE> pred(DATA[i].d_element);
+        size_t                ret   = bsl::erase_if(mX, pred);
+
+        // Is the modified container correct?
+        ASSERTV(LINE, mX == mRes);
+
+        // Is the return value correct?
+        ASSERTV(LINE, ret == initialLen - resultsLen);
+        }
+}
 
 template <class KEY, class VALUE, class COMP, class ALLOC>
 void TestDriver<KEY, VALUE, COMP, ALLOC>::testCase38_isRange()
@@ -8557,7 +8700,7 @@ struct TestDeductionGuides {
         typedef std::allocator       <bsl::pair<const T7, T7>> SA7;
         typedef std::initializer_list<bsl::pair<const T7, T7>> IL7;
 
-        IL7           il7({{1L, 1L}, {2L, 3L}});
+        IL7           il7{{1L, 1L}, {2L, 3L}};
         bsl::multimap m7a(il7);
         bsl::multimap m7b(il7, CompT7{});
         bsl::multimap m7c(il7, CompT7{}, BA7{});
@@ -8577,7 +8720,7 @@ struct TestDeductionGuides {
         typedef std::allocator       <bsl::pair<const T8, T8>> SA8;
         typedef std::initializer_list<bsl::pair<const T8, T8>> IL8;
 
-        IL8           il8({{3LL, 3LL}, {2LL, 1LL}});
+        IL8           il8{{3LL, 3LL}, {2LL, 1LL}};
         bsl::multimap m8a(il8, BA8{});
         bsl::multimap m8b(il8, a1);
         bsl::multimap m8c(il8, a2);
@@ -8633,6 +8776,18 @@ int main(int argc, char *argv[])
     }
 
     switch (test) { case 0:
+      case 39: {
+        // --------------------------------------------------------------------
+        // TESTING ERASE_IF
+        // --------------------------------------------------------------------
+
+        if (verbose) printf("\nTESTING FREE FUNCTION `BSL::ERASE_IF`"
+                            "\n=====================================\n");
+
+        TestDriver<char, size_t>::testCase39();
+        TestDriver<int,  size_t>::testCase39();
+        TestDriver<long, size_t>::testCase39();
+      } break;
       case 38: {
         // --------------------------------------------------------------------
         // CONCERN: `multimap` IS A C++20 RANGE

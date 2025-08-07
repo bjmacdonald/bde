@@ -4,9 +4,9 @@
 // ----------------------------------------------------------------------------
 //                            U_ENABLE_DEPRECATIONS
 //
-// Set 'U_ENABLE_DEPRECATIONS' to 1 get warnings about uses of deprecated
+// Set `U_ENABLE_DEPRECATIONS` to 1 get warnings about uses of deprecated
 // methods.  These warnings are quite voluminous.  Test case 14 will fail
-// unless '0 == U_ENABLE_DEPRECATIONS' to make sure we don't ship with these
+// unless `0 == U_ENABLE_DEPRECATIONS` to make sure we don't ship with these
 // warnings enabled.
 // ----------------------------------------------------------------------------
 
@@ -51,35 +51,35 @@ using bsl::ptrdiff_t;
 //-----------------------------------------------------------------------------
 //                              Overview
 //                              --------
-// This encoder is a kind of 'mechanism' that can be customized at
+// This encoder is a kind of `mechanism` that can be customized at
 // construction.  Since there is currently no prevision to change the
 // customization after construction, the choice for primary constructor must
 // itself permit full customization:
-//..
+// ```
 //  bdlde::Base64Encoder(int maxLineLength);
-//..
+// ```
 // The primary manipulators are those needed to reach every attainable state
 // from the initial state (i.e., that of a newly constructed object).  Clearly
-// 'convert' is one, but 'endConvert' is also needed in order to reach the
-// 'DONE' state.  Hence, the primary manipulators are
-//..
+// `convert` is one, but `endConvert` is also needed in order to reach the
+// `DONE` state.  Hence, the primary manipulators are
+// ```
 //  int convert(char *out, int *numOut, int *ni, begin, end, int maxNumOut);
 //  int endConvert(char *out, int *numOut, int maxNumOut);
-//..
+// ```
 // The basic accessors for the encoder are all the functions that return
 // information about the customization and/or execution state:
-//..
+// ```
 //  bool isAcceptable() const;
 //  bool isDone() const;
 //  bool isError() const;
 //  bool isInitialState() const;
 //  int maxLineLength() const;
 //  int outputLength() const;
-//..
+// ```
 // The following tables characterize the major logical states and illustrates
 // transitions for the primary manipulators (as implemented under the heading
 // "Named STATE Values" in the "GLOBAL TYPEDEFS/CONSTANTS" section below):
-//..
+// ```
 //  MAJOR STATE NAME       CHARACTERIZATION
 //  ----------------       ----------------------------------------------------
 // *INITIAL_STATE          nothing in accumulator; output length is 0
@@ -98,20 +98,20 @@ using bsl::ptrdiff_t;
 //             *State 3:        State 1         DONE_STATE
 //             *DONE_STATE:     ERROR_STATE     ERROR_STATE
 //              ERROR_STATE:    ERROR_STATE     ERROR_STATE
-//..
+// ```
 // Our first step will be to ensure that each of these states can be reached
-// ('::setState'), that an anticipated state can be verified ('::isState'), and
+// (`::setState`), that an anticipated state can be verified (`::isState`), and
 // that each of the above state transitions is verified.  Next, we will ensure
 // that each internal table is correct.  Then, using Category Partitioning, we
 // enumerate a representative collection of inputs ordered by increasing
 // *depth* that will be sufficient to prove that the logic associated with the
 // state machine is performing as desired.
 //
-// Note that because the 'convert' and 'endConvert' methods are parametrized
+// Note that because the `convert` and `endConvert` methods are parametrized
 // based on iterator types, we will want to ensure (at compile time) that
 // their respective implementations do not depend on more than minimal iterator
 // functionality.  We will accomplish this goal by supplying, as template
-// arguments, 'bdeut::InputIterator' for 'convert' and 'bdeut::OutputIterator'
+// arguments, `bdeut::InputIterator` for `convert` and `bdeut::OutputIterator`
 // for both of these template methods.
 //-----------------------------------------------------------------------------
 // [ 8] static int encodedLength(int numInputBytes, int maxLineLength);
@@ -142,8 +142,8 @@ using bsl::ptrdiff_t;
 // [ 3] That we can reach each of the major processing states.
 // [ 3] void ::setState(Obj *obj, int state, const char *input);
 // [ 3] bool ::isState(Obj *obj, int state);
-// [ 5] BOOTSTRAP: 'convert' - transitions
-// [ 4] BOOTSTRAP: 'endConvert'- transitions
+// [ 5] BOOTSTRAP: `convert` - transitions
+// [ 4] BOOTSTRAP: `endConvert`- transitions
 // [ 6] That each internal table has no defective entries.
 // [ 8] DFLT convert(char *o, int *no, int *ni, begin, end, int mno = -1);
 // [ 8] DFLT endConvert(char *out, int *numOut, int maxNumOut = -1);
@@ -263,104 +263,107 @@ char assertion[e_ERROR_STATE + 1 == NUM_STATES];
 // usage example.
 
 const char BLOOMBERG_NEWS[] =
-"        (Commentary. Chet Currier is a Bloomberg News \n\
-columnist. The opinions expressed are his own.) \n\
-\n\
-By Chet Currier\n\
-     Sept. 14 (Bloomberg) -- The trouble with college finance in\n\
-21st Century America is way too much homework.\n\
-     Study up on UGMAs, ESAs, Section 529 savings programs that\n\
-come in more than 50 different versions, and prepaid tuition\n\
-plans. Learn when interest on U.S. Savings Bonds may, or may not,\n\
-be exempt from taxes when the money is used to pay educational\n\
-expenses.\n\
-     Comb through some of the 117,687 items that turn up when you\n\
-do a ``pay for college'' search on the Web site of Amazon.com.\n\
-Read articles like ``Understanding the Aid Form,'' a discussion\n\
-of something called the FAFSA that ran as part of a 28-page\n\
-special ``Paying for College'' section in the Sept. 6 U.S. News &\n\
-World Report.\n\
-     ``A college education is a worthwhile, but expensive,\n\
-investment,'' says the Vanguard Group in a current bulletin to\n\
-investors in its $730 billion stable of mutual funds. ``The right\n\
-savings plan can help ease the financial burden, but with the\n\
-variety of alternatives available you may need a crash course on\n\
-the pros and cons of each one.''\n\
-     Please, life already has all the crash courses it needs. Is\n\
-this the best we can do? Even if each piece of the system was\n\
-designed with the best of intentions, the aggregate has become an\n\
-absurd monstrosity.\n\
-\n\
-                         Fails the Test\n\
-\n\
-     The system's first and most obvious offense is its utter\n\
-disregard for the virtues of simplicity, both aesthetic and\n\
-practical. That's just the beginning.\n\
-     It wastes huge amounts of time, energy and economic\n\
-resources. Along the way, it undercuts several of the most\n\
-important ideas colleges are supposed to be dealing in.\n\
-     Consider the difference between real problems that naturally\n\
-arise in life, and artificial obstacles that humans put in their\n\
-own path. Dealing with real problems is an unavoidable part of\n\
-the human condition -- and quite often turns out to be a\n\
-productive exercise that gets you somewhere. Artificial problems,\n\
-being both unnecessary and sterile, offer few benefits of that\n\
-kind.\n\
-     The wish to give young people an education, and the\n\
-necessity of paying the cost of that effort, are classic examples\n\
-of naturally occurring problems. When you study 529 plans, by\n\
-contrast, you learn nothing but an arbitrary set of details that\n\
-have no bearing on anything else.\n\
-\n\
-                          Hypocritical\n\
-\n\
-     College should teach ways of thinking that a student can\n\
-apply and build on after the degree is awarded. The college-\n\
-finance system is completely out of synch with that ideal.\n\
-     In the few years while the teenagers in a family struggle\n\
-through the miasma known as the ``admissions process,'' college-\n\
-finance information presents itself as vital. Immediately after\n\
-the last child matriculates, it becomes junk to be jettisoned as\n\
-fast as the brain cells will allow.\n\
-     Also, college ought to be a place to acquire a sense of\n\
-ethics -- more now than ever amid the outcry over the moral and\n\
-ethical failures of so many in business, government, religion and\n\
-the press. Yet a basic part of college planning, usually\n\
-presented without the slightest moral compunction, is learning\n\
-the slyest ways to game the system.\n\
-     Parents saving for a child's tuition are confronted with\n\
-issues such as ``can that stash hurt your aid?'' to quote one\n\
-headline in the U.S. News college-planning report. Here, son, you\n\
-go study Plato and Aristotle, and we'll scrounge up the money to\n\
-pay for it by hiding assets in Aunt Adelaide's name.\n\
-\n\
-                        Lessons to Learn\n\
-\n\
-     ``Mankind, left free, instinctively complicates life,'' said\n\
-the writer Katharine Fullerton Gerould.\n\
-     Beyond the portrait it paints of human folly, though, maybe\n\
-there is something to be learned from the sorry state of college\n\
-finance. It gives us a glimpse into the workings of a so-called\n\
-``information economy'' where, instead of education steering us\n\
-toward life, life steers us to education.\n\
-     Like the computer, education was originally a tool, now is a\n\
-product unto itself. Hence the resume of achievements and\n\
-experiences that have come to be required of children aspiring to\n\
-get into a ``selective'' college.\n\
-     The economics of information is pretty new stuff. One sign\n\
-we are starting to figure it out will come when we do a better\n\
-job of designing mechanisms like college finance.\n\
-\n\
---Editors: Ahearn, Wolfson\n\
-\n\
-Story Illustration: To graph increase in population of U.S.\n\
-college graduates, click on  USP CL25 <Index> GP <GO> . To see\n\
-additional Currier columns, click on  NI CURRIER <GO> . To\n\
-comment on this column, click on  LETT <GO>  and send a letter to\n\
-the editor.\n\
-\n\
-To contact the writer of this column: Chet Currier in New York\n\
-(1) (212) 318-2605 or ccurrier@bloomberg.net.";
+"        (Commentary. Chet Currier is a Bloomberg News \n"
+"columnist. The opinions expressed are his own.) \n"
+"\n"
+"By Chet Currier\n"
+"     Sept. 14 (Bloomberg) -- The trouble with college finance in\n"
+"21st Century America is way too much homework.\n"
+"     Study up on UGMAs, ESAs, Section 529 savings programs that\n"
+"come in more than 50 different versions, and prepaid tuition\n"
+"plans. Learn when interest on U.S. Savings Bonds may, or may not,\n"
+"be exempt from taxes when the money is used to pay educational\n"
+"expenses.\n"
+"     Comb through some of the 117,687 items that turn up when you\n"
+"do a ``pay for college'' search on the Web site of Amazon.com.\n"
+"Read articles like ``Understanding the Aid Form,'' a discussion\n"
+"of something called the FAFSA that ran as part of a 28-page\n"
+"special ``Paying for College'' section in the Sept. 6 U.S. News &\n"
+"World Report.\n"
+"     ``A college education is a worthwhile, but expensive,\n"
+"investment,'' says the Vanguard Group in a current bulletin to\n"
+"investors in its $730 billion stable of mutual funds. ``The right\n"
+"savings plan can help ease the financial burden, but with the\n"
+"variety of alternatives available you may need a crash course on\n"
+"the pros and cons of each one.''\n"
+"     Please, life already has all the crash courses it needs. Is\n"
+"this the best we can do? Even if each piece of the system was\n"
+"designed with the best of intentions, the aggregate has become an\n"
+"absurd monstrosity.\n"
+"\n"
+"                         Fails the Test\n"
+"\n"
+"     The system's first and most obvious offense is its utter\n"
+"disregard for the virtues of simplicity, both aesthetic and\n"
+"practical. That's just the beginning.\n"
+"     It wastes huge amounts of time, energy and economic\n"
+"resources. Along the way, it undercuts several of the most\n"
+"important ideas colleges are supposed to be dealing in.\n"
+"     Consider the difference between real problems that naturally\n"
+"arise in life, and artificial obstacles that humans put in their\n"
+"own path. Dealing with real problems is an unavoidable part of\n"
+"the human condition -- and quite often turns out to be a\n"
+"productive exercise that gets you somewhere. Artificial problems,\n"
+"being both unnecessary and sterile, offer few benefits of that\n"
+"kind.\n"
+"     The wish to give young people an education, and the\n"
+"necessity of paying the cost of that effort, are classic examples\n"
+"of naturally occurring problems. When you study 529 plans, by\n"
+"contrast, you learn nothing but an arbitrary set of details that\n"
+"have no bearing on anything else.\n"
+"\n"
+"                          Hypocritical\n"
+"\n"
+"     College should teach ways of thinking that a student can\n"
+"apply and build on after the degree is awarded. The college-\n"
+"finance system is completely out of synch with that ideal.\n"
+"     In the few years while the teenagers in a family struggle\n"
+"through the miasma known as the ``admissions process,'' college-\n"
+"finance information presents itself as vital. Immediately after\n"
+"the last child matriculates, it becomes junk to be jettisoned as\n"
+"fast as the brain cells will allow.\n"
+"     Also, college ought to be a place to acquire a sense of\n"
+"ethics -- more now than ever amid the outcry over the moral and\n"
+"ethical failures of so many in business, government, religion and\n"
+"the press. Yet a basic part of college planning, usually\n"
+"presented without the slightest moral compunction, is learning\n"
+"the slyest ways to game the system.\n"
+"     Parents saving for a child's tuition are confronted with\n"
+"issues such as ``can that stash hurt your aid?'' to quote one\n"
+"headline in the U.S. News college-planning report. Here, son, you\n"
+"go study Plato and Aristotle, and we'll scrounge up the money to\n"
+"pay for it by hiding assets in Aunt Adelaide's name.\n"
+"\n"
+"                        Lessons to Learn\n"
+"\n"
+"     ``Mankind, left free, instinctively complicates life,'' said\n"
+"the writer Katharine Fullerton Gerould.\n"
+"     Beyond the portrait it paints of human folly, though, maybe\n"
+"there is something to be learned from the sorry state of college\n"
+"finance. It gives us a glimpse into the workings of a so-called\n"
+"``information economy'' where, instead of education steering us\n"
+"toward life, life steers us to education.\n"
+"     Like the computer, education was originally a tool, now is a\n"
+"product unto itself. Hence the resume of achievements and\n"
+"experiences that have come to be required of children aspiring to\n"
+"get into a ``selective'' college.\n"
+"     The economics of information is pretty new stuff. One sign\n"
+"we are starting to figure it out will come when we do a better\n"
+"job of designing mechanisms like college finance.\n"
+"\n"
+"--Editors: Ahearn, Wolfson\n"
+"\n"
+"Story Illustration: To graph increase in population of U.S.\n"
+"college graduates, click on  USP CL25 <Index> GP <GO> . To see\n"
+"additional Currier columns, click on  NI CURRIER <GO> . To\n"
+"comment on this column, click on  LETT <GO>  and send a letter to\n"
+"the editor.\n"
+"\n"
+"To contact the writer of this column: Chet Currier in New York\n"
+"(1) (212) 318-2605 or ccurrier@bloomberg.net.";
+
+// Invalid 'char' value
+const char IV = static_cast<char>(-1);
 
 // ============================================================================
 //                           TEST HELPER FUNCTIONS
@@ -652,11 +655,11 @@ void setState(bdlde::Base64Encoder *object, int state)
     ASSERT(object); ASSERT(0 <= state); ASSERT(state < NUM_STATES);
 
     if (!object->isInitialState()) { cout
-     << "You must not call 'setState' from other than 'INITIAL_STATE'!" << endl
-     << "\tNote that '::isState' *will* alter from the initial state." << endl;
+     << "You must not call `setState` from other than `INITIAL_STATE`!" << endl
+     << "\tNote that `::isState` *will* alter from the initial state." << endl;
     }
 
-    ASSERT(object->isInitialState()); // If 'object' is "just created" then
+    ASSERT(object->isInitialState()); // If `object` is "just created" then
                                       // this assertion should be true!
 
     char b[8];
@@ -780,7 +783,7 @@ bool isState(bdlde::Base64Encoder *object, int state)
 
     int enabled = globalAssertsEnabled;
 
-    char b[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+    char b[8] = {IV, IV, IV, IV, IV, IV, IV, IV};
     int  numOut = -1;
     int  numIn = -1;
 
@@ -807,10 +810,10 @@ bool isState(bdlde::Base64Encoder *object, int state)
         bool c0 = 0 == result;                          ASSERT(c0 || !enabled);
         bool c1 = 0 == numOut;                          ASSERT(c1 || !enabled);
 
-        bool d0 = (char)-1 == b[0];                     ASSERT(d0 || !enabled);
-        bool d1 = (char)-1 == b[1];                     ASSERT(d1 || !enabled);
-        bool d2 = (char)-1 == b[2];                     ASSERT(d2 || !enabled);
-        bool d3 = (char)-1 == b[3];                     ASSERT(d3 || !enabled);
+        bool d0 = IV == b[0];                           ASSERT(d0 || !enabled);
+        bool d1 = IV == b[1];                           ASSERT(d1 || !enabled);
+        bool d2 = IV == b[2];                           ASSERT(d2 || !enabled);
+        bool d3 = IV == b[3];                           ASSERT(d3 || !enabled);
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
           && c0 && c1 && d0 && d1 && d2 && d3;
@@ -837,7 +840,7 @@ bool isState(bdlde::Base64Encoder *object, int state)
         bool d0 = '=' != b[0];                          ASSERT(d0 || !enabled);
         bool d1 = '=' == b[1];                          ASSERT(d1 || !enabled);
         bool d2 = '=' == b[2];                          ASSERT(d2 || !enabled);
-        bool d3 = (char)-1 == b[3];                     ASSERT(d3 || !enabled);
+        bool d3 = IV == b[3];                           ASSERT(d3 || !enabled);
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
           && c0 && c1 && d0 && d1 && d2 && d3;
@@ -863,8 +866,8 @@ bool isState(bdlde::Base64Encoder *object, int state)
 
         bool d0 = '=' != b[0];                          ASSERT(d0 || !enabled);
         bool d1 = '=' == b[1];                          ASSERT(d1 || !enabled);
-        bool d2 = (char)-1 == b[2];                     ASSERT(d2 || !enabled);
-        bool d3 = (char)-1 == b[3];                     ASSERT(d3 || !enabled);
+        bool d2 = IV == b[2];                           ASSERT(d2 || !enabled);
+        bool d3 = IV == b[3];                           ASSERT(d3 || !enabled);
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
           && c0 && c1 && d0 && d1 && d2 && d3;
@@ -888,10 +891,10 @@ bool isState(bdlde::Base64Encoder *object, int state)
         bool c0 = 0 == result;                          ASSERT(c0 || !enabled);
         bool c1 = 0 == numOut;                          ASSERT(c1 || !enabled);
 
-        bool d0 = (char)-1 == b[0];                     ASSERT(d0 || !enabled);
-        bool d1 = (char)-1 == b[1];                     ASSERT(d1 || !enabled);
-        bool d2 = (char)-1 == b[2];                     ASSERT(d2 || !enabled);
-        bool d3 = (char)-1 == b[3];                     ASSERT(d3 || !enabled);
+        bool d0 = IV == b[0];                           ASSERT(d0 || !enabled);
+        bool d1 = IV == b[1];                           ASSERT(d1 || !enabled);
+        bool d2 = IV == b[2];                           ASSERT(d2 || !enabled);
+        bool d3 = IV == b[3];                           ASSERT(d3 || !enabled);
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
           && c0 && c1 && d0 && d1 && d2 && d3;
@@ -914,10 +917,10 @@ bool isState(bdlde::Base64Encoder *object, int state)
         bool c0 = -1 == result;                         ASSERT(c0 || !enabled);
         bool c1 =  0 == numOut;                         ASSERT(c1 || !enabled);
 
-        bool d0 = (char)-1 == b[0];                     ASSERT(d0 || !enabled);
-        bool d1 = (char)-1 == b[1];                     ASSERT(d1 || !enabled);
-        bool d2 = (char)-1 == b[2];                     ASSERT(d2 || !enabled);
-        bool d3 = (char)-1 == b[3];                     ASSERT(d3 || !enabled);
+        bool d0 = IV == b[0];                           ASSERT(d0 || !enabled);
+        bool d1 = IV == b[1];                           ASSERT(d1 || !enabled);
+        bool d2 = IV == b[2];                           ASSERT(d2 || !enabled);
+        bool d3 = IV == b[3];                           ASSERT(d3 || !enabled);
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
           && c0 && c1 && d0 && d1 && d2 && d3;
@@ -940,10 +943,10 @@ bool isState(bdlde::Base64Encoder *object, int state)
         bool c0 = -1 == result;                         ASSERT(c0 || !enabled);
         bool c1 =  0 == numOut;                         ASSERT(c1 || !enabled);
 
-        bool d0 = (char)-1 == b[0];                     ASSERT(d0 || !enabled);
-        bool d1 = (char)-1 == b[1];                     ASSERT(d1 || !enabled);
-        bool d2 = (char)-1 == b[2];                     ASSERT(d2 || !enabled);
-        bool d3 = (char)-1 == b[3];                     ASSERT(d3 || !enabled);
+        bool d0 = IV == b[0];                           ASSERT(d0 || !enabled);
+        bool d1 = IV == b[1];                           ASSERT(d1 || !enabled);
+        bool d2 = IV == b[2];                           ASSERT(d2 || !enabled);
+        bool d3 = IV == b[3];                           ASSERT(d3 || !enabled);
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
           && c0 && c1 && d0 && d1 && d2 && d3;
@@ -975,7 +978,7 @@ class u_Base64Decoder_Test {
         e_ERROR_STATE      = -1, // input is irreparably invalid
         e_INPUT_STATE      =  0, // general input state
         e_NEED_EQUAL_STATE =  1, // need an '='
-        e_SOFT_DONE_STATE  =  2, // only ignorable input and 'endConvert'
+        e_SOFT_DONE_STATE  =  2, // only ignorable input and `endConvert`
         e_DONE_STATE       =  3  // any additional input is an error
     };
 
@@ -1007,7 +1010,7 @@ class u_Base64Decoder_Test {
 
     unsigned int      d_stack;         // storage of non-emitted input
 
-    int               d_bitsInStack;   // number of bits in 'd_stack'
+    int               d_bitsInStack;   // number of bits in `d_stack`
 
   public:
     /// Create a Base64 decoder in the initial state.  Unrecognized
@@ -1055,7 +1058,7 @@ class u_Base64Decoder_Test {
 // CLASS DATA
 
 // The following table identifies characters that can be ignored when
-// d_isUnrecognizedAnErrorFlag 'true'.
+// d_isUnrecognizedAnErrorFlag `true`.
 
 static const bool CHARACTERS_THAT_CAN_BE_IGNORED_IN_STRICT_MODE[256] = {
     // 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
@@ -1078,7 +1081,7 @@ static const bool CHARACTERS_THAT_CAN_BE_IGNORED_IN_STRICT_MODE[256] = {
 };
 
 // The following table identifies characters that can be ignored when
-// d_isUnrecognizedAnErrorFlag 'false'.
+// d_isUnrecognizedAnErrorFlag `false`.
 
 static const bool CHARACTERS_THAT_CAN_BE_IGNORED_IN_RELAXED_MODE[256] = {
     // 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
@@ -1106,22 +1109,22 @@ static const bool CHARACTERS_THAT_CAN_BE_IGNORED_IN_RELAXED_MODE[256] = {
 static const char DEC[256] = {
     //  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
     // --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // 00
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // 10
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,  // 20
-       52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,  // 30
-       -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  // 40
-       15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,  // 50
-       -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,  // 60
-       41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,  // 70
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // 80
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // 90
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // A0
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // B0
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // C0
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // D0
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // E0
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // F0
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // 00
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // 10
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, 62, IV, IV, IV, 63,  // 20
+       52, 53, 54, 55, 56, 57, 58, 59, 60, 61, IV, IV, IV, IV, IV, IV,  // 30
+       IV,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  // 40
+       15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, IV, IV, IV, IV, IV,  // 50
+       IV, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,  // 60
+       41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, IV, IV, IV, IV, IV,  // 70
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // 80
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // 90
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // A0
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // B0
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // C0
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // D0
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // E0
+       IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV, IV,  // F0
 };
 
 const bool *const u_Base64Decoder_Test::s_ignorableStrict_p =
@@ -1390,7 +1393,7 @@ void checkUrl(const char *begin, const char *end, bsl::size_t lineLength)
 //-----------------------------------------------------------------------------
 //                              Overview
 //                              --------
-// The following function, 'LLVMFuzzerTestOneInput', is the entry point for the
+// The following function, `LLVMFuzzerTestOneInput`, is the entry point for the
 // clang fuzz testing facility.  See {http://bburl/BDEFuzzTesting} for details
 // on how to build and run with fuzz testing enabled.
 //-----------------------------------------------------------------------------
@@ -1415,33 +1418,33 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         // FUZZ TESTING WITHOUT MAXNUMOUT
         //
         // Concerns:
-        //: 1 That object under test works properly with a varient of values
-        //:   passed to the 'lineLength' parameter, and with tha parameter
-        //:   allowed to default to 76.
-        //:
-        //: 2 That at most 2 '=' characters occur in the output, and that, if
-        //:   present, they are at the end (possibly divided by a CRLF).
-        //:
-        //: 3 That CRLF's are present, or not, exactly as dictated by the
-        //:   'lineLength' argument.
-        //:
-        //: 4 Test only with 'maxNumOut' not specified.
+        // 1. That object under test works properly with a varient of values
+        //    passed to the `lineLength` parameter, and with tha parameter
+        //    allowed to default to 76.
+        //
+        // 2. That at most 2 '=' characters occur in the output, and that, if
+        //    present, they are at the end (possibly divided by a CRLF).
+        //
+        // 3. That CRLF's are present, or not, exactly as dictated by the
+        //    `lineLength` argument.
+        //
+        // 4. Test only with `maxNumOut` not specified.
         //
         // Plan:
-        //: 1 Test the binary input with a variety of values passed to the
-        //:   'lineLength' parameter (and nothing specified for the 'maxNumOut'
-        //:   parameter:
-        //:   o Test the case where no value is passed to the 'lineLength'
-        //:     parameter, interpreted as a value of 76.
-        //:   o Test 0, which means no CRLF's are inserted.
-        //:   o Test a variety of positive values, including very low values.
-        //:
-        //: 2 Call 'checkBasic' at the end to verify that that the output
-        //:   is a valid base64 encoding, with CRLF's exactly where they're
-        //:   expected.
-        //:
-        //: 3 Allocate the segment of memory to write to using 'malloc' so that
-        //:   the address santizer will detect out of bounds access.
+        // 1. Test the binary input with a variety of values passed to the
+        //    `lineLength` parameter (and nothing specified for the `maxNumOut`
+        //    parameter:
+        //    - Test the case where no value is passed to the `lineLength`
+        //      parameter, interpreted as a value of 76.
+        //    - Test 0, which means no CRLF's are inserted.
+        //    - Test a variety of positive values, including very low values.
+        //
+        // 2. Call `checkBasic` at the end to verify that that the output
+        //    is a valid base64 encoding, with CRLF's exactly where they're
+        //    expected.
+        //
+        // 3. Allocate the segment of memory to write to using `malloc` so that
+        //    the address santizer will detect out of bounds access.
         //
         // Testing:
         //   FUZZ TESTING WITHOUT MAXNUMOUT
@@ -1451,7 +1454,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //   int endConvert(OUT, int *);
         // --------------------------------------------------------------------
 
-        // We want 'LINE_LENGTH' to have a random value, max 127, with a
+        // We want `LINE_LENGTH` to have a random value, max 127, with a
         // relatively high probabilty of 0.
 
         const int           LINE_LENGTH   = FuzzUtil::consumeBool(&fdv)
@@ -1536,37 +1539,37 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         // FUZZ TESTING WITH MAXNUMOUT
         //
         // Concerns:
-        //: 1 That object under test works properly with a varient of values
-        //:   passed to the 'lineLength' parameter, and with tha parameter
-        //:   allowed to default to 76.
-        //:
-        //: 2 That at most 2 '=' characters occur in the output, and that, if
-        //:   present, they are at the end (possibly divided by a CRLF).
-        //:
-        //: 3 That CRLF's are present, or not, exactly as dictated by the
-        //:   'lineLength' argument.
-        //:
-        //: 4 Test with a variety of values of 'maxNumOut', including 0,
-        //:   specified to 'convert', and variety not including 0 specified to
-        //:   'endConvert'.
+        // 1. That object under test works properly with a varient of values
+        //    passed to the `lineLength` parameter, and with tha parameter
+        //    allowed to default to 76.
+        //
+        // 2. That at most 2 '=' characters occur in the output, and that, if
+        //    present, they are at the end (possibly divided by a CRLF).
+        //
+        // 3. That CRLF's are present, or not, exactly as dictated by the
+        //    `lineLength` argument.
+        //
+        // 4. Test with a variety of values of `maxNumOut`, including 0,
+        //    specified to `convert`, and variety not including 0 specified to
+        //    `endConvert`.
         //
         // Plan:
-        //: 1 Test the binary input with a variety of values passed to the
-        //:   'lineLength' parameter.
-        //:   o Test the case where no value is passed to the 'lineLength'
-        //:     parameter, interpreted as a value of 76.
-        //:   o Test 0, which means no CRLF's are inserted.
-        //:   o Test a variety of positive values, including very low values.
-        //:   o Test with a variety of values passed to the 'maxNumOut'
-        //:     parameter (don't pass 0 to 'endNumOut', that would not be in
-        //:     contract.
-        //:
-        //: 2 Call 'checkBasic' at the end to verify that that the output
-        //:   is a valid base64 encoding, with CRLF's exactly where they're
-        //:   expected.
-        //:
-        //: 3 Allocate the segment of memory to write to using 'malloc' so that
-        //:   the address santizer will detect out of bounds access.
+        // 1. Test the binary input with a variety of values passed to the
+        //    `lineLength` parameter.
+        //    - Test the case where no value is passed to the `lineLength`
+        //      parameter, interpreted as a value of 76.
+        //    - Test 0, which means no CRLF's are inserted.
+        //    - Test a variety of positive values, including very low values.
+        //    - Test with a variety of values passed to the `maxNumOut`
+        //      parameter (don't pass 0 to `endNumOut`, that would not be in
+        //      contract.
+        //
+        // 2. Call `checkBasic` at the end to verify that that the output
+        //    is a valid base64 encoding, with CRLF's exactly where they're
+        //    expected.
+        //
+        // 3. Allocate the segment of memory to write to using `malloc` so that
+        //    the address santizer will detect out of bounds access.
         //
         // Testing:
         //   FUZZ TESTING WITH MAXNUMOUT
@@ -1576,7 +1579,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //   int endConvert(OUT, int *, int);
         // --------------------------------------------------------------------
 
-        // We want 'LINE_LENGTH' to have a random value, max 127, with a
+        // We want `LINE_LENGTH` to have a random value, max 127, with a
         // relatively high probabilty of 0.
 
         const int           LINE_LENGTH   = FuzzUtil::consumeBool(&fdv)
@@ -1914,7 +1917,7 @@ int main(int argc, char *argv[])
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
 
-    // CONCERN: 'BSLS_REVIEW' failures should lead to test failures.
+    // CONCERN: `BSLS_REVIEW` failures should lead to test failures.
     bsls::ReviewFailureHandlerGuard reviewGuard(&bsls::Review::failByAbort);
 
     switch (test) { case 0:  // Zero is always the leading case.
@@ -1944,21 +1947,21 @@ int main(int argc, char *argv[])
                           << "=============" << endl;
 ///Usage Example
 ///-------------
-// The following example shows how to use a 'bdlde::Base64Encoder' object to
-// implement a function, 'streamEncode', that reads text from a 'bsl::istream',
+// The following example shows how to use a `bdlde::Base64Encoder` object to
+// implement a function, `streamEncode`, that reads text from a `bsl::istream`,
 // encodes that text from base 64 representation, and writes the encoded text
-// to a 'bsl::ostream'.  'streamEncoder' returns 0 on success and a negative
+// to a `bsl::ostream`.  `streamEncoder` returns 0 on success and a negative
 // value if the input data could not be successfully encoded or if there is an
 // I/O error.
-//..
+// ```
 // streamencoder.h                      -*-C++-*-
 //
 // int streamEncoder(bsl::ostream& os, bsl::istream& is);
-//     // Read the entire contents of the specified input stream 'is', convert
+//     // Read the entire contents of the specified input stream `is`, convert
 //     // the input base-64 encoding into plain text, and write the decoded
-//     // text to the specified output stream 'os'.  Return 0 on success, and a
+//     // text to the specified output stream `os`.  Return 0 on success, and a
 //     // negative value otherwise.
-//..
+// ```
         const bsl::string  inStr(BLOOMBERG_NEWS, sizeof(BLOOMBERG_NEWS));
         bsl::istringstream inStream(inStr);
 
@@ -1977,8 +1980,8 @@ int main(int argc, char *argv[])
         // ENSURE U_ENABLE_DEPRECATIONS IS DISABLED
         //
         // Concerns:
-        //: 1 When we ship, 'U_ENABLE_DEPRECATIONS' is disabled, so that we
-        //:   will not get deprecation warnings.
+        // 1. When we ship, `U_ENABLE_DEPRECATIONS` is disabled, so that we
+        //    will not get deprecation warnings.
         //
         // Testing:
         //   0 == U_ENABLE_DEPRECATIONS
@@ -1992,11 +1995,11 @@ int main(int argc, char *argv[])
         //   This case is available to be used as a developers' sandbox.
         //
         // Concerns:
-        //   That 'convert' will function properly with null passed to
-        //   either or both of 'numOut' and 'numIn'.
+        //   That `convert` will function properly with null passed to
+        //   either or both of `numOut` and `numIn`.
         //
         // Plan:
-        //   Repeat breathing test, only pass null to 'numIn' or 'numOut' in
+        //   Repeat breathing test, only pass null to `numIn` or `numOut` in
         //   all cases.
         // --------------------------------------------------------------------
 
@@ -2014,14 +2017,14 @@ int main(int argc, char *argv[])
             P((int)(char) '\xff');
         }
 
-        if (verbose) cout << "\nTry '::myMin' test helper function." << endl;
+        if (verbose) cout << "\nTry `::myMin` test helper function." << endl;
         {
             ASSERT('a'== myMin('a', 'b'));
             ASSERT(-5 == myMin(3, -5));
             ASSERT(-3 == myMin(-3, 5));
         }
 
-        if (verbose) cout << "\nTry '::printCharN' test helper function."
+        if (verbose) cout << "\nTry `::printCharN` test helper function."
                                                                        << endl;
         {
             bsl::ostringstream out;
@@ -2720,7 +2723,7 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   - Create the object and query it for its information.
-        //   - Use '::isState' to verify that the newly created object is in
+        //   - Use `::isState` to verify that the newly created object is in
         //      the initial state.
         //   - Create two lines whose unlimited output lengths would be 76
         //      and 80 characters, respectively.
@@ -2859,7 +2862,7 @@ int main(int argc, char *argv[])
       case 10: {
         // --------------------------------------------------------------------
         // RESET STATE
-        //   Verify the 'resetState' method.
+        //   Verify the `resetState` method.
         //
         // Concerns:
         //   - That resetState returns the object to its initial state (i.e.,
@@ -2869,7 +2872,7 @@ int main(int argc, char *argv[])
         // Plan:
         //   - Use put the object in each state and verify the expected
         //      state is not/is in the initial state before/after the call to
-        //      'resetState'.
+        //      `resetState`.
         //   - Verify that the initial configuration has not changed.
         //   - Repeat the above with a different configuration.
         //
@@ -2885,9 +2888,9 @@ int main(int argc, char *argv[])
                           << "RESET STATE" << endl
                           << "===========" << endl;
 
-        if (verbose) cout << "\nVerify 'resetState'." << endl;
+        if (verbose) cout << "\nVerify `resetState`." << endl;
 
-        if (verbose) cout << "\tWith 'maxLineLength' = 0." << endl;
+        if (verbose) cout << "\tWith `maxLineLength` = 0." << endl;
         {
             for (int i = 0; i < NUM_STATES; ++i) {
                 Obj obj(EncoderOptions::standard());
@@ -2903,7 +2906,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (verbose) cout << "\tWith 'maxLineLength' = 5." << endl;
+        if (verbose) cout << "\tWith `maxLineLength` = 5." << endl;
         {
             for (int i = 0; i < NUM_STATES; ++i) {
                 Obj obj(EncoderOptions::custom(5,
@@ -2923,13 +2926,13 @@ int main(int argc, char *argv[])
       } break;
       case 9: {
         // --------------------------------------------------------------------
-        // TESTING 'endConvert'
+        // TESTING `endConvert`
         //
         // Concept:
-        //: 1 Test 'endConvert'.
+        // 1. Test `endConvert`.
         //
         // Plan:
-        //: 1 Translate segments full of random garbage with varying values of
+        // 1. Translate segments full of random garbage with varying values of
         //
         // Testing:
         //   int endConvert(OUTPUT_ITERATOR);
@@ -3069,7 +3072,7 @@ int main(int argc, char *argv[])
       case 8: {
         // --------------------------------------------------------------------
         // PRIMARY MANIPULATORS WITH DEFAULT ARGUMENTS.
-        //   Continue testing 'convert' and 'endConvert' with defaults
+        //   Continue testing `convert` and `endConvert` with defaults
         //   arguments.
         //
         // Concerns:
@@ -3104,7 +3107,7 @@ int main(int argc, char *argv[])
         //   - Table-Based Implementation Technique with Orthogonal
         //      Perturbation
         //   - All of the encoded sequences in the table are valid in both
-        //     'e_BASIC' and 'e_URL' type encodings, so test it in both modes.
+        //     `e_BASIC` and `e_URL` type encodings, so test it in both modes.
         //
         // Testing:
         //   static int encodedLength(int numInputBytes, int maxLineLength);
@@ -3355,7 +3358,7 @@ int main(int argc, char *argv[])
                                                              PADDED);
 
             if (!PADDED) {
-                // Create string 'unpadded' with the padding stripped off
+                // Create string `unpadded` with the padding stripped off
                 // the end, and substitute that to 'OUTPUT and OUT_LEN;
 
                 static bsl::string unpadded;
@@ -3407,7 +3410,7 @@ int main(int argc, char *argv[])
             LOOP_ASSERT(LINE, 0 == obj.convert(b, &nOut, &nIn, B, E));
             LOOP_ASSERT(LINE, IN_LEN == nIn);
 
-            // Prepare to call 'endConvert'.
+            // Prepare to call `endConvert`.
             unsigned totalOut = nOut;
             b += nOut;
             LOOP_ASSERT(LINE, 0 == obj.endConvert(b, &nOut));
@@ -3478,7 +3481,7 @@ int main(int argc, char *argv[])
                                                                          B, M);
                 LOOP2_ASSERT(LINE, index, 0 == res1);
 
-                // Prepare for second call to 'convert'.
+                // Prepare for second call to `convert`.
                 int      localTotalIn = localNumIn;
                 unsigned localTotalOut = localNumOut;
                 lb += localNumOut;
@@ -3492,7 +3495,7 @@ int main(int argc, char *argv[])
                                                                          M, E);
                 LOOP2_ASSERT(LINE, index, 0 == res2);
 
-                // Prepare to call 'endConvert'.
+                // Prepare to call `endConvert`.
                 localTotalIn  += localNumIn;
                 localTotalOut += localNumOut;
                 lb += localNumOut;
@@ -3557,7 +3560,7 @@ int main(int argc, char *argv[])
 
             const size_t maxSize_t = bsl::numeric_limits<size_t>::max();
 
-            // 'encodedLength'
+            // `encodedLength`
 
             ASSERT_FAIL(Obj::encodedLength(EncoderOptions::urlSafe(), -1));
 
@@ -3574,7 +3577,7 @@ int main(int argc, char *argv[])
             ASSERT_PASS(Obj::encodedLength(EncoderOptions::mime(), limit));
             ASSERT_FAIL(Obj::encodedLength(EncoderOptions::mime(), limit + 1));
 
-            // 'encodedLines'
+            // `encodedLines`
 
             ASSERT_FAIL(Obj::encodedLines(EncoderOptions::mime(), -1));
 
@@ -3594,15 +3597,15 @@ int main(int argc, char *argv[])
         // TEST MACHINERY
         //
         // Concern:
-        //: 1 Run the fuzz test routine, but not as a true fuzz test, just feed
-        //:   it some random input to do basic debugging.
+        // 1. Run the fuzz test routine, but not as a true fuzz test, just feed
+        //    it some random input to do basic debugging.
         //
         // Plan:
-        //: 1 Call the fuzz test routine, many times, with a big garbage
-        //:   string.
-        //:
-        //: 2 If 'verbose' is set and 'argv[2]' is a file, read the file to a
-        //:   string and feed that into the fuzz test.
+        // 1. Call the fuzz test routine, many times, with a big garbage
+        //    string.
+        //
+        // 2. If `verbose` is set and `argv[2]` is a file, read the file to a
+        //    string and feed that into the fuzz test.
         //
         // Testing:
         //   int LLVMFuzzerTestOneInput(const uint8_t *, size_t);
@@ -3933,11 +3936,11 @@ int main(int argc, char *argv[])
       } break;
       case 5: {
         // --------------------------------------------------------------------
-        // BOOTSTRAP: 'convert' - transitions
-        //   Verify 'convert' transitions for all states.
+        // BOOTSTRAP: `convert` - transitions
+        //   Verify `convert` transitions for all states.
         //
         // Concerns:
-        //   - That we reach the correct final state after calling 'convert'.
+        //   - That we reach the correct final state after calling `convert`.
         //   - That convert with empty input does not change state.
         //   - That convert with multiple inputs is identical to multiple
         //      calls with the same input.
@@ -3948,7 +3951,7 @@ int main(int argc, char *argv[])
         // Plan:
         //   For inputs counts of increasing value starting with 0, put the
         //   object in each of the possible states, supply an input of the
-        //   current length and, after calling 'convert', verify that the
+        //   current length and, after calling `convert`, verify that the
         //   return code and state are as expected, and that all of the input
         //   was consumed.
         //
@@ -3957,14 +3960,14 @@ int main(int argc, char *argv[])
         //   - Table-Based Implementation Technique
         //
         // Testing:
-        //  BOOTSTRAP: 'convert' - transitions
+        //  BOOTSTRAP: `convert` - transitions
         // --------------------------------------------------------------------
 
         if (verbose) cout << endl
-                          << "BOOTSTRAP: 'convert' - transitions" << endl
+                          << "BOOTSTRAP: `convert` - transitions" << endl
                           << "===================================" << endl;
 
-        if (verbose) cout << "\nVerify 'convert' - transitions." << endl;
+        if (verbose) cout << "\nVerify `convert` - transitions." << endl;
         {
             static const struct {
                 int d_lineNum;          // source line number
@@ -4078,30 +4081,30 @@ int main(int argc, char *argv[])
       } break;
       case 4: {
         // --------------------------------------------------------------------
-        // BOOTSTRAP: 'endConvert' - transitions
-        //   Verify 'endConvert' transitions for all states.
+        // BOOTSTRAP: `endConvert` - transitions
+        //   Verify `endConvert` transitions for all states.
         //
         // Concerns:
-        //   - Reaching the correct final state after calling 'endConvert'.
+        //   - Reaching the correct final state after calling `endConvert`.
         //
         // Plan:
         //   Put the object in each state and verify the expected state is
-        //   correct after the call to 'endConvert'.
+        //   correct after the call to `endConvert`.
         //
         // Tactics:
         //   - Area Data Selection Method
         //   - Table-Based Implementation Technique
         //
         // Testing:
-        //   BOOTSTRAP: 'endConvert' - transitions
+        //   BOOTSTRAP: `endConvert` - transitions
         // --------------------------------------------------------------------
 
         if (verbose) cout << endl
-                          << "BOOTSTRAP: 'endConvert' - transitions" << endl
+                          << "BOOTSTRAP: `endConvert` - transitions" << endl
                           << "===================================" << endl;
 
 
-        if (verbose) cout << "\nVerify 'endConvert' - transitions." << endl;
+        if (verbose) cout << "\nVerify `endConvert` - transitions." << endl;
         {
             static const struct {
                 int d_lineNum;          // source line number
@@ -4159,20 +4162,20 @@ int main(int argc, char *argv[])
         //
         // Plan:
         //   First make sure that when we are in the initial (i.e., newly
-        //   constructed) state, 'isInitialState()' returns 'true' (so that
-        //   the assertion that 'isInitialState()' does not fail before we have
+        //   constructed) state, `isInitialState()` returns `true` (so that
+        //   the assertion that `isInitialState()` does not fail before we have
         //   had an opportunity to test it explicitly).
         //
         //   Second, using the Brute-Force approach, reach each of the major
         //   states from a newly constructed object as simply as possible
-        //   (i.e., by processing one character at a time) via the '::setState'
+        //   (i.e., by processing one character at a time) via the `::setState`
         //   test helper function.  Then use of all of the (as yet untested)
         //   processing accessors to help verify the new state.  Additionally,
         //   call one or more manipulators to change the state (thereby
         //   creating a partial *Distinguishing* *Sequence*) in order to
         //   further verify that the targeted state was reached.
         //
-        //   Third, prove that the '::isState' helper function (implemented
+        //   Third, prove that the `::isState` helper function (implemented
         //   using the above strategy) correctly confirms the indicated state
         //   by showing that, for each state, only the corresponding state
         //   setting returns true.
@@ -4246,7 +4249,7 @@ int main(int argc, char *argv[])
                 ASSERT(isPadded == obj.options().isPadded());
                 ASSERT(isPadded == obj.isPadded());
 
-                char b[4] = { -1, -1, -1, -1 };
+                char b[4] = { IV, IV, IV, IV };
                 int  numOut = -1;
                 int  result = obj.endConvert(b, &numOut);
 
@@ -4290,7 +4293,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == obj.isInitialState());
                 ASSERT(1 == obj.outputLength());
 
-                char b[4] = { -1, -1, -1, -1 };
+                char b[4] = { IV, IV, IV, IV };
                 int  numOut = -1;
                 int  result = obj.endConvert(b + 1, &numOut);
 
@@ -4334,7 +4337,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == obj.isInitialState());
                 ASSERT(2 == obj.outputLength());
 
-                char b[4] = { -1, -1, -1, -1 };
+                char b[4] = { IV, IV, IV, IV };
                 int  numOut = -1;
                 int  result = obj.endConvert(b + 2, &numOut);
 
@@ -4352,10 +4355,10 @@ int main(int argc, char *argv[])
                 ASSERT((isPadded ? 4 : 3) == obj.outputLength());
                 ASSERT(0 == result);
                 ASSERT((isPadded ? 2 : 1) == numOut);
-                ASSERT((char)-1 == b[0]);
-                ASSERT((char)-1 == b[1]);
+                ASSERT(IV == b[0]);
+                ASSERT(IV == b[1]);
                 ASSERT('A' == b[2]);
-                ASSERT((isPadded ? '=' : (char)-1) == b[3]);
+                ASSERT((isPadded ? '=' : IV) == b[3]);
             }
 
             if (verbose) cout << "\tState 3." << endl;
@@ -4378,7 +4381,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == obj.isInitialState());
                 ASSERT(4 == obj.outputLength());
 
-                char b[4] = { -1, -1, -1, -1 };
+                char b[4] = { IV, IV, IV, IV };
                 int  numOut = -1;
                 int  result = obj.endConvert(b, &numOut);
 
@@ -4396,10 +4399,10 @@ int main(int argc, char *argv[])
                 ASSERT(4 == obj.outputLength());
                 ASSERT(0 == result);
                 ASSERT(0 == numOut);
-                ASSERT((char)-1 == b[0]);
-                ASSERT((char)-1 == b[1]);
-                ASSERT((char)-1 == b[2]);
-                ASSERT((char)-1 == b[3]);
+                ASSERT(IV == b[0]);
+                ASSERT(IV == b[1]);
+                ASSERT(IV == b[2]);
+                ASSERT(IV == b[3]);
             }
 
             if (verbose) cout << "\te_DONE_STATE." << endl;
@@ -4422,7 +4425,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == obj.isInitialState());
                 ASSERT(0 == obj.outputLength());
 
-                char b[4] = { -1, -1, -1, -1 };
+                char b[4] = { IV, IV, IV, IV };
                 int  numOut = -1;
                 int  result = obj.endConvert(b, &numOut);
 
@@ -4440,10 +4443,10 @@ int main(int argc, char *argv[])
                 ASSERT(0 == obj.outputLength());
                 ASSERT(-1 == result);
                 ASSERT(0 == numOut);
-                ASSERT((char)-1 == b[0]);
-                ASSERT((char)-1 == b[1]);
-                ASSERT((char)-1 == b[2]);
-                ASSERT((char)-1 == b[3]);
+                ASSERT(IV == b[0]);
+                ASSERT(IV == b[1]);
+                ASSERT(IV == b[2]);
+                ASSERT(IV == b[3]);
             }
 
             if (verbose) cout << "\te_ERROR_STATE." << endl;
@@ -4466,7 +4469,7 @@ int main(int argc, char *argv[])
                 ASSERT(0 == obj.isInitialState());
                 ASSERT(0 == obj.outputLength());
 
-                char b[4] = { -1, -1, -1, -1 };
+                char b[4] = { IV, IV, IV, IV };
                 int  numOut = -1;
                 int  result = obj.endConvert(b, &numOut);
 
@@ -4484,10 +4487,10 @@ int main(int argc, char *argv[])
                 ASSERT(0 == obj.outputLength());
                 ASSERT(-1 == result);
                 ASSERT(0 == numOut);
-                ASSERT((char)-1 == b[0]);
-                ASSERT((char)-1 == b[1]);
-                ASSERT((char)-1 == b[2]);
-                ASSERT((char)-1 == b[3]);
+                ASSERT(IV == b[0]);
+                ASSERT(IV == b[1]);
+                ASSERT(IV == b[2]);
+                ASSERT(IV == b[3]);
             }
         }
 
@@ -4504,7 +4507,7 @@ int main(int argc, char *argv[])
                     const bool SAME = i == j;
                     if (veryVeryVerbose) { T_ T_ T_ P(SAME) }
 
-                    EnabledGuard Guard(SAME); // Enable individual '::isState'
+                    EnabledGuard Guard(SAME); // Enable individual `::isState`
                                               // ASSERTs in order to facilitate
                                               // debugging.
 
@@ -4661,14 +4664,14 @@ int main(int argc, char *argv[])
             P((int)(char) '\xff');
         }
 
-        if (verbose) cout << "\nTry '::myMin' test helper function." << endl;
+        if (verbose) cout << "\nTry `::myMin` test helper function." << endl;
         {
             ASSERT('a'== myMin('a', 'b'));
             ASSERT(-5 == myMin(3, -5));
             ASSERT(-3 == myMin(-3, 5));
         }
 
-        if (verbose) cout << "\nTry '::printCharN' test helper function."
+        if (verbose) cout << "\nTry `::printCharN` test helper function."
                                                                        << endl;
         {
             bsl::ostringstream out;

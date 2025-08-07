@@ -109,6 +109,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -1275,13 +1276,17 @@ int main(int argc, char *argv[])
 
 #undef EXP
 
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
             ASSERTV(LINE, X, X.movedInto() == EXP_MOVED_INTO);
             ASSERTV(LINE, X, X.movedFrom() == EXP_MOVED_FROM);
             ASSERTV(LINE, X, X.movedInto() == getMovedInto(X));
             ASSERTV(LINE, X, X.movedFrom() == getMovedFrom(X));
+#ifdef BSLS_PLATFORM_PRAGMA_GCC_DIAGNOSTIC_GCC
 #pragma GCC diagnostic pop
+#endif
         }
       } break;
 

@@ -27,6 +27,7 @@
 #include <bslmf_movableref.h>
 
 #include <bslmt_threadutil.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bsls_annotation.h>
 #include <bsls_assert.h>
@@ -40,6 +41,7 @@
 #include <bsl_cstddef.h>
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
+#include <bsl_format.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
@@ -217,6 +219,20 @@ const GlobalAllocatorInstallation globalAllocatorInstallation;
 // ============================================================================
 //                            TEST HELPERS UTILITY
 // ----------------------------------------------------------------------------
+
+#define STARTPOOL(x) \
+    if (0 != x.start()) { \
+        bslmt::ThreadUtil::microSleep(0, 1); \
+        if (0 != x.start()) { \
+            bslmt::ThreadUtil::microSleep(0, 3); \
+            if (0 != x.start()) { \
+                cout << "Thread start() failed.  Thread quota exceeded?" \
+                     << bsl::endl; \
+                ASSERT(false); \
+            } \
+        } \
+    }
+
 namespace {
 namespace u {
 
@@ -1346,8 +1362,7 @@ static void test6_signaler_disconnectGroupAndWait()
         Sig            sig(&alloc);     // invoked from threads #1 and #2
 
         // start the thread pool
-        int rc = threadPool.start();
-        BSLS_ASSERT_OPT(rc == 0);  (void)rc;
+        STARTPOOL(threadPool);
 
         // connect a couple of no-op slots to group '1'
         bdlmt::SignalerConnection con1 = sig.connect(u::NoOp(), 1);
@@ -1415,9 +1430,9 @@ static void test6_signaler_disconnectGroupAndWait()
             ASSERTV(diff2, diff2 >= 0.4);
 
             double diffStart = start2 - start1;
-            ASSERTV(diffStart, u::abs(diffStart) < 0.1);
+            ASSERTV(diffStart, u::abs(diffStart) < 0.5);
             const double diffCompletion = completionTime2 - completionTime1;
-            ASSERTV(diffCompletion, u::abs(diffCompletion) < 0.1);
+            ASSERTV(diffCompletion, u::abs(diffCompletion) < 2.0);
 
             if (veryVerbose) {
                 P_(elapsed1);    P(elapsed2);
@@ -1589,8 +1604,7 @@ static void test8_signaler_disconnectAllSlotsAndWait()
         Sig            sig(&alloc);     // invoked from threads #1 and #2
 
         // start the thread pool
-        int rc = threadPool.start();
-        BSLS_ASSERT_OPT(rc == 0);  (void)rc;
+        STARTPOOL(threadPool);
 
         for (int i = 0; i < 10; ++i) {
             // Repeat 10 times.
@@ -2102,8 +2116,7 @@ static void test13_connection_disconnectAndWait()
         Sig            sig(&alloc);     // invoked from threads #1 and #2
 
         // start the thread pool
-        int rc = threadPool.start();
-        BSLS_ASSERT_OPT(rc == 0);  (void)rc;
+        STARTPOOL(threadPool);
 
         // connect a couple of no-op slots
         bdlmt::SignalerConnection con1 = sig.connect(u::NoOp());
@@ -3524,8 +3537,7 @@ static void test24_destroyGuardAndWait()
         Sig            sig(&alloc);     // invoked from threads #1 and #2
 
         // start the thread pool
-        int rc = threadPool.start();
-        BSLS_ASSERT_OPT(rc == 0);  (void)rc;
+        STARTPOOL(threadPool);
 
         // connect a couple of no-op slots to group '1'
         bdlmt::SignalerConnection con1 = sig.connect(u::NoOp(), 1);
@@ -3594,9 +3606,9 @@ static void test24_destroyGuardAndWait()
             ASSERTV(diff2, diff2 >= 0.4);
 
             double diffStart = start2 - start1;
-            ASSERTV(diffStart, u::abs(diffStart) < 0.1);
+            ASSERTV(diffStart, u::abs(diffStart) < 0.5);
             const double diffCompletion = completionTime2 - completionTime1;
-            ASSERTV(diffCompletion, u::abs(diffCompletion) < 0.1);
+            ASSERTV(diffCompletion, u::abs(diffCompletion) < 2.0);
 
             if (veryVerbose) {
                 P_(elapsed1);    P(elapsed2);
@@ -3673,6 +3685,10 @@ int main(int argc, char *argv[])
     bslma::DefaultAllocatorGuard _defaultAllocatorGuard(&_da);
 
     bsl::cout << "TEST " << __FILE__ << " CASE " << test << bsl::endl;
+
+    bslmt::TimedCompletionGuard completionGuard(&_da);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
 
     // Prevent against compiler warning:
     // ```

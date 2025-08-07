@@ -5,9 +5,13 @@
 BSLS_IDENT_RCSID(bdldfp_decimal_cpp,"$Id$ $CSID$")
 
 #include <bslim_printer.h>
+
 #include <bslma_deallocatorguard.h>
+
 #include <bslmf_assert.h>
 #include <bslmf_isbitwisecopyable.h>
+
+#include <bslmt_once.h>
 
 #include <bsls_exceptionutil.h>
 #include <bsls_libraryfeatures.h>
@@ -22,14 +26,6 @@ BSLS_IDENT_RCSID(bdldfp_decimal_cpp,"$Id$ $CSID$")
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
 #include <bsl_sstream.h>
-
-#include <bslim_printer.h>
-
-#include <bslma_deallocatorguard.h>
-
-#include <bslmf_assert.h>
-
-#include <bslmt_once.h>
 
 #ifdef BDLDFP_DECIMALPLATFORM_C99_TR
 #include <math.h>
@@ -604,9 +600,12 @@ DecimalNumPut<CHARTYPE, OUTPUTITERATOR>::do_put_impl(
     if (format.flags() & bsl::ios::fixed) {
         cfg.setStyle(DecimalFormatConfig::e_FIXED);
     }
-
-    if (format.flags() & bsl::ios::scientific) {
+    else if (format.flags() & bsl::ios::scientific) {
         cfg.setStyle(DecimalFormatConfig::e_SCIENTIFIC);
+    }
+    else {
+        // Disable precision for natural format
+        cfg.setPrecision(-1);
     }
 
     if (format.flags() & bsl::ios::showpos) {

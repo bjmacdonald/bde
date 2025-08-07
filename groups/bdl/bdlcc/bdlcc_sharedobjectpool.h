@@ -364,13 +364,13 @@ class SharedObjectPool {
     /// parameterized `CREATOR` is the default type (that is,
     /// `ObjectPoolFunctors::DefaultCreator`), a function that calls the
     /// default constructor of `TYPE` with placement new, passing this
-    /// pool`s allocator if TYPE uses allocator, is used.  If the
+    /// pool's allocator if TYPE uses allocator, is used.  If the
     /// parameterized `CREATOR` is some other type, and `objectCreator` is
     /// not specified, the default value of the `CREATOR` type is used.  The
     /// optionally specified `objectResetter` is invoked with a pointer to
     /// an object of `TYPE` when the object is returned to the pool.  It
     /// must reset the object into a valid state for reuse.  If
-    /// `objectResetter` is not specified, a default RESETTER object is
+    /// `objectResetter` is not specified, a default `RESETTER` object is
     /// used.  Optionally specify a basic allocator to supply memory.  If
     /// `basicAllocator` is 0, the currently installed default allocator is
     /// used.  The behavior is undefined if `growBy` is 0.

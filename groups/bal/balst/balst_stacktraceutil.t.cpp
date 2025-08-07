@@ -40,6 +40,7 @@
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
+#include <bsl_fstream.h>
 #include <bsl_functional.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
@@ -67,12 +68,12 @@
 
 #else
 
-#include <unistd.h>    // sbrk
+# include <unistd.h>      // sbrk
+
 
 #endif
 
 using namespace BloombergLP;
-using bsl::cin;
 using bsl::cout;
 using bsl::cerr;
 using bsl::endl;
@@ -158,8 +159,7 @@ typedef balst::StackTraceUtil  Util;
 typedef bsls::StackAddressUtil Address;
 
 #if   defined(BALST_OBJECTFILEFORMAT_RESOLVER_ELF)
-    enum { FORMAT_ELF = 1, FORMAT_WINDOWS = 0, FORMAT_XCOFF = 0,
-           FORMAT_DLADDR = 0 };
+    enum { FORMAT_ELF = 1, FORMAT_WINDOWS = 0, FORMAT_DLADDR = 0 };
 
 # if   defined(BALST_OBJECTFILEFORMAT_RESOLVER_DWARF)
     enum { FORMAT_DWARF = 1 };
@@ -168,30 +168,21 @@ typedef bsls::StackAddressUtil Address;
 # endif
 
 # if   defined(BSLS_PLATFORM_OS_SOLARIS)
-    enum { PLAT_SUN=1, PLAT_LINUX=0, PLAT_HP=0, PLAT_AIX=0, PLAT_WIN=0 };
+    enum { PLAT_SUN=1, PLAT_LINUX=0, PLAT_HP=0, PLAT_WIN=0 };
 # elif defined(BSLS_PLATFORM_OS_LINUX)
-    enum { PLAT_SUN=0, PLAT_LINUX=1, PLAT_HP=0, PLAT_AIX=0, PLAT_WIN=0 };
+    enum { PLAT_SUN=0, PLAT_LINUX=1, PLAT_HP=0, PLAT_WIN=0 };
 # else
 #   error unknown platform
 # endif
 
 #elif defined(BALST_OBJECTFILEFORMAT_RESOLVER_DLADDR)
-    enum { FORMAT_ELF = 0, FORMAT_WINDOWS = 0, FORMAT_XCOFF = 0,
-           FORMAT_DLADDR = 1 };
+    enum { FORMAT_ELF = 0, FORMAT_WINDOWS = 0, FORMAT_DLADDR = 1 };
     enum { FORMAT_DWARF = 0 };
-    enum { PLAT_SUN=0, PLAT_LINUX=0, PLAT_HP=0, PLAT_AIX=0, PLAT_WIN=0,
-           PLAT_DARWIN = 1 };
+    enum { PLAT_SUN=0, PLAT_LINUX=0, PLAT_HP=0, PLAT_WIN=0, PLAT_DARWIN = 1 };
 #elif defined(BALST_OBJECTFILEFORMAT_RESOLVER_WINDOWS)
-    enum { FORMAT_ELF = 0, FORMAT_WINDOWS = 1, FORMAT_XCOFF = 0,
-           FORMAT_DLADDR = 0 };
+    enum { FORMAT_ELF = 0, FORMAT_WINDOWS = 1, FORMAT_DLADDR = 0 };
     enum { FORMAT_DWARF = 0 };
-    enum { PLAT_SUN=0, PLAT_LINUX=0, PLAT_HP=0, PLAT_AIX=0, PLAT_WIN=1,
-           PLAT_DARWIN = 0 };
-#elif defined(BALST_OBJECTFILEFORMAT_RESOLVER_XCOFF)
-    enum { FORMAT_ELF = 0, FORMAT_WINDOWS = 0, FORMAT_XCOFF = 1,
-           FORMAT_DLADDR = 0 };
-    enum { FORMAT_DWARF = 0 };
-    enum { PLAT_SUN=0, PLAT_LINUX=0, PLAT_HP=0, PLAT_AIX=1, PLAT_WIN=0,
+    enum { PLAT_SUN=0, PLAT_LINUX=0, PLAT_HP=0, PLAT_WIN=1,
            PLAT_DARWIN = 0 };
 #else
 # error unknown object file format
@@ -258,6 +249,7 @@ typedef bsls::Types::IntPtr    IntPtr;
 static int verbose;
 static int veryVerbose;
 static int veryVeryVerbose;
+static int veryVeryVeryVerbose;
 
 static bslma::TestAllocator ota;
 static bdlma::SequentialAllocator ta(&ota);
@@ -268,6 +260,8 @@ bsl::ostream *out_p;    // pointer to either `cout` or a dummy stringstream
                         // `verbose`.
 
 static const bsl::size_t npos = bsl::string::npos;
+
+static const char *basenameArgv0 = 0;
 
 template <class TYPE>
 static inline
@@ -337,6 +331,112 @@ void stripReturnType(bsl::string *dst, const bsl::string& symbol)
 // GLOBAL HELPER FUNCTIONS FOR TESTING
 //-----------------------------------------------------------------------------
 
+namespace {
+namespace u {
+
+/// Return a pointer to the new delete allocator singleton.
+bslma::Allocator *nda()
+{
+    // We use the new delete allocator here, because if we want to track down
+    // accidental uses of the default allocator, we'll want to put a breakpoint
+    // on `bslma::TestAllocator::allocate`.
+
+    return &bslma::NewDeleteAllocator::singleton();
+}
+
+/// Check that:
+/// * `test` (== `atoi(argv[1]`) is above the specified `topCaseIndex` and
+///   less than or equal to `2 * topCaseIndex`.
+///
+/// * The executable file name `argv[0]` matches expectations for a "condemned"
+///   executable.
+void checkCondemnedExecutableName(int topCaseIndex, char **argv)
+{
+    int test = bsl::atoi(argv[1]);
+
+    ASSERTV(test, topCaseIndex, topCaseIndex < test);
+    ASSERTV(test, topCaseIndex, test <= 2 * topCaseIndex);
+    ASSERTV(argv[0], bsl::strstr(argv[0], "_condemned_"));
+    ASSERTV(argv[0], test, bsl::strstr(argv[0], argv[1]));
+}
+
+/// Copy the file `fromFileName` to a new file `toFileName`.
+void copyExecutable(const char *toFileName,
+                    const char *fromFileName)
+{
+    using namespace bsl;
+    typedef bdls::FilesystemUtil   Util;
+    typedef bsl::char_traits<char> Traits;
+
+    // `FilesystemUtil` functions use the default allocator on Windows.
+
+    bslma::DefaultAllocatorGuard guard(u::nda());
+
+    (void) Util::remove(toFileName);
+    const Util::Offset fileSize = Util::getFileSize(fromFileName);
+
+    {
+        ofstream toStream(  toFileName,   ios_base::out | ios_base::binary);
+        ifstream fromStream(fromFileName, ios_base::in  | ios_base::binary);
+
+        ASSERT(toStream.  good());
+        ASSERT(fromStream.good());
+
+        streambuf *toSb   = toStream.  rdbuf();
+        streambuf *fromSb = fromStream.rdbuf();
+
+        copy(istreambuf_iterator<char>(fromSb),
+             istreambuf_iterator<char>(),
+             ostreambuf_iterator<char>(toSb));
+
+        // Since we operated directly on the `streambuf`s, the `fstream`s were
+        // uninformed about how it went.  Query the `streambuf`s directly to
+        // verify that it went OK.
+
+        const Traits::pos_type toOff = toSb->pubseekoff(0, ios_base::cur);
+        ASSERTV(fileSize, toOff, fileSize == toOff);
+        ASSERT(Traits::eof() == fromSb->sbumpc());
+    }    // close the streams
+
+    ASSERT(Util::getFileSize(toFileName) == fileSize);
+
+#ifdef BSLS_PLATFORM_OS_UNIX
+    int rc = ::chmod(toFileName, 0777);
+    ASSERT(0 == rc);
+#endif
+}
+
+/// Copy the executable `argv[0]` to a "condemned" copy and then run that copy
+/// with `argv[2]` == "--erase", which will result in the condemned copy being
+/// erased at the beginning of the test.
+void doEraseTest(int argc, char **argv)
+{
+    bsl::string cmd(argv[0], u::nda());
+    cmd += "_condemned_";
+    cmd += argv[1];            // `test` in text form
+    cmd += ".t";
+
+    // `cmd` is now the child exec name
+
+    u::copyExecutable(cmd.c_str(), argv[0]);
+
+    // command: run the test case
+
+    cmd += ' ';
+    cmd += argv[1];
+    cmd += " --erase";
+    for (int ii = 2; ii < argc; ++ii) {
+        cmd += ' ';
+        cmd += argv[ii];
+    }
+    int rc = ::system(cmd.c_str());
+    ASSERT(0 == rc);
+    testStatus += bsl::abs(rc);
+}
+
+}  // close namespace u
+}  // close unnamed namespace
+
 /// check that the specified `str` contains all the strings specified in the
 /// vector `matches` in order.  Note that `matches` may be modified.
 void checkOutput(const bsl::string&               str,
@@ -378,19 +478,15 @@ const char *nullGuard(const char *string)
                                 // testStackTrace
                                 // --------------
 
-/// Verify that the specified StackTrace `st` is sane.  Tolerate up to
-/// `tolerateMisses` frames without line numbers, as xcoff fails to give
-/// line numbers when the code is in an inlined function.
+/// Verify that the specified StackTrace `st` is sane.
 static
-void testStackTrace(const balst::StackTrace& st, int tolerateMisses = 0)
+void testStackTrace(const balst::StackTrace& st)
 {
     LOOP_ASSERT(st.length(), st.length() > 0);
 
     bool reachedMain = false, pastMain = false;   // The trace above, at, and
                                                   // below `main` have
                                                   // different properties.
-
-    int numMisses = 0;
 
     for (int i = 0; i < st.length(); ++i) {
         const Frame& frame = st[i];
@@ -429,18 +525,9 @@ void testStackTrace(const balst::StackTrace& st, int tolerateMisses = 0)
         if (!FORMAT_ELF && !FORMAT_DLADDR && DEBUG_ON && !pastMain) {
             ASSERT(frame.lineNumber() > 0);
         }
-        else if (FORMAT_XCOFF && !!DEBUG_ON) {
-            ASSERT(frame.isSourceFileNameKnown());
-
-            // There may be one stack frame that had inlined code in it.
-
-            numMisses += frame.lineNumber() < 0;
-        }
 
         pastMain |= reachedMain;
     }
-
-    ASSERT(numMisses <= tolerateMisses);
 }
 
                                 // ------------
@@ -505,23 +592,14 @@ void pushVec(bsl::vector<Data> *dst,
     // On most platforms, a member func ptr is multiple times the size of a
     // `void *`, so we've got to extract the address from it.
 
-    // On xcoff, a function ptr is really just a ptr to a location containing
-    // a ptr to the address, so it needs and extra dereference.
-
     void *& ptr = data.d_funcPtr;
-    UintPtr uPtr, *uPtr_p;
+    UintPtr uPtr;
 
     enum { k_DIM = sizeof(funcPtr) / sizeof(void *) };
     BSLS_ASSERT(k_DIM * sizeof(void *) == sizeof(funcPtr));
 
     if (!e_BIG_ENDIAN || sizeof(void *) == sizeof(funcPtr)) {
-        if (FORMAT_XCOFF) {
-            bsl::memcpy(&uPtr_p, &funcPtr, sizeof(void *));
-            uPtr = *uPtr_p;
-        }
-        else {
-            bsl::memcpy(&uPtr, &funcPtr, sizeof(void *));
-        }
+        bsl::memcpy(&uPtr, &funcPtr, sizeof(void *));
     }
     else if (PLAT_WIN) {
         UintPtr uPtrs[k_DIM];
@@ -534,24 +612,6 @@ void pushVec(bsl::vector<Data> *dst,
             cout << "PushVec: ptrs for: " << mangledSearch;
             for (int ii = 0; ii < k_DIM; ++ii) {
                 cout << " 0x" << (void *) uPtrs[ii];
-            }
-            cout << endl;
-        }
-    }
-    else if (FORMAT_XCOFF) {
-        ASSERTV(sizeof(funcPtr), sizeof(void *),
-                                        4 == sizeof(funcPtr) / sizeof(void *));
-
-        UintPtr *uPtrs[4];
-        ASSERT(sizeof(uPtrs) == sizeof(funcPtr));
-        bsl::memcpy(uPtrs, &funcPtr, sizeof(uPtrs));
-        uPtr = *uPtrs[0];
-        const bool uPtrOK = uPtr && (UintPtr) 0 - 1 != uPtr;
-        ASSERT(uPtrOK);
-        if (veryVeryVerbose || !uPtrOK) {
-            cout << "PushVec: ptrs: ";
-            for (int ii = 0; ii < 4; ++ii) {
-                cout << (ii ? " 0x" : "0x") << (void *) uPtrs[ii];
             }
             cout << endl;
         }
@@ -744,8 +804,12 @@ namespace NS_10_4 {
 #define BALST_STACKTRACEUTIL_TEST_10_SYMBOLS
 #endif
 
+enum { k_NUM_THREADS = 100 };
+
 bsls::TimeInterval start;            // initialized from `main`
 bsls::AtomicInt    threadId(0);
+bsls::AtomicInt    analyzed(0);
+bsls::AtomicInt    numZeroStacks(0);
 
 bool mainFound = false;
 int  tracesDone = 0;
@@ -775,6 +839,7 @@ void loopForSevenSeconds()
 
     const int numRecurses     = threadId++ % 10 + 10;
     int       localTracesDone = 0;
+
     do {
         int depth = numRecurses;
         for (int i = 0; i < 10; ++i, ++localTracesDone) {
@@ -813,14 +878,42 @@ void topOfTheStack(void *, void *, void *, int numRecurses)
     ST st;
 
     int rc = Util::loadStackTraceFromStack(&st, 2000, true);
+# if !defined(BSLS_PLATFORM_OS_WINDOWS)
     LOOP_ASSERT(rc, 0 == rc);
+# else
+    // `::RtlCaptureStackBackTrace`, the Windows stack walkback function used
+    // by `bsls::StackAddressUtil::getStackAddresses` will, < 1% of the time,
+    // malfunction and return 0 addresses.  This seems to be exacerbated by the
+    // fact that this test case is extensively multithreaded.
+    //
+    // * https://github.com/microsoft/STL/issues/3889
+    //
+    // * https://developercommunity.visualstudio.com/t/10692305
+
+    if (0 != rc && 0 == st.length()) {
+        ++numZeroStacks;
+
+        // In a typical run on Windows, there are about 9000 stack traces done,
+        // and typically, less than 30 of them will be zero stacks.  So if
+        // there are more than 200 zero stacks, something is very wrong.
+
+        ASSERT(numZeroStacks < 200);
+
+        return;                                                       // RETURN
+    }
+
+    // On Windows, apparently if ANY stack addresses were returned, then
+    // everything's fine.
+# endif
+
+    ++analyzed;
 
 #if defined(BALST_STACKTRACEUTIL_TEST_10_SYMBOLS)
     const int         len  = st.length();
     const bsl::size_t npos = bsl::string::npos;
 
     ASSERTV(st[0].symbolName(),
-                             npos != st[0].symbolName().find("topOfTheStack"));
+                 0 == len || npos != st[0].symbolName().find("topOfTheStack"));
 
     int tots = 0;
     int rabo = 0;
@@ -859,13 +952,13 @@ void topOfTheStack(void *, void *, void *, int numRecurses)
         }
     }
 
-    ASSERT(1 == tots);
-    ASSERTV(numRecurses, rabo, numRecurses == rabo);
-    ASSERT(1 == lffs);
-    ASSERTV(numRecurses, tc10, numRecurses + 2 == tc10);
-    ASSERTV(numRecurses, ns2,  numRecurses + 2 == ns2);
-    ASSERTV(numRecurses, ns3,  numRecurses + 2 == ns3);
-    ASSERTV(numRecurses, ns4,  numRecurses + 2 == ns4);
+    ASSERTV(len, 1 == tots);
+    ASSERTV(len, numRecurses, rabo, numRecurses == rabo);
+    ASSERTV(len, 1 == lffs);
+    ASSERTV(len, numRecurses, tc10, numRecurses + 2 == tc10);
+    ASSERTV(len, numRecurses, ns2,  numRecurses + 2 == ns2);
+    ASSERTV(len, numRecurses, ns3,  numRecurses + 2 == ns3);
+    ASSERTV(len, numRecurses, ns4,  numRecurses + 2 == ns4);
 #endif
 }
 
@@ -1140,7 +1233,7 @@ void case_5_top(bool demangle, bool useTestAllocator)
     LOOP_ASSERT(rc, 0 == rc);
     sw.stop();
     if (0 == rc) {
-        testStackTrace(st, FORMAT_XCOFF);
+        testStackTrace(st);
 
         Util::printFormatted(*out_p, st);
         *out_p << cc("User time: ") << sw.accumulatedUserTime() <<
@@ -1331,9 +1424,13 @@ int case_4_top(bool demangle)
         bslma::TestAllocator ta;
         bsl::vector<const char *> matches(&ta);
         matches.push_back(demangle ? "case_4_top(bool" : "case_4_top");
+        matches.push_back(basenameArgv0);
         matches.push_back(demangle ? "middle(bool" : "middle");
+        matches.push_back(basenameArgv0);
         matches.push_back(demangle ? "bottom(bool" : "bottom");
+        matches.push_back(basenameArgv0);
         matches.push_back("main");    // `main` is a C, not C++, symbol.
+        matches.push_back(basenameArgv0);
 
         bsl::stringstream os(&ta);
         Util::printFormatted(os, st);
@@ -1417,7 +1514,13 @@ int case_3_Top(bool demangle)
                                                   demangle);
     LOOP_ASSERT(rc, 0 == rc);
     if (0 == rc) {
-        testStackTrace(st);
+        // Check out all frames except the ignored frames.
+
+        ST st2;
+        for (int ii = Address::k_IGNORE_FRAMES; ii < st.length(); ++ii) {
+            st2.append(st[ii]);
+        }
+        testStackTrace(st2);
 
         bslma::TestAllocator ta;
         bsl::vector<const char *> matches(&ta);
@@ -1923,7 +2026,7 @@ void bottom(bslma::Allocator *alloc)
 // (7): _start+0x5c at 0x31d4c in balst_stacktraceutil.t.dbg_exc_mt
 // ```
 // Notice that the lines have been truncated to fit this 79 column source file,
-// and that on AIX or Windows, source file name and line number information
+// and that on Linux or Windows, source file name and line number information
 // will also be displayed.
 
 // ============================================================================
@@ -1932,16 +2035,48 @@ void bottom(bslma::Allocator *alloc)
 
 int main(int argc, char *argv[])
 {
-    int test        = argc > 1 ? bsl::atoi(argv[1]) : 0;
-    verbose         = argc > 2;
-    veryVerbose     = argc > 3;
-    veryVeryVerbose = argc > 4;
+    int test            = argc > 1 ? bsl::atoi(argv[1]) : 0;
+    verbose             = argc > 2;
+    veryVerbose         = argc > 3;
+    veryVeryVerbose     = argc > 4;
+    veryVeryVeryVerbose = argc > 5;
 
-    cout << "TEST " << __FILE__ << " CASE " << test << endl;
+    enum { k_TOP_USAGE_CASE_INDEX = 18 };
+
+    const bool eraseExecutable = 2 < argc && !bsl::strcmp("--erase", argv[2]);
+    if (eraseExecutable) {
+        // `FilesystemUtil` functions uses the default allocator on Windows.
+
+        bslma::DefaultAllocatorGuard guard(u::nda());
+
+        u::checkCondemnedExecutableName(k_TOP_USAGE_CASE_INDEX, argv);
+
+        int rc = bdls::FilesystemUtil::remove(argv[0]);
+        ASSERT(0 == rc);
+        ASSERT(!bdls::FilesystemUtil::exists(argv[0]));
+
+        test            -= k_TOP_USAGE_CASE_INDEX;
+
+        verbose         =  veryVerbose;
+        veryVerbose     =  veryVeryVerbose;
+        veryVeryVerbose =  veryVeryVeryVerbose;
+    }
+
+    cout << "TEST " << __FILE__ << " CASE " << test <<
+                                   (eraseExecutable ? " --erase" : "") << endl;
+
+    if (verbose && eraseExecutable) {
+        cout << argv[0] << " erased\n";
+    }
 
     // make sure the shared lib containing `malloc` is loaded
 
     BSLA_MAYBE_UNUSED void *sharedLibMalloc = bsl::malloc(100);
+
+    bsl::string argv0(&ta);
+    int rc = bdls::PathUtil::getBasename(&argv0, argv[0]);
+    ASSERT(0 == rc);
+    basenameArgv0 = argv0.c_str();
 
     // see if we can avoid calling `malloc` from here on out
 
@@ -1959,7 +2094,7 @@ int main(int argc, char *argv[])
     }
 
     switch (test) { case 0:
-      case 18: {
+      case k_TOP_USAGE_CASE_INDEX: {
         // --------------------------------------------------------------------
         // USAGE EXAMPLE THREE
         //
@@ -2240,14 +2375,7 @@ int main(int argc, char *argv[])
 
             const int startTestStatus = testStatus;
 
-            if (FORMAT_XCOFF) {
-                bsl::size_t pos = expName.rfind("(");
-                pos = expName.rfind("::", pos);
-                ASSERT(npos != pos);
-                ASSERT(':' == expName[pos]);
-                expName.insert(pos + 2, 1, '.');
-            }
-            else if (FORMAT_WINDOWS) {
+            if (FORMAT_WINDOWS) {
                 bsl::size_t pos = expName.find("(");
                 expName.resize(pos);
             }
@@ -2496,13 +2624,18 @@ int main(int argc, char *argv[])
 
         TC::start = bsls::SystemTime::nowMonotonicClock();
 
-        tg.addThreads(&TC::loopForSevenSeconds, 100);
+        tg.addThreads(&TC::loopForSevenSeconds, TC::k_NUM_THREADS);
         tg.joinAll();
 
+        // Verify that less than 1% of the traces wound up with empty stacks.
+
+        ASSERTV(TC::numZeroStacks, TC::analyzed,
+                                       TC::numZeroStacks * 100 < TC::analyzed);
         ASSERT(! TC::mainFound);
 
         if (verbose) {
             P_(TC::elapsed());    P_(TC::tracesDone);    P(TC::minTracesDone);
+            P_(TC::analyzed);     P(TC::numZeroStacks);
         }
       } break;
       case 9: {
@@ -2961,8 +3094,20 @@ int main(int argc, char *argv[])
         ASSERT(0 == defaultAllocator.numAllocations());
       } break;
       default: {
-        cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;
-        testStatus = -1;
+        BSLS_ASSERT_OPT(!eraseExecutable);
+
+        ASSERTV(test, k_TOP_USAGE_CASE_INDEX < test);
+
+        if (!PLAT_WIN && test <= 2 * k_TOP_USAGE_CASE_INDEX) {
+            // Run test case `test - k_TOP_USAGE_CASE_INDEX` with erasing the
+            // executable.
+
+            u::doEraseTest(argc, argv);
+        }
+        else {
+            cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;
+            testStatus = -1;
+        }
       }
     }
 
@@ -2977,6 +3122,8 @@ int main(int argc, char *argv[])
 }
 
 #else
+
+// CYGWIN
 
 int main()
 {

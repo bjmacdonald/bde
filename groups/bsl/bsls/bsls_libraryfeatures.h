@@ -17,6 +17,7 @@ BSLS_IDENT("$Id: $")
 //  BSLS_LIBRARYFEATURES_HAS_CPP98_AUTO_PTR: `auto_ptr` provided
 //  BSLS_LIBRARYFEATURES_HAS_CPP98_BINDERS_API: adaptable function API provided
 //  BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY: C++11 base lib provided
+//  BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS: [deprecated]
 //  BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING: except handling provided
 //  BSLS_LIBRARYFEATURES_HAS_CPP11_GARBAGE_COLLECTION_API: GC support provided
 //  BSLS_LIBRARYFEATURES_HAS_CPP11_MISCELLANEOUS_UTILITIES: misc utils provided
@@ -58,12 +59,15 @@ BSLS_IDENT("$Id: $")
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_FLAG_TEST_FREE_FUNCTIONS:
 //                                           `bsl::atomic_flag_test[_explicit]`
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_MAKE_UNIQUE_FOR_OVERWRITE: `*_for_overwrite`
-//  BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR: `<chrono>` Calendar/TZ additions
+//  BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR: `<chrono>` calendar additions
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV: `mbrtoc8` & `c8rtomb`
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_IS_LAYOUT_COMPATIBLE: type trait
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER: type trait
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE: type traits
+//  BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT: `<format>`
 //  BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD: `std::jthread`
+//  BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE: `<chrono>` timezone additions
+//  BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY: C++23 base lib provided
 //  BSLS_LIBRARYFEATURES_STDCPP_GNU: implementation is GNU libstdc++
 //  BSLS_LIBRARYFEATURES_STDCPP_IBM: implementation is IBM
 //  BSLS_LIBRARYFEATURES_STDCPP_INTELLISENSE: Intellisense is running
@@ -107,6 +111,83 @@ BSLS_IDENT("$Id: $")
 // violation.  The link-coercion symbol that enforces this is meant to provide
 // users a single, easy-to-comprehend link-time error, rather than having bugs
 // potentially manifest at runtime in ways that are difficult to diagnose.
+//
+///Forcing Language ABI Compatibility
+///----------------------------------
+// For open-source users, configuration macros are provided to enable ABI
+// compatibility when compiling BDE between different language standards.
+//
+// !WARNING! These configuration macros should **NOT** be used outside of
+// recipes for open-source package managers like VCPKG.  Code compiled with
+// these macros will **NOT** be linkable against code compiled without them
+//
+// BDE has it's own implementations for a number of types, like
+// `bsl::string_view`,  that when building with a newer language standard
+// (e.g., C++20) will be an alias to the platform standard library (these are
+// sometimes referred to as "polyfill" types).  By default, BDE will make a
+// selection between the platform implementation and the BDE implementation
+// based on the language standard being used.  However, that means that
+// translation units (using BDE) that are compiled with different language
+// standards are binary incompatible.
+//
+// BDE provides the following macros for forcing ABI compatibility, to allow
+// translation units compiled with different language standards to be linked
+// together.  These macros follow a pattern
+// `BSLS_LIBRARYFEATURES_FORCE_ABI_CPP##`, where `CPP##` is a language standard
+// (e.g., `CPP11`).  Using `*_ABI_CPP11`, for example, forces ABI compatibility
+// where the minimum supported compiler is C++11, so BDE implementations will
+// be used for any standard library features that were introduced after C++11.
+//
+//  - `BSLS_LIBRARYFEATURES_FORCE_ABI_CPP11` -
+//     Build the BDE libraries so that they are ABI compatible with a maximum
+//     language standard of C++11.
+//
+//  - `BSLS_LIBRARYFEATURES_FORCE_ABI_CPP17` -
+//     Build the BDE libraries so that they are ABI compatible with a maximum
+//     language standard of C++17.
+//
+//  - `BSLS_LIBRARYFEATURES_FORCE_ABI_CPP20` -
+//     Build the BDE libraries so that they are ABI compatible with a maximum
+//     language standard of C++20.
+//
+// Attempts to combine these macros, or force ABI compatibility with a language
+// standard newer than the current compiler will fail.  Attempts to link
+// translation units built with different force-ABI macros defined should fail
+// (on platforms where `bsls_linkcoercion` is supported).
+//
+// Also note that builds with C++03 are always binary incompatible with builds
+// with other language standards because of the treatment of rvalue-references,
+// and variadic functions, and variadic templates.
+//
+// Finally, note that the current list of "polyfill" types BDE provides are:
+//
+//  +--------------------+------------------------------------+
+//  | Feature            | Minimum Language Version For Alias |
+//  +====================+====================================+
+//  | span               | C++20                              |
+//  +--------------------+------------------------------------+
+//  | string_view        | C++20 [1]                          |
+//  +--------------------+------------------------------------+
+//  | array              | C++17 [1]                          |
+//  +--------------------+------------------------------------+
+//  | optional           | C++17                              |
+//  +--------------------+------------------------------------+
+//  | uncaught_exception | C++17                              |
+//  +--------------------+------------------------------------+
+//  | reference_wrapper  | C++11 [2]                          |
+//  +--------------------+------------------------------------+
+//  | system_error       | C++11 [2]                          |
+//  +--------------------+------------------------------------+
+//
+//  1. BDE uses its own implementations for some of the standard library
+//     features even when a (possibly incomplete) platform implementation is
+//     available to ensure that features are available when building with older
+//     language standards and/or compilers.  E.g., we use the BDE
+//     implementation of `string_view` in C++17 to allow C++17 users to use the
+//     new methods introduced in C++20.
+//
+//  2. These types are aliases to the matching platform standard library types,
+//     on all platforms where the forced-ABI compatibility macros are relevant.
 //
 ///Converse Logic Is Not Symmetric
 ///-------------------------------
@@ -346,6 +427,7 @@ BSLS_IDENT("$Id: $")
 //     - `isblank`
 //   - Functions defined in `<memory>`
 //     - `addressof`
+//     - `allocator_traits`
 //     - `pointer_traits`
 //     - `uninitialized_copy_n`
 //   - Function defined in `<numeric>`
@@ -496,6 +578,54 @@ BSLS_IDENT("$Id: $")
 //       - libstdc++ version 11
 //   - Microsoft Visual Studio 2022 / MSVC 19.30
 //
+///`BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY`
+///-------------------------------------------------
+// Experimental support! Do not use
+// TODO: Complete C++23 baseline functionality validation.
+//
+// The information under this macro is subject to change!
+//
+// This macro is used to identify whether the current platform's standard
+// library supports a baseline set of C++23 library features (which are defined
+// below).  This is especially important in BSL when importing standard library
+// functions and types into the `bsl::` namespace, as is done in `bsl+bslhdrs`.
+//
+// This macro is defined if all of the listed conditions are true:
+//
+// * The compiler supports C++23 language features.
+// * The following headers can be included:
+//   - <expected>  TODO
+//   - TBD
+//
+// This macro is defined first for the following compiler versions:
+//
+//   - GCC 14.0
+//   - clang 17 when compiling against either:
+//       - libc++ version 17, or
+//       - libstdc++ version 14
+//   - Microsoft Visual Studio N/A
+//
+///`BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS`
+///--------------------------------------------------------
+// The `BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS` macro is
+// defined if *both* of the listed conditions are true:
+//
+// * The compiler support is less or equal to C++20.
+// * The following functions and types are provided by the native standard
+//   library in `<exception>`:
+//   - `unexpected`
+//   - `unexpected_handler`
+//   - `set_unexpected`
+//   - `get_unexpected`
+//
+// **DEPRECATED**: Do not use the API listed above.
+//
+// This macro is defined first for the following compiler versions:
+//
+// * GCC 5.0
+// * clang 3.0 using at least GCC 5.0 GNU C++ Library
+// * Microsoft Visual Studio 2015 / MSVC 19.00
+//
 ///`BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING`
 ///---------------------------------------------------
 // The `BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING` macro is defined if
@@ -549,7 +679,6 @@ BSLS_IDENT("$Id: $")
 //     - `max_align_t`
 //   - Functions defined in `<exception>`
 //     - `get_terminate`
-//     - `get_unexpected`
 //   - Functions defined in `<iomanip>`
 //     - `get_time`
 //     - `put_time`
@@ -1077,16 +1206,28 @@ BSLS_IDENT("$Id: $")
 ///`BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR`
 ///-----------------------------------------
 // The `BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR` is defined if the C++20
-// Calendar/TZ feature is available in `bsl::chrono` namespace.
+// calendar features are available in `bsl::chrono` namespace.
 //
 // This macro is defined if the standard `__cpp_lib_chrono` feature-test macro
 // has at least `201907L` value.
 //
+// This feature has been provided by MSVC++ compiler since VS 2019 16.10.  But
+// that release was shipped with the following important note:  "While the STL
+// generally provides all features on all supported versions of Windows, leap
+// seconds and time zones (which change over time) require OS support that was
+// added to Windows 10.  Specifically, updating the leap second database
+// requires Windows 10 version 1809 or later, and time zones require `icu.dll`
+// which is provided by Windows 10 version 1903/19H1 or later.  This applies to
+// both client and server OSes; note that Windows Server 2019 is based on
+// Windows 10 version 1809."  If the feature is used on a host that doesn't
+// provide `icu.dll`, an exception with "The specified module could not be
+// found." message will be thrown.  For this reason those features are disabled
+// by default on Windows.
+//
 // This macro is defined first for the following compiler versions:
 //
 //   - Microsoft Visual Studio 2022 / MSVC 19.30
-//
-// (no current version of GCC or clang supports this feature)
+//   - GCC 14+
 //
 ///`BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV`
 ///----------------------------------------------
@@ -1145,6 +1286,19 @@ BSLS_IDENT("$Id: $")
 //
 // (no current version of clang supports this feature)
 //
+///`BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT`
+///---------------------------------------
+// `BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT` is defined if the `<format>` header
+// is available and supports P2216 and P2372 (which were defect reports against
+// C++20).
+//
+// This macro is defined first for the following compiler versions:
+//   - GCC 13.1
+//   - Clang 17.0 with either:
+//     - libc++ 17.0, or
+//     - libstdc++ 13.1
+//   - VS 16.11 / MSVC 19.29
+//
 ///`BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD`
 ///----------------------------------------
 // The `BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD` is defined if the C++20
@@ -1156,8 +1310,35 @@ BSLS_IDENT("$Id: $")
 // This macro is defined first for the following compiler versions:
 //
 //   - GCC 10.1
-//   - Microsoft Visual Studio 2019 Update 9 / <u>MSC</u>FULL_VER 192829913
+//   - Microsoft Visual Studio 2019 Update 9 / _MSC_FULL_VER 192829913
 //   - clang 18.0 with -fexperimental-library
+//
+///`BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE`
+///----------------------------------------
+// The `BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE` is defined if the C++20
+// timezone features are available in `bsl::chrono` namespace.
+//
+// This macro is defined if the standard `__cpp_lib_chrono` feature-test macro
+// has at least `201907L` value, and on GCC the compiler is allowed to use the
+// C++11 (or later) ABI.
+//
+// This feature has been provided by MSVC++ compiler since VS 2019 16.10.  But
+// that release was shipped with the following important note:  "While the STL
+// generally provides all features on all supported versions of Windows, leap
+// seconds and time zones (which change over time) require OS support that was
+// added to Windows 10.  Specifically, updating the leap second database
+// requires Windows 10 version 1809 or later, and time zones require `icu.dll`
+// which is provided by Windows 10 version 1903/19H1 or later.  This applies to
+// both client and server OSes; note that Windows Server 2019 is based on
+// Windows 10 version 1809."  If the feature is used on a host that doesn't
+// provide `icu.dll`, an exception with "The specified module could not be
+// found." message will be thrown.  For this reason those features are disabled
+// by default on Windows.
+//
+// This macro is defined first for the following compiler versions:
+//
+//   - Microsoft Visual Studio 2022 / MSVC 19.30
+//   - GCC 14+
 //
 ///`BSLS_LIBRARYFEATURES_STDCPP_GNU`
 ///---------------------------------
@@ -1454,13 +1635,13 @@ BSLS_IDENT("$Id: $")
 
 #if defined(BSLS_PLATFORM_CMP_GNU)
     #define BSLS_LIBRARYFEATURES_HAS_C99_FP_CLASSIFY                          1
-    #if (__cplusplus >= 201103L) ||                \
+    #if (BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L) ||                \
            (defined(__GXX_EXPERIMENTAL_CXX0X__) && \
             BSLS_PLATFORM_CMP_VERSION >= 40800)
         // C99 functions are available in C++11 builds.
         #define BSLS_LIBRARYFEATURES_HAS_C99_LIBRARY                          1
     #endif
-    #if (__cplusplus >= 201103L) ||                \
+    #if (BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L) ||                \
            (defined(__GXX_EXPERIMENTAL_CXX0X__) && \
             BSLS_PLATFORM_CMP_VERSION >= 40800) || \
             (defined(_GLIBCXX_USE_C99) && _GLIBCXX_USE_C99 == 1)
@@ -1468,13 +1649,15 @@ BSLS_IDENT("$Id: $")
 
         #define BSLS_LIBRARYFEATURES_HAS_C99_SNPRINTF                         1
     #endif
-    #if defined(__GXX_EXPERIMENTAL_CXX0X__) && (__cplusplus >= 201103L)
+    #if defined(__GXX_EXPERIMENTAL_CXX0X__) && \
+        (BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L)
         #if BSLS_PLATFORM_CMP_VERSION >= 40600
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS            1
         #endif
 
         #if BSLS_PLATFORM_CMP_VERSION >= 40800
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY           1
+            #define BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS    1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING         1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_PAIR_PIECEWISE_CONSTRUCTOR 1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE                      1
@@ -1496,17 +1679,17 @@ BSLS_IDENT("$Id: $")
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_GARBAGE_COLLECTION_API     1
         #endif
     #endif
-    #if __cplusplus > 201103L
+    #if BSLS_COMPILERFEATURES_CPLUSPLUS > 201103L
         #define BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY               1
         #define BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS                1
     #endif
-    #if __cplusplus > 201402L  // > C++14
+    #if BSLS_COMPILERFEATURES_CPLUSPLUS > 201402L  // > C++14
         #if BSLS_PLATFORM_CMP_VERSION >= 70301
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_SEARCH_OVERLOAD            1
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_SEARCH_FUNCTORS            1
         #endif
     #endif
-    #if __cplusplus >= 201703L  // At least C++17
+    #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201703L  // At least C++17
         #if BSLS_PLATFORM_CMP_VERSION >= 70000
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY           1
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS            1
@@ -1544,12 +1727,17 @@ BSLS_IDENT("$Id: $")
         #endif
         #define BSLS_LIBRARYFEATURES_HAS_CPP17_SPECIAL_MATH_FUNCTIONS         1
     #endif
-    #if __cplusplus >= 202002L  // At least C++20
+    #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202002L  // At least C++20
         #if BSLS_PLATFORM_CMP_VERSION >= 90000
             #define BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION                    1
         #endif
         #if BSLS_PLATFORM_CMP_VERSION >= 110100
             #define BSLS_LIBRARYFEATURES_HAS_CPP20_BASELINE_LIBRARY           1
+        #endif
+    #endif
+    #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202302L  // At least C++23;
+        #if BSLS_PLATFORM_CMP_VERSION >= 140000
+            #define BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY           1
         #endif
     #endif
 
@@ -1573,8 +1761,9 @@ BSLS_IDENT("$Id: $")
         #define BSLS_LIBRARYFEATURES_HAS_CPP17_PRECISE_BITWIDTH_ATOMICS       1
     #endif
     #if _GLIBCXX_USE_DEPRECATED
-        #undef BSLS_LIBRARYFEATURES_HAS_CPP17_DEPRECATED_REMOVED
+        // Note: always set to 1 for all known gcc versions.
         #undef BSLS_LIBRARYFEATURES_HAS_CPP20_DEPRECATED_REMOVED
+        #undef BSLS_LIBRARYFEATURES_HAS_CPP17_DEPRECATED_REMOVED
     #endif
 #endif
 
@@ -1639,6 +1828,7 @@ BSLS_IDENT("$Id: $")
         #endif
     #endif
 
+    // #define BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS
     // #define BSLS_LIBRARYFEATURES_HAS_CPP11_GARBAGE_COLLECTION_API
     // #define BSLS_LIBRARYFEATURES_HAS_CPP11_PROGRAM_TERMINATION
     // #define BSLS_LIBRARYFEATURES_HAS_CPP17_PRECISE_BITWIDTH_ATOMICS
@@ -1651,6 +1841,7 @@ BSLS_IDENT("$Id: $")
     // #define BSLS_LIBRARYFEATURES_HAS_C99_LIBRARY
     // #define BSLS_LIBRARYFEATURES_HAS_C99_SNPRINTF
     // #define BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+    // #define BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS
     // #define BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
     // #define BSLS_LIBRARYFEATURES_HAS_CPP11_GARBAGE_COLLECTION_API
     // #define BSLS_LIBRARYFEATURES_HAS_CPP11_MISCELLANEOUS_UTILITIES
@@ -1669,7 +1860,16 @@ BSLS_IDENT("$Id: $")
 
     #define BSLS_LIBRARYFEATURES_HAS_C99_FP_CLASSIFY                          1
 
-    #if defined(__APPLE_CC__) && (__APPLE_CC__ >= 6000)
+    #if defined(__apple_build_version__) && (__APPLE_CC__ >= 6000)
+        // `__APPLE_CC__` is always defined when `__apple_build_version__` is.
+        //
+        // `__apple_build_version__` means that the (clang/clang++) compiler is
+        // the one provided by Apple (and not brew.sh, MacPorts, or
+        // built-from-source)
+        //
+        // `__APPLE_CC__` means that the target OS is Darwin-based, and it is
+        // predefined in all compilers targeting Darwin.  Note that its value
+        // never appears to be larger than 6000 for a very long time.
 
         #define BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS                1
             // libc++ provides this C++11 feature as a C++98 extension.
@@ -1680,23 +1880,24 @@ BSLS_IDENT("$Id: $")
         #endif
 
         #if (defined(__GXX_EXPERIMENTAL_CXX0X__) || (_LIBCPP_STD_VER >= 11)) \
-          && (__cplusplus >= 201103L)
+          && (BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L)
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY           1
+            #define BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS    1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING         1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_PAIR_PIECEWISE_CONSTRUCTOR 1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE                      1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_UNIQUE_PTR                 1
         #endif
 
-        #if __cplusplus > 201103L
+        #if BSLS_COMPILERFEATURES_CPLUSPLUS > 201103L
             #define BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY           1
         #endif
 
-        #if __cplusplus >= 201402L
+        #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201402L
             #define BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS            1
         #endif
 
-        #if __cplusplus >= 201703L
+        #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201703L
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_SEARCH_OVERLOAD            1
 
             #if BSLS_PLATFORM_CMP_VERSION >= 140000
@@ -1722,6 +1923,12 @@ BSLS_IDENT("$Id: $")
             #endif
         #endif
 
+        #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202302L
+            #if BSLS_PLATFORM_CMP_VERSION >= 170000
+                #define BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY       1
+            #endif
+        #endif
+
     #elif BSLS_PLATFORM_CMP_VERSION >= 30000
 
         #if defined(__GXX_EXPERIMENTAL_CXX0X__)
@@ -1729,14 +1936,16 @@ BSLS_IDENT("$Id: $")
             #define BSLS_LIBRARYFEATURES_HAS_C99_SNPRINTF                     1
         #endif
 
-        #if defined(__GXX_EXPERIMENTAL_CXX0X__) && (__cplusplus >= 201103L)
+        #if defined(__GXX_EXPERIMENTAL_CXX0X__) && \
+            (BSLS_COMPILERFEATURES_CPLUSPLUS >= 201103L)
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY           1
-            #define BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS            1
+            #define BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS    1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING         1
-            #if __cplusplus >= 201703L
+            #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201703L
                 #define BSLS_LIBRARYFEATURES_HAS_CPP17_FILESYSTEM             1
             #endif
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_PAIR_PIECEWISE_CONSTRUCTOR 1
+            #define BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS            1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_STREAM_MOVE                1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE                      1
             #define BSLS_LIBRARYFEATURES_HAS_CPP11_UNIQUE_PTR                 1
@@ -1771,14 +1980,14 @@ BSLS_IDENT("$Id: $")
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_PRECISE_BITWIDTH_ATOMICS   1
         #endif
 
-        #if __cplusplus > 201103L
+        #if BSLS_COMPILERFEATURES_CPLUSPLUS > 201103L
             #if BSLS_PLATFORM_CMP_VERSION >= 30400
                 #define BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY       1
                 #define BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS        1
             #endif
         #endif
 
-        #if __cplusplus >= 201703L
+        #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201703L
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY           1
             #define BSLS_LIBRARYFEATURES_HAS_CPP17_RANGE_FUNCTIONS            1
             #if defined(BSLS_LIBRARYFEATURES_STDCPP_GNU)
@@ -1824,6 +2033,18 @@ BSLS_IDENT("$Id: $")
                 #endif
             #endif
         #endif
+
+        #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 202302L
+            #if BSLS_PLATFORM_CMP_VERSION >= 170000
+                #if defined(BSLS_LIBRARYFEATURES_STDCPP_GNU) &&               \
+                    defined(_GLIBCXX_RELEASE) && _GLIBCXX_RELEASE >= 14
+                    #define BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY   1
+                #elif defined(BSLS_LIBRARYFEATURES_STDCPP_LLVM) &&            \
+                      defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 170000
+                    #define BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY   1
+                #endif
+            #endif
+        #endif
     #endif
 
     #if BSLS_COMPILERFEATURES_CPLUSPLUS >= 201703L &&                         \
@@ -1848,8 +2069,8 @@ BSLS_IDENT("$Id: $")
     // #define BSLS_LIBRARYFEATURES_HAS_CPP11_GARBAGE_COLLECTION_API
 
     #if _GLIBCXX_USE_DEPRECATED
-        #undef BSLS_LIBRARYFEATURES_HAS_CPP17_DEPRECATED_REMOVED
         #undef BSLS_LIBRARYFEATURES_HAS_CPP20_DEPRECATED_REMOVED
+        #undef BSLS_LIBRARYFEATURES_HAS_CPP17_DEPRECATED_REMOVED
     #endif
 #endif
 
@@ -1862,25 +2083,27 @@ BSLS_IDENT("$Id: $")
     // We assume at least Visual Studio 2015
     #define BSLS_LIBRARYFEATURES_HAS_C99_FP_CLASSIFY                          1
     #define BSLS_LIBRARYFEATURES_HAS_C99_LIBRARY                              1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY                   1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP11_STREAM_MOVE                        1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP11_MISCELLANEOUS_UTILITIES            1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS                    1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS                    1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP11_UNIQUE_PTR                         1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP17_PRECISE_BITWIDTH_ATOMICS           1
     #define BSLS_LIBRARYFEATURES_HAS_C99_SNPRINTF                             1
+    #define BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY                   1
+    #define BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS            1
     #define BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING                 1
     #define BSLS_LIBRARYFEATURES_HAS_CPP11_GARBAGE_COLLECTION_API             1
+    #define BSLS_LIBRARYFEATURES_HAS_CPP11_MISCELLANEOUS_UTILITIES            1
     #define BSLS_LIBRARYFEATURES_HAS_CPP11_PAIR_PIECEWISE_CONSTRUCTOR         1
     #define BSLS_LIBRARYFEATURES_HAS_CPP11_PROGRAM_TERMINATION                1
-    #define BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE                              1
-        // Note that earlier versions have 'tuple' but this macro also
-        // requires the definition of the
-        // 'BSLS_COMPILER_FEATURES_HAS_VARIADIC_TEMPLATES' macro.
+    #define BSLS_LIBRARYFEATURES_HAS_CPP11_RANGE_FUNCTIONS                    1
+    #define BSLS_LIBRARYFEATURES_HAS_CPP11_STREAM_MOVE                        1
+    #define BSLS_LIBRARYFEATURES_HAS_CPP11_UNIQUE_PTR                         1
     #define BSLS_LIBRARYFEATURES_HAS_CPP14_BASELINE_LIBRARY                   1
+    #define BSLS_LIBRARYFEATURES_HAS_CPP14_RANGE_FUNCTIONS                    1
+    #define BSLS_LIBRARYFEATURES_HAS_CPP17_PRECISE_BITWIDTH_ATOMICS           1
+    // Note that earlier versions have 'tuple' but this macro also
+    // requires the definition of the
+    // 'BSLS_COMPILER_FEATURES_HAS_VARIADIC_TEMPLATES' macro.
+    #define BSLS_LIBRARYFEATURES_HAS_CPP11_TUPLE                              1
+
+    // Early access to C++17 features
     #define BSLS_LIBRARYFEATURES_HAS_CPP17_BOOL_CONSTANT                      1
-        // Early access to C++17 features
 
     #undef BSLS_LIBRARYFEATURES_HAS_C90_GETS
 
@@ -1994,6 +2217,10 @@ BSLS_IDENT("$Id: $")
 #endif
 
 #if BSLS_COMPILERFEATURES_CPLUSPLUS > 202002L
+    // Dynamic exception specifications were removed from most compiler before
+    // C++23.
+    #undef BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS
+
     // The garbage collection support API is removed from C++23, so undefine
     // for any standard version identifier greater than that of C++20.  Note
     // that some C++23 preview toolchains removed this API before the final
@@ -2098,6 +2325,13 @@ BSLS_IDENT("$Id: $")
 
   #if defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L
     #define BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR                           1
+
+    #if !defined(BSLS_LIBRARYFEATURES_STDCPP_GNU) || _GLIBCXX_USE_CXX11_ABI   \
+        || !_GLIBCXX_USE_DUAL_ABI
+      // GCC's standard library only supports the timezone features if the
+      // C++11 ABI, or dual ABI is enabled.
+      #define BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE                         1
+    #endif
   #endif
 
   // The following macro is not defined as it is not covered by any C++20
@@ -2127,11 +2361,72 @@ BSLS_IDENT("$Id: $")
     #define BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD                            1
   #endif
 
+  // This one is complicated:
+  //  - libstdc++ 13.1 defines the feature test macro to be 202106L even though
+  //    they *do* implement P2372 and P2418, which bumped the feature test
+  //    macro to 202110L.  This is GCC bug 111826.
+  //
+  //: o libc++ doesn't define the feature test macro as of version 17 because
+  //:   they haven't implemented chrono time zones yet.  We should still use
+  //:   libc++'s `<format>` despite the missing functionality, because we won't
+  //:   be backporting the formatters for chrono time zones anyway.
+  //
+  //  - MSVC uses the correct value.
+  #if (defined(__cpp_lib_format) && __cpp_lib_format >= 202110L) ||           \
+      (defined(BSLS_LIBRARYFEATURES_STDCPP_GNU) && _GLIBCXX_RELEASE >= 13) || \
+      (defined(BSLS_LIBRARYFEATURES_STDCPP_LLVM) && _LIBCPP_VERSION >= 170000)
+    #define BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT                             1
+  #endif
+  // But also, an older version of Clang might be used with a newer version of
+  // libstdc++.  In that case, the use of `std::format` may result in bugs
+  // because Clang `consteval` support was buggy prior to version 17 (see
+  // https://github.com/llvm/llvm-project/commit/e328d68).
+  #if (defined(BSLS_PLATFORM_CMP_CLANG) && BSLS_PLATFORM_CMP_VERSION < 170000L)
+    #undef BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT
+  #endif
 #endif  // BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION && _CPP20_BASELINE_LIBRARY
+
+// ============================================================================
+//                  DEFINE ABI COMPATIBILITY AND LINK-SYMBOL
+// ----------------------------------------------------------------------------
+
+// Here determine whether the ABI compatibility is the default for the current
+// compiler, or a forced ABI compatibility configuration flag has been
+// supplied.  We create a coercion symbol to prevent linking against a binary
+// incompatible translation unit.
+
+#undef BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED
+#if defined(BSLS_LIBRARYFEATURES_FORCE_ABI_CPP11)
+#ifndef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
+#error Cannot force ABI compatibility with C++11 without at least C++11 support
+#endif
+#define BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED 11
+#define BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME   \
+        bsls_libraryfeatures_forced_CPP11_ABI
+#endif
+#if defined(BSLS_LIBRARYFEATURES_FORCE_ABI_CPP17)
+#ifndef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#error Cannot force ABI compatibility with C++17 without at least C++17 support
+#endif
+
+#define BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED 17
+#define BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME   \
+        bsls_libraryfeatures_forced_CPP17_ABI
+#endif
+#if defined(BSLS_LIBRARYFEATURES_FORCE_ABI_CPP20)
+#ifndef BSLS_LIBRARYFEATURES_HAS_CPP17_BASELINE_LIBRARY
+#error Cannot force ABI compatibility with C++20 without at least C++20 support
+#endif
+#define BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED 20
+#define BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME   \
+        bsls_libraryfeatures_forced_CPP20_ABI
+#endif
 
 // ============================================================================
 //                       DEFINE LINK-COERCION SYMBOL
 // ----------------------------------------------------------------------------
+
+#ifndef BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED
 
 // Catch attempts to link C++14 objects with C++17 objects (for example).
 
@@ -2158,6 +2453,7 @@ BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(
                            BloombergLP::BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME)
 
 }  // close enterprise namespace
+#endif // BSLS_LIBRARYFEATURES_FORCE_ABI_ENABLED
 
 #endif // INCLUDED_BSLS_LIBRARYFEATURES
 

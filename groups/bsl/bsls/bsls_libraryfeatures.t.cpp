@@ -97,6 +97,11 @@
 // Verify assumption that the BASELINE C++20 library includes all of the new
 // library headers not covered by a more specific macro.
 
+// Verify assumption that <format> can be included.
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT
+#include <format>
+#endif
+
 // Verify assumption that <concepts> can be included.
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS
     #include <concepts>
@@ -227,6 +232,7 @@
 // [23] BSLS_LIBRARYFEATURES_HAS_CPP20_IS_CORRESPONDING_MEMBER
 // [22] BSLS_LIBRARYFEATURES_HAS_CPP20_IS_POINTER_INTERCONVERTIBLE
 // [24] BSLS_LIBRARYFEATURES_HAS_CPP20_JTHREAD
+// [19] BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
 // [10] BSLS_LIBRARYFEATURES_STDCPP_GNU
 // [10] BSLS_LIBRARYFEATURES_STDCPP_IBM
 // [  ] BSLS_LIBRARYFEATURES_STDCPP_INTELLISENSE
@@ -253,6 +259,7 @@ void aSsErT(bool condition, const char *message, int line)
 {
     if (condition) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", line, message);
+        fflush(stdout);
 
         if (0 <= testStatus && testStatus <= 100) {
             ++testStatus;
@@ -509,6 +516,22 @@ bool   BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR_defined =
 static const
 bool   BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV_defined =
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV
+                                                                          true;
+#else
+                                                                         false;
+#endif
+
+static const
+bool   BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT_defined =
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT
+                                                                          true;
+#else
+                                                                         false;
+#endif
+
+static const
+bool   BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE_defined =
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
                                                                           true;
 #else
                                                                          false;
@@ -1192,6 +1215,14 @@ static void printFlags()
     printf("UNDEFINED\n");
 #endif
 
+    printf("\n  BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS: ");
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS
+    printf("%s\n",
+            STRINGIFY(BSLS_LIBRARYFEATURES_HAS_CPP11_DYNAMIC_EXCEPTION_SPECS));
+#else
+    printf("UNDEFINED\n");
+#endif
+
     printf("\n  BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING: ");
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
     printf("%s\n",
@@ -1465,6 +1496,21 @@ static void printFlags()
     printf("UNDEFINED\n");
 #endif
 
+    printf("\n  BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY: ");
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY
+    printf("%s\n",
+                  STRINGIFY(BSLS_LIBRARYFEATURES_HAS_CPP23_BASELINE_LIBRARY));
+#else
+    printf("UNDEFINED\n");
+#endif
+
+    printf("\n  BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT: ");
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT
+    printf("%s\n", STRINGIFY(BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT));
+#else
+    printf("UNDEFINED\n");
+#endif
+
     printf("\n  BSLS_LIBRARYFEATURES_SUSPECT_CLANG_WITH_GLIBCPP: ");
 #ifdef BSLS_LIBRARYFEATURES_SUSPECT_CLANG_WITH_GLIBCPP
     printf("%s\n",
@@ -1611,6 +1657,13 @@ static void printFlags()
     printf("UNDEFINED\n");
 #endif
 
+    printf("\n  __apple_build_version__: ");
+#ifdef __apple_build_version__
+    printf("%s\n", STRINGIFY(__apple_build_version__));
+#else
+    printf("UNDEFINED\n");
+#endif
+
     printf("\n  __GLIBCPP__: ");
 #ifdef __GLIBCPP__
     printf("%s\n", STRINGIFY(__GLIBCPP__));
@@ -1750,8 +1803,6 @@ int main(int argc, char *argv[])
         ASSERTV("__cpp_lib_jthread >= 201911L check", __cpp_lib_jthread,
                 __cpp_lib_jthread >= 201911L);
 
-        using std_jthread_test = std::jthread;
-
         ASSERT((std::is_same_v<std::jthread::id, std::thread::id>));
 #else
         if (veryVerbose) {
@@ -1842,20 +1893,34 @@ int main(int argc, char *argv[])
                 int x;
             };
 
-            const bool result   = std::is_pointer_interconvertible_base_of  <
-                                                              Bar, Baz>::value;
-            const bool result_v = std::is_pointer_interconvertible_base_of_v<
-                                                              Bar, Baz>;
+            {
+                // Test the first base class.  It's private, but the trait
+                // should still be true.
+                const bool result =
+                     std::is_pointer_interconvertible_base_of<Foo, Baz>::value;
+                const bool result_v =
+                     std::is_pointer_interconvertible_base_of_v<Foo, Baz>;
 
-#if defined(BSLS_PLATFORM_CMP_MSVC) && BSLS_PLATFORM_CMP_VERSION <= 1937
-            // Known Windows bug.  Hopefully fixed in future release.
+                ASSERT(true == result);
+                ASSERT(true == result_v);
+            }
+            {
+                // Test the second base class.  MSVC doesn't give the right
+                // answer for ABI reasons.
+                const bool result =
+                     std::is_pointer_interconvertible_base_of<Bar, Baz>::value;
+                const bool result_v =
+                     std::is_pointer_interconvertible_base_of_v<Bar, Baz>;
 
-            const bool expected = false;
+#if defined(BSLS_PLATFORM_CMP_MSVC)
+                const bool expected = false;
 #else
-            const bool expected = true;
+                const bool expected = true;
 #endif
-            ASSERT(expected == result);
-            ASSERT(expected == result_v);
+
+                ASSERT(expected == result);
+                ASSERT(expected == result_v);
+            }
         }
         {
             struct Foo { int x; };
@@ -1863,8 +1928,8 @@ int main(int argc, char *argv[])
             struct Baz : Foo, Bar {}; // not standard-layout
 
             const bool result = std::is_pointer_interconvertible_with_class(
-                                                                      &Baz::x);
-            ASSERT(true == result);
+                                             static_cast<int Baz::*>(&Foo::x));
+            ASSERT(false == result);
         }
 #else
         if (veryVerbose) {
@@ -1986,38 +2051,44 @@ int main(int argc, char *argv[])
         // `BSLS_LIBRARYFEATURES_HAS_CPP20_*` MISCELLANY
         //
         // Concerns:
-        // 1. `BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION` is defined only when the
-        //    native standard library provides it.
+        //  1. `BSLS_LIBRARYFEATURES_HAS_CPP20_VERSION` is defined only when
+        //     the native standard library provides it.
         //
-        // 2. `BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS` is defined only when
-        //    the native standard library provides it.
+        //  2. `BSLS_LIBRARYFEATURES_HAS_CPP20_CONCEPTS` is defined only when
+        //     the native standard library provides it.
         //
-        // 3. `BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES` is defined only when the
-        //    native standard library provides it.
+        //  3. `BSLS_LIBRARYFEATURES_HAS_CPP20_RANGES` is defined only when the
+        //     native standard library provides it.
         //
-        // 3. `BSLS_LIBRARYFEATURES_HAS_CPP20_SOURCE_LOCATION` is defined only
-        //    when the native standard library provides it.
+        //  3. `BSLS_LIBRARYFEATURES_HAS_CPP20_SOURCE_LOCATION` is defined only
+        //     when the native standard library provides it.
         //
-        // 4. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_REF` is
-        //    defined only when the native standard library provides it.
+        //  4. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_REF` is
+        //     defined only when the native standard library provides it.
         //
-        // 5. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_LOCK_FREE_TYPE_ALIASES` is
-        //    defined only when the native standard library provides it.
+        //  5. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_LOCK_FREE_TYPE_ALIASES`
+        //     is defined only when the native standard library provides it.
         //
-        // 6. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_WAIT_FREE_FUNCTIONS` is
-        //    defined only when the native standard library provides it.
+        //  6. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_WAIT_FREE_FUNCTIONS` is
+        //     defined only when the native standard library provides it.
         //
-        // 7. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_FLAG_TEST_FREE_FUNCTIONS`
-        //    is defined only when the native standard library provides it.
+        //  7. `BSLS_LIBRARYFEATURES_HAS_CPP20_ATOMIC_FLAG_TEST_FREE_FUNCTIONS`
+        //     is defined only when the native standard library provides it.
         //
-        // 8. `BSLS_LIBRARYFEATURES_HAS_CPP20_MAKE_UNIQUE_FOR_OVERWRITE` is
-        //    defined only when the native standard library provides it.
+        //  8. `BSLS_LIBRARYFEATURES_HAS_CPP20_MAKE_UNIQUE_FOR_OVERWRITE` is
+        //     defined only when the native standard library provides it.
         //
-        // 9. `BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR` is defined only when
-        //    the native standard library provides it.
+        //  9. `BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR` is defined only when
+        //     the native standard library provides it.
         //
-        // 10. `BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV` is defined only
-        //    when the native standard library provides it.
+        // 10. `BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE` is defined only when
+        //     the native standard library provides it.
+        //
+        // 11. `BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV` is defined only
+        //     when the native standard library provides it.
+        //
+        // 12. `BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT` is defined only
+        //    w hen the native standard library provides it.
         //
         // Plan:
         // 1. When these macros are defined include the appropriate headers and
@@ -2035,6 +2106,8 @@ int main(int argc, char *argv[])
         //   BSLS_LIBRARYFEATURES_HAS_CPP20_MAKE_UNIQUE_FOR_OVERWRITE
         //   BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR
         //   BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV
+        //   BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT
+        //   BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
         // --------------------------------------------------------------------
 
         if (verbose) puts("\n'BSLS_LIBRARYFEATURES_HAS_CPP20_*' MISCELLANY"
@@ -2055,6 +2128,8 @@ int main(int argc, char *argv[])
             PMD(BSLS_LIBRARYFEATURES_HAS_CPP20_MAKE_UNIQUE_FOR_OVERWRITE);
             PMD(BSLS_LIBRARYFEATURES_HAS_CPP20_CALENDAR);
             PMD(BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV);
+            PMD(BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT);
+            PMD(BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE);
 #undef PMD
         }
 
@@ -2131,6 +2206,10 @@ int main(int argc, char *argv[])
         (void)(1d/May/2000y);
 #endif
 
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_TIMEZONE
+        (void)std::chrono::tzdb{};
+#endif
+
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_CHAR8_MB_CONV
         (void)[](char8_t *out, std::mbstate_t *st) {
             (void)std::mbrtoc8(out, "", 0U, st);
@@ -2138,6 +2217,12 @@ int main(int argc, char *argv[])
         (void)[](char *out, std::mbstate_t *st) {
             (void)std::c8rtomb(out, {}, st);
         };
+#endif
+
+#ifdef BSLS_LIBRARYFEATURES_HAS_CPP20_FORMAT
+        {
+            (void) std::format("{}", 42);
+        }
 #endif
       } break;
       case 18: {

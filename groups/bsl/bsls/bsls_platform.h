@@ -452,9 +452,14 @@ struct bsls_Platform_Assert;
         // dimension, the Clang intrinsics '__has_builtin', '__has_feature',
         // and '__has_extension' should be used in preference to
         // 'BSLS_PLATFORM_CMP_VERSION' when checking for compiler features.  If
-        // 'BSLS_PLATFORM_CMP_VERSION' must be used, then '__APPLE_CC__' can be
-        // tested to determine if 'BSLS_PLATFORM_CMP_VERSION' represents Clang
-        // LLVM or Apple Xcode version.
+        // 'BSLS_PLATFORM_CMP_VERSION' must be used,
+        // then '__apple_build_version__' can be tested to determine if
+        // 'BSLS_PLATFORM_CMP_VERSION' represents Clang LLVM or Apple Xcode
+        // version.  (Note that the `__APPLE_CC__` macro identifies that the
+        // target operating system is Darwin based, *not* that the compiler is
+        // Apple-made.  3rd party built LLVM compilers (brew.sh, MacPorts, or
+        // built-from-source LLVM) all define that macro if the compilation
+        // targets Darwin.)
 
         #define BSLS_PLATFORM_CMP_CLANG                                       1
         #define BSLS_PLATFORM_CMP_VERSION ( __clang_major__ * 10000           \
@@ -822,9 +827,9 @@ struct bsls_Platform_Assert;
 
 #if defined(_MSC_VER)
     #if !defined(BSLS_PLATFORM_CPU_ARM)
-        #define BSLS_PLATFORM_CPU_SSE                                             1
-        #define BSLS_PLATFORM_CPU_SSE2                                            1
-        #define BSLS_PLATFORM_CPU_SSE3                                            1
+        #define BSLS_PLATFORM_CPU_SSE                                         1
+        #define BSLS_PLATFORM_CPU_SSE2                                        1
+        #define BSLS_PLATFORM_CPU_SSE3                                        1
     #endif
 #elif defined(__clang__) || defined(__GNUC__) || defined(__EDG__)
     #if defined(__SSE__)
@@ -841,6 +846,12 @@ struct bsls_Platform_Assert;
     #endif
     #if defined(__SSE4_2__)
         #define BSLS_PLATFORM_CPU_SSE4_2                                      1
+    #endif
+    #if defined(__AVX__)
+        #define BSLS_PLATFORM_CPU_AVX                                         1
+    #endif
+    #if defined(__AVX2__)
+        #define BSLS_PLATFORM_CPU_AVX2                                        1
     #endif
 #endif
 

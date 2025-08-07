@@ -268,6 +268,7 @@ void aSsErT(bool b, const char *s, int i)
 {
     if (b) {
         printf("Error " __FILE__ "(%d): %s    (failed)\n", i, s);
+        fflush(stdout);
         if (testStatus >= 0 && testStatus <= 100) ++testStatus;
     }
 }
@@ -10719,12 +10720,19 @@ int main(int argc, char *argv[])
                       bsltf::MovableTestType,
                       bsltf::MovableAllocTestType);
 
+#if BSLS_COMPILERFEATURES_CPLUSPLUS < 202002L ||                              \
+    !(defined(BSLS_PLATFORM_CMP_CLANG)                                        \
+  && BSLS_PLATFORM_CMP_VERSION >= 170000L)
+// clang version 17 and higher is unable to compile code in this test case due
+// to the key type being move-only.  For further details see
+// {DRQS 177180189<GO>}, the underlying problem is complex.
 #if defined(BSLMF_MOVABLEREF_USES_RVALUE_REFERENCES)
         RUN_EACH_TYPE(TestDriver,
                       testCase8,
                       bsltf::MoveOnlyAllocTestType,
                       bsltf::WellBehavedMoveOnlyAllocTestType);
 #endif
+#endif  // Not clang-17 and higher in C++20 or later
 
         TestDriver<TestKeyType, TestValueType>::testCase8();
 

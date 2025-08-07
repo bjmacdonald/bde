@@ -17,6 +17,7 @@
 #include <bslmt_semaphore.h>
 #include <bslmt_throughputbenchmark.h>
 #include <bslmt_throughputbenchmarkresult.h>
+#include <bslmt_timedcompletionguard.h>
 
 #include <bslma_allocator.h>
 #include <bslmf_allocatorargt.h>
@@ -47,6 +48,7 @@
 #include <bsls_buildtarget.h>
 #include <bsls_performancehint.h>
 #include <bsls_nameof.h>
+#include <bsls_timeinterval.h>
 #include <bsls_types.h>     // `BloombergLP::bsls::Types::Int64`
 
 #include <bsl_algorithm.h>  // sort
@@ -54,6 +56,7 @@
 #include <bsl_cstdlib.h>    // `atoi`, `rand`
 #include <bsl_cmath.h>      // `sqrt`
 #include <bsl_cstdio.h>     // `sprintf`
+#include <bsl_format.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>     // allocate_shared
@@ -125,7 +128,6 @@ using namespace bsl;
 // [ 3] bsl::size_t insert(const KEY& key, const VALUE& value);
 // [21] void insert(const KEY& key, VALUE&& value);
 // [11] void insertBulk(RANDOMIT first, last);
-// [18] void maxLoadFactor(float newMaxLoadFactor);
 // [18] void rehash(bsl::size_t numBuckets);
 // [15] int setComputedValueAll(const KEY& key, functor);
 // [14] int setComputedValueFirst(const KEY& key, functor);
@@ -2272,7 +2274,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase22()
             ASSERTV(s_testCase19_visitedElements.size(),
                     0 == s_testCase19_visitedElements.size());
         }
-    } // END Testing with duplicate values - fail
+    }  // END Testing with duplicate values - fail
 }
 
 template <class KEY, class VALUE, class HASH, class EQUAL>
@@ -2985,14 +2987,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase18()
     //   2. Verify that `loadFactor` is bigger than the current
     //      `maxLoadFactor.`
     //
-    //   3. Set `maxLoadFactor` to a large number and confirm that the number
-    //      of buckets does not change.
-    //
-    //   4. Set `maxLoadFactor` to its previous value (1.0), which is smaller
-    //      than the current loadFactor, and confirm that the number of buckets
-    //      does change.
-    //
-    //   5. Directly call `rehash` with double the number of the existing
+    //   3. Directly call `rehash` with double the number of the existing
     //      buckets, and confirm that the number of buckets doubled.  Wrap the
     //      call with `BSLMA_TESTALLOCATOR_EXCEPTION_TEST` macro.
     //
@@ -3000,7 +2995,6 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase18()
     //   void rehash(bsl::size_t numBuckets);
     //   void disableRehash();
     //   void enableRehash();
-    //   void maxLoadFactor(float newMaxLoadFactor);
     //   bool isRehashEnabled() const;
     //   float maxLoadFactor() const;
     //   float loadFactor() const;
@@ -3171,7 +3165,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase18()
     } // END Loop on bucket sizes
     ASSERT(dam.isTotalSame());
 
-    // Test `disable`, `enable`, `maxLoadFactor`, and explicit `rehash`.
+    // Test `disable`, `enable`, and explicit `rehash`.
     //
     // Note that we skip initial bucket count of 64, as it will not rehash for
     // the test values we use here.
@@ -3212,22 +3206,6 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase18()
         // Confirm that no memory was allocated in `enableRehash`,
         // `loadFactor`, and `maxLoadFactor`.
         ASSERTV(sam.isTotalSame());
-
-        // Set `maxLoadFactor` to a large value, and confirm no rehash
-        // happened.
-        float curMaxLoadFactor = X.maxLoadFactor();
-        mX.maxLoadFactor(1e6);
-        ASSERTV(LENG, X.maxLoadFactor(), 1e6 == X.maxLoadFactor());
-        ASSERTV(LENG,
-                X.bucketCount(),
-                initialNumBuckets == X.bucketCount());
-
-        // Set `maxLoadFactor` to its original value, and confirm rehash
-        // happened.
-        mX.maxLoadFactor(curMaxLoadFactor);
-        ASSERTV(LENG,
-                X.bucketCount(),
-                initialNumBuckets < X.bucketCount());
 
         // Directly call `rehash`, doubling the number of buckets, within
         // exception macros, and confirm that the number of buckets doubled.
@@ -7142,7 +7120,7 @@ void TestDriver<KEY, VALUE, HASH, EQUAL>::testCase3()
     // ------------------------------------------------------------------------
 
     // This is similar to a portion (`e_INSERT_ALWAYS`) of `testCase3` in
-    // StripedUnorderedImpl'.
+    // StripedUnorderedContainerImpl'.
 
     if (verbose) cout
                     << endl
@@ -8330,6 +8308,10 @@ int main(int argc, char *argv[])
     bslma::TestAllocator globalAllocator("global", veryVeryVeryVerbose);
     bslma::Default::setGlobalAllocator(&globalAllocator);
     bslma::TestAllocatorMonitor gam(&globalAllocator);
+
+    bslmt::TimedCompletionGuard completionGuard(&defaultAllocator);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
 
     // BDE_VERIFY pragma: -TP17 These are defined in the various test functions
     switch (test) { case 0:

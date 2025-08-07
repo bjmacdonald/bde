@@ -497,16 +497,16 @@ bool StateAccessor::isState(State state) const
             d3 = '='  == b[0];                          ASSERT(d3 || !enabled);
             d4 = '0'  == b[1];                          ASSERT(d4 || !enabled);
             d5 = 'D'  == b[2];                          ASSERT(d5 || !enabled);
-            d6 = -1   == b[3];                          ASSERT(d6 || !enabled);
+            d6 = IV   == b[3];                          ASSERT(d6 || !enabled);
         }
         else {
             d0 = '=' == b[0];                           ASSERT(d0 || !enabled);
             d1 = '0' == b[1];                           ASSERT(d1 || !enabled);
             d2 = 'D' == b[2];                           ASSERT(d2 || !enabled);
-            d3 = -1  == b[3];                           ASSERT(d3 || !enabled);
-            d4 = -1  == b[4];                           ASSERT(d4 || !enabled);
-            d5 = -1  == b[5];                           ASSERT(d5 || !enabled);
-            d6 = -1  == b[6];                           ASSERT(d6 || !enabled);
+            d3 = IV  == b[3];                           ASSERT(d3 || !enabled);
+            d4 = IV  == b[4];                           ASSERT(d4 || !enabled);
+            d5 = IV  == b[5];                           ASSERT(d5 || !enabled);
+            d6 = IV  == b[6];                           ASSERT(d6 || !enabled);
         }
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
@@ -542,9 +542,9 @@ bool StateAccessor::isState(State state) const
             bb += 3;
         }
         else {
-            d0 = -1  == b[4];                           ASSERT(d0 || !enabled);
-            d1 = -1  == b[5];                           ASSERT(d1 || !enabled);
-            d2 = -1  == b[6];                           ASSERT(d2 || !enabled);
+            d0 = IV  == b[4];                           ASSERT(d0 || !enabled);
+            d1 = IV  == b[5];                           ASSERT(d1 || !enabled);
+            d2 = IV  == b[6];                           ASSERT(d2 || !enabled);
         }
 
         bool d3 = '='  == bb[0];                        ASSERT(d3 || !enabled);
@@ -555,7 +555,7 @@ bool StateAccessor::isState(State state) const
         bool d7 = '9' == bb[2];
         bool d8 = (d4 && d5) || (d6 && d7);             ASSERT(d8 || !enabled);
 
-        bool d9 = -1  == bb[3];                         ASSERT(d9 || !enabled);
+        bool d9 = IV  == bb[3];                         ASSERT(d9 || !enabled);
 
         rv = a0 && a1 && a2 && a3 && b0 && b1 && b2 && b3
           && c0 && c3 && d0 && d1 && d2 && d3 && d8 && d9;
@@ -1694,7 +1694,7 @@ int main(int argc, char *argv[])
 { L_, "AAAQ",     0, 3, 4, 0, 4, N,         -1, 0, D, 3, _,"\x00\x00\x10"    },
 { L_, "AAAgQ",   -1, 0, 1, 3, 5, N,         -1,-1, E, 0, _,"\x00\x00\x20"    },
 
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                         // 4.-2
 { L_, "AAE=",     0, 2, S, 0, 4, N,         -1, 0, D, 2, _,"\x00\x01"        },
 { L_, "AQ==",     0, 1, S, 0, 4, N,         -1, 0, D, 1, _,"\x01"            },
@@ -1855,7 +1855,7 @@ int main(int argc, char *argv[])
 { L_, "AAAgQ",    0, 3, 4, 0, 4, N,         -1, 0, D, 3, _,"\x00\x00\x20"    },
 { L_, "AAAgAQ",  -1, 0, 2, 4, 6, N,         -1,-1, E, 0, _,"\x00\x00\x20\x01"},
 
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                         // 5.-2
 { L_, "AAE=",     1, 1, S, 1, 4, N,         -1, 0, D, 1, _,"\x00\x01"        },
 { L_, "AQ==",     1, 0, S, 1, 4, N,         -1, 0, D, 0, _,"\x01"            },
@@ -2021,7 +2021,7 @@ int main(int argc, char *argv[])
 { L_, "AAAgAAQ", -1, 0, 3, 5, 7, N,         -1,-1, E, 0, _,"\x00\x00\x20"
                                                            "\x00\x04"        },
 
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                         // 6.-2
 { L_, "AAE=",     2, 0, S, 2, 4, N,         -1, 0, D, 0, _,"\x00\x01"        },
 { L_, "AQ==",     2, 0, S, 1, 4, N,         -1, 0, D, 0, _,"\x01"            },
@@ -2191,7 +2191,7 @@ int main(int argc, char *argv[])
 { L_, "AAAgAAQ",  0, 3, 4, 0, 4, N,         -1, 0, D, 3, _,"\x00\x00\x20"    },
 { L_, "AAAgAAAQ",-1, 0, 4, 6, 8, N,         -1, 0, D, 0, _,"\x00\x00\x20"
                                                            "\x00\x00\x10"    },
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                         // 7.-2
 { L_, "AAAgAAE=",-1, 0, S, 5, 8, N,         -1, 0, D, 0, _,"\x00\x00\x20"
                                                            "\x00\x01"        },
@@ -2368,7 +2368,7 @@ int main(int argc, char *argv[])
 { L_, "AAAgAAAQ", 0, 3, 4, 0, 4, N,         -1, 0, D, 3, _,"\x00\x00\x20"    },
 { L_, "AAAgAAAwQ",-1,0, 1, 6, 9, N,         -1,-1, E, 0, _,"\x00\x00\x20"
                                                            "\x00\x00\x30"    },
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                         // 8.-2
 { L_, "AAAgAAE=", 0, 3, 4, 0, 4, N,         -1, 0, D, 3, _,"\x00\x00\x20"    },
 { L_, "AAAgAQ==", 0, 3, 4, 0, 4, N,         -1, 0, D, 3, _,"\x00\x00\x20"    },
@@ -2386,7 +2386,7 @@ int main(int argc, char *argv[])
 { L_, "AAAgAAAQ", 1, 2, 1, 1, 5, N,         -1,-1, E, 0, _,"\x00"            },
 { L_, "AAAgAAAwQ",0, 3, 4, 0, 4, N,         -1, 0, D, 3, _,"\x00\x00\x20"    },
 
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                         // 9.-2
 { L_, "AAAgAAE=", 1, 2, 1, 1, 5, N,         -1,-1, E, 0, _,"\x00"            },
 { L_, "AAAgAQ==", 1, 2, 1, 1, 5, N,         -1,-1, E, 0, _,"\x00"            },
@@ -2403,7 +2403,7 @@ int main(int argc, char *argv[])
 { L_, "AAAgAAAQ", 2, 2, 2, 2, 6, N,         -1,-1, E, 0, _,"\x00\x00"        },
 { L_, "AAAgAAAwQ",1, 2, 1, 1, 5, N,         -1,-1, E, 0, _,"\x00"            },
 
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                        // 10.-2
 { L_, "AAAgAAE=", 2, 2, 2, 2, 6, N,         -1,-1, E, 0, _,"\x00\x00"        },
 { L_, "AAAgAQ==", 2, 2, 2, 2, 6, N,         -1,-1, E, 0, _,"\x00\x00"        },
@@ -2420,7 +2420,7 @@ int main(int argc, char *argv[])
                                                            "\x00\x00\x10"    },
 { L_, "AAAgAAAwQ",2, 2, 2, 2, 6, N,         -1,-1, E, 0, _,"\x00\x00"        },
 
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                        // 11.-2
 { L_, "AAAgAAE=", 3, 2, S, 3, 8, N,         -1, 0, D, 2, _,"\x00\x00\x20"
                                                            "\x00\x01"        },
@@ -2438,7 +2438,7 @@ int main(int argc, char *argv[])
                                                            "\x00\x00\x10"    },
 { L_, "AAAgAAAwQ",3, 3, 4, 3, 8, N,         -1, 0, D, 3, _,"\x00\x00\x20"
                                                            "\x00\x00\x30"    },
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                        // 12.-2
 { L_, "AAAgAAE=", 4, 1, S, 4, 8, N,         -1, 0, D, 1, _,"\x00\x00\x20"
                                                            "\x00\x01"        },
@@ -2455,7 +2455,7 @@ int main(int argc, char *argv[])
                                                            "\x00\x00\x10"    },
 { L_, "AAAgAAAwQ",4, 2, 1, 4, 9, N,         -1,-1, E, 0, _,"\x00\x00\x20\x00"},
 
-// *** Verify '=' and `==` variants.
+// *** Verify `=` and `==` variants.
                                                                        // 13.-2
 { L_, "AAAgAAE=", 5, 0, S, 5, 8, N,         -1, 0, D, 0, _,"\x00\x00\x20"
                                                            "\x00\x01"        },
@@ -4195,8 +4195,8 @@ LOOP4_ASSERT(LINE, index, totalOut, localTotalOut, totalOut == localTotalOut);
                     if (veryVerbose) { T_ T_ P(i) }
                     input = static_cast<char>(i);
 
-                    VVV("Verify printable characters are printed and not \
-encoded.");
+                    VVV("Verify printable characters are printed and not \n"
+                                                                   "encoded.");
                     {
                         char b[4] = { IV, IV, IV, IV };
                         Obj obj(Obj::e_CRLF_MODE);
@@ -5653,8 +5653,9 @@ encoded.");
             ASSERT(numOutChkPt[2] == numOut);
             ASSERT(numInChkPt[2] - numInChkPt[1] == numIn);
             ASSERT(outIdxChkPt[2] == outIdx);
-            ASSERT(0 == strcmp(out, "Hello, this is a test using an input \
-line of text containing a space at pos=\r\n =3D 76"));
+            ASSERTV(out, 0 == strcmp(out,
+                                        "Hello, this is a test using an input "
+                        "line of text containing a space at pos=\r\n =3D 76"));
             for (int i = numOutChkPt[2]; i < numOutChkPt[3]; ++i)
                 ASSERT(0 == out[i]);
 
@@ -5676,9 +5677,9 @@ line of text containing a space at pos=\r\n =3D 76"));
             ASSERT(numOutChkPt[3] == numOut);
             ASSERT(numInChkPt[3] - numInChkPt[2] == numIn);
             ASSERT(outIdxChkPt[3] == outIdx);
-            ASSERT(0 == strcmp(out, "Hello, this is a test using an input \
-line of text containing a space at pos=\r\n =3D 76\
- (also having a=20\r\n linebreak)"));
+            ASSERT(0 == strcmp(out, "Hello, this is a test using an input "
+                         "line of text containing a space at pos=\r\n =3D 76"
+                                         " (also having a=20\r\n linebreak)"));
             for (int i = numOutChkPt[3]; i < numOutChkPt[4]; ++i)
                 ASSERT(0 == out[i]);
 
@@ -5696,9 +5697,9 @@ line of text containing a space at pos=\r\n =3D 76\
 
             ASSERT(numOutChkPt[4] == numOut);
             ASSERT(outIdxChkPt[4] == outIdx);
-            ASSERT(0 == strcmp(out, "Hello, this is a test using an input \
-line of text containing a space at pos=\r\n =3D 76\
- (also having a=20\r\n linebreak)=20"));
+            ASSERT(0 == strcmp(out, "Hello, this is a test using an input "
+                         "line of text containing a space at pos=\r\n =3D 76"
+                                      " (also having a=20\r\n linebreak)=20"));
         }
       } break;
       default: {

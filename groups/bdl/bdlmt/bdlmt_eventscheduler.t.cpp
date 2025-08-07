@@ -30,6 +30,7 @@
 #include <bslmt_semaphore.h>
 #include <bslmt_threadgroup.h>
 #include <bslmt_threadutil.h>
+#include <bslmt_timedcompletionguard.h>
 #include <bslmt_timedsemaphore.h>
 
 #include <bsls_asserttest.h>
@@ -39,6 +40,7 @@
 #include <bsls_review.h>
 #include <bsls_stopwatch.h>
 #include <bsls_systemtime.h>
+#include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 #ifdef BSLS_PLATFORM_OS_UNIX
@@ -50,6 +52,7 @@
 #include <bsl_cmath.h>
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>
+#include <bsl_format.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_list.h>
@@ -131,6 +134,7 @@ using namespace bsl;
 // [27] bool isInDispatcherThread() const;
 // [ 9] bool isStarted() const;
 // [23] bsls::TimeInterval now() const;
+// [34] bsls::TimeInterval nextPendingEventTime() const;
 // [24] bslma::Allocator *allocator() const;
 //-----------------------------------------------------------------------------
 // [ 1] BREATHING TEST
@@ -147,6 +151,7 @@ using namespace bsl;
 // [31] TESTING `scheduleRecurringEventRaw` WITH CHRONO CLOCKS
 // [32] CONCERN: `EventData` and `RecurringEventData` are allocator-aware.
 // [33] CONCERN: THREAD NAMES
+// [35] CONCERN: DESTROY THE CALLBACK AFTER EXECUTION
 
 // ============================================================================
 //                     STANDARD BDE ASSERT TEST FUNCTION
@@ -1173,40 +1178,6 @@ void testThreadName(Obj&               x,
     x.stop();
 }
 
-static bsls::AtomicInt s_continue;
-
-static char s_watchdogText[128];
-
-/// Assign the specified `value` to be displayed if the watchdog expires.
-void setWatchdogText(const char *value)
-{
-    memcpy(s_watchdogText, value, strlen(value) + 1);
-}
-
-/// Watchdog function used to determine when a timeout should occur.  This
-/// function returns without expiration if `0 == s_continue` before one
-/// second elapses.  Upon expiration, `s_watchdogText` is displayed and the
-/// program is aborted.
-extern "C" void *watchdog(void *)
-{
-    const int MAX = 100;  // one iteration is a deci-second
-
-    int count = 0;
-
-    while (s_continue) {
-        bslmt::ThreadUtil::microSleep(DECI_SEC_IN_MICRO_SEC);
-        ++count;
-
-        ASSERTV(s_watchdogText, count < MAX);
-
-        if (MAX == count && s_continue) {
-            abort();
-        }
-    }
-
-    return 0;
-}
-
 /// When called, signal the specified latch `done` that we have arrived.
 void signalLatchCallback(bslmt::Latch& done)
 {
@@ -1215,6 +1186,32 @@ void signalLatchCallback(bslmt::Latch& done)
     }
     done.arrive();
 }
+
+                         // ========================
+                         // struct CircularReference
+                         // ========================
+
+struct CircularReference {
+    // DATA
+    bdlmt::EventScheduler::EventHandle d_handle;
+};
+
+                         // ===============================
+                         // class CircularReferenceCallback
+                         // ===============================
+
+class CircularReferenceCallback {
+    // DATA
+    bsl::shared_ptr<CircularReference> circularRef;
+public:
+    // CREATORS
+    explicit CircularReferenceCallback(
+                            const bsl::shared_ptr<CircularReference>& p)
+    : circularRef(p) {}
+
+    // ACCESSORS
+    void operator()() const {}
+};
 
 // ============================================================================
 //                      USAGE EXAMPLE RELATED ENTITIES
@@ -1771,7 +1768,7 @@ enum {
 };
 
 const bsls::TimeInterval T6(6 * DECI_SEC); // decrease chance of timing failure
-bool  testTimingFailure = false;
+bsls::AtomicBool testTimingFailure(false);
 
 bslmt::Barrier barrier(k_NUM_THREADS);
 bslma::TestAllocator ta(veryVeryVerbose);
@@ -1796,13 +1793,14 @@ void *workerThread11(void *arg)
                                                        &testObj[id]));
               pX->cancelAllEvents();
               bsls::TimeInterval elapsed = u::now() - now;
-              if (!testTimingFailure) {
-                  // This logic is such that if testTimingFailure is false,
-                  // then we can *guarantee* that no job should have been able
-                  // to execute.  The logic always errs in the favor of doubt,
-                  // but the common case is that elapsed will always be < T4.
 
-                  testTimingFailure = (elapsed >= T6);
+              // This logic is such that if testTimingFailure is false,
+              // then we can *guarantee* that no job should have been able
+              // to execute.  The logic always errs in the favor of doubt,
+              // but the common case is that elapsed will always be < T4.
+
+              if (elapsed >= T6) {
+                  testTimingFailure.storeRelaxed(true);
               }
           }
       }
@@ -1817,13 +1815,14 @@ void *workerThread11(void *arg)
                   bdlf::MemFnUtil::memFn(&TestClass1::callback, &testObj[id]));
               pX->cancelAllEvents();
               bsls::TimeInterval elapsed = u::now() - now;
-              if (!testTimingFailure) {
-                  // This logic is such that if testTimingFailure is false,
-                  // then we can *guarantee* that no job should have been able
-                  // to execute.  The logic always errs in the favor of doubt,
-                  // but the common case is that elapsed will always be < T4.
 
-                  testTimingFailure = (elapsed >= T6);
+              // This logic is such that if testTimingFailure is false,
+              // then we can *guarantee* that no job should have been able
+              // to execute.  The logic always errs in the favor of doubt,
+              // but the common case is that elapsed will always be < T4.
+
+              if (elapsed >= T6) {
+                  testTimingFailure.storeRelaxed(true);
               }
           }
       }
@@ -1849,7 +1848,7 @@ enum {
 };
 
 const bsls::TimeInterval T6(6 * DECI_SEC); // decrease chance of timing failure
-bool  testTimingFailure = false;
+bsls::AtomicBool testTimingFailure(false);
 
 bslmt::Barrier barrier(k_NUM_THREADS);
 bslma::TestAllocator ta(veryVeryVerbose);
@@ -1884,14 +1883,16 @@ void *workerThread10(void *arg)
                   cout << "\t\tAdded event: "; P_(id); P_(i);
                   printMutex.unlock();
               }
-              if (0 != pX->cancelEvent(h) && !testTimingFailure) {
+              if (0 != pX->cancelEvent(h) && !testTimingFailure.loadRelaxed()) {
                   // We tried and the `cancelEvent` failed, but we do not want
                   // to generate an error unless we can *guarantee* that the
                   // `cancelEvent` should have succeeded.
 
                   bsls::TimeInterval elapsed = u::now() - now;
                   LOOP2_ASSERTT(id, i, elapsed < T6);
-                  testTimingFailure = (elapsed >= T6);
+                  if (elapsed >= T6) {
+                      testTimingFailure.storeRelaxed(true);
+                  }
               }
           }
       }
@@ -1916,14 +1917,16 @@ void *workerThread10(void *arg)
                   cout << "\t\tAdded clock: "; P_(id); P_(i);
                   printMutex.unlock();
               }
-              if (0 != pX->cancelEvent(h) && !testTimingFailure) {
+              if (0 != pX->cancelEvent(h) && !testTimingFailure.loadRelaxed()) {
                   // We tried and the `cancelRecurringEvent` failed, but we do
                   // not want to generate an error unless we can *guarantee*
                   // that the `cancelRecurringEvent` should have succeeded.
 
                   bsls::TimeInterval elapsed = u::now() - now;
                   LOOP2_ASSERTT(id, i, elapsed < T6);
-                  testTimingFailure = (elapsed >= T6);
+                  if (elapsed >= T6) {
+                      testTimingFailure.storeRelaxed(true);
+                  }
               }
           }
       }
@@ -2952,7 +2955,246 @@ int main(int argc, char *argv[])
 
     bsl::cout << "TEST " << __FILE__ << " CASE " << test << bsl::endl;
 
+    bslmt::TimedCompletionGuard completionGuard(&da);
+    ASSERT(0 == completionGuard.guard(bsls::TimeInterval(90, 0),
+                                      bsl::format("case {}", test)));
+
     switch (test) { case 0:  // Zero is always the leading case.
+      case 35: {
+        // --------------------------------------------------------------------
+        // TESTING CONCERN: DESTROY THE CALLBACK AFTER EXECUTION
+        //
+        // Concerns:
+        // 1. The event callback is explicitly destroyed after execution to
+        //    break potential circular references (DRQS 179819546).
+        //
+        // Plan:
+        // 1. Start a scheduler.  Create a callback with a `shared_ptr` that
+        //    references an object containing an `EventHandle`.
+        //
+        // 2. Schedule an event.  Wait a period of time that is long enough for
+        //    the event to be executed.
+        //
+        // 3. Stop the scheduler.  Verify that `use_count` of the `shared_ptr`
+        //    is 1, which means that the callback object was destroyed.
+        //
+        // 4. Repeat the same for a canceled event.
+        //
+        // Testing:
+        //   CONCERN: DESTROY THE CALLBACK AFTER EXECUTION
+        // --------------------------------------------------------------------
+
+        if (verbose) cout <<
+                     "\nCONCERN: DESTROY THE CALLBACK AFTER EXECUTION"
+                     "\n=============================================" << endl;
+
+        // Executed event
+        {
+            Obj scheduler;
+            int rc = scheduler.start();
+            ASSERT(rc == 0);
+
+            bsl::shared_ptr<CircularReference> circularRef =
+                                         bsl::make_shared<CircularReference>();
+            bsls::TimeInterval when = scheduler.now() + bsls::TimeInterval(0);
+            scheduler.scheduleEvent(&circularRef->d_handle,
+                                    when,
+                                    CircularReferenceCallback(circularRef));
+            //ASSERTV(scheduler.numEvents(), scheduler.numEvents() == 1);
+
+            // Wait until the event is run
+            while(scheduler.numEvents() != 0) {
+                bslmt::ThreadUtil::sleep(bsls::TimeInterval(0.1));
+            }
+
+            scheduler.stop();
+
+            ASSERT(circularRef.use_count() == 1);
+        }
+        // Canceled event
+        {
+            Obj scheduler;
+            int rc = scheduler.start();
+            ASSERT(rc == 0);
+
+            bsl::shared_ptr<CircularReference> circularRef =
+                                         bsl::make_shared<CircularReference>();
+            bsls::TimeInterval when = scheduler.now() + bsls::TimeInterval(60);
+            scheduler.scheduleEvent(&circularRef->d_handle,
+                                    when,
+                                    CircularReferenceCallback(circularRef));
+            //ASSERTV(scheduler.numEvents(), scheduler.numEvents() == 1);
+
+            rc = scheduler.cancelEvent(circularRef->d_handle);
+            ASSERT(rc == 0); // Make sure the event didn't run
+
+            scheduler.stop();
+
+            ASSERT(circularRef.use_count() == 1);
+        }
+      } break;
+      case 34: {
+        // --------------------------------------------------------------------
+        // TESTING `nextPendingEventTime`
+        //
+        // Concerns:
+        // 1. Submitted events have the expected time, including for events
+        //    submitted in the past.
+        //
+        // 2. Recheduled events have the expected time, including for events
+        //    submitted in the past.
+        //
+        // 3. Cancelling an event updates the `nextPendingEventTime`.
+        //
+        // 4. Submitted recurring events have the expected time, including for
+        //    recurring events in the past and at the default
+        //    `bsls::TimeInterval` value.
+        //
+        // 5. Cancelling a recurring event updates the `nextPendingEventTime`.
+        //
+        // Plan:
+        // 1. Construct an event scheduler but do not start the scheduler.
+        //    Submit one event using the default `bsls::TimeInterval` value, a
+        //    time in the past, or a time in the future, and directly verify
+        //    the value returned by `nextPendingEventTime`.  Rechedule the
+        //    event using the default `bsls::TimeInterval` value, a time in the
+        //    past, or a time in the future, and directly verify the value
+        //    returned by `nextPendingEventTime`.  Cancel the event and
+        //    directly verify the value returned by `nextPendingEventTime`.
+        //    (C-1..3)
+        //
+        // 2. Construct an event scheduler but do not start the scheduler.
+        //    Submit one recurring event using the default `bsls::TimeInterval`
+        //    value, a time in the past, or a time in the future, and directly
+        //    verify the value returned by `nextPendingEventTime`. Cancel the
+        //    recurring event and directly verify the value returned by
+        //    `nextPendingEventTime`.  (C-4,5)
+        //
+        // Testing:
+        //   bsls::TimeInterval nextPendingEventTime() const;
+        // --------------------------------------------------------------------
+
+        if (verbose) cout << endl
+                          << "TESTING `nextPendingEventTime`" << endl
+                          << "==============================" << endl;
+
+        const bsls::TimeInterval NOW_RAW = u::now();
+
+        bsls::TimeInterval NOW = NOW_RAW;
+        NOW.addNanoseconds(-NOW.nanoseconds());
+
+        const bsls::TimeInterval T1       = bsls::TimeInterval();
+        const bsls::TimeInterval T2       = NOW - bsls::TimeInterval(5);
+        const bsls::TimeInterval T3       = NOW + bsls::TimeInterval(5);
+        const bsls::TimeInterval INTERVAL = bsls::TimeInterval(1);
+        const bsls::TimeInterval NONE     =
+                                bsls::TimeInterval(INT64_MAX / 1000000,
+                                                   INT64_MAX % 1000000 * 1000);
+
+        {
+            Obj x;
+
+            ASSERT(NONE == x.nextPendingEventTime());
+
+            EventHandle handle;
+
+            x.scheduleEvent(&handle, T1, noop);
+
+            ASSERT(NOW <= x.nextPendingEventTime());
+
+            x.rescheduleEvent(handle, T2);
+
+            ASSERT(NOW <= x.nextPendingEventTime());
+
+            x.cancelEvent(handle);
+
+            ASSERT(NONE == x.nextPendingEventTime());
+        }
+        {
+            Obj x;
+
+            ASSERT(NONE == x.nextPendingEventTime());
+
+            EventHandle handle;
+
+            x.scheduleEvent(&handle, T2, noop);
+
+            ASSERT(NOW <= x.nextPendingEventTime());
+
+            x.rescheduleEvent(handle, T3);
+
+            ASSERT(T3 == x.nextPendingEventTime());
+
+            x.cancelEvent(handle);
+
+            ASSERT(NONE == x.nextPendingEventTime());
+        }
+        {
+            Obj x;
+
+            ASSERT(NONE == x.nextPendingEventTime());
+
+            EventHandle handle;
+
+            x.scheduleEvent(&handle, T3, noop);
+
+            ASSERT(T3 == x.nextPendingEventTime());
+
+            x.rescheduleEvent(handle, T1);
+
+            ASSERT(NOW <= x.nextPendingEventTime());
+
+            x.cancelEvent(handle);
+
+            ASSERT(NONE == x.nextPendingEventTime());
+        }
+
+        {
+            Obj x;
+
+            ASSERT(NONE == x.nextPendingEventTime());
+
+            RecurringEventHandle handle;
+
+            x.scheduleRecurringEvent(&handle, INTERVAL, noop, T1);
+
+            ASSERTV(NOW + INTERVAL <= x.nextPendingEventTime());
+
+            x.cancelEvent(handle);
+
+            ASSERT(NONE == x.nextPendingEventTime());
+        }
+        {
+            Obj x;
+
+            ASSERT(NONE == x.nextPendingEventTime());
+
+            RecurringEventHandle handle;
+
+            x.scheduleRecurringEvent(&handle, INTERVAL, noop, T2);
+
+            ASSERT(T2 == x.nextPendingEventTime());
+
+            x.cancelEvent(handle);
+
+            ASSERT(NONE == x.nextPendingEventTime());
+        }
+        {
+            Obj x;
+
+            ASSERT(NONE == x.nextPendingEventTime());
+
+            RecurringEventHandle handle;
+
+            x.scheduleRecurringEvent(&handle, INTERVAL, noop, T3);
+
+            ASSERT(T3 == x.nextPendingEventTime());
+
+            x.cancelEvent(handle);
+
+            ASSERT(NONE == x.nextPendingEventTime());
+        }
+      } break;
       case 33: {
         // --------------------------------------------------------------------
         // TESTING THREAD NAME
@@ -3443,11 +3685,9 @@ int main(int argc, char *argv[])
             done.wait();
             scheduler.stop();
 
-            const double EPSILON = .1;
-
-            ASSERTV(elapsedTimeOne,   EPSILON > fabs(1 - elapsedTimeOne));
-            ASSERTV(elapsedTimeTwo,   EPSILON > fabs(2 - elapsedTimeTwo));
-            ASSERTV(elapsedTimeThree, EPSILON > fabs(3 - elapsedTimeThree));
+            ASSERTV(elapsedTimeOne,   0.99 <= elapsedTimeOne);
+            ASSERTV(elapsedTimeTwo,   1.99 <= elapsedTimeTwo);
+            ASSERTV(elapsedTimeThree, 2.99 <= elapsedTimeThree);
         }
 
         if (verbose) cout << "\tBreathing test custom clock" << endl;
@@ -3505,11 +3745,9 @@ int main(int argc, char *argv[])
             done.wait();
             scheduler.stop();
 
-            const double EPSILON = .1;
-
-            ASSERTV(elapsedTimeOne,   EPSILON > fabs(1 - elapsedTimeOne));
-            ASSERTV(elapsedTimeTwo,   EPSILON > fabs(1 - elapsedTimeTwo));
-            ASSERTV(elapsedTimeThree, EPSILON > fabs(2 - elapsedTimeThree));
+            ASSERTV(elapsedTimeOne,   0.99 <= elapsedTimeOne);
+            ASSERTV(elapsedTimeTwo,   0.99 <= elapsedTimeTwo);
+            ASSERTV(elapsedTimeThree, 1.99 <= elapsedTimeThree);
         }
 #endif
       } break;
@@ -3719,22 +3957,11 @@ int main(int argc, char *argv[])
         // Start the dispatcher thread.
         scheduler.start();
 
-        // Set the watchdog.
-        bslmt::ThreadUtil::Handle watchdogHandle;
-
-        s_continue = 1;
-        setWatchdogText("`advanceTime` with 100ns");
-        bslmt::ThreadUtil::create(&watchdogHandle, watchdog, 0);
-
         // Advance the time by 100 nanoseconds 10 times (1ms total).
         for (int i = 0; i < 10; ++i) {
             ASSERT(0 == s_case25CallbackInvocationCount);
             timeSource.advanceTime(bsls::TimeInterval(0, 100));
         }
-
-        // Shutdown watchdog.
-        s_continue = 0;
-        bslmt::ThreadUtil::join(watchdogHandle);
 
         // Assert the callback was invoked exactly once.
         ASSERT(1 == s_case25CallbackInvocationCount);
@@ -4560,6 +4787,10 @@ int main(int argc, char *argv[])
         bslmt::ThreadUtil::microSleep(300 * 1000);    // get event pending
 
         scheduler.stop();
+
+        for (int i = 0; i < 15 && !r.s_finished; ++i) {
+            bslmt::ThreadUtil::microSleep(0, 1);
+        }
 
         if (verbose) {
             cout << (r.s_finished ? "Finished OK" : "Error -- did not finish")
@@ -5428,7 +5659,7 @@ int main(int argc, char *argv[])
         executeInParallel(k_NUM_THREADS, workerThread11);
         microSleep(T10, 0);
 
-        if (!testTimingFailure) {
+        if (!testTimingFailure.loadRelaxed()) {
             for (int i = 0; i< k_NUM_THREADS; ++i) {
                 ASSERT( 0 == testObj[i].numExecuted() );
             }
@@ -5496,7 +5727,7 @@ int main(int argc, char *argv[])
         executeInParallel(k_NUM_THREADS, workerThread10);
         microSleep(T10, 0);
 
-        if (!testTimingFailure) {
+        if (!testTimingFailure.loadRelaxed()) {
             for (int i = 0; i < k_NUM_THREADS; ++i) {
                 LOOP2_ASSERT(i, testObj[i].numExecuted(),
                              0 == testObj[i].numExecuted() );

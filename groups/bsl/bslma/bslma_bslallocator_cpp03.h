@@ -21,7 +21,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Sun Sep  1 09:58:46 2024
+// Generated on Tue Apr  8 14:32:42 2025
 // Command line: sim_cpp11_features.pl bslma_bslallocator.h
 
 #ifdef COMPILING_BSLMA_BSLALLOCATOR_H
@@ -34,8 +34,9 @@ namespace BloombergLP {
 namespace bslma {
 
 // FORWARD DECLARATIONS
+
+/// Object type that will be placeholder for 'void'
 struct BslAllocator_Voidish;
-    // Object type that will be placeholder for 'void'
 
 }  // close package namespace
 }  // close enterprise namespace
@@ -129,24 +130,25 @@ class allocator : public polymorphic_allocator<TYPE> {
     template <class ANY_TYPE>
     allocator(const allocator<ANY_TYPE>& original) BSLS_KEYWORD_NOEXCEPT;
 
+    /// Destroy this object.  Note that this destructor does not delete the
+    /// object pointed to by `mechanism()`.
     //! ~allocator() = default;
-        // Destroy this object.  Note that this destructor does not delete the
-        // object pointed to by 'mechanism()'.
 
     // MANIPULATORS
     BSLMA_BSLALLOCATOR_DEPRECATE_ASSIGN
-    /// **DEPRECATED** `bsl::allocator` should not be assigned.  Modify this
-    /// allocator to use the same mechanism as the specified `rhs` allocator
-    /// and return a modifiable reference to this object.  Note that
-    /// `bsl::allocator` objects should never be assigned at runtime, but,
-    /// in the absence of `if constexpr`, such assignments can sometimes be
-    /// found legitimately in dead branches (branches that are never taken
-    /// at runtime) within function templates; ideally, such code would be
+    /// Modify this allocator to use the same mechanism as the specified `rhs`
+    /// allocator and return a modifiable reference to this object.  Note that
+    /// `bsl::allocator` objects should never be assigned at runtime, but, in
+    /// the absence of `if constexpr`, such assignments can sometimes be found
+    /// legitimately in dead branches (branches that are never taken at
+    /// runtime) within function templates; ideally, such code would be
     /// replaced by more sophisticated metaprogramming that avoided calls to
     /// this operator entirely.  Invoking this assignment will result in a
-    /// review error unless `rhs == *this`, i.e., when the assignment would
-    /// be a no-op.  In the future, the review error may be replaced with an
-    /// a hard assertion failure.
+    /// review error unless `rhs == *this`, i.e., when the assignment would be
+    /// a no-op.  In the future, the review error may be replaced with an a
+    /// hard assertion failure.
+    ///
+    /// @DEPRECATED:`bsl::allocator` should not be assigned.
     allocator& operator=(const allocator& rhs);
 
     /// Return a block of memory having sufficient size and alignment to
@@ -859,11 +861,6 @@ class allocator<void>
     /// ```
     allocator(BloombergLP::bslma::Allocator *mechanism);            // IMPLICIT
 
-#ifdef BSLS_COMPILERFEATURES_SUPPORT_DEFAULTED_FUNCTIONS
-    allocator(const allocator& original) BSLS_KEYWORD_NOEXCEPT = default;
-#else
-    allocator(const allocator& original) BSLS_KEYWORD_NOEXCEPT;
-#endif
     /// Create a proxy object sharing the same mechanism object as the
     /// specified `original`.  The newly constructed allocator will compare
     /// equal to `original`, even though they may be instantiated on
@@ -871,6 +868,11 @@ class allocator<void>
     /// ```
     /// this->mechanism() == original.mechanism();
     /// ```
+#ifdef BSLS_COMPILERFEATURES_SUPPORT_DEFAULTED_FUNCTIONS
+    allocator(const allocator& original) BSLS_KEYWORD_NOEXCEPT = default;
+#else
+    allocator(const allocator& original) BSLS_KEYWORD_NOEXCEPT;
+#endif
     template <class ANY_TYPE>
     allocator(const allocator<ANY_TYPE>& original) BSLS_KEYWORD_NOEXCEPT;
 
@@ -880,6 +882,8 @@ class allocator<void>
     //! ~allocator();
 
     // MANIPULATORS
+
+    /// Compiler-generated assign operator.
     //! allocator& operator=(const allocator& rhs) = default;
 
     // ACCESSORS
@@ -3156,8 +3160,8 @@ template <class TYPE>
 BSLS_KEYWORD_CONSTEXPR inline
 typename allocator<TYPE>::size_type allocator<TYPE>::max_size() const
 {
-    // Return the largest value, 'v', such that 'v * sizeof(T)' fits in a
-    // 'size_type'.
+    // Return the largest value, `v`, such that `v * sizeof(T)` fits in a
+    // `size_type`.
 
     BSLS_KEYWORD_CONSTEXPR
         const size_type MAX_NUM_BYTES    = ~size_type(0);
@@ -3180,7 +3184,6 @@ allocator<TYPE> allocator<TYPE>::select_on_container_copy_construction() const
 {
     return allocator();
 }
-
 
                            // ---------------------
                            // class allocator<void>
@@ -3225,20 +3228,20 @@ allocator<void> allocator<void>::select_on_container_copy_construction() const
 
 #if BSLS_PLATFORM_CMP_MSVC
 // As of MSVC 19.30.30709 (2022), the following workaround is still needed.
-// When a fix is released, the above '#if' condition should be updated to apply
+// When a fix is released, the above `#if` condition should be updated to apply
 // only to versions before the fixed one.
 
 // These equality and inequality operators should be unnecessary because they
-// automatically fall back on 'polymoprhic_allocator'.  However an odd bug in
-// MSVC causes it, in the presence of '<bslma_convertibleallocator.h>' to
-// include the 'bslma::ConvertibleAllocator' "hidden friend" equality operators
-// in the the lookup set even if neither argument is 'ConvertibleAllocator',
-// thus making 'operator==' ambiguous when comparing 'bsl::allocator' to
-// 'bslma::Allocator *'.  Strangely 'using namespace bslma' suppresses this
+// automatically fall back on `polymoprhic_allocator`.  However an odd bug in
+// MSVC causes it, in the presence of `<bslma_convertibleallocator.h>` to
+// include the `bslma::ConvertibleAllocator` "hidden friend" equality operators
+// in the the lookup set even if neither argument is `ConvertibleAllocator`,
+// thus making `operator==` ambiguous when comparing `bsl::allocator` to
+// `bslma::Allocator *`.  Strangely `using namespace bslma` suppresses this
 // bug, but it is not practical to require clients to do that.  The operators
 // below quash this ambiguity.  Although harmless for other platforms, they are
 // compiled only for affected versions of MSVC and are considered an
-// implementation detail (not part of the interface for 'bsl::allocator').
+// implementation detail (not part of the interface for `bsl::allocator`).
 
 template <class TYPE>
 inline
